@@ -1,5 +1,7 @@
 
 import React from 'react';
+import FAQSection from './FAQSection';
+import ResourcesSection from './ResourcesSection';
 
 interface LandingPageProps {
   onStartConsultation: () => void;
@@ -15,7 +17,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartConsultation }) => {
             <div className="flex flex-col gap-8 text-center lg:text-left z-10">
               <div className="inline-flex items-center gap-2 self-center lg:self-start px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                <span>AI-Powered Legal Assistant</span>
+                <span>Immediate Legal Assistance</span>
               </div>
               
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
@@ -27,12 +29,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartConsultation }) => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <button 
-                  onClick={onStartConsultation}
-                  className="flex items-center justify-center rounded-xl h-14 px-10 bg-primary hover:bg-primary/90 text-white text-lg font-bold shadow-2xl shadow-primary/25 transition-transform active:scale-95"
-                >
-                  Start Legal Consultation
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={onStartConsultation}
+                    className="flex items-center justify-center rounded-xl h-14 px-10 bg-primary hover:bg-primary/90 text-white text-lg font-bold shadow-2xl shadow-primary/25 transition-transform active:scale-95"
+                  >
+                    Start Quick Consultation
+                  </button>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-center">No Sign-In Required</span>
+                </div>
                 <button className="flex items-center justify-center rounded-xl h-14 px-10 bg-slate-800 hover:bg-slate-700 text-white text-lg font-bold transition-colors">
                   Learn How It Works
                 </button>
@@ -98,6 +103,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStartConsultation }) => {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQSection />
+
+      {/* Resources Section */}
+      <ResourcesSection />
 
       {/* Trust Section */}
       <section className="py-24">

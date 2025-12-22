@@ -5,139 +5,276 @@ import { geminiService } from '../services/geminiService';
 
 interface ConsultationScreenProps {
   onBack: () => void;
+  isLoggedIn?: boolean;
 }
 
-const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([
+interface ExtendedMessage extends Message {
+  sources?: any[];
+  imagePreview?: string;
+}
+
+const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false }) => {
+  const [messages, setMessages] = useState<ExtendedMessage[]>([
     {
       role: 'assistant',
-      content: "Hello! I am your AI Philippine Legal Assistant. How can I help you today? Please remember that I provide information, not legal advice.",
+      content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
       timestamp: new Date()
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | undefined>();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => console.warn("Location access denied")
+    );
+  }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setSelectedImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
-    const userMessage: Message = {
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() && !selectedImage) return;
+    if (isLoading) return;
+
+    const userMessage: ExtendedMessage = {
       role: 'user',
-      content: input,
-      timestamp: new Date()
+      content: text || "Please analyze this document.",
+      timestamp: new Date(),
+      imagePreview: selectedImage || undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = text;
+    const currentImg = selectedImage;
+    
     setInput('');
+    setSelectedImage(null);
     setIsLoading(true);
 
     try {
-      const response = await geminiService.getLegalResponse(input, messages);
-      const assistantMessage: Message = {
+      const result = await geminiService.getLegalResponse(
+        currentInput || "Analyze the attached legal document.", 
+        messages, 
+        currentImg || undefined,
+        location
+      );
+      
+      const assistantMessage: ExtendedMessage = {
         role: 'assistant',
-        content: response,
-        timestamp: new Date()
+        content: result.text,
+        timestamp: new Date(),
+        sources: result.groundingChunks
       };
+      
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      const errorMessage: Message = {
+      setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'm sorry, I encountered an error processing your request. Please try again later.",
+        content: "Pasensya na, I encountered an error. Please try again.",
         timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col h-[calc(100vh-128px)]">
-      <div className="flex items-center justify-between mb-6">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-medium"
-        >
-          <span className="material-symbols-outlined text-base">arrow_back</span>
-          Back to Home
-        </button>
-        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-xs font-bold uppercase">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-          AI Consultant Online
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-background-dark">
+      {/* Sidebar - Desktop */}
+      <div className={`${isSidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 border-r border-border-dark bg-slate-900/50 hidden md:flex flex-col`}>
+        <div className="p-6 border-b border-border-dark flex items-center justify-between">
+          <h3 className="font-bold text-xs uppercase tracking-widest text-slate-500">Workspace</h3>
+          <button className="text-primary hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-sm">add_circle</span>
+          </button>
+        </div>
+        <div className="flex-grow p-4 space-y-4 overflow-y-auto">
+          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary cursor-pointer">
+            Current Consultation
+          </div>
+          
+          {!isLoggedIn && (
+            <div className="p-5 bg-card-dark border border-dashed border-border-dark rounded-2xl space-y-3">
+              <div className="flex items-center gap-2 text-amber-400">
+                <span className="material-symbols-outlined text-lg">history</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">History Disabled</span>
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                Your guest consultation will not be saved. Sign in to sync history across devices.
+              </p>
+              <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors">
+                Sign In Now
+              </button>
+            </div>
+          )}
+
+          <div className="p-3 opacity-30 cursor-not-allowed">
+            <div className="h-2 w-1/2 bg-slate-700 rounded mb-2"></div>
+            <div className="h-2 w-3/4 bg-slate-700 rounded"></div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-grow bg-card-dark rounded-3xl border border-border-dark shadow-2xl overflow-hidden flex flex-col">
-        <div className="flex-grow overflow-y-auto p-6 space-y-6">
-          {messages.map((msg, idx) => (
-            <div 
-              key={idx} 
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-[85%] flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white ${msg.role === 'user' ? 'bg-slate-700' : 'bg-primary'}`}>
-                  <span className="material-symbols-outlined text-base">
-                    {msg.role === 'user' ? 'person' : 'smart_toy'}
-                  </span>
-                </div>
-                <div className={`p-4 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-slate-800 text-gray-200'}`}>
-                  <div className="text-sm prose prose-invert max-w-none whitespace-pre-wrap">
-                    {msg.content}
-                  </div>
-                  <div className={`text-[10px] mt-2 opacity-50 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="flex gap-4 items-center p-4 bg-slate-800 rounded-2xl border border-border-dark">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce"></span>
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                </div>
-                <span className="text-xs text-gray-400 font-medium">Researching Philippine Law...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 border-t border-border-dark bg-background-dark/30">
-          <div className="relative flex items-center">
-            <input 
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about Revised Penal Code, Labor Laws, etc..."
-              className="w-full bg-slate-800/50 border border-border-dark rounded-2xl py-4 pl-6 pr-16 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-white placeholder-gray-500"
-              disabled={isLoading}
-            />
-            <button 
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-2 p-3 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:bg-slate-700 rounded-xl text-white transition-all shadow-lg active:scale-95"
-            >
-              <span className="material-symbols-outlined">send</span>
+      {/* Main Workspace */}
+      <div className="flex-grow flex flex-col relative">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-slate-900/20">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:block text-slate-400 hover:text-white transition-colors">
+              <span className="material-symbols-outlined">{isSidebarOpen ? 'menu_open' : 'menu'}</span>
+            </button>
+            <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors font-bold text-xs uppercase tracking-wider flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Exit
             </button>
           </div>
-          <p className="text-[10px] text-center text-gray-500 mt-3">
-            LexPH provides information based on Philippine Statutes and Jurisprudence. Verify with a legal professional.
-          </p>
-        </form>
+          
+          <div className="flex items-center gap-3">
+            {!isLoggedIn && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-500 text-[10px] font-black uppercase tracking-widest">
+                Guest Session
+              </div>
+            )}
+            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-[10px] font-black uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Encrypted
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Content */}
+        <div className="flex-grow overflow-y-auto p-6 md:p-10 space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                <div className={`max-w-[85%] flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-primary shadow-lg shadow-primary/20'}`}>
+                    <span className="material-symbols-outlined text-sm text-white">
+                      {msg.role === 'user' ? 'person' : 'account_balance'}
+                    </span>
+                  </div>
+                  <div className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    <div className={`p-5 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-slate-800/80 border border-border-dark text-slate-100'} shadow-sm`}>
+                      {msg.imagePreview && (
+                        <div className="mb-4 rounded-xl overflow-hidden border border-white/20">
+                          <img src={msg.imagePreview} alt="Uploaded document" className="max-w-xs h-auto" />
+                        </div>
+                      )}
+                      <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                      
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/10 grid gap-2">
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">References & Locations</p>
+                          <div className="flex flex-wrap gap-2">
+                            {msg.sources.map((chunk, ci) => (
+                              <React.Fragment key={ci}>
+                                {chunk.web && (
+                                  <a href={chunk.web.uri} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-[10px] text-primary hover:bg-slate-700 transition-colors">
+                                    <span className="material-symbols-outlined text-[14px]">description</span> {chunk.web.title || 'Law Summary'}
+                                  </a>
+                                )}
+                                {chunk.maps && (
+                                  <a href={chunk.maps.uri} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/20 border border-green-800/30 rounded-lg text-[10px] text-green-400 hover:bg-green-800/40 transition-colors">
+                                    <span className="material-symbols-outlined text-[14px]">location_on</span> View Location
+                                  </a>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="flex gap-4 items-center p-5 bg-slate-800/40 rounded-2xl border border-border-dark">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-widest font-black text-slate-500">Legal Processing...</span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Floating Input Bar */}
+        <div className="p-6 md:p-10">
+          <div className="max-w-4xl mx-auto">
+            {selectedImage && (
+              <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-between animate-in slide-in-from-bottom-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/20">
+                    <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-xs font-bold text-primary">Document attached for review</span>
+                </div>
+                <button onClick={() => setSelectedImage(null)} className="text-primary hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">cancel</span>
+                </button>
+              </div>
+            )}
+            
+            <form 
+              onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }} 
+              className="relative flex items-center group bg-slate-800/80 backdrop-blur-xl border border-border-dark rounded-[24px] p-2 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-2xl"
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+              />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 text-slate-400 hover:text-primary transition-colors"
+                title="Upload legal document"
+              >
+                <span className="material-symbols-outlined">attachment</span>
+              </button>
+              
+              <input 
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask LexPH or scan a document..."
+                className="flex-grow bg-transparent py-4 px-4 text-white placeholder-slate-500 focus:outline-none"
+                disabled={isLoading}
+              />
+              
+              <button 
+                type="submit"
+                disabled={(!input.trim() && !selectedImage) || isLoading}
+                className="bg-primary hover:bg-primary/90 text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined">gavel</span>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

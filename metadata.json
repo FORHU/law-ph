@@ -1,5 +1,8 @@
 {
-  "name": "AI Philippine Legal Assistant",
-  "description": "A sophisticated AI-powered legal assistant specialized in Philippine Law, providing instant citations from the Revised Penal Code, Civil Code, and jurisprudence.",
-  "requestFramePermissions": []
+  "name": "LexPH - AI Philippine Legal Workspace",
+  "description": "A sophisticated AI-powered legal assistant specialized in Philippine Law with document scanning and location-based legal help.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
 }

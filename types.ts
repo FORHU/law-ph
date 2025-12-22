@@ -7,5 +7,6 @@ export interface Message {
 
 export enum AppScreen {
   LANDING = 'LANDING',
-  CONSULTATION = 'CONSULTATION'
+  CONSULTATION = 'CONSULTATION',
+  LOGIN = 'LOGIN'
 }
