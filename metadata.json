@@ -1,8 +1,0 @@
-{
-  "name": "LexPH - AI Philippine Legal Workspace",
-  "description": "A sophisticated AI-powered legal assistant specialized in Philippine Law with document scanning and location-based legal help.",
-  "requestFramePermissions": [
-    "camera",
-    "geolocation"
-  ]
-}

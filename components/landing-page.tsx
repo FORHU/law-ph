@@ -1,13 +1,13 @@
 
 import React from 'react';
-import FAQSection from './FAQSection';
-import ResourcesSection from './ResourcesSection';
+import FAQSection from './faq-section';
+import ResourcesSection from './resources-section';
 
 interface LandingPageProps {
   onStartConsultation: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onStartConsultation }) => {
+export function LandingPage({ onStartConsultation } : LandingPageProps ) {
   return (
     <div className="space-y-0">
       {/* Hero Section */}
@@ -172,4 +172,3 @@ const TrustCard: React.FC<{ icon: string; title: string; description: string; ac
   </div>
 );
 
-export default LandingPage;

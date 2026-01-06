@@ -1,7 +1,8 @@
+"use client"; // <-- Add this
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Message } from '../types';
-import { geminiService } from '../services/geminiService';
+import { Message } from '@/types';
+import { geminiService } from '@/services/geminiService';
 
 interface ConsultationScreenProps {
   onBack: () => void;
@@ -30,7 +31,7 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => console.warn("Location access denied")
