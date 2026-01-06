@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 
 interface FAQItemProps {
   question: string;
@@ -32,7 +32,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer, isOpen, onClick }) 
 );
 
 const FAQSection: React.FC = () => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(0);
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(0);
 
   const faqs = [
     {

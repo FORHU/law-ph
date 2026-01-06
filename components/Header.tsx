@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AppScreen } from '../types';
+import { AppScreen } from '@/types';
 
 interface HeaderProps {
   onNavigate: (screen: AppScreen) => void;
