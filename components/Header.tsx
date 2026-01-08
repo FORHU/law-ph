@@ -4,8 +4,11 @@ import { AppScreen } from '@/types';
 import { useRouter } from 'next/navigation';
 
 
+interface HeaderProps {
+  isLoggedIn?: boolean;
+}
 
-const Header = () => {
+const Header = ({ isLoggedIn} : HeaderProps) => {
 const router = useRouter()
 
 const navigateToHome = () => {
@@ -83,12 +86,13 @@ const navigateToLogin = () => {
           </nav>
 
           <div className="flex items-center gap-4">
-            <button 
+            { !isLoggedIn && ( <button 
               onClick={navigateToLogin}
               className="rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20"
             >
               Login
-            </button>
+            </button>)}
+           
           </div>
         </div>
       </div>

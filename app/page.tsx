@@ -8,15 +8,13 @@ import Header from "@/components/header";
 import { Footer } from "@/components/footer";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
 
 export default function Home() {
-  const router = useRouter()
-    // const [currentScreen, setCurrentScreen] = React.useState<AppScreen>(AppScreen.LANDING);
-    // const navigateTo = (screen: AppScreen) => {
-    //   setCurrentScreen(screen);
-    //   window.scrollTo({ top: 0, behavior: 'smooth' });
-    // };
 
+  const { loggedIn } = useAuth()
+
+  const router = useRouter()
   const navigateToConsultationPage = () => {
     router.push('/consultation')
   }
@@ -24,11 +22,11 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center">
        <div className="flex flex-col min-h-screen bg-background-dark text-white font-sans selection:bg-primary/30">
-          <Header  />
-        <main className="flex-grow">
+          <Header isLoggedIn={loggedIn}  />
+        <main className="grow">
           <LandingPage onStartConsultation={navigateToConsultationPage} />
         </main>
-      <Footer/>
+          <Footer isLoggedIn={loggedIn}/>
        </div>
     </main>
   );

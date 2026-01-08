@@ -22,7 +22,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
         setLoading(true)
         setSuccess(false)
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data : { session }, error } = await supabase.auth.signInWithPassword({
             email, password
         })
 
@@ -30,7 +30,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
             setError(error?.message || "Something went wrong. Please try again later.")
         }
 
-        if(data && data?.user){
+        if(session){
             setSuccess(true)
             setTimeout(() => {
                 onLoginSuccess()
