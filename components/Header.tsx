@@ -1,23 +1,38 @@
 
 import React from 'react';
 import { AppScreen } from '@/types';
+import { useRouter } from 'next/navigation';
 
-interface HeaderProps {
-  onNavigate: (screen: AppScreen) => void;
+
+
+const Header = () => {
+const router = useRouter()
+
+const navigateToHome = () => {
+      router.push('/')
 }
 
-const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
+const navigateToLogin = () => {
+      router.push('/auth/login')
+}
+
+
   const scrollToSection = (id: string) => {
     // Navigate to landing screen first
-    onNavigate(AppScreen.LANDING);
     
     // Allow time for the landing page to mount before scrolling
+
     setTimeout(() => {
       const section = document.getElementById(id);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
       }
     }, 100);
+  };
+
+    const handleAboutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    scrollToSection('about');
   };
 
   const handleFaqClick = (e: React.MouseEvent) => {
@@ -35,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <button 
-            onClick={() => onNavigate(AppScreen.LANDING)}
+            onClick={navigateToHome}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
             <div className="text-primary">
@@ -46,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           
           <nav className="hidden md:flex items-center gap-8">
             <button 
-              onClick={() => onNavigate(AppScreen.LANDING)}
+              onClick={handleAboutClick}
               className="text-sm font-medium text-gray-300 hover:text-primary transition-colors"
             >
               About
@@ -69,7 +84,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => onNavigate(AppScreen.LOGIN)}
+              onClick={navigateToLogin}
               className="rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20"
             >
               Login

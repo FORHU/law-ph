@@ -108,7 +108,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                 className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               >
                  
-                {(loading || success) ?  "Signing in.."  : "Sign in" }
+                {(loading || success) ? (<div className="flex items-center gap-3"><span className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></span> <span>Signing in..</span> </div>)  : "Sign in" }
 
               </button>
               { error && (<p className="text-red-500 text-xs mt-2">{error}</p>)}
