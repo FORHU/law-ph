@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from "@/lib/supabase/client" 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Toast } from "@/components/ui/toast"
 
 interface LoginFormProps {
@@ -14,6 +14,14 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess ] = useState(false)
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+      setEmail('');
+      setPassword('');
+      setError(null);
+      setSuccess(false);
+      setLoading(false);
+    }, []);
 
     const supabase = createClient()
     async function signInWithEmail(e: React.FormEvent<HTMLFormElement>){
@@ -114,6 +122,10 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
               { error && (<p className="text-red-500 text-xs mt-2">{error}</p>)}
               { success && (<p className="text-green-500 text-xs mt-2">Login successful. Redirecting...</p>)}
             </div>
+
+            <div className="text-sm flex gap-1 items-center justify-center"> 
+              <p>No account yet?</p> <a href="/auth/sign-up" className="font-semibold text-indigo-400 hover:text-indigo-300">Signup</a>
+                </div>
           </form>
         </div>
       </div>
