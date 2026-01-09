@@ -89,7 +89,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   Password
                 </label>
                 <div className="text-sm">
-                  <a href="#" className="font-semibold text-indigo-400 hover:text-indigo-300">
+                  <a href="/auth/forgot-password" className="font-semibold text-indigo-400 hover:text-indigo-300">
                     Forgot password?
                   </a>
                 </div>
