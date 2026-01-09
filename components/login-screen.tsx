@@ -1,21 +1,30 @@
+'use client'
 
 import React from 'react';
 import LoginForm from './auth/login-form';
+import { useRouter } from 'next/navigation';
 
-interface LoginScreenProps {
-  onBack: () => void;
-  onLoginSuccess: () => void;
-}
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onBack, onLoginSuccess }) => {
+const LoginScreen = () => {
+
+  const router = useRouter()
+
   const [isLoading, setIsLoading] = React.useState(false);
+
+  const onBack = () => {
+    router.push('/')
+  }
+
+  const onLoginSuccess = () => {
+    router.push('/consultation')
+  }
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
     // Simulate authentication delay
     setTimeout(() => {
       setIsLoading(false);
-      onLoginSuccess();
+      // onLoginSuccess();
     }, 1200);
   };
 
