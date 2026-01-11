@@ -1,43 +1,35 @@
-"use client"; // <-- Add this
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Message } from '@/types';
-import { geminiService } from '@/services/geminiService';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSocketChat } from '@/hooks/use-socket-chat';
+import { Message } from '@/types'; // Standard Message type
 
 interface ConsultationScreenProps {
   onBack: () => void;
   isLoggedIn?: boolean;
 }
 
+// Extended for local UI needs if necessary, but hook uses this structure too
 interface ExtendedMessage extends Message {
   sources?: any[];
   imagePreview?: string;
 }
 
 const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false }) => {
-  const [messages, setMessages] = useState<ExtendedMessage[]>([
-    {
-      role: 'assistant',
-      content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
-      timestamp: new Date()
-    }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | undefined>();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [input, setInput] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  React.useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => console.warn("Location access denied")
-    );
-  }, []);
+  // Use the socket chat hook
+  const { messages, sendMessage, isLoading, sessionId } = useSocketChat({
+    url: process.env.NEXT_PUBLIC_CHAT_WONDER_WS_URL || "ws://localhost:8001/chat-stream",
+    apiUrl: process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || "http://localhost:8001",
+    onError: useCallback((err: string) => console.error("Chat Error:", err), [])
+  });
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
@@ -51,50 +43,15 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     }
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = (text: string) => {
     if (!text.trim() && !selectedImage) return;
-    if (isLoading) return;
 
-    const userMessage: ExtendedMessage = {
-      role: 'user',
-      content: text || "Please analyze this document.",
-      timestamp: new Date(),
-      imagePreview: selectedImage || undefined
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    const currentInput = text;
-    const currentImg = selectedImage;
+    // Send via socket
+    // Note: Image sending is not yet supported by backend socket, passing it but it won't be processed effectively
+    sendMessage(text, selectedImage || undefined);
     
     setInput('');
     setSelectedImage(null);
-    setIsLoading(true);
-
-    try {
-      const result = await geminiService.getLegalResponse(
-        currentInput || "Analyze the attached legal document.", 
-        messages, 
-        currentImg || undefined,
-        location
-      );
-      
-      const assistantMessage: ExtendedMessage = {
-        role: 'assistant',
-        content: result.text,
-        timestamp: new Date(),
-        sources: result.groundingChunks
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "Pasensya na, I encountered an error. Please try again.",
-        timestamp: new Date()
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -112,6 +69,10 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
             Current Consultation
           </div>
           
+          <div className="px-3 py-2">
+            <p className="text-[10px] text-slate-500 font-mono">Session: {sessionId.slice(0, 8)}...</p>
+          </div>
+
           {!isLoggedIn && (
             <div className="p-5 bg-card-dark border border-dashed border-border-dark rounded-2xl space-y-3">
               <div className="flex items-center gap-2 text-amber-400">
@@ -126,11 +87,6 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
               </button>
             </div>
           )}
-
-          <div className="p-3 opacity-30 cursor-not-allowed">
-            <div className="h-2 w-1/2 bg-slate-700 rounded mb-2"></div>
-            <div className="h-2 w-3/4 bg-slate-700 rounded"></div>
-          </div>
         </div>
       </div>
 
@@ -171,18 +127,21 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
                   </div>
                   <div className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                     <div className={`p-5 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-slate-800/80 border border-border-dark text-slate-100'} shadow-sm`}>
-                      {msg.imagePreview && (
+                      {(msg as ExtendedMessage).imagePreview && (
                         <div className="mb-4 rounded-xl overflow-hidden border border-white/20">
-                          <img src={msg.imagePreview} alt="Uploaded document" className="max-w-xs h-auto" />
+                          <img src={(msg as ExtendedMessage).imagePreview} alt="Uploaded document" className="max-w-xs h-auto" />
                         </div>
                       )}
+                      
+                      {/* Note: Streaming content updates here directly */}
                       <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</div>
                       
-                      {msg.sources && msg.sources.length > 0 && (
+                      {/* Render Sources if available (mostly for legacy or if backend updates) */}
+                      {(msg as ExtendedMessage).sources && (msg as ExtendedMessage).sources!.length > 0 && (
                         <div className="mt-4 pt-4 border-t border-white/10 grid gap-2">
                           <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">References & Locations</p>
                           <div className="flex flex-wrap gap-2">
-                            {msg.sources.map((chunk, ci) => (
+                            {(msg as ExtendedMessage).sources!.map((chunk: any, ci: number) => (
                               <React.Fragment key={ci}>
                                 {chunk.web && (
                                   <a href={chunk.web.uri} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-[10px] text-primary hover:bg-slate-700 transition-colors">
@@ -204,17 +163,24 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
                 </div>
               </div>
             ))}
+            
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="flex gap-4 items-center p-5 bg-slate-800/40 rounded-2xl border border-border-dark">
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
+               /* Show typing indicator only if the latest message is NOT from assistant (i.e., initial wait) 
+                  OR if assistant message is empty. 
+                  But since we auto-add an empty assistant message, we might see the empty bubble growing. 
+                  Let's just show a small indicator if the last message content is empty */
+               (messages.length === 0 || messages[messages.length - 1].role !== 'assistant' || messages[messages.length - 1].content === '') && (
+                <div className="flex justify-start">
+                  <div className="flex gap-4 items-center p-5 bg-slate-800/40 rounded-2xl border border-border-dark">
+                    <div className="flex gap-1">
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest font-black text-slate-500">Legal Thinking...</span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-widest font-black text-slate-500">Legal Processing...</span>
                 </div>
-              </div>
+               )
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -223,13 +189,20 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
         {/* Floating Input Bar */}
         <div className="p-6 md:p-10">
           <div className="max-w-4xl mx-auto">
+             {/* Warning about limited functionality */}
+             <div className="mb-2 text-center">
+                <span className="text-[10px] text-amber-500/70 uppercase tracking-widest">
+                    ⚠️ Note: Image analysis is currently limited in this mode.
+                </span>
+             </div>
+
             {selectedImage && (
               <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-between animate-in slide-in-from-bottom-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg overflow-hidden border border-primary/20">
                     <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xs font-bold text-primary">Document attached for review</span>
+                  <span className="text-xs font-bold text-primary">Document attached</span>
                 </div>
                 <button onClick={() => setSelectedImage(null)} className="text-primary hover:text-white transition-colors">
                   <span className="material-symbols-outlined">cancel</span>
@@ -261,14 +234,14 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask LexPH or scan a document..."
+                placeholder="Ask LexPH regarding Philippine Law..."
                 className="flex-grow bg-transparent py-4 px-4 text-white placeholder-slate-500 focus:outline-none"
-                disabled={isLoading}
+                disabled={isLoading && messages.length > 0 && messages[messages.length-1].content === ''} // Only disable if strictly waiting for connect
               />
               
               <button 
                 type="submit"
-                disabled={(!input.trim() && !selectedImage) || isLoading}
+                disabled={(!input.trim() && !selectedImage) || (isLoading && messages[messages.length-1].content === '')}
                 className="bg-primary hover:bg-primary/90 text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95 disabled:opacity-50"
               >
                 <span className="material-symbols-outlined">gavel</span>
