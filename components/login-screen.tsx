@@ -3,6 +3,7 @@
 import React from 'react';
 import LoginForm from './auth/login-form';
 import { useRouter } from 'next/navigation';
+import BackButton from './back-button';
 
 
 const LoginScreen = () => {
@@ -37,15 +38,13 @@ const LoginScreen = () => {
       </div>
 
       <div className="w-full  z-10 animate-in fade-in zoom-in-95 duration-500">
-        <button 
-          onClick={onBack}
-          className="group flex items-center gap-2 text-gray-500 hover:text-white mb-8 transition-colors font-bold text-xs uppercase tracking-widest"
-        >
-          <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-          Return to LexPH
-        </button>
+        <BackButton
+               label="Return to LexPH"
+               className="absolute top-5 left-5"
+               fallbackHref="/"
+             />
 
-        <div className="bg-card-dark border border-border-dark rounded-[40px] p-8 md:p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="">
           <div className="flex flex-col items-center text-center mb-12">
             <div className="w-20 h-20 rounded-[28px] bg-primary flex items-center justify-center text-white mb-8 shadow-[0_20px_40px_-10px_rgba(19,91,236,0.4)]">
               <span className="material-symbols-outlined text-5xl">balance</span>
@@ -59,10 +58,10 @@ const LoginScreen = () => {
                 <LoginForm onLoginSuccess={onLoginSuccess} />
 
               <div className="space-y-6 mt-7">
-                <button 
+                {/* <button 
                   onClick={handleGoogleLogin}
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-4 bg-white hover:bg-gray-50 text-slate-900 font-black py-4.5 rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-70 group"
+                  className="w-full flex items-center justify-center gap-4 bg-white hover:bg-gray-50 text-slate-900 font-black py-2 rounded-md shadow-xl transition-all active:scale-[0.98] disabled:opacity-70 group"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-3">
@@ -72,10 +71,10 @@ const LoginScreen = () => {
                   ) : (
                     <>
                       <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-6 h-6" alt="Google" />
-                      <span className="text-[15px]">Continue with Google</span>
+                      <span className="text-[13px] font-semibold">Continue with Google</span>
                     </>
                   )}
-                </button>
+                </button> */}
                 
                 <div className="pt-8 text-center">
                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.2em] mb-4">Privacy Standards</p>

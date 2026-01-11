@@ -5,6 +5,9 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css"; // Tailwind + CSS variables
 import { createClient } from "@/lib/supabase/server";
 import AuthProvider from "@/components/auth-provider";
+import AuthServer from "@/components/auth-server";
+import { Suspense } from "react";
+import AuthLoading from "@/components/auth-loading";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -29,9 +32,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
 
-  const supabase = await createClient();
-  const { data : { session }} = await supabase.auth.getSession()
-  console.log('session', session)
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -51,9 +53,11 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Suspense fallback={<AuthLoading />}>
           <AuthProvider initialSession={session}>
-            {children}
+              {children}
           </AuthProvider>
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>
