@@ -5,7 +5,6 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css"; // Tailwind + CSS variables
 import { createClient } from "@/lib/supabase/server";
 import AuthProvider from "@/components/auth-provider";
-import AuthServer from "@/components/auth-server";
 import { Suspense } from "react";
 import AuthLoading from "@/components/auth-loading";
 
