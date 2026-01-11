@@ -24,8 +24,6 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
 
   // Use the socket chat hook
   const { messages, sendMessage, isLoading, sessionId } = useSocketChat({
-    url: process.env.NEXT_PUBLIC_CHAT_WONDER_WS_URL || "ws://localhost:8001/chat-stream",
-    apiUrl: process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || "http://localhost:8001",
     onError: useCallback((err: string) => console.error("Chat Error:", err), [])
   });
 

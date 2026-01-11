@@ -9,14 +9,12 @@ interface Message {
 }
 
 interface SocketChatOptions {
-  url: string;
-  apiUrl?: string;
   onMessageReceived?: (message: string) => void;
   onStreamComplete?: () => void;
   onError?: (error: string) => void;
 }
 
-export function useSocketChat({ url, apiUrl, onMessageReceived, onStreamComplete, onError }: SocketChatOptions) {
+export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: SocketChatOptions) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -31,15 +29,15 @@ export function useSocketChat({ url, apiUrl, onMessageReceived, onStreamComplete
   
   const [sessionId, setSessionId] = useState<string>('');
   
-  const socketRef = useRef<WebSocket | null>(null);
+  // Ref to store abort controller for cancelling streams
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize session ID from API
   useEffect(() => {
     const fetchSessionWithRetry = async (retries = 3) => {
         if (sessionId) return; // Prevent re-fetching if already set
         try {
-            const baseUrl = apiUrl || "http://localhost:8001";
-            const res = await fetch(`${baseUrl}/session-id`);
+            const res = await fetch('/api/chat/session');
             if (!res.ok) throw new Error("Failed to fetch session ID");
             const data = await res.json();
             setSessionId(data.session_id);
@@ -55,95 +53,9 @@ export function useSocketChat({ url, apiUrl, onMessageReceived, onStreamComplete
     };
 
     fetchSessionWithRetry();
-  }, [apiUrl, onError]);
+  }, [onError, sessionId]);
 
-  const connect = useCallback(() => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) return;
-    if (!sessionId) return; // Don't connect without session
-
-    try {
-      const socket = new WebSocket(url);
-      
-      socket.onopen = () => {
-        console.log('Connected to chat socket');
-      };
-
-      socket.onmessage = (event) => {
-        const data = event.data;
-        
-        if (data === "__END__") {
-          setIsLoading(false);
-          isLoadingRef.current = false;
-          if (onStreamComplete) onStreamComplete();
-        } else if (data.startsWith("[Error]")) {
-          setIsLoading(false);
-          isLoadingRef.current = false;
-          if (onError) onError(data);
-          // Add error message to chat
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `Error: ${data}`,
-            timestamp: new Date()
-          }]);
-        } else {
-          // Streaming text chunk
-          // Update the last message if it's from assistant, or create new one
-          setMessages(currentMessages => {
-            const lastMsg = currentMessages[currentMessages.length - 1];
-            
-            // Allow update if we are marked as loading OR if the last message is empty (start of stream)
-            // But checking isLoadingRef alone is safest for stream continuity
-            if (lastMsg && lastMsg.role === 'assistant' && isLoadingRef.current) {
-              // Update existing assistant message being streamed
-              const updatedMessages = [...currentMessages];
-              updatedMessages[updatedMessages.length - 1] = {
-                ...lastMsg,
-                content: lastMsg.content + data
-              };
-              return updatedMessages;
-            } else {
-               // Should have been created when sending, but if not:
-               return [...currentMessages, {
-                 role: 'assistant',
-                 content: data,
-                 timestamp: new Date()
-               }];
-            }
-          });
-          
-          if (onMessageReceived) onMessageReceived(data);
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error("Socket error", error);
-        setIsLoading(false);
-        isLoadingRef.current = false;
-        if (onError) onError("Connection error occurred.");
-      };
-
-      socket.onclose = () => {
-        console.log("Socket closed");
-      };
-
-      socketRef.current = socket;
-    } catch (err) {
-      console.error("Failed to connect", err);
-      if (onError) onError("Failed to connect to chat server.");
-    }
-  }, [url, sessionId, onMessageReceived, onStreamComplete, onError]); // Removed isLoading from deps
-
-  // Connect when session is ready
-  useEffect(() => {
-    if (sessionId) {
-        connect();
-    }
-    return () => {
-      socketRef.current?.close();
-    };
-  }, [sessionId, connect]);
-
-  const sendMessage = useCallback((text: string, image?: string) => {
+  const sendMessage = useCallback(async (text: string, image?: string) => {
     if (!text.trim() && !image) return;
     if (!sessionId) {
         if(onError) onError("Initializing session... please wait.");
@@ -169,38 +81,113 @@ export function useSocketChat({ url, apiUrl, onMessageReceived, onStreamComplete
       timestamp: new Date()
     }]);
 
-    // Ensure socket is open
-    if (socketRef.current?.readyState !== WebSocket.OPEN) {
-        connect();
-        setTimeout(() => {
-            if (socketRef.current?.readyState === WebSocket.OPEN) {
-                sendPayload(text);
-            } else {
-                setIsLoading(false);
-                isLoadingRef.current = false;
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: "Connection failed. Please try again.",
-                    timestamp: new Date()
-                }]);
-            }
-        }, 1000);
-    } else {
-        sendPayload(text);
-    }
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
-    function sendPayload(inputText: string) {
-        if (!socketRef.current) return;
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_input: `[Legal AI] ${text}`,
+          session_id: sessionId,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      // Read the stream
+      while (true) {
+        const { done, value } = await reader.read();
         
-        const payload = {
-            user_input: `[Legal AI] ${inputText}`,
-            session_id: sessionId
-            // Image support not yet in backend socket
-        };
-        socketRef.current.send(JSON.stringify(payload));
-    }
+        if (done) {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+          if (onStreamComplete) onStreamComplete();
+          break;
+        }
 
-  }, [sessionId, connect, onError]);
+        const chunk = decoder.decode(value, { stream: true });
+        
+        if (chunk === "__END__") {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+          if (onStreamComplete) onStreamComplete();
+          break;
+        } else if (chunk.startsWith("[Error]")) {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+          if (onError) onError(chunk);
+          // Update the last message with error
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: chunk
+            };
+            return updated;
+          });
+          break;
+        } else {
+          // Streaming text chunk - update the last assistant message
+          setMessages(currentMessages => {
+            const lastMsg = currentMessages[currentMessages.length - 1];
+            
+            if (lastMsg && lastMsg.role === 'assistant' && isLoadingRef.current) {
+              // Update existing assistant message being streamed
+              const updatedMessages = [...currentMessages];
+              updatedMessages[updatedMessages.length - 1] = {
+                ...lastMsg,
+                content: lastMsg.content + chunk
+              };
+              return updatedMessages;
+            } else {
+              // Fallback: create new message if something went wrong
+              return [...currentMessages, {
+                role: 'assistant',
+                content: chunk,
+                timestamp: new Date()
+              }];
+            }
+          });
+          
+          if (onMessageReceived) onMessageReceived(chunk);
+        }
+      }
+    } catch (err: any) {
+      console.error("Stream error:", err);
+      setIsLoading(false);
+      isLoadingRef.current = false;
+      
+      if (err.name === 'AbortError') {
+        console.log('Stream aborted by user');
+      } else {
+        if (onError) onError("Failed to send message. Please try again.");
+        // Update the last message with error
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            content: "Connection failed. Please try again."
+          };
+          return updated;
+        });
+      }
+    }
+  }, [sessionId, onMessageReceived, onStreamComplete, onError]);
 
   return {
     messages,
