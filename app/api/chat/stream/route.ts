@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server';
-import WebSocket from 'ws';
+
+// Use Edge Runtime for true streaming support
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
         };
         
         // Handle WebSocket connection open
-        ws.on('open', () => {
+        ws.onopen = () => {
           console.log('WebSocket connected to chat-wonder-api');
           
           // Send the chat message
@@ -45,11 +48,11 @@ export async function POST(request: NextRequest) {
             session_id,
           };
           ws.send(JSON.stringify(payload));
-        });
+        };
 
         // Handle incoming WebSocket messages
-        ws.on('message', (data: WebSocket.Data) => {
-          const message = data.toString();
+        ws.onmessage = (event) => {
+          const message = event.data;
           
           // Forward the message to the client
           controller.enqueue(new TextEncoder().encode(message));
@@ -59,10 +62,10 @@ export async function POST(request: NextRequest) {
             ws.close();
             closeStream();
           }
-        });
+        };
 
         // Handle WebSocket errors
-        ws.on('error', (error) => {
+        ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           const errorMessage = '[Error] Connection error occurred';
           try {
@@ -71,20 +74,13 @@ export async function POST(request: NextRequest) {
             // Controller already closed
           }
           closeStream();
-        });
+        };
 
         // Handle WebSocket close
-        ws.on('close', () => {
+        ws.onclose = () => {
           console.log('WebSocket closed');
           closeStream();
-        });
-
-        // Handle client disconnect
-        request.signal.addEventListener('abort', () => {
-          console.log('Client disconnected, closing WebSocket');
-          ws.close();
-          closeStream();
-        });
+        };
       },
     });
 
@@ -92,8 +88,10 @@ export async function POST(request: NextRequest) {
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
+        'Transfer-Encoding': 'chunked',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
       },
     });
   } catch (error) {
