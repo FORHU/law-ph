@@ -141,6 +141,13 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
             return updated;
           });
           break;
+        } else if (chunk.startsWith("[Tool]")) {
+          // Skip tool execution messages - don't show technical details to user
+          // The loading indicator will show "thinking..." instead
+          continue;
+        } else if (chunk.includes("__END__")) {
+          // Skip the end marker - don't display it
+          continue;
         } else {
           // Streaming text chunk - update the last assistant message
           setMessages(currentMessages => {

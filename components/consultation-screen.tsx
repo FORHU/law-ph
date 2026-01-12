@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSocketChat } from '@/hooks/use-socket-chat';
 import { Message } from '@/types'; // Standard Message type
+import ReactMarkdown from 'react-markdown';
 
 interface ConsultationScreenProps {
   onBack: () => void;
@@ -131,8 +132,24 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
                         </div>
                       )}
                       
-                      {/* Note: Streaming content updates here directly */}
-                      <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                      {/* Render content with markdown support */}
+                      <div className="text-[15px] leading-relaxed prose prose-invert max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2 text-white" {...props} />,
+                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-2 text-white" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-base font-bold mt-3 mb-1 text-primary" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-2 text-slate-100" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-100" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-100" {...props} />,
+                            li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                            em: ({node, ...props}) => <em className="italic" {...props} />,
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
                       
                       {/* Render Sources if available (mostly for legacy or if backend updates) */}
                       {(msg as ExtendedMessage).sources && (msg as ExtendedMessage).sources!.length > 0 && (
