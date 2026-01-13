@@ -8,7 +8,7 @@ interface HeaderProps {
   isLoggedIn?: boolean;
 }
 
-const Header = ({ isLoggedIn} : HeaderProps) => {
+export function Header({ isLoggedIn} : HeaderProps){
 const router = useRouter()
 
 const navigateToHome = () => {
@@ -99,5 +99,3 @@ const navigateToLogin = () => {
     </header>
   );
 };
-
-export default Header;

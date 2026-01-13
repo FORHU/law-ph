@@ -4,7 +4,7 @@ import { LandingPage } from "@/components/landing-page"
 import { AppScreen } from '@/types';
 import ConsultationScreen from "@/components/consultation-screen";
 import LoginScreen from "@/components/login-screen";
-import Header from "@/components/header";
+import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import React from "react";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ export default function Home() {
         <main className="grow">
           <LandingPage onStartConsultation={navigateToConsultationPage} />
         </main>
-          <Footer isLoggedIn={loggedIn}/>
+          <Footer isLoggedIn={loggedIn}/> 
        </div>
     </main>
   );
