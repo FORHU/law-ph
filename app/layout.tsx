@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import "./globals.css"; // Tailwind + CSS variables
+import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import AuthProvider from "@/components/auth-provider";
 import { Suspense } from "react";
@@ -20,7 +20,6 @@ export const metadata: Metadata = {
   description: "AI Legal Assistant",
 };
 
-// Google font
 const geistSans = Geist({
   variable: "--font-geist-sans",
   display: "swap",
@@ -32,21 +31,22 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
-    const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Material Symbols */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
           rel="stylesheet"
         />
       </head>
+
       <body className={`${geistSans.className} antialiased bg-background text-foreground`}>
         <ThemeProvider
           attribute="class"
@@ -55,9 +55,9 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={<AuthLoading />}>
-          <AuthProvider initialSession={session}>
+            <AuthProvider initialSession={session}>
               {children}
-          </AuthProvider>
+            </AuthProvider>
           </Suspense>
         </ThemeProvider>
       </body>

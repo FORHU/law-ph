@@ -23,6 +23,8 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
   const [input, setInput] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  const [conversationId, setConversationId] = useState('')
+
   // Use the socket chat hook
   const { messages, sendMessage, isLoading, sessionId } = useSocketChat({
     onError: useCallback((err: string) => console.error("Chat Error:", err), [])
@@ -116,68 +118,74 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
         {/* Chat Content */}
         <div className="flex-grow overflow-y-auto p-6 md:p-10 space-y-8">
           <div className="max-w-4xl mx-auto space-y-8">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                <div className={`max-w-[85%] flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-slate-700' : 'bg-primary shadow-lg shadow-primary/20'}`}>
-                    <span className="material-symbols-outlined text-sm text-white">
-                      {msg.role === 'user' ? 'person' : 'account_balance'}
-                    </span>
-                  </div>
-                  <div className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`p-5 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-slate-800/80 border border-border-dark text-slate-100'} shadow-sm`}>
-                      {(msg as ExtendedMessage).imagePreview && (
-                        <div className="mb-4 rounded-xl overflow-hidden border border-white/20">
-                          <img src={(msg as ExtendedMessage).imagePreview} alt="Uploaded document" className="max-w-xs h-auto" />
-                        </div>
-                      )}
-                      
-                      {/* Render content with markdown support */}
-                      <div className="text-[15px] leading-relaxed prose prose-invert max-w-none">
-                        <ReactMarkdown
-                          components={{
-                            h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2 text-white" {...props} />,
-                            h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-2 text-white" {...props} />,
-                            h3: ({node, ...props}) => <h3 className="text-base font-bold mt-3 mb-1 text-primary" {...props} />,
-                            p: ({node, ...props}) => <p className="mb-2 text-slate-100" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-slate-100" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-slate-100" {...props} />,
-                            li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                            strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
-                            em: ({node, ...props}) => <em className="italic" {...props} />,
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
+            {messages.map((msg, idx) => {
+                const hasContent =
+                  typeof msg.content === 'string' && msg.content.trim().length > 0;
+
+                const hasImage = Boolean((msg as ExtendedMessage).imagePreview);
+
+                if (!hasContent && !hasImage) return null;
+
+                return (
+                  <div
+                    key={idx}
+                    className={`flex ${
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    } animate-in fade-in slide-in-from-bottom-2`}
+                  >
+                    <div
+                      className={`max-w-[85%] flex gap-4 ${
+                        msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          msg.role === 'user'
+                            ? 'bg-slate-700'
+                            : 'bg-primary shadow-lg shadow-primary/20'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm text-white">
+                          {msg.role === 'user' ? 'person' : 'account_balance'}
+                        </span>
                       </div>
-                      
-                      {/* Render Sources if available (mostly for legacy or if backend updates) */}
-                      {(msg as ExtendedMessage).sources && (msg as ExtendedMessage).sources!.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-white/10 grid gap-2">
-                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">References & Locations</p>
-                          <div className="flex flex-wrap gap-2">
-                            {(msg as ExtendedMessage).sources!.map((chunk: any, ci: number) => (
-                              <React.Fragment key={ci}>
-                                {chunk.web && (
-                                  <a href={chunk.web.uri} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/50 border border-slate-700 rounded-lg text-[10px] text-primary hover:bg-slate-700 transition-colors">
-                                    <span className="material-symbols-outlined text-[14px]">description</span> {chunk.web.title || 'Law Summary'}
-                                  </a>
-                                )}
-                                {chunk.maps && (
-                                  <a href={chunk.maps.uri} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/20 border border-green-800/30 rounded-lg text-[10px] text-green-400 hover:bg-green-800/40 transition-colors">
-                                    <span className="material-symbols-outlined text-[14px]">location_on</span> View Location
-                                  </a>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </div>
+
+                      <div
+                        className={`flex flex-col gap-2 ${
+                          msg.role === 'user' ? 'items-end' : 'items-start'
+                        }`}
+                      >
+                        <div
+                          className={`p-5 rounded-2xl ${
+                            msg.role === 'user'
+                              ? 'bg-primary text-white'
+                              : 'bg-slate-800/80 border border-border-dark text-slate-100'
+                          } shadow-sm`}
+                        >
+                          {/* Image */}
+                          {(msg as ExtendedMessage).imagePreview && (
+                            <div className="mb-4 rounded-xl overflow-hidden border border-white/20">
+                              <img
+                                src={(msg as ExtendedMessage).imagePreview}
+                                alt="Uploaded document"
+                                className="max-w-xs h-auto"
+                              />
+                            </div>
+                          )}
+
+                          {/* Text */}
+                          {hasContent && (
+                            <div className="text-[15px] leading-relaxed prose prose-invert max-w-none">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+
             
             {isLoading && (
                /* Show typing indicator only if the latest message is NOT from assistant (i.e., initial wait) 
