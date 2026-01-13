@@ -2,13 +2,17 @@
 import React from 'react';
 import { AppScreen } from '@/types';
 import { useRouter } from 'next/navigation';
+import { Logo } from "@/components/branding/logo"
+
+          
+
 
 
 interface HeaderProps {
   isLoggedIn?: boolean;
 }
 
-const Header = ({ isLoggedIn} : HeaderProps) => {
+export function Header({ isLoggedIn} : HeaderProps){
 const router = useRouter()
 
 const navigateToHome = () => {
@@ -56,10 +60,9 @@ const navigateToLogin = () => {
             onClick={navigateToHome}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <div className="text-primary">
-              <span className="material-symbols-outlined text-3xl">balance</span>
-            </div>
-            <h2 className="text-lg font-bold tracking-tight text-white">LexPH</h2>
+            
+            <Logo />
+          
           </button>
           
           <nav className="hidden md:flex items-center gap-8">
@@ -99,5 +102,3 @@ const navigateToLogin = () => {
     </header>
   );
 };
-
-export default Header;
