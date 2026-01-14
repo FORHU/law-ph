@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSocketChat } from '@/hooks/use-socket-chat';
 import { Conversation, Message } from '@/types'; // Standard Message type
 import ReactMarkdown from 'react-markdown';
+import { useRouter } from 'next/navigation';
 
 interface ConsultationScreenProps {
   onBack: () => void;
@@ -20,6 +21,9 @@ interface ExtendedMessage extends Message {
 }
 
 const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false, onSubmitPrompt, activeConversationId, conversations }) => {
+
+  const router = useRouter()
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -57,6 +61,10 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     setSelectedImage(null);
   };
 
+  const goToConversation = (conversationId: string) => {
+    router.push(`/consultation/${conversationId}`)
+  }
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-background-dark">
       {/* Sidebar - Desktop */}
@@ -68,9 +76,13 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
           </button>
         </div>
         <div className="flex-grow p-4 space-y-4 overflow-y-auto">
-          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary cursor-pointer">
-            Current Consultation
-          </div>
+          { conversations?.map(( conversation, qIndex) => {
+            return (
+              <div key={qIndex} className={`p-3 rounded-xl text-xs font-medium text-primary cursor-pointer ${activeConversationId === conversation?.id && "bg-primary/10 border border-primary/20"}`} onClick={() => goToConversation(conversation?.id)}>
+              { conversation?.title }
+            </div>
+            )
+          })}
           
           <div className="px-3 py-2">
             <p className="text-[10px] text-slate-500 font-mono">Session: {sessionId.slice(0, 8)}...</p>
