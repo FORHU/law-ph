@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Message } from '@/types';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
+// Extended for local state needs
+interface SocketMessage extends Message {
   sources?: any[];
   imagePreview?: string;
 }
@@ -15,11 +14,11 @@ interface SocketChatOptions {
 }
 
 export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: SocketChatOptions) {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<SocketMessage[]>([
     {
       role: 'assistant',
       content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
-      timestamp: new Date()
+      created_at: new Date()
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,10 +62,10 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     }
     
     // Add user message immediately
-    const userMsg: Message = {
+    const userMsg: SocketMessage = {
       role: 'user',
       content: text,
-      timestamp: new Date(),
+      created_at: new Date(),
       imagePreview: image // Passthrough but ignored by backend for now
     };
     
@@ -78,7 +77,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     setMessages(prev => [...prev, {
       role: 'assistant',
       content: '', // Start empty
-      timestamp: new Date()
+      created_at: new Date()
     }]);
 
     // Create abort controller for this request
@@ -166,7 +165,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
               return [...currentMessages, {
                 role: 'assistant',
                 content: chunk,
-                timestamp: new Date()
+                created_at: new Date()
               }];
             }
           });
