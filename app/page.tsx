@@ -1,9 +1,6 @@
 'use client'
 
 import { LandingPage } from "@/components/landing-page"
-import { AppScreen } from '@/types';
-import ConsultationScreen from "@/components/consultation-screen";
-import LoginScreen from "@/components/login-screen";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import React from "react";

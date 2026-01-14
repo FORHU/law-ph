@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { AppScreen } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Logo } from "@/components/branding/logo"
 
