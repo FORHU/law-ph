@@ -1,9 +1,18 @@
 
 export interface Message {
+  id?: string
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  conversation_id?: string
+  created_at: Date;
 }
+
+ export interface Conversation {
+    id: string
+    user_id: string
+    title: string
+    created_at: string
+  }
 
 export enum AppScreen {
   LANDING = 'LANDING',

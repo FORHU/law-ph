@@ -2,12 +2,15 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSocketChat } from '@/hooks/use-socket-chat';
-import { Message } from '@/types'; // Standard Message type
+import { Conversation, Message } from '@/types'; // Standard Message type
 import ReactMarkdown from 'react-markdown';
 
 interface ConsultationScreenProps {
   onBack: () => void;
   isLoggedIn?: boolean;
+  onSubmitPrompt?: (value: string) => void;
+  activeConversationId?: string;
+  conversations?: Conversation[]
 }
 
 // Extended for local UI needs if necessary, but hook uses this structure too
@@ -16,14 +19,13 @@ interface ExtendedMessage extends Message {
   imagePreview?: string;
 }
 
-const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false }) => {
+const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false, onSubmitPrompt, activeConversationId, conversations }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const [conversationId, setConversationId] = useState('')
 
   // Use the socket chat hook
   const { messages, sendMessage, isLoading, sessionId } = useSocketChat({
@@ -46,11 +48,11 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
 
   const handleSendMessage = (text: string) => {
     if (!text.trim() && !selectedImage) return;
-
+    
+    onSubmitPrompt?.(text)
     // Send via socket
     // Note: Image sending is not yet supported by backend socket, passing it but it won't be processed effectively
     sendMessage(text, selectedImage || undefined);
-    
     setInput('');
     setSelectedImage(null);
   };
