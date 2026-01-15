@@ -1,6 +1,7 @@
 'use client'
 import { useAuth } from "@/components/auth-provider";
 import ConsultationScreen from "@/components/consultation-screen";
+import { useConversations } from "@/components/conversation-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Conversation } from "@/types";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import { useEffect } from "react";
 
 export default function Page() {
   const { loggedIn, session } = useAuth()
+  const { refreshConversations } = useConversations()
    const supabase = createClient()
    const router = useRouter()
 
@@ -24,6 +26,7 @@ export default function Page() {
     if(newConversation as Conversation){
       const id = newConversation?.id
       if(!id) return;
+      await refreshConversations()
       router.push(`/consultation/${id}`)
     }
    }
