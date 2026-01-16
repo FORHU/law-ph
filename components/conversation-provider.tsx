@@ -2,11 +2,13 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Conversation } from "@/types"
+import { Conversation, Message } from "@/types"
 import { useAuth } from "@/components/auth-provider"
 
 type ConversationContextType = {
-  conversations: Conversation[]
+  conversations: Conversation[],
+  messages: Message[],
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   refreshConversations: () => Promise<void>
 }
 
@@ -16,6 +18,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const supabase = createClient()
   const { loggedIn, session } = useAuth()
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [ messages , setMessages ] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
+      timestamp: new Date()
+    }
+  ])
   const [loaded, setLoaded] = useState(false)
 
   const fetchConversations = async () => {
@@ -43,6 +52,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     <ConversationContext.Provider
       value={{
         conversations,
+        messages,
+        setMessages,
         refreshConversations: fetchConversations
       }}
     >

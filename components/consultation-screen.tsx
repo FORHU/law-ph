@@ -5,11 +5,15 @@ import { useSocketChat } from '@/hooks/use-socket-chat';
 import { Conversation, Message } from '@/types'; // Standard Message type
 import ReactMarkdown from 'react-markdown';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { Session } from '@supabase/supabase-js';
+import { useConversations } from './conversation-provider';
+import useSaveMessage from '@/hooks/use-save-message';
 
 interface ConsultationScreenProps {
   onBack: () => void;
   isLoggedIn?: boolean;
-  onSubmitPrompt?: (value: string) => void;
+  session?: Session | null;
   activeConversationId?: string;
   conversations?: Conversation[]
 }
@@ -20,9 +24,12 @@ interface ExtendedMessage extends Message {
   imagePreview?: string;
 }
 
-const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false, onSubmitPrompt, activeConversationId, conversations }) => {
+const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLoggedIn = false, session, activeConversationId, conversations }) => {
 
   const router = useRouter()
+  const supabase = createClient()
+  const { refreshConversations, messages } = useConversations()
+  const { saveMessageToDB } = useSaveMessage()
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +39,7 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
 
 
   // Use the socket chat hook
-  const { messages, sendMessage, isLoading, sessionId } = useSocketChat({
+  const {sendMessage, isLoading, sessionId } = useSocketChat({
     onError: useCallback((err: string) => console.error("Chat Error:", err), [])
   });
 
@@ -50,16 +57,43 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     }
   };
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = async (text: string) => {
     if (!text.trim() && !selectedImage) return;
-    
-    onSubmitPrompt?.(text)
     // Send via socket
     // Note: Image sending is not yet supported by backend socket, passing it but it won't be processed effectively
-    sendMessage(text, selectedImage || undefined);
+    await sendMessage(text, selectedImage || undefined);
+    await checkConversation()
     setInput('');
     setSelectedImage(null);
   };
+
+  const checkConversation= async() => {
+    if(!isLoggedIn) return;
+    if(activeConversationId) return;
+    const { data: newConversation, error } = await supabase.from("conversations").insert( { title: input?.slice(0,32) || "New Consultation", user_id: session?.user?.id }).select().single()
+
+    const newConversationId = newConversation?.id
+
+
+    saveMessageToDB({
+      role: 'user',
+      content: input,
+      conversation_id: newConversationId || '',
+      imagePreview: selectedImage || undefined,
+      timestamp: new Date()
+      })
+
+    if(error){
+      console.error("[Create New Conversation error]", error?.message)
+      return;
+    }
+
+    if(newConversationId){
+      await refreshConversations()
+      router.push(`/consultation/${newConversationId}`)
+    }
+
+  }
 
   const goToConversation = (conversationId: string) => {
     router.push(`/consultation/${conversationId}`)

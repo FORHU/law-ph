@@ -1,35 +1,15 @@
 'use client'
 import { useAuth } from "@/components/auth-provider";
 import ConsultationScreen from "@/components/consultation-screen";
-import { useConversations } from "@/components/conversation-provider";
 import { createClient } from "@/lib/supabase/client";
-import { Conversation } from "@/types";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Page() {
   const { loggedIn, session } = useAuth()
-  const { refreshConversations } = useConversations()
    const supabase = createClient()
    const router = useRouter()
 
-   const handleSubmitPrompt = async (input: string) => {
-    if(!loggedIn) return;
-
-    const { data: newConversation, error } = await supabase.from("conversations").insert( { title: input?.slice(0,32) || "New Consultation", user_id: session?.user?.id }).select().single()
-
-    if(error){
-      console.error("[Create New Conversation error]", error?.message)
-      return;
-    }
-
-    if(newConversation as Conversation){
-      const id = newConversation?.id
-      if(!id) return;
-      await refreshConversations()
-      router.push(`/consultation/${id}`)
-    }
-   }
 
   useEffect( () => {
     const fetchConversations = async () => {
@@ -54,6 +34,6 @@ export default function Page() {
   }
 
   return (
-        <ConsultationScreen onBack={navigateToHome} isLoggedIn={loggedIn} onSubmitPrompt={handleSubmitPrompt} />
+        <ConsultationScreen onBack={navigateToHome} isLoggedIn={loggedIn} session={session} />
   );
 }
