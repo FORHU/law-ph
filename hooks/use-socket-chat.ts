@@ -1,4 +1,6 @@
+import { useConversations } from '@/components/conversation-provider';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import useSaveMessage from './use-save-message';
 import { Message } from '@/types';
 
 // Extended for local state needs
@@ -14,14 +16,11 @@ interface SocketChatOptions {
 }
 
 export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: SocketChatOptions) {
-  const [messages, setMessages] = useState<SocketMessage[]>([
-    {
-      role: 'assistant',
-      content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
-      created_at: new Date()
-    }
-  ]);
+
+  const { messages, setMessages } = useConversations()
   const [isLoading, setIsLoading] = useState(false);
+
+  const { saveMessageToDB } = useSaveMessage()
   
   // Use a ref to track loading state inside callbacks without triggering re-renders/dependency changes
   const isLoadingRef = useRef(false);
@@ -70,6 +69,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     };
     
     setMessages(prev => [...prev, userMsg]);
+    saveMessageToDB(userMsg);
     setIsLoading(true);
     isLoadingRef.current = true;
     
@@ -159,6 +159,8 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
                 ...lastMsg,
                 content: lastMsg.content + chunk
               };
+
+              saveMessageToDB(updatedMessages[updatedMessages.length - 1]);
               return updatedMessages;
             } else {
               // Fallback: create new message if something went wrong

@@ -4,7 +4,9 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   conversation_id?: string
-  created_at: Date;
+  imagePreview?: string;
+  created_at?: Date;
+  timestamp?: Date;
 }
 
  export interface Conversation {
