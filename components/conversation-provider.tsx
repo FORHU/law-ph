@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Conversation, Message } from "@/types"
 import { useAuth } from "@/components/auth-provider"
+import { useParams } from "next/navigation"
 
 type ConversationContextType = {
   conversations: Conversation[],
@@ -17,6 +18,7 @@ const ConversationContext = createContext<ConversationContextType | null>(null)
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const { loggedIn, session } = useAuth()
+  const { conversationId } = useParams() as { conversationId?: string }
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [ messages , setMessages ] = useState<Message[]>([
     {
@@ -47,6 +49,25 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       fetchConversations()
     }
   }, [loggedIn])
+
+  useEffect(() => {
+    if(!conversationId) return;
+
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("timestamp", { ascending: true })
+
+      if (!error && data) {
+        setMessages((prev) => [...prev, ...data])
+      }
+    }
+
+    fetchMessages()
+  }, [conversationId])
+
 
   return (
     <ConversationContext.Provider
