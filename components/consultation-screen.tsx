@@ -61,7 +61,7 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     if (!text.trim() && !selectedImage) return;
     // Send via socket
     // Note: Image sending is not yet supported by backend socket, passing it but it won't be processed effectively
-    await sendMessage(text, selectedImage || undefined);
+    await sendMessage(text, selectedImage || undefined, activeConversationId);
     await checkConversation()
     setInput('');
     setSelectedImage(null);

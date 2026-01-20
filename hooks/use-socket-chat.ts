@@ -53,7 +53,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     fetchSessionWithRetry();
   }, [onError, sessionId]);
 
-  const sendMessage = useCallback(async (text: string, image?: string) => {
+  const sendMessage = useCallback(async (text: string, image?: string, conversation_id?: string) => {
     if (!text.trim() && !image) return;
     if (!sessionId) {
         if(onError) onError("Initializing session... please wait.");
@@ -69,7 +69,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     };
     
     setMessages(prev => [...prev, userMsg]);
-    saveMessageToDB(userMsg);
+    saveMessageToDB({...userMsg, conversation_id});
     setIsLoading(true);
     isLoadingRef.current = true;
     
@@ -79,6 +79,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
       content: '', // Start empty
       created_at: new Date()
     }]);
+
+    let accumulatedContent = '';
+
 
     // Create abort controller for this request
     const abortController = new AbortController();
@@ -116,6 +119,8 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           setIsLoading(false);
           isLoadingRef.current = false;
           if (onStreamComplete) onStreamComplete();
+
+          saveMessageToDB({ role: 'assistant', content: accumulatedContent, conversation_id });
           break;
         }
 
@@ -126,7 +131,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           isLoadingRef.current = false;
           if (onStreamComplete) onStreamComplete();
           break;
-        } else if (chunk.startsWith("[Error]")) {
+        } 
+        
+        if (chunk.startsWith("[Error]")) {
           setIsLoading(false);
           isLoadingRef.current = false;
           if (onError) onError(chunk);
@@ -140,15 +147,21 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
             return updated;
           });
           break;
-        } else if (chunk.startsWith("[Tool]")) {
+        } 
+        
+        if (chunk.startsWith("[Tool]")) {
           // Skip tool execution messages - don't show technical details to user
           // The loading indicator will show "thinking..." instead
           continue;
-        } else if (chunk.includes("__END__")) {
+        } 
+        
+        if (chunk.includes("__END__")) {
           // Skip the end marker - don't display it
           continue;
-        } else {
+        }
           // Streaming text chunk - update the last assistant message
+          accumulatedContent += chunk;
+
           setMessages(currentMessages => {
             const lastMsg = currentMessages[currentMessages.length - 1];
             
@@ -157,10 +170,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
               const updatedMessages = [...currentMessages];
               updatedMessages[updatedMessages.length - 1] = {
                 ...lastMsg,
-                content: lastMsg.content + chunk
+                content: accumulatedContent
               };
 
-              saveMessageToDB(updatedMessages[updatedMessages.length - 1]);
               return updatedMessages;
             } else {
               // Fallback: create new message if something went wrong
@@ -173,8 +185,8 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           });
           
           if (onMessageReceived) onMessageReceived(chunk);
-        }
       }
+
     } catch (err: any) {
       console.error("Stream error:", err);
       setIsLoading(false);
