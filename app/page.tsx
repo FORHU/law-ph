@@ -1,8 +1,8 @@
 'use client'
 
 import { LandingPage } from "@/components/landing-page"
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+import { Header } from "@/components/header-default";
+import { Footer } from "@/components/footer-default";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
