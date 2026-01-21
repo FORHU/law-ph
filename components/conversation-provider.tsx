@@ -18,15 +18,20 @@ const ConversationContext = createContext<ConversationContextType | null>(null)
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const { loggedIn, session } = useAuth()
+  const initialMessageObject: Message = {
+    role: 'assistant',
+    content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
+    timestamp: new Date()
+  }
+
+
   const { conversationId } = useParams() as { conversationId?: string }
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [ messages , setMessages ] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Kumusta! I am your LexPH workspace. You can ask me legal questions, find nearby legal aid, or upload a document for me to review.",
-      timestamp: new Date()
-    }
+  const [ messages , setMessages ] = useState<Message[]>([initialMessageObject
+    
   ])
+
+
   const [loaded, setLoaded] = useState(false)
 
   const fetchConversations = async () => {
@@ -52,6 +57,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if(!conversationId) return;
+    if(conversationId === 'new') {
+      setMessages([initialMessageObject]);
+      return;
+    }
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -61,7 +70,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         .order("timestamp", { ascending: true })
 
       if (!error && data) {
-        setMessages((prev) => [...prev, ...data])
+        setMessages([initialMessageObject, ...data])
       }
     }
 
