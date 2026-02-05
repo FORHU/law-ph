@@ -3,72 +3,156 @@ import React from 'react';
 import FAQSection from './faq-section';
 import ResourcesSection from './resources-section';
 
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+
 interface LandingPageProps {
   onStartConsultation: () => void;
 }
 
 export function LandingPage({ onStartConsultation } : LandingPageProps ) {
+  const router = useRouter();
+  const navigate = (path: string) => router.push(path);
+
   return (
     <div className="space-y-0">
       {/* Hero Section */}
-      <section className="relative py-12 lg:py-24 overflow-hidden border-b border-border-dark">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="flex flex-col gap-8 text-center lg:text-left z-10">
-              <div className="inline-flex items-center gap-2 self-center lg:self-start px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                <span>Immediate Legal Assistance</span>
-              </div>
-              
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
-                Navigate Philippine Law with <span className="text-primary">AI Precision</span>
-              </h1>
-              
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Your personal legal guide available 24/7. Get instant, cited answers based on the Revised Penal Code, Civil Code, and latest Philippine jurisprudence.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <div className="flex flex-col gap-2">
-                  <button 
-                    onClick={onStartConsultation}
-                    className="flex items-center justify-center rounded-xl h-14 px-10 bg-primary hover:bg-primary/90 text-white text-lg font-bold shadow-2xl shadow-primary/25 transition-transform active:scale-95"
-                  >
-                    Start Quick Consultation
-                  </button>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-center">No Sign-In Required</span>
-                </div>
-                <button className="flex items-center justify-center rounded-xl h-14 px-10 bg-slate-800 hover:bg-slate-700 text-white text-lg font-bold transition-colors">
-                  Learn How It Works
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-500 italic max-w-lg mx-auto lg:mx-0">
-                Disclaimer: LexPH provides legal information for educational purposes, not professional legal advice. It is not a replacement for a certified lawyer.
-              </p>
-            </div>
-
-            <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-border-dark group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent mix-blend-overlay z-10"></div>
-              <img 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdmbN_buINknXgQYEC1dZJ9HxFN78UgC-NpzeD3PHdABmNAsW4OBOs0l4YmYwFl8tcprirVddg6mnYqpzpj6qss8xiFxzBTxy2u3VuH5Aft7HqHkmf0Rm34hSZr1VD6ICWz6uUmtmiupWmn6ppY8qCQflAAgFHNu3Nwx1CmA10ZeYq6YzUPH_iQ4ne9bkM6LeXEWP74z_ZoCdtQBY56vWSQeCDCUg8_nLgVnhFlVyXfdS4OZBBYxvuEHfwWviaXFaistaEmrsvRTg"
-                alt="Scales of Justice"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        {/* Background Image with Overlay - Fixed Position */}
+        <div className="fixed inset-0 z-0">
+          <motion.img 
+            src="https://images.unsplash.com/photo-1701267148058-9159d6642f79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYWR5JTIwanVzdGljZSUyMHN0YXR1ZSUyMGRyYW1hdGljJTIwbGlnaHRpbmd8ZW58MXx8fHwxNzcwMTcyODAxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+            alt="Lady Justice"
+            className="w-full h-full object-cover opacity-40 grayscale"
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/70 via-[#1A1A1A]/50 to-[#1A1A1A]/90"></div>
+          {/* Animated gradient orbs */}
+          <motion.div 
+            className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
+            animate={{ 
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ 
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
+            animate={{ 
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{ 
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </div>
+        {/* Hero Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+          {/* Badge */}
+          <motion.div 
+            className="mb-4 text-sm uppercase tracking-wider text-[#fffcfd] inline-flex items-center gap-2 bg-[#8B4564]/10 px-4 py-2 rounded-full border border-[#8B4564]/30 backdrop-blur-sm"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            
+            Immediate Legal Assistance
+          </motion.div>
+          
+          {/* Main Heading */}
+          <motion.h1 
+            className="text-5xl md:text-7xl mb-6 leading-tight"
+            style={{ fontFamily: 'Playfair Display, serif' }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            Navigate Philippine Law
+            <br />
+            <motion.span 
+              className="text-[#8B4564]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              with AI Precision
+            </motion.span>
+          </motion.h1>
+          
+          {/* Subtitle */}
+          <motion.p 
+            className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+          >
+            Your personal legal guide available 24/7. Get instant, cited answers based on the Revised Penal Code, Civil Code, and latest Philippine jurisprudence.
+          </motion.p>
+          
+          {/* CTA Buttons */}
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+          >
+            <motion.button 
+              onClick={() => navigate('/consultation')}
+              className="group relative px-8 py-4 bg-[#8B4564] rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-[#9D5373] to-[#8B4564]"
+                initial={{ x: '-100%' }}
+                whileHover={{ x: 0 }}
+                transition={{ duration: 0.3 }}
               />
-              <div className="absolute bottom-6 left-6 right-6 p-6 bg-card-dark/95 backdrop-blur-md rounded-2xl border border-border-dark shadow-2xl z-20">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white">
-                    <span className="material-symbols-outlined text-lg">smart_toy</span>
-                  </div>
-                  <div className="space-y-3 w-full">
-                    <div className="h-2 w-1/4 bg-slate-700 rounded animate-pulse"></div>
-                    <div className="h-2 w-3/4 bg-slate-700 rounded animate-pulse delay-75"></div>
-                    <div className="h-2 w-1/2 bg-slate-700 rounded animate-pulse delay-150"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+              <span className="relative">START QUICK CONSULTATION</span>
+            </motion.button>
+            <motion.button 
+              className="group px-8 py-4 border-2 border-[#8B4564] rounded-md flex items-center justify-center gap-2 text-[#ffffff] relative overflow-hidden"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                const aboutSection = document.getElementById('about');
+                aboutSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              <motion.div 
+                className="absolute inset-0 bg-[#8B4564]"
+                initial={{ scaleX: 0 }}
+                whileHover={{ scaleX: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+              <span className="relative z-10">LEARN HOW IT WORKS</span>
+            </motion.button>
+          </motion.div>
+
+          {/* Disclaimer */}
+          <motion.div 
+            className="mt-12 text-xs text-gray-500 max-w-3xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1 }}
+          >
+            <em>Disclaimer: ilovelawyer provides legal information for educational purposes, not professional legal advice. It is not a replacement for a certified lawyer.</em>
+          </motion.div>
+
+          {/* Floating Elements */}
+          
+          
         </div>
       </section>
 
