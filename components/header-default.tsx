@@ -47,9 +47,9 @@ export function Header({ isLoggedIn }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#8b456400] backdrop-blur-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1A1A1A]/95 backdrop-blur-sm border-b border-[#8B4564]/20">
       <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between bg-[#8b456400]">
+        <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="text-2xl font-semibold">
             <button onClick={navigateToHome}>
@@ -129,6 +129,6 @@ export function Header({ isLoggedIn }: HeaderProps) {
           </div>
         )}
       </div>
-    </header>
+    </nav>
   );
 }
