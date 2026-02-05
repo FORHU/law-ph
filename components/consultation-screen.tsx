@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSocketChat } from '@/hooks/use-socket-chat';
 import { Conversation, Message } from '@/types'; // Standard Message type
 import ReactMarkdown from 'react-markdown';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { useConversations } from './conversation-provider';
@@ -29,7 +29,7 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
   const router = useRouter()
   const supabase = createClient()
   const { refreshConversations, messages } = useConversations()
-  const { saveMessageToDB } = useSaveMessage()
+  // const { saveMessageToDB } = useSaveMessage()
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +61,6 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     if (!text.trim() && !selectedImage) return;
     // Send via socket
     // Note: Image sending is not yet supported by backend socket, passing it but it won't be processed effectively
-    await sendMessage(text, selectedImage || undefined, activeConversationId);
     await checkConversation()
     setInput('');
     setSelectedImage(null);
@@ -69,19 +68,15 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
 
   const checkConversation= async() => {
     if(!isLoggedIn) return;
-    if(activeConversationId) return;
+    if(activeConversationId && activeConversationId !== 'new'){
+      await sendMessage(input, selectedImage || undefined, activeConversationId);
+      return;
+    }
     const { data: newConversation, error } = await supabase.from("conversations").insert( { title: input?.slice(0,32) || "New Consultation", user_id: session?.user?.id }).select().single()
 
     const newConversationId = newConversation?.id
 
-
-    saveMessageToDB({
-      role: 'user',
-      content: input,
-      conversation_id: newConversationId || '',
-      imagePreview: selectedImage || undefined,
-      timestamp: new Date()
-      })
+    await sendMessage(input, selectedImage || undefined, newConversationId);
 
     if(error){
       console.error("[Create New Conversation error]", error?.message)
@@ -99,6 +94,10 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
     router.push(`/consultation/${conversationId}`)
   }
 
+  const handleAddNewConsultation = () => {
+    router.push(`/consultation/new`)
+  }
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-background-dark">
       {/* Sidebar - Desktop */}
@@ -106,13 +105,13 @@ const ConsultationScreen: React.FC<ConsultationScreenProps> = ({ onBack, isLogge
         <div className="p-6 border-b border-border-dark flex items-center justify-between">
           <h3 className="font-bold text-xs uppercase tracking-widest text-slate-500">Workspace</h3>
           <button className="text-primary hover:text-white transition-colors">
-            <span className="material-symbols-outlined text-sm">add_circle</span>
+            <span className="material-symbols-outlined text-sm" onClick={handleAddNewConsultation}>add_circle</span>
           </button>
         </div>
         <div className="flex-grow p-4 space-y-4 overflow-y-auto">
           { conversations?.map(( conversation, qIndex) => {
             return (
-              <div key={qIndex} className={`p-3 rounded-xl text-xs font-medium text-primary cursor-pointer ${activeConversationId === conversation?.id && "bg-primary/10 border border-primary/20"}`} onClick={() => goToConversation(conversation?.id)}>
+              <div key={qIndex} className={`p-3 rounded-xl text-xs font-medium text-primary cursor-pointer ${activeConversationId === conversation?.id && "bg-primary/10 border border-primary/20"}`} onClick={() => goToConversation(conversation?.id as string)}>
               { conversation?.title }
             </div>
             )

@@ -9,7 +9,7 @@ export default function Page() {
 
   const router = useRouter()
   const { conversations} = useConversations()
-  const { loggedIn } = useAuth()
+  const { loggedIn, session } = useAuth()
   const { conversationId } = useParams() as { conversationId: string}
 
   const navigateToHome = () => {
@@ -17,6 +17,6 @@ export default function Page() {
   }
 
   return (
-          <ConsultationScreen onBack={navigateToHome} isLoggedIn={loggedIn} activeConversationId={conversationId} conversations={conversations} />
+          <ConsultationScreen onBack={navigateToHome} isLoggedIn={loggedIn} activeConversationId={conversationId} conversations={conversations} session={session} />
   );
 }

@@ -10,10 +10,10 @@ export interface Message {
 }
 
  export interface Conversation {
-    id: string
-    user_id: string
+    id?: string
+    user_id?: string
     title: string
-    created_at: string
+    created_at?: string
   }
 
 export enum AppScreen {
