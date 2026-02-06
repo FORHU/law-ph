@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, ArrowRight } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 import ChatConversationDemo from '../chat-conversation-demo';
 
 export function DemoSection() {
@@ -18,7 +19,10 @@ export function DemoSection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <div className="text-[#8B4564] text-sm uppercase tracking-wider mb-3 text-[24px]">LIVE PREVIEW</div>
+          <div 
+            className="text-sm uppercase tracking-wider mb-3 text-[24px]"
+            style={{ color: COLORS.PRIMARY }}
+          >LIVE PREVIEW</div>
           <h2 
             className="text-4xl md:text-5xl mb-4"
             style={{ fontFamily: 'Playfair Display, serif' }}
@@ -29,7 +33,8 @@ export function DemoSection() {
         </motion.div>
 
         <motion.div 
-          className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl p-6 md:p-8"
+          className="backdrop-blur border rounded-xl p-6 md:p-8"
+          style={{ backgroundColor: `${COLORS.BG_CARD}B3`, borderColor: `${COLORS.PRIMARY}4D` }}
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -47,11 +52,18 @@ export function DemoSection() {
           >
             <motion.button 
               onClick={() => navigate('/consultation')}
-              className="group relative px-8 py-4 bg-gradient-to-r from-[#8B4564] to-[#9D5373] text-[#1A1A1A] rounded-lg hover:shadow-2xl hover:shadow-[#8B4564]/40 transition-all duration-300 transform hover:scale-105 overflow-hidden"
+              className="group relative px-8 py-4 text-[#1A1A1A] rounded-lg transition-all duration-300 transform hover:scale-105 overflow-hidden font-bold"
+              style={{ 
+                background: `linear-gradient(to right, ${COLORS.PRIMARY}, ${COLORS.PRIMARY_LIGHT})`,
+                boxShadow: `0 20px 25px -5px ${COLORS.PRIMARY}33`
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#9D5373] to-[#8B4564] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: `linear-gradient(to right, ${COLORS.PRIMARY_LIGHT}, ${COLORS.PRIMARY})` }}
+              ></div>
               <span className="relative flex items-center gap-2 font-medium">
                 <MessageSquare size={20} />
                 Start Your Consultation

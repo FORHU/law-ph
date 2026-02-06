@@ -20,8 +20,8 @@ export function LandingPage({ onStartConsultation } : LandingPageProps ) {
       <DemoSection />
       <CapabilitiesSection />
       <WhyChooseSection />
-      <FAQSection />
       <ResourcesSection />
+      <FAQSection />
 
       {/* Trust Section */}
       <section className="py-24">

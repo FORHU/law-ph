@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Search, FileText, ArrowRight } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 
 export function HowItWorksSection() {
   const steps = [
@@ -40,7 +41,10 @@ export function HowItWorksSection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <div className="uppercase tracking-wider mb-3 text-[#8b4564] text-[24px]">SIMPLE PROCESS</div>
+          <div 
+            className="uppercase tracking-wider mb-3 text-[24px]"
+            style={{ color: COLORS.PRIMARY }}
+          >SIMPLE PROCESS</div>
           <h2 
             className="text-4xl md:text-5xl mb-4"
             style={{ fontFamily: 'Playfair Display, serif' }}
@@ -52,7 +56,8 @@ export function HowItWorksSection() {
         <div className="hidden md:block relative">
           {/* Connecting Line - Animated */}
           <motion.div 
-            className="absolute top-[50px] left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#8B4564]/50 to-transparent"
+            className="absolute top-[50px] left-0 right-0 h-0.5"
+            style={{ background: `linear-gradient(to right, transparent, ${COLORS.PRIMARY}80, transparent)` }}
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -77,7 +82,11 @@ export function HowItWorksSection() {
                 <div className="flex justify-center mb-8">
                   <div className="relative">
                     <motion.div 
-                      className="w-[100px] h-[100px] rounded-full bg-gradient-to-br from-[#8B4564] to-[#6D3650] flex items-center justify-center shadow-lg shadow-[#8B4564]/20 group-hover:shadow-xl group-hover:shadow-[#8B4564]/40 transition-all duration-300 group-hover:scale-110 relative z-10"
+                      className="w-[100px] h-[100px] rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 relative z-10"
+                      style={{ 
+                        background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
+                        boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}33`
+                      }}
                       initial={{ scale: 0 }}
                       whileInView={{ scale: 1 }}
                       viewport={{ once: true, margin: "-100px" }}
@@ -89,8 +98,8 @@ export function HowItWorksSection() {
                       }}
                     >
                       <motion.span 
-                        className="text-3xl text-[#1A1A1A] font-semibold" 
-                        style={{ fontFamily: 'Playfair Display, serif' }}
+                        className="text-3xl font-semibold" 
+                        style={{ fontFamily: 'Playfair Display, serif', color: COLORS.BG_DARK }}
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true, margin: "-100px" }}
@@ -104,13 +113,20 @@ export function HowItWorksSection() {
 
                 {/* Card */}
                 <motion.div 
-                  className="bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/20 rounded-xl p-6 hover:border-[#8B4564]/60 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#8B4564]/10 min-h-[240px]"
+                  className="backdrop-blur border rounded-xl p-6 transition-all duration-300 hover:-translate-y-2 min-h-[240px]"
+                  style={{ 
+                    backgroundColor: `${COLORS.BG_CARD}80`, 
+                    borderColor: `${COLORS.PRIMARY}33`,
+                    boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}99`}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}33`}
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ delay: index * 0.2 + 0.3 }}
                 >
-                  <div className="text-[#8B4564] mb-4 flex justify-center">
+                  <div className="mb-4 flex justify-center" style={{ color: COLORS.PRIMARY }}>
                     {item.icon}
                   </div>
                   <h3 className="text-2xl mb-3 text-center text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -143,7 +159,11 @@ export function HowItWorksSection() {
               {/* Timeline */}
               <div className="flex flex-col items-center">
                 <motion.div 
-                  className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B4564] to-[#6D3650] flex items-center justify-center shadow-lg shadow-[#8B4564]/20 flex-shrink-0"
+                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ 
+                    background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
+                    boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}33`
+                  }}
                   initial={{ scale: 0 }}
                   whileInView={{ scale: 1 }}
                   viewport={{ once: true, margin: "-50px" }}
@@ -155,8 +175,8 @@ export function HowItWorksSection() {
                   }}
                 >
                   <motion.span 
-                    className="text-2xl text-[#1A1A1A]" 
-                    style={{ fontFamily: 'Playfair Display, serif' }}
+                    className="text-2xl" 
+                    style={{ fontFamily: 'Playfair Display, serif', color: COLORS.BG_DARK }}
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
                     viewport={{ once: true, margin: "-50px" }}
@@ -169,7 +189,7 @@ export function HowItWorksSection() {
                   <motion.div 
                     className="w-0.5 h-24 mt-2"
                     style={{ 
-                      background: 'linear-gradient(to bottom, #8B4564, rgba(139, 69, 100, 0.2))',
+                      background: `linear-gradient(to bottom, ${COLORS.PRIMARY}, ${COLORS.PRIMARY}33)`,
                       transformOrigin: "top"
                     }}
                     initial={{ scaleY: 0 }}
@@ -185,13 +205,18 @@ export function HowItWorksSection() {
 
               {/* Content */}
               <motion.div 
-                className="flex-1 bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/20 rounded-xl p-6"
+                className="flex-1 backdrop-blur border rounded-xl p-6"
+                style={{ 
+                  backgroundColor: `${COLORS.BG_CARD}80`, 
+                  borderColor: `${COLORS.PRIMARY}33`,
+                  boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
+                }}
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: index * 0.2 + 0.3 }}
               >
-                <div className="text-[#8B4564] mb-3">
+                <div className="mb-3" style={{ color: COLORS.PRIMARY }}>
                   {item.icon}
                 </div>
                 <h3 className="text-xl mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>

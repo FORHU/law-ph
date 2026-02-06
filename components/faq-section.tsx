@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { COLORS } from '@/lib/constants';
 
 interface FAQItemProps {
   question: string;
@@ -9,15 +10,24 @@ interface FAQItemProps {
 }
 
 const FAQItem: React.FC<FAQItemProps> = ({ question, answer, isOpen, onClick }) => (
-  <div className="border-b border-border-dark last:border-0 overflow-hidden">
+  <div 
+    className="border-b last:border-0 overflow-hidden"
+    style={{ borderColor: `${COLORS.PRIMARY}1A` }}
+  >
     <button
       onClick={onClick}
       className="w-full py-6 flex items-center justify-between text-left group transition-all"
     >
-      <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-primary' : 'text-slate-200 group-hover:text-white'}`}>
+      <span 
+        className={`text-lg font-bold transition-colors ${isOpen ? '' : 'text-slate-200 group-hover:text-white'}`}
+        style={isOpen ? { color: COLORS.PRIMARY } : {}}
+      >
         {question}
       </span>
-      <span className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : 'text-slate-500'}`}>
+      <span 
+        className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? 'rotate-180' : 'text-slate-500'}`}
+        style={isOpen ? { color: COLORS.PRIMARY } : {}}
+      >
         expand_more
       </span>
     </button>
@@ -58,17 +68,23 @@ const FAQSection: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-background-dark/50 scroll-mt-16">
+    <section id="faq" className="py-24 scroll-mt-16" style={{ backgroundColor: `${COLORS.BG_DARK}80` }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-4">
+          <div 
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest mb-4"
+            style={{ backgroundColor: `${COLORS.PRIMARY}1A`, borderColor: `${COLORS.PRIMARY}33`, color: COLORS.PRIMARY }}
+          >
             Common Questions
           </div>
-          <h2 className="text-4xl font-black tracking-tight mb-4">Frequently Asked Questions</h2>
+          <h2 className="text-4xl font-black tracking-tight mb-4 text-white">Frequently Asked Questions</h2>
           <p className="text-slate-500 text-lg">Everything you need to know about our legal AI service.</p>
         </div>
 
-        <div className="bg-card-dark/30 border border-border-dark rounded-[32px] p-8 md:p-12 backdrop-blur-sm">
+        <div 
+          className="border rounded-[32px] p-8 md:p-12 backdrop-blur-sm"
+          style={{ backgroundColor: `${COLORS.BG_CARD}4D`, borderColor: `${COLORS.PRIMARY}1A` }}
+        >
           {faqs.map((faq, index) => (
             <FAQItem
               key={index}
@@ -82,7 +98,7 @@ const FAQSection: React.FC = () => {
         
         <div className="mt-12 text-center">
           <p className="text-slate-500 text-sm">
-            Still have questions? <button className="text-primary font-bold hover:underline">Contact our support team</button>
+            Still have questions? <button className="font-bold hover:underline" style={{ color: COLORS.PRIMARY }}>Contact our support team</button>
           </p>
         </div>
       </div>

@@ -21,7 +21,11 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
         {/* Badge */}
         <motion.div 
-          className="mb-4 text-sm uppercase tracking-wider text-[#fffcfd] inline-flex items-center gap-2 bg-[#8B4564]/10 px-4 py-2 rounded-full border border-[#8B4564]/30 backdrop-blur-sm"
+          className="mb-4 text-sm uppercase tracking-wider text-white inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm"
+          style={{ 
+            backgroundColor: `${COLORS.PRIMARY}1A`, 
+            borderColor: `${COLORS.PRIMARY}4D` 
+          }}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -40,7 +44,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
           Navigate Philippine Law
           <br />
           <motion.span 
-            className={`text-[${COLORS.PRIMARY}]`}
+            style={{ color: COLORS.PRIMARY }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -68,12 +72,16 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
         >
           <motion.button 
             onClick={() => navigate('/consultation')}
-            className={`group relative px-8 py-4 bg-[${COLORS.PRIMARY}] rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium`}
+            className="group relative px-8 py-4 rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium"
+            style={{ backgroundColor: COLORS.PRIMARY }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
           >
             <motion.div 
-              className={`absolute inset-0 bg-gradient-to-r from-[${COLORS.PRIMARY_LIGHT}] to-[${COLORS.PRIMARY}]`}
+              className="absolute inset-0"
+              style={{ 
+                background: `linear-gradient(to right, ${COLORS.PRIMARY_LIGHT}, ${COLORS.PRIMARY})` 
+              }}
               initial={{ x: '-100%' }}
               whileHover={{ x: 0 }}
               transition={{ duration: 0.3 }}
@@ -81,7 +89,8 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
             <span className="relative">START QUICK CONSULTATION</span>
           </motion.button>
           <motion.button 
-            className={`group px-8 py-4 border-2 border-[${COLORS.PRIMARY}] rounded-md flex items-center justify-center gap-2 text-[#ffffff] relative overflow-hidden`}
+            className="group px-8 py-4 border-2 rounded-md flex items-center justify-center gap-2 text-white relative overflow-hidden"
+            style={{ borderColor: COLORS.PRIMARY }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
@@ -90,7 +99,8 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
             }}
           >
             <motion.div 
-              className={`absolute inset-0 bg-[${COLORS.PRIMARY}]`}
+              className="absolute inset-0"
+              style={{ backgroundColor: COLORS.PRIMARY }}
               initial={{ scaleX: 0 }}
               whileHover={{ scaleX: 1 }}
               transition={{ duration: 0.3 }}

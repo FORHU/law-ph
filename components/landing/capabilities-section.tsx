@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FileCheck, Search, Scale, ArrowRight, Briefcase, BookOpen, Shield } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 
 export function CapabilitiesSection() {
   const router = useRouter();
@@ -18,7 +19,8 @@ export function CapabilitiesSection() {
           transition={{ duration: 0.6 }}
         >
           <motion.div 
-            className="text-[#8B4564] text-sm uppercase tracking-wider mb-3 text-[24px]"
+            className="text-sm uppercase tracking-wider mb-3 text-[24px]"
+            style={{ color: COLORS.PRIMARY }}
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -43,10 +45,19 @@ export function CapabilitiesSection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="relative bg-gradient-to-br from-[#8B4564]/10 via-[#2A2A2A]/50 to-[#1A1A1A] border-2 border-[#8B4564]/30 rounded-2xl p-8 md:p-12 overflow-hidden hover:border-[#8B4564]/60 transition-all duration-500">
+          <div 
+            className="relative border-2 rounded-2xl p-8 md:p-12 overflow-hidden transition-all duration-500"
+            style={{ 
+              background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}1A, ${COLORS.BG_CARD}80, ${COLORS.BG_DARK})`,
+              borderColor: `${COLORS.PRIMARY}4D`
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}99`}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}4D`}
+          >
             {/* Decorative gradient orb */}
             <motion.div 
-              className="absolute top-0 right-0 w-64 h-64 bg-[#8B4564]/5 rounded-full blur-3xl group-hover:bg-[#8B4564]/10 transition-all duration-500"
+              className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl transition-all duration-500"
+              style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
               animate={{ 
                 scale: [1, 1.2, 1],
                 opacity: [0.5, 0.8, 0.5]
@@ -61,13 +72,17 @@ export function CapabilitiesSection() {
             <div className="relative grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <motion.div 
-                  className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8B4564] to-[#6D3650] mb-6 shadow-lg shadow-[#8B4564]/30 group-hover:scale-110 transition-transform duration-300"
+                  className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 shadow-lg transition-transform duration-300 group-hover:scale-110"
+                  style={{ 
+                    background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
+                    boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}4D`
+                  }}
                   initial={{ scale: 0, rotate: -180 }}
                   whileInView={{ scale: 1, rotate: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: 0.3, type: "spring" }}
                 >
-                  <FileCheck size={36} className="text-[#1A1A1A]" />
+                  <FileCheck size={36} style={{ color: COLORS.BG_DARK }} />
                 </motion.div>
                 <motion.h3 
                   className="text-3xl md:text-4xl mb-4" 
@@ -104,7 +119,7 @@ export function CapabilitiesSection() {
                       transition={{ duration: 0.4, delay: 0.6 + idx * 0.1 }}
                     >
                       <div className="mt-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#8B4564]"></div>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS.PRIMARY }}></div>
                       </div>
                       <span className="text-gray-300 text-sm">{item}</span>
                     </motion.li>
@@ -112,12 +127,13 @@ export function CapabilitiesSection() {
                 </ul>
                 <motion.button 
                   onClick={() => navigate('/documents')}
-                  className="px-6 py-3 bg-[#8B4564] text-[#1A1A1A] rounded-lg hover:bg-[#9D5373] transition-all flex items-center gap-2 group/btn"
+                  className="px-6 py-3 rounded-lg transition-all flex items-center gap-2 group/btn font-bold"
+                  style={{ backgroundColor: COLORS.PRIMARY, color: COLORS.BG_DARK }}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: 1 }}
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, backgroundColor: COLORS.PRIMARY_LIGHT }}
                   whileTap={{ scale: 0.98 }}
                 >
                   Try Document Review
@@ -127,21 +143,30 @@ export function CapabilitiesSection() {
               
               {/* Visual Element */}
               <div className="hidden md:flex items-center justify-center">
-                <div className="relative w-full h-80 bg-[#2A2A2A]/50 rounded-xl border border-[#8B4564]/20 p-6 backdrop-blur">
+                <div 
+                  className="relative w-full h-80 rounded-xl border p-6 backdrop-blur"
+                  style={{ backgroundColor: `${COLORS.BG_CARD}80`, borderColor: `${COLORS.PRIMARY}33` }}
+                >
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#8B4564]/20 flex items-center justify-center">
-                        <FileCheck size={20} className="text-[#8B4564]" />
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${COLORS.PRIMARY}33` }}
+                      >
+                        <FileCheck size={20} style={{ color: COLORS.PRIMARY }} />
                       </div>
                       <div className="flex-1">
-                        <div className="h-3 bg-[#8B4564]/30 rounded-full w-3/4 mb-2"></div>
+                        <div className="h-3 rounded-full w-3/4 mb-2" style={{ backgroundColor: `${COLORS.PRIMARY}4D` }}></div>
                         <div className="h-2 bg-gray-700 rounded-full w-1/2"></div>
                       </div>
                     </div>
-                    <div className="ml-13 space-y-2 pl-4 border-l-2 border-[#8B4564]/30">
+                    <div 
+                      className="ml-13 space-y-2 pl-4 border-l-2"
+                      style={{ borderColor: `${COLORS.PRIMARY}4D` }}
+                    >
                       <div className="h-2 bg-gray-700 rounded-full w-full"></div>
                       <div className="h-2 bg-gray-700 rounded-full w-5/6"></div>
-                      <div className="h-2 bg-[#8B4564]/40 rounded-full w-4/6"></div>
+                      <div className="h-2 rounded-full w-4/6" style={{ backgroundColor: `${COLORS.PRIMARY}66` }}></div>
                     </div>
                     
                     <div className="mt-6 flex items-center gap-3">
@@ -154,10 +179,13 @@ export function CapabilitiesSection() {
                       </div>
                     </div>
                     
-                    <div className="mt-6 p-4 bg-[#8B4564]/10 border border-[#8B4564]/30 rounded-lg">
+                    <div 
+                      className="mt-6 p-4 border rounded-lg"
+                      style={{ backgroundColor: `${COLORS.PRIMARY}1A`, borderColor: `${COLORS.PRIMARY}4D` }}
+                    >
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-[#8B4564] animate-pulse"></div>
-                        <span className="text-xs text-[#8B4564]">AI Analysis Complete</span>
+                        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: COLORS.PRIMARY }}></div>
+                        <span className="text-xs" style={{ color: COLORS.PRIMARY }}>AI Analysis Complete</span>
                       </div>
                       <div className="space-y-1">
                         <div className="h-2 bg-gray-700 rounded-full w-full"></div>
@@ -175,17 +203,33 @@ export function CapabilitiesSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Legal Research */}
           <motion.div 
-            className="group relative bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/20 rounded-xl p-8 hover:border-[#8B4564]/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#8B4564]/10 overflow-hidden"
+            className="group relative backdrop-blur border rounded-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl overflow-hidden"
+            style={{ 
+              backgroundColor: `${COLORS.BG_CARD}80`, 
+              borderColor: `${COLORS.PRIMARY}33`,
+              boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
+            }}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}80`}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}33`}
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B4564]/5 rounded-full blur-2xl group-hover:bg-[#8B4564]/10 transition-all"></div>
+            <div 
+              className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl transition-all"
+              style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
+            ></div>
             
             <div className="relative">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-[#8B4564]/20 to-[#6D3650]/10 mb-5 border border-[#8B4564]/30 group-hover:scale-110 transition-transform">
-                <Search size={28} className="text-[#8B4564]" />
+              <div 
+                className="inline-flex items-center justify-center w-16 h-16 rounded-xl mb-5 border transition-transform group-hover:scale-110"
+                style={{ 
+                  background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}33, ${COLORS.ACCENT_DARK}1A)`,
+                  borderColor: `${COLORS.PRIMARY}4D`
+                }}
+              >
+                <Search size={28} style={{ color: COLORS.PRIMARY }} />
               </div>
               
               <h3 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -203,7 +247,7 @@ export function CapabilitiesSection() {
                   'Historical legal amendments tracking'
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm text-gray-400">
-                    <div className="w-1 h-1 rounded-full bg-[#8B4564]"></div>
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: COLORS.PRIMARY }}></div>
                     <span>{item}</span>
                   </div>
                 ))}
@@ -211,7 +255,10 @@ export function CapabilitiesSection() {
               
               <button 
                 onClick={() => navigate('/consultation')}
-                className="text-[#8B4564] hover:text-[#9D5373] transition-colors flex items-center gap-2 group/link"
+                className="transition-colors flex items-center gap-2 group/link font-bold"
+                style={{ color: COLORS.PRIMARY }}
+                onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY_LIGHT}
+                onMouseLeave={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
               >
                 Explore Research Tools
                 <ArrowRight size={16} className="group-hover/link:translate-x-1 transition-transform" />
@@ -221,17 +268,33 @@ export function CapabilitiesSection() {
 
           {/* Case Summaries */}
           <motion.div 
-            className="group relative bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/20 rounded-xl p-8 hover:border-[#8B4564]/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-[#8B4564]/10 overflow-hidden"
+            className="group relative backdrop-blur border rounded-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl overflow-hidden"
+            style={{ 
+              backgroundColor: `${COLORS.BG_CARD}80`, 
+              borderColor: `${COLORS.PRIMARY}33`,
+              boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
+            }}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.4 }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}80`}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}33`}
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#8B4564]/5 rounded-full blur-2xl group-hover:bg-[#8B4564]/10 transition-all"></div>
+            <div 
+              className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl transition-all"
+              style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
+            ></div>
             
             <div className="relative">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-[#8B4564]/20 to-[#6D3650]/10 mb-5 border border-[#8B4564]/30 group-hover:scale-110 transition-transform">
-                <Scale size={28} className="text-[#8B4564]" />
+              <div 
+                className="inline-flex items-center justify-center w-16 h-16 rounded-xl mb-5 border transition-transform group-hover:scale-110"
+                style={{ 
+                  background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}33, ${COLORS.ACCENT_DARK}1A)`,
+                  borderColor: `${COLORS.PRIMARY}4D`
+                }}
+              >
+                <Scale size={28} style={{ color: COLORS.PRIMARY }} />
               </div>
               
               <h3 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -249,13 +312,18 @@ export function CapabilitiesSection() {
                   'Impact analysis on current law'
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm text-gray-400">
-                    <div className="w-1 h-1 rounded-full bg-[#8B4564]"></div>
+                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: COLORS.PRIMARY }}></div>
                     <span>{item}</span>
                   </div>
                 ))}
               </div>
               
-              <button className="text-[#8B4564] hover:text-[#9D5373] transition-colors flex items-center gap-2 group/link">
+              <button 
+                className="transition-colors flex items-center gap-2 group/link font-bold"
+                style={{ color: COLORS.PRIMARY }}
+                onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY_LIGHT}
+                onMouseLeave={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              >
                 Browse Case Library
                 <ArrowRight size={16} className="group-hover/link:translate-x-1 transition-transform" />
               </button>
@@ -287,20 +355,25 @@ export function CapabilitiesSection() {
           ].map((item, index) => (
             <motion.div 
               key={index} 
-              className="group bg-[#2A2A2A]/30 backdrop-blur border border-[#8B4564]/10 rounded-lg p-6 hover:border-[#8B4564]/40 transition-all hover:bg-[#2A2A2A]/50"
+              className="group backdrop-blur border rounded-lg p-6 transition-all hover:bg-[#2A2A2A]/50"
+              style={{ backgroundColor: `${COLORS.BG_CARD}4D`, borderColor: `${COLORS.PRIMARY}1A` }}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: 0.6 + index * 0.15 }}
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              whileHover={{ y: -5, borderColor: `${COLORS.PRIMARY}66`, transition: { duration: 0.2 } }}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="text-[#8B4564] p-3 bg-[#8B4564]/10 rounded-lg group-hover:bg-[#8B4564]/20 transition-all">
+                <div 
+                  className="p-3 rounded-lg transition-all group-hover:scale-110"
+                  style={{ color: COLORS.PRIMARY, backgroundColor: `${COLORS.PRIMARY}1A` }}
+                >
                   {item.icon}
                 </div>
                 {item.badge && (
                   <motion.span 
-                    className="text-xs bg-[#8B4564] text-[#1A1A1A] px-2 py-1 rounded-full font-semibold"
+                    className="text-xs px-2 py-1 rounded-full font-semibold"
+                    style={{ backgroundColor: COLORS.PRIMARY, color: COLORS.BG_DARK }}
                     initial={{ scale: 0 }}
                     whileInView={{ scale: 1 }}
                     viewport={{ once: true }}
