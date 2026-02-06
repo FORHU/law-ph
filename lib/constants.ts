@@ -21,4 +21,7 @@ export const BRAND = {
 export const COLORS = {
   PRIMARY: '#8B4564',
   PRIMARY_LIGHT: '#9D5373',
+  ACCENT_DARK: '#6D3650',
+  BG_DARK: '#1A1A1A',
+  BG_CARD: '#2A2A2A',
 } as const;

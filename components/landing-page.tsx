@@ -6,6 +6,7 @@ import { HeroSection } from './landing/hero-section';
 import { HowItWorksSection } from './landing/how-it-works-section';
 import { DemoSection } from './landing/demo-section';
 import { CapabilitiesSection } from './landing/capabilities-section';
+import { WhyChooseSection } from './landing/why-choose-section';
 
 interface LandingPageProps {
   onStartConsultation: () => void;
@@ -18,6 +19,7 @@ export function LandingPage({ onStartConsultation } : LandingPageProps ) {
       <HowItWorksSection />
       <DemoSection />
       <CapabilitiesSection />
+      <WhyChooseSection />
       <FAQSection />
       <ResourcesSection />
 
