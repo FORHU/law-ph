@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ASSETS } from '@/lib/constants';
 
 /**
  * Shared background component used across landing page and auth pages
@@ -9,7 +10,7 @@ export function AuthBackground() {
   return (
     <div className="fixed inset-0 z-0">
       <motion.img 
-        src="https://images.unsplash.com/photo-1701267148058-9159d6642f79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYWR5JTIwanVzdGljZSUyMHN0YXR1ZSUyMGRyYW1hdGljJTIwbGlnaHRpbmd8ZW58MXx8fHwxNzcwMTcyODAxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+        src={ASSETS.LADY_JUSTICE_IMAGE}
         alt="Lady Justice"
         className="w-full h-full object-cover opacity-40 grayscale"
         initial={{ scale: 1.1 }}

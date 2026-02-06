@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { AuthBackground } from '../auth-background';
+import { BRAND, COLORS } from '@/lib/constants';
 
 interface HeroSectionProps {
   onStartConsultation: () => void;
@@ -39,7 +40,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
           Navigate Philippine Law
           <br />
           <motion.span 
-            className="text-[#8B4564]"
+            className={`text-[${COLORS.PRIMARY}]`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -67,12 +68,12 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
         >
           <motion.button 
             onClick={() => navigate('/consultation')}
-            className="group relative px-8 py-4 bg-[#8B4564] rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium"
+            className={`group relative px-8 py-4 bg-[${COLORS.PRIMARY}] rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
           >
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-[#9D5373] to-[#8B4564]"
+              className={`absolute inset-0 bg-gradient-to-r from-[${COLORS.PRIMARY_LIGHT}] to-[${COLORS.PRIMARY}]`}
               initial={{ x: '-100%' }}
               whileHover={{ x: 0 }}
               transition={{ duration: 0.3 }}
@@ -80,7 +81,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
             <span className="relative">START QUICK CONSULTATION</span>
           </motion.button>
           <motion.button 
-            className="group px-8 py-4 border-2 border-[#8B4564] rounded-md flex items-center justify-center gap-2 text-[#ffffff] relative overflow-hidden"
+            className={`group px-8 py-4 border-2 border-[${COLORS.PRIMARY}] rounded-md flex items-center justify-center gap-2 text-[#ffffff] relative overflow-hidden`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
@@ -89,7 +90,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
             }}
           >
             <motion.div 
-              className="absolute inset-0 bg-[#8B4564]"
+              className={`absolute inset-0 bg-[${COLORS.PRIMARY}]`}
               initial={{ scaleX: 0 }}
               whileHover={{ scaleX: 1 }}
               transition={{ duration: 0.3 }}
@@ -105,7 +106,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1 }}
         >
-          <em>Disclaimer: ilovelawyer provides legal information for educational purposes, not professional legal advice. It is not a replacement for a certified lawyer.</em>
+          <em>Disclaimer: {BRAND.NAME_PART1}{BRAND.NAME_PART2} provides legal information for educational purposes, not professional legal advice. It is not a replacement for a certified lawyer.</em>
         </motion.div>
       </div>
     </section>

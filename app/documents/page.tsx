@@ -8,14 +8,15 @@ import {
   Upload,
   Scale,
   HelpCircle,
-  FileText
+  FileText,
+  Menu
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
+import { STORAGE_KEYS, ASSETS } from '@/lib/constants';
 
 interface StoredDocument {
   id: number;
   name: string;
-  time: string;
   timestamp: number;
 }
 
@@ -24,10 +25,11 @@ export default function Documents() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Load documents from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('ilovelawyer_documents');
+    const saved = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
     if (saved) {
       try {
         setRecentDocuments(JSON.parse(saved));
@@ -40,7 +42,7 @@ export default function Documents() {
   // Save documents to localStorage
   useEffect(() => {
     if (recentDocuments.length > 0) {
-      localStorage.setItem('ilovelawyer_documents', JSON.stringify(recentDocuments));
+      localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(recentDocuments));
     }
   }, [recentDocuments]);
 
@@ -69,22 +71,42 @@ export default function Documents() {
     const newDoc: StoredDocument = {
       id: Date.now(),
       name: selectedFile.name,
-      time: 'Analyzed just now',
       timestamp: Date.now()
     };
 
-    setRecentDocuments([newDoc, ...recentDocuments]);
+    const updated = [newDoc, ...recentDocuments];
+    setRecentDocuments(updated);
     setSelectedFile(null); // Clear after "analysis"
+    
+    // Also update localStorage immediately
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(updated));
     
     // In a real app, you'd trigger actual processing here
     alert(`Analyzing ${newDoc.name}...`);
   };
 
+  const handleRemoveDocument = (id: number) => {
+    const updated = recentDocuments.filter(doc => doc.id !== id);
+    setRecentDocuments(updated);
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(updated));
+  };
+
+  const formatTimeAgo = (timestamp: number) => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+  };
+
   const sidebarRecentItems = recentDocuments.map(doc => ({
     id: doc.id,
     title: doc.name,
-    subtitle: doc.time,
-    onClick: () => alert(`Opening analysis for ${doc.name}`)
+    subtitle: formatTimeAgo(doc.timestamp),
+    onClick: () => alert(`Opening analysis for ${doc.name}`),
+    onRemove: () => handleRemoveDocument(doc.id)
   }));
 
   return (
@@ -92,7 +114,7 @@ export default function Documents() {
       {/* Background Image with Overlay - Fixed Position */}
       <div className="fixed inset-0 z-0">
         <motion.img 
-          src="https://images.unsplash.com/photo-1701267148058-9159d6642f79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYWR5JTIwanVzdGljZSUyMHN0YXR1ZSUyMGRyYW1hdGljJTIwbGlnaHRpbmd8ZW58MXx8fHwxNzcwMTcyODAxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+          src={ASSETS.LADY_JUSTICE_IMAGE}
           alt="Lady Justice"
           className="w-full h-full object-cover opacity-30 grayscale"
           initial={{ scale: 1.1 }}
@@ -106,23 +128,31 @@ export default function Documents() {
         activePage="documents"
         recentLabel="RECENT DOCUMENTS"
         recentItems={sidebarRecentItems}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative">
+      <main className="flex-1 flex flex-col relative w-full overflow-hidden">
         {/* Header */}
         <header className="relative z-10 border-b border-[#8B4564]/20 bg-[#1A1A1A]/80 backdrop-blur-sm">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="md:hidden p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
+              >
+                <Menu size={20} className="text-gray-300" />
+              </button>
+              <button 
                 onClick={() => router.back()}
-                className="p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
+                className="hidden md:block p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
               >
                 <ArrowLeft size={20} className="text-gray-300" />
               </button>
               <div>
-                <h1 className="text-lg font-semibold">Document Analysis</h1>
-                <p className="text-xs text-gray-400">Upload and review legal documents</p>
+                <h1 className="text-base md:text-lg font-semibold">Document Analysis</h1>
+                <p className="hidden md:block text-xs text-gray-400">Upload and review legal documents</p>
               </div>
             </div>
           </div>
