@@ -1,24 +1,36 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Scale, 
-  MessageSquare, 
   Send, 
-  HelpCircle,
-  FileText,
-  LayoutDashboard,
-  Plus,
   AlertTriangle,
   User
 } from 'lucide-react';
+import { AppSidebar } from './app-sidebar';
+
+interface Message {
+  id: number;
+  text: string;
+  sender: 'user' | 'ai';
+  time: string;
+}
+
+interface ConsultationSession {
+  id: number;
+  title: string;
+  subtitle: string;
+  messages: Message[];
+}
 
 export default function Consultation() {
   const router = useRouter();
   const [inputMessage, setInputMessage] = useState('');
-  const [messages, setMessages] = useState<Array<{ id: number; text: string; sender: 'user' | 'ai'; time: string }>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [currentConsultationId, setCurrentConsultationId] = useState<number | null>(null);
+  const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([]);
 
   const quickQuestions = [
     "What are my tenant rights?",
@@ -27,67 +39,86 @@ export default function Consultation() {
     "What is breach of contract?"
   ];
 
-  const recentConsultations = [
-    { 
-      id: 1, 
-      title: "Employment Law Query", 
-      subtitle: "Session_43214...",
-      messages: [
-        { id: 1, text: "What are the legal requirements for terminating an employee in the Philippines?", sender: 'user' as const, time: "10:15 AM" },
-        { id: 2, text: "Under Philippine labor law, specifically the Labor Code of the Philippines, there are two types of termination: for just cause and for authorized cause. For just cause termination (Article 297), valid grounds include serious misconduct, willful disobedience, gross and habitual neglect of duties, fraud, commission of a crime against the employer, and other analogous causes. For authorized cause termination (Article 298), grounds include installation of labor-saving devices, redundancy, retrenchment to prevent losses, and closure of business.", sender: 'ai' as const, time: "10:15 AM" },
-        { id: 3, text: "What notice period is required?", sender: 'user' as const, time: "10:18 AM" },
-        { id: 4, text: "For authorized cause terminations, the employer must serve a written notice to both the employee and the Department of Labor and Employment (DOLE) at least 30 days before the intended date of termination. For just cause terminations, a two-notice rule applies: first notice specifying the grounds for termination, giving the employee reasonable time to respond, and second notice informing the employee of the decision to terminate.", sender: 'ai' as const, time: "10:18 AM" }
-      ]
-    },
-    { 
-      id: 2, 
-      title: "Contract Review", 
-      subtitle: "",
-      messages: [
-        { id: 1, text: "I need help reviewing a rental contract. What should I look for?", sender: 'user' as const, time: "Yesterday" },
-        { id: 2, text: "When reviewing a rental contract in the Philippines, pay attention to: 1) Monthly rent amount and payment terms, 2) Security deposit (typically 2 months' rent), 3) Lease duration and renewal terms, 4) Maintenance responsibilities, 5) Termination clauses, 6) Subletting restrictions, 7) Utilities coverage, and 8) House rules. Make sure all terms comply with the Rent Control Act of 2009 if applicable.", sender: 'ai' as const, time: "Yesterday" }
-      ]
-    },
-    { 
-      id: 3, 
-      title: "Tenant Rights Question", 
-      subtitle: "",
-      messages: [
-        { id: 1, text: "Can my landlord evict me without notice?", sender: 'user' as const, time: "2 days ago" },
-        { id: 2, text: "No, your landlord cannot evict you without proper notice and legal grounds. Under Philippine law, specifically the Civil Code and Rent Control Act, landlords must have valid grounds for eviction (such as non-payment of rent, expiration of lease, or need for personal use) and must provide written notice. The notice period depends on the grounds: typically 30 days for month-to-month leases. Illegal eviction (forcible entry) without court order is a criminal offense under the Revised Penal Code.", sender: 'ai' as const, time: "2 days ago" }
-      ]
+  // Load consultations from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('ilovelawyer_consultations');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setRecentConsultations(parsed);
+      } catch (e) {
+        console.error('Failed to parse consultations', e);
+      }
     }
-  ];
+  }, []);
+
+  // Save consultations to localStorage whenever they change
+  useEffect(() => {
+    if (recentConsultations.length > 0) {
+      localStorage.setItem('ilovelawyer_consultations', JSON.stringify(recentConsultations));
+    }
+  }, [recentConsultations]);
 
   const handleQuickQuestion = (question: string) => {
     setInputMessage(question);
   };
 
-  const handleLoadConsultation = (consultation: typeof recentConsultations[0]) => {
+  const handleLoadConsultation = (consultation: ConsultationSession) => {
     setMessages(consultation.messages);
     setCurrentConsultationId(consultation.id);
   };
 
   const handleSendMessage = () => {
     if (inputMessage.trim()) {
-      const newMessage = {
-        id: messages.length + 1,
+      const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const newMessage: Message = {
+        id: Date.now(),
         text: inputMessage,
         sender: 'user' as const,
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        time: timestamp
       };
-      setMessages([...messages, newMessage]);
+      
+      const updatedMessages = [...messages, newMessage];
+      setMessages(updatedMessages);
+      
+      // Update or create in recent list
+      const sessionTitle = currentConsultationId 
+        ? recentConsultations.find(c => c.id === currentConsultationId)?.title || inputMessage.substring(0, 30) + (inputMessage.length > 30 ? '...' : '')
+        : inputMessage.substring(0, 30) + (inputMessage.length > 30 ? '...' : '');
+
+      const sessionId = currentConsultationId || Date.now();
+      
+      const sessionData: ConsultationSession = {
+        id: sessionId,
+        title: sessionTitle,
+        subtitle: `Session_${sessionId.toString().slice(-5)}...`,
+        messages: updatedMessages
+      };
+
+      if (!currentConsultationId) {
+        setCurrentConsultationId(sessionId);
+        setRecentConsultations([sessionData, ...recentConsultations]);
+      } else {
+        setRecentConsultations(recentConsultations.map(c => c.id === sessionId ? sessionData : c));
+      }
+
       setInputMessage('');
       
-      // Simulate AI response (in a real app, this would call your AI API)
+      // Simulate AI response
       setTimeout(() => {
-        const aiResponse = {
-          id: messages.length + 2,
+        const aiResponse: Message = {
+          id: Date.now() + 1,
           text: "I'm processing your legal question. In a production environment, this would be connected to the ilovelawyer AI system to provide accurate legal information based on Philippine law.",
           sender: 'ai' as const,
           time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
         };
-        setMessages(prev => [...prev, aiResponse]);
+        
+        const messagesWithAi = [...updatedMessages, aiResponse];
+        setMessages(messagesWithAi);
+        
+        // Update session with AI message
+        const finalSessionData = { ...sessionData, messages: messagesWithAi };
+        setRecentConsultations(prev => prev.map(c => c.id === sessionId ? finalSessionData : c));
       }, 1000);
     }
   };
@@ -96,6 +127,13 @@ export default function Consultation() {
     setMessages([]);
     setCurrentConsultationId(null);
   };
+
+  const sidebarRecentItems = recentConsultations.map(c => ({
+    id: c.id,
+    title: c.title,
+    subtitle: c.subtitle,
+    onClick: () => handleLoadConsultation(c)
+  }));
 
   return (
     <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -112,79 +150,15 @@ export default function Consultation() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/80 via-[#1A1A1A]/70 to-[#1A1A1A]/95"></div>
       </div>
 
-      {/* Left Sidebar */}
-      <aside className="relative z-10 w-60 bg-[#2A1F1A]/80 backdrop-blur-sm border-r border-[#8B4564]/20 flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-[#8B4564]/20">
-          <button 
-            onClick={() => router.push('/')}
-            className="text-2xl font-semibold hover:opacity-80 transition-opacity"
-          >
-            <span className="text-white">ilove</span>
-            <span className="text-[#8B4564]">lawyer</span>
-          </button>
-        </div>
-
-        {/* New Consultation Button */}
-        <div className="p-4">
-          <button 
-            onClick={handleNewConsultation}
-            className="w-full px-4 py-3 bg-gradient-to-r from-[#8B4564]/20 to-[#8B4564]/20 border border-[#8B4564]/30 rounded-lg hover:from-[#8B4564]/30 hover:to-[#8B4564]/30 transition-all flex items-center justify-center gap-2 text-[#8B4564]"
-          >
-            <Plus size={18} />
-            New Consultation
-          </button>
-        </div>
-
-        {/* Workspace Section */}
-        <div className="px-4 py-2 flex-1 overflow-y-auto">
-          <div className="mb-4">
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-3">WORKSPACE</h3>
-            <div className="bg-[#3A2F2A]/50 border border-[#8B4564]/20 rounded-lg p-3 hover:bg-[#3A2F2A] transition-colors cursor-pointer">
-              <div className="text-sm text-white mb-1">Current Consultation</div>
-              <div className="text-xs text-gray-400">Session_43214...</div>
-            </div>
-          </div>
-
-          {/* Recent Section */}
-          <div>
-            <h3 className="text-xs uppercase tracking-wider text-gray-500 mb-3">RECENT</h3>
-            <div className="space-y-2">
-              {recentConsultations.map((item) => (
-                <div 
-                  key={item.id}
-                  className="py-2 px-3 text-sm text-gray-300 hover:text-white hover:bg-[#3A2F2A]/30 rounded-lg transition-colors cursor-pointer"
-                  onClick={() => handleLoadConsultation(item)}
-                >
-                  {item.title}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Navigation */}
-        <div className="p-4 border-t border-[#8B4564]/20 space-y-2">
-          <button className="w-full px-4 py-3 bg-[#3A2F2A]/50 border border-[#8B4564]/20 rounded-lg hover:bg-[#3A2F2A] transition-all flex items-center gap-3 text-gray-300 hover:text-white">
-            <MessageSquare size={18} />
-            <span className="text-sm">Chat</span>
-          </button>
-          <button 
-            onClick={() => router.push('/documents')}
-            className="w-full px-4 py-3 hover:bg-[#3A2F2A]/30 rounded-lg transition-all flex items-center gap-3 text-gray-300 hover:text-white"
-          >
-            <FileText size={18} />
-            <span className="text-sm">Documents</span>
-          </button>
-          <button 
-            onClick={() => router.push('/dashboard')}
-            className="w-full px-4 py-3 hover:bg-[#3A2F2A]/30 rounded-lg transition-all flex items-center gap-3 text-gray-300 hover:text-white"
-          >
-            <LayoutDashboard size={18} />
-            <span className="text-sm">Dashboard</span>
-          </button>
-        </div>
-      </aside>
+      <AppSidebar 
+        activePage="chat"
+        recentItems={sidebarRecentItems}
+        onNewItem={handleNewConsultation}
+        newItemLabel="New Consultation"
+        showWorkspace={messages.length > 0}
+        workspaceTitle="Current Consultation"
+        workspaceSubtitle={currentConsultationId ? `Session_${currentConsultationId.toString().slice(-5)}...` : undefined}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative">
@@ -219,40 +193,44 @@ export default function Consultation() {
         <div className="relative z-10 flex-1 overflow-y-auto px-6 py-8">
           <div className="max-w-4xl mx-auto">
             {/* Welcome Message */}
-            <div className="flex items-start gap-3 mb-8">
-              <div className="p-2 bg-[#8B4564]/20 rounded-lg mt-1 flex-shrink-0">
-                <Scale size={18} className="text-[#8B4564]" />
-              </div>
-              <div className="flex-1 max-w-[85%]">
-                <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl rounded-tl-sm p-5">
-                  <p className="text-gray-200 leading-relaxed">
-                    Hello! I'm your ilovelawyer workspace assistant. You can ask me legal questions, find nearby legal aid, or upload a document for me to review. How can I help you today?
-                  </p>
-                  <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
-                    <span>02:43 PM</span>
+            {messages.length === 0 && (
+              <>
+                <div className="flex items-start gap-3 mb-8">
+                  <div className="p-2 bg-[#8B4564]/20 rounded-lg mt-1 flex-shrink-0">
+                    <Scale size={18} className="text-[#8B4564]" />
+                  </div>
+                  <div className="flex-1 max-w-[85%]">
+                    <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl rounded-tl-sm p-5">
+                      <p className="text-gray-200 leading-relaxed">
+                        Hello! I'm your ilovelawyer workspace assistant. You can ask me legal questions, find nearby legal aid, or upload a document for me to review. How can I help you today?
+                      </p>
+                      <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
+                        <span>02:43 PM</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Quick Questions */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4 text-sm text-[#8B4564]">
-                <Scale size={16} />
-                <span>Quick questions to get started</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {quickQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuickQuestion(question)}
-                    className="px-5 py-3 bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/30 rounded-lg hover:bg-[#2A2A2A]/70 hover:border-[#8B4564]/50 transition-all text-left text-sm text-gray-300"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
+                {/* Quick Questions */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4 text-sm text-[#8B4564]">
+                    <Scale size={16} />
+                    <span>Quick questions to get started</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {quickQuestions.map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleQuickQuestion(question)}
+                        className="px-5 py-3 bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/30 rounded-lg hover:bg-[#2A2A2A]/70 hover:border-[#8B4564]/50 transition-all text-left text-sm text-gray-300"
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Messages */}
             <div className="space-y-4">
@@ -332,6 +310,12 @@ export default function Consultation() {
                   <textarea
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
                     placeholder="Ask ilovelawyer regarding legal matters..."
                     rows={1}
                     className="w-full px-5 py-3.5 bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:border-[#8B4564]/60 transition-colors"
