@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen min-w-screen flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
+    <div className="min-h-screen w-full flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
         {/* Dynamic Background */}
         <AuthBackground />
         <BackButton
@@ -48,7 +48,7 @@ export function ForgotPasswordForm() {
               fallbackHref="/auth/login"
             />
       {/* Main Container */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 z-10">
           <motion.div
             className="w-full max-w-md"
             initial={{ opacity: 0, y: 30 }}
@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             {/* Card */}
-            <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 shadow-2xl">
+            <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl mt-12 sm:mt-0">
               {!isSubmitted ? (
                 <>
                   {/* Icon */}

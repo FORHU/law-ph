@@ -34,7 +34,7 @@ const FAQSection: React.FC = () => {
   ];
 
   return (
-    <section id="faqs" className="relative py-20 px-6 z-10">
+    <section id="faq" className="relative py-20 px-6 z-10">
       <div className="max-w-3xl mx-auto">
         <motion.div 
           className="text-center mb-12"
@@ -44,7 +44,7 @@ const FAQSection: React.FC = () => {
           transition={{ duration: 0.6 }}
         >
           <motion.div 
-            className="text-sm uppercase tracking-wider mb-3 text-[24px] font-bold"
+            className="text-xs sm:text-sm uppercase tracking-wider mb-3 font-bold"
             style={{ color: COLORS.PRIMARY }}
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -54,12 +54,12 @@ const FAQSection: React.FC = () => {
             COMMON QUESTIONS
           </motion.div>
           <h2 
-            className="text-4xl md:text-5xl mb-4 text-white"
+            className="text-3xl sm:text-4xl md:text-5xl mb-4 text-white"
             style={{ fontFamily: 'Playfair Display, serif' }}
           >
             Frequently Asked Questions
           </h2>
-          <p className="text-gray-400">Everything you need to know about our legal AI assistant.</p>
+          <p className="text-gray-400 text-sm sm:text-base px-4">Everything you need to know about our legal AI assistant.</p>
         </motion.div>
 
         <div className="space-y-4">

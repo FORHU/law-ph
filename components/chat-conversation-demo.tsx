@@ -14,7 +14,7 @@ interface Message {
 export default function ChatConversationDemo() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: '1-initial',
       role: 'user',
       content: "What are my rights as a tenant if my landlord wants to terminate my lease early?",
       timestamp: new Date()
@@ -31,8 +31,8 @@ export default function ChatConversationDemo() {
         setIsTyping(true);
         setTimeout(() => {
           setIsTyping(false);
-          setMessages(prev => [...prev, {
-            id: '2',
+          setMessages(prev => [...prev.filter(m => m.id !== '2-assistant'), {
+            id: '2-assistant',
             role: 'assistant',
             content: "Under Philippine law, particularly the Civil Code, a landlord cannot arbitrarily terminate a lease agreement before the agreed period ends. According to Article 1673, you have the right to continue occupying the property for the duration specified in your contract. If your landlord insists on early termination without just cause, they may be liable for damages. I recommend reviewing your lease agreement and, if needed, consulting with a lawyer who specializes in property law.",
             timestamp: new Date()
@@ -44,8 +44,8 @@ export default function ChatConversationDemo() {
       // Step 1: Second User Message (wait for typewriter to finish ~9s)
       if (step === 1) {
         setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: '3',
+          setMessages(prev => [...prev.filter(m => m.id !== '3-user'), {
+            id: '3-user',
             role: 'user',
             content: "Can you explain what 'just cause' means in this context?",
             timestamp: new Date()
@@ -59,8 +59,8 @@ export default function ChatConversationDemo() {
         setIsTyping(true);
         setTimeout(() => {
           setIsTyping(false);
-          setMessages(prev => [...prev, {
-            id: '4',
+          setMessages(prev => [...prev.filter(m => m.id !== '4-assistant'), {
+            id: '4-assistant',
             role: 'assistant',
             content: "Just cause for early lease termination typically includes: (1) Non-payment of rent, (2) Violation of lease terms, (3) Using the property for illegal activities, or (4) If the landlord or their immediate family needs to personally occupy the property. The Rent Control Act (R.A. 9653) provides additional protections. Without any of these conditions, your landlord must honor the lease term or negotiate a mutual agreement with you.",
             timestamp: new Date()
@@ -74,7 +74,7 @@ export default function ChatConversationDemo() {
         setTimeout(() => {
           setStep(0);
           setMessages([{
-            id: '1',
+            id: '1-initial',
             role: 'user',
             content: "What are my rights as a tenant if my landlord wants to terminate my lease early?",
             timestamp: new Date()
@@ -122,14 +122,14 @@ export default function ChatConversationDemo() {
                                         animate={{ opacity: 1 }}
                                         transition={{ duration: 0.5 }}
                                     >
-                                        {msg.content.split("").map((char, index) => (
+                                        {msg.content.split("").map((char, charIndex) => (
                                             <motion.span
-                                                key={index}
+                                                key={`${msg.id}-char-${charIndex}`}
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 transition={{
                                                     duration: 0.01,
-                                                    delay: index * 0.02,
+                                                    delay: charIndex * 0.02,
                                                     ease: "linear",
                                                 }}
                                             >

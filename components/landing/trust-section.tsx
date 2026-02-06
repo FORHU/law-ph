@@ -31,7 +31,7 @@ export function TrustSection() {
     <section className="relative py-20 px-6 z-10">
       <div className="max-w-5xl mx-auto">
         <motion.div 
-          className="backdrop-blur border rounded-xl p-12"
+          className="backdrop-blur border rounded-xl p-6 sm:p-12"
           style={{ 
             backgroundColor: `${COLORS.BG_CARD}80`, 
             borderColor: `${COLORS.PRIMARY}4D` 
@@ -43,7 +43,7 @@ export function TrustSection() {
         >
           <div className="text-center mb-12">
             <motion.h2 
-              className="text-4xl md:text-5xl mb-4"
+              className="text-3xl sm:text-4xl md:text-5xl mb-4"
               style={{ fontFamily: 'Playfair Display, serif' }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -53,7 +53,7 @@ export function TrustSection() {
               Built on Trust & Security
             </motion.h2>
             <motion.p 
-              className="text-gray-400 mb-6"
+              className="text-gray-400 mb-6 text-sm sm:text-base px-2"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}

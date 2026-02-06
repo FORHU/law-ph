@@ -153,7 +153,7 @@ const ResourcesSection: React.FC = () => {
         </div>
 
         {/* Custom Carousel */}
-        <div className="relative px-4 md:px-10">
+        <div className="relative px-4 md:px-10 overflow-hidden">
           <Slider {...settings} className="legal-resources-carousel pb-12">
             {resources.map((item, index) => (
               <div key={index} className="px-3 pb-4">

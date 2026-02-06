@@ -77,7 +77,7 @@ const TimerCard = ({ navigate }: TimerCardProps) => {
         {/* Timer Text */}
         <div className="text-center mb-6 relative z-10">
           <div 
-            className="text-6xl md:text-7xl font-serif text-white tracking-tight mb-2"
+            className="text-5xl sm:text-6xl md:text-7xl font-serif text-white tracking-tight mb-2"
             style={{ fontFamily: 'Playfair Display, serif' }}
           >
             {time}
@@ -132,23 +132,24 @@ export function WhyChooseSection() {
   ];
 
   return (
-    <section className="relative py-20 px-6 overflow-hidden">
+    <section className="relative py-12 md:py-20 px-6 overflow-hidden">
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <motion.div
+              className="text-center lg:text-left"
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6 }}
             >
               <h2 
-                className="text-4xl md:text-5xl lg:text-7xl mb-8 leading-[1.1]"
+                className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl mb-8 leading-[1.1]"
                 style={{ fontFamily: 'Playfair Display, serif' }}
               >
                 Why Choose <span className="text-white italic">ilove</span><span style={{ color: COLORS.PRIMARY }}>lawyer</span>?
               </h2>
-              <p className="text-gray-400 text-lg md:text-xl mb-12 leading-relaxed max-w-xl">
+              <p className="text-gray-400 text-base sm:text-lg md:text-xl mb-12 leading-relaxed max-w-xl mx-auto lg:mx-0">
                 Traditional legal consultations can be expensive and time-consuming. ilovelawyer provides immediate, accessible legal guidance when you need it most.
               </p>
             </motion.div>

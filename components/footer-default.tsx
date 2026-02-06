@@ -18,14 +18,14 @@ export function Footer({ isLoggedIn} : FooterProps){
   }
 
   return (
-    <footer className="relative backdrop-blur-sm border-t py-12 z-10 mt-auto"
+    <footer className="relative backdrop-blur-sm border-t py-8 z-10 mt-auto"
       style={{ 
-        backgroundColor: `${COLORS.BG_DARK}B3`, // 70% opacity in hex approx
-        borderColor: `${COLORS.PRIMARY}33` // 20% opacity 
+        backgroundColor: `${COLORS.BG_DARK}B3`, 
+        borderColor: `${COLORS.PRIMARY}33` 
       }}
     >
-      <div className="mx-auto px-6 ml-40">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12 text-center md:text-left">
           {/* Brand */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -37,7 +37,7 @@ export function Footer({ isLoggedIn} : FooterProps){
               <span className="text-white">{BRAND.NAME_PART1}</span>
               <span style={{ color: COLORS.PRIMARY }}>{BRAND.NAME_PART2}</span>
             </div>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-sm max-w-xs mx-auto md:mx-0">
               Empowering Filipinos with legal information through artificial intelligence.
             </p>
           </motion.div>
@@ -50,7 +50,7 @@ export function Footer({ isLoggedIn} : FooterProps){
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <h4 className="text-white font-bold mb-4">Product</h4>
-            <ul className="space-y-2 text-gray-400 text-sm">
+            <ul className="space-y-3 text-gray-400 text-sm">
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Features</a></li>
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Pricing</a></li>
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>How It Works</a></li>
@@ -65,7 +65,7 @@ export function Footer({ isLoggedIn} : FooterProps){
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <h4 className="text-white font-bold mb-4">Company</h4>
-            <ul className="space-y-2 text-gray-400 text-sm">
+            <ul className="space-y-3 text-gray-400 text-sm">
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>About</a></li>
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Privacy Policy</a></li>
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Terms of Service</a></li>
@@ -80,7 +80,7 @@ export function Footer({ isLoggedIn} : FooterProps){
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <h4 className="text-white font-bold mb-4">Support</h4>
-            <ul className="space-y-2 text-gray-400 text-sm">
+            <ul className="space-y-3 text-gray-400 text-sm">
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Center</a></li>
               <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Contact</a></li>
             </ul>

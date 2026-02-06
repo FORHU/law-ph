@@ -9,7 +9,7 @@ export function CapabilitiesSection() {
   const navigate = (path: string) => router.push(path);
 
   return (
-    <section className="relative py-20 px-6 z-10">
+    <section className="relative py-12 md:py-20 px-6 z-10">
       <div className="max-w-6xl mx-auto">
         <motion.div 
           className="text-center mb-16"
@@ -19,7 +19,7 @@ export function CapabilitiesSection() {
           transition={{ duration: 0.6 }}
         >
           <motion.div 
-            className="text-sm uppercase tracking-wider mb-3 text-[24px]"
+            className="text-xs sm:text-sm uppercase tracking-wider mb-3"
             style={{ color: COLORS.PRIMARY }}
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -29,12 +29,12 @@ export function CapabilitiesSection() {
             POWERFUL FEATURES
           </motion.div>
           <h2 
-            className="text-4xl md:text-5xl mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl mb-4"
             style={{ fontFamily: 'Playfair Display, serif' }}
           >
             Comprehensive Legal Capabilities
           </h2>
-          <p className="text-gray-300 max-w-3xl mx-auto">Empowering you with tools designed for the complexities of the Philippine legal system.</p>
+          <p className="text-gray-300 max-w-3xl mx-auto text-sm sm:text-base">Empowering you with tools designed for the complexities of the Philippine legal system.</p>
         </motion.div>
 
         {/* Main Featured Capability */}
@@ -46,7 +46,7 @@ export function CapabilitiesSection() {
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
           <div 
-            className="relative border-2 rounded-2xl p-8 md:p-12 overflow-hidden transition-all duration-500"
+            className="relative border-2 rounded-2xl p-6 sm:p-12 overflow-hidden transition-all duration-500"
             style={{ 
               background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}1A, ${COLORS.BG_CARD}80, ${COLORS.BG_DARK})`,
               borderColor: `${COLORS.PRIMARY}4D`

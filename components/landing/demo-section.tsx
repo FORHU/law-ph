@@ -20,7 +20,7 @@ export function DemoSection() {
           transition={{ duration: 0.6 }}
         >
           <div 
-            className="text-sm uppercase tracking-wider mb-3 text-[24px]"
+            className="text-xs sm:text-sm uppercase tracking-wider mb-3"
             style={{ color: COLORS.PRIMARY }}
           >LIVE PREVIEW</div>
           <h2 

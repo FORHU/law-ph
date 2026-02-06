@@ -32,7 +32,7 @@ export function HowItWorksSection() {
   ];
 
   return (
-    <section id="about" className="relative py-20 px-6 z-10">
+    <section id="about" className="relative py-12 md:py-20 px-6 z-10">
       <div className="max-w-6xl mx-auto">
         <motion.div 
           className="text-center mb-16"
@@ -42,14 +42,14 @@ export function HowItWorksSection() {
           transition={{ duration: 0.6 }}
         >
           <div 
-            className="uppercase tracking-wider mb-3 text-[24px]"
+            className="uppercase tracking-wider mb-3 text-xs sm:text-sm font-bold"
             style={{ color: COLORS.PRIMARY }}
           >SIMPLE PROCESS</div>
           <h2 
-            className="text-4xl md:text-5xl mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl mb-4"
             style={{ fontFamily: 'Playfair Display, serif' }}
           >How It Works</h2>
-          <p className="text-gray-300">Getting legal guidance has never been easier. Follow these simple steps.</p>
+          <p className="text-gray-300 text-sm sm:text-base">Getting legal guidance has never been easier. Follow these simple steps.</p>
         </motion.div>
 
         {/* Desktop View - Horizontal with connecting lines */}

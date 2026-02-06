@@ -13,7 +13,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
   const navigate = (path: string) => router.push(path);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-12">
       {/* Background Image with Overlay - Fixed Position */}
       <AuthBackground />
       
@@ -21,7 +21,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
         {/* Badge */}
         <motion.div 
-          className="mb-4 text-sm uppercase tracking-wider text-white inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm"
+          className="mb-4 text-xs sm:text-sm uppercase tracking-wider text-white inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm"
           style={{ 
             backgroundColor: `${COLORS.PRIMARY}1A`, 
             borderColor: `${COLORS.PRIMARY}4D` 
@@ -35,7 +35,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
         
         {/* Main Heading */}
         <motion.h1 
-          className="text-5xl md:text-7xl mb-6 leading-tight"
+          className="text-3xl sm:text-5xl md:text-7xl mb-6 leading-tight px-4 sm:px-0"
           style={{ fontFamily: 'Playfair Display, serif' }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -55,7 +55,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
         
         {/* Subtitle */}
         <motion.p 
-          className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto"
+          className="text-base sm:text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto px-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
