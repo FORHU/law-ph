@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
+import { Session } from '@supabase/supabase-js';
+import { Conversation } from '@/types';
 
 // Sub-components
 import { ConsultationHeader } from './consultation/consultation-header';
@@ -25,7 +27,21 @@ interface ConsultationSession {
   messages: Message[];
 }
 
-export default function Consultation() {
+interface ConsultationProps {
+  onBack?: () => void;
+  isLoggedIn?: boolean;
+  activeConversationId?: string;
+  conversations?: Conversation[];
+  session?: Session | null;
+}
+
+export default function Consultation({
+  onBack,
+  isLoggedIn,
+  activeConversationId,
+  conversations: externalConversations,
+  session
+}: ConsultationProps) {
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConsultationId, setCurrentConsultationId] = useState<number | null>(null);
