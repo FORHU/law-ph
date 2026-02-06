@@ -1,6 +1,8 @@
 
 import { createClient } from '@/lib/supabase/client';
 import React from 'react';
+import { motion } from 'framer-motion';
+import { COLORS, BRAND } from '@/lib/constants';
 
 interface FooterProps {
   isLoggedIn?: boolean
@@ -9,35 +11,91 @@ interface FooterProps {
 export function Footer({ isLoggedIn} : FooterProps){
 
   const handleLogout = async () => {
-        const supabase = createClient()
-        const { error } = await supabase.auth.signOut();
-        if (error) console.error('Error signing out:', error);
-        else console.log('User signed out successfully!');
+    const supabase = createClient()
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error('Error signing out:', error);
+    else console.log('User signed out successfully!');
   }
+
   return (
-    <footer className="border-t border-border-dark bg-background-dark py-12 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-slate-500 text-2xl">balance</span>
-            <span className="text-xl font-bold tracking-tight">LexPH</span>
-          </div>
-          <p className="text-sm text-slate-500 max-w-xs text-center md:text-left">
-            Empowering Filipinos with accessible legal information through artificial intelligence.
-          </p>
+    <footer className="relative backdrop-blur-sm border-t py-12 z-10 mt-auto"
+      style={{ 
+        backgroundColor: `${COLORS.BG_DARK}B3`, // 70% opacity in hex approx
+        borderColor: `${COLORS.PRIMARY}33` // 20% opacity 
+      }}
+    >
+      <div className="mx-auto px-6 ml-40">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          {/* Brand */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-2xl font-semibold mb-4">
+              <span className="text-white">{BRAND.NAME_PART1}</span>
+              <span style={{ color: COLORS.PRIMARY }}>{BRAND.NAME_PART2}</span>
+            </div>
+            <p className="text-gray-400 text-sm">
+              Empowering Filipinos with legal information through artificial intelligence.
+            </p>
+          </motion.div>
+
+          {/* Product */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <h4 className="text-white font-bold mb-4">Product</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Features</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Pricing</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>How It Works</a></li>
+            </ul>
+          </motion.div>
+
+          {/* Company */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <h4 className="text-white font-bold mb-4">Company</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>About</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Terms of Service</a></li>
+            </ul>
+          </motion.div>
+
+          {/* Support */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <h4 className="text-white font-bold mb-4">Support</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Center</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" style={{ color: 'inherit' }} onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>Contact</a></li>
+            </ul>
+          </motion.div>
         </div>
-        
-        <div className="flex flex-col items-center md:items-end gap-6">
-          <div className="flex gap-8">
-            <a href="#" className="text-sm text-slate-400 hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="text-sm text-slate-400 hover:text-primary transition-colors">Terms of Service</a>
-            <a href="#" className="text-sm text-slate-400 hover:text-primary transition-colors">Contact</a>
-          </div>
-          <span className="text-xs text-slate-600">© 2024 LexPH. Built for the Filipino people. All rights reserved.</span>
-         {isLoggedIn && ( <span className="text-sm text-blue-400 cursor-pointer" onClick={handleLogout}>Logout</span>)}
+      </div>
+
+      {/* Full-width bottom bar divider */}
+      <div className="w-full border-t border-gray-800/50 pt-8 mt-8">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-gray-500 text-xs tracking-wider">
+            © 2024 {BRAND.NAME_PART1}{BRAND.NAME_PART2}. Built for the Filipino people. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
   );
 };
-
