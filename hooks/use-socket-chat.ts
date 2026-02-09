@@ -61,10 +61,15 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     }
     
     // Add user message immediately
+    const now = new Date();
     const userMsg: SocketMessage = {
+      id: Date.now(),
       role: 'user',
       content: text,
-      created_at: new Date(),
+      text: text,
+      sender: 'user' as const,
+      time: now.toLocaleTimeString(),
+      created_at: now,
       imagePreview: image // Passthrough but ignored by backend for now
     };
     
@@ -74,10 +79,15 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     isLoadingRef.current = true;
     
     // Create placeholder assistant message that will be updated
+    const assistantPlaceholder = new Date();
     setMessages(prev => [...prev, {
+      id: Date.now() + 1,
       role: 'assistant',
-      content: '', // Start empty
-      created_at: new Date()
+      content: '',
+      text: '',
+      sender: 'ai' as const,
+      time: assistantPlaceholder.toLocaleTimeString(),
+      created_at: assistantPlaceholder
     }]);
 
     let accumulatedContent = '';
@@ -125,6 +135,12 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           }
 
           if (chunk.startsWith("[Error]")) {
+            if (chunk.includes("Unknown session")) {
+              localStorage.removeItem('chat_session_id');
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            }
             if (onError) onError(chunk);
             break;
           }
@@ -142,6 +158,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
               updated[updated.length - 1] = {
                 ...lastMsg,
                 content: accumulatedContent,
+                text: accumulatedContent,
               };
               return updated;
             }
@@ -155,9 +172,14 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
       setIsLoading(false);
       isLoadingRef.current = false;
 
+      const finalTime = new Date();
       saveMessageToDB({
+        id: Date.now(),
         role: 'assistant',
         content: accumulatedContent,
+        text: accumulatedContent,
+        sender: 'ai' as const,
+        time: finalTime.toLocaleTimeString(),
         conversation_id,
       });
 
