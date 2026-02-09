@@ -28,7 +28,7 @@ export function ConsultationHeader({
             <Menu size={20} className="text-gray-300" />
           </button>
           <button 
-            onClick={() => router.back()}
+            onClick={() => router.push("/")}
             className="hidden md:block p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} className="text-gray-300" />
