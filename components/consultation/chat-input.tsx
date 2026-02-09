@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Send, AlertTriangle } from 'lucide-react';
+import { Send, AlertTriangle, Loader2 } from 'lucide-react';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
@@ -9,13 +9,15 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function ChatInput({ 
   value, 
   onChange, 
   onSend, 
-  placeholder = "Ask ilovelawyer regarding legal matters..." 
+  placeholder = "Ask ilovelawyer regarding legal matters...",
+  disabled = false
 }: ChatInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -45,15 +47,21 @@ export function ChatInput({
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                className="w-full px-4 md:px-5 py-2.5 md:py-3.5 bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:border-[#8B4564]/60 transition-colors"
+                className="w-full px-4 md:px-5 py-2.5 md:py-3.5 bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:border-[#8B4564]/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ minHeight: '48px', maxHeight: '120px' }}
+                disabled={disabled}
               />
             </div>
             <button 
-              className={`h-12 w-12 md:h-14 md:w-14 bg-gradient-to-r from-[${COLORS.PRIMARY}] to-[${COLORS.PRIMARY}] rounded-xl hover:from-[${COLORS.PRIMARY_LIGHT}] hover:to-[${COLORS.PRIMARY_LIGHT}] transition-all flex items-center justify-center flex-shrink-0 mb-0.5 md:mb-1.5`}
+              className={`h-12 w-12 md:h-14 md:w-14 bg-gradient-to-r from-[${COLORS.PRIMARY}] to-[${COLORS.PRIMARY}] rounded-xl hover:from-[${COLORS.PRIMARY_LIGHT}] hover:to-[${COLORS.PRIMARY_LIGHT}] transition-all flex items-center justify-center flex-shrink-0 mb-0.5 md:mb-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
               onClick={onSend}
+              disabled={disabled || !value.trim()}
             >
-              <Send size={18} className="text-white" />
+              {disabled ? (
+                <Loader2 size={18} className="text-white animate-spin" />
+              ) : (
+                <Send size={18} className="text-white" />
+              )}
             </button>
           </div>
           

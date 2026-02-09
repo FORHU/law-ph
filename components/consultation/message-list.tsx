@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
 import { Scale, User } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: number;
@@ -44,28 +43,25 @@ export function MessageList({ messages }: MessageListProps) {
                   ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
                   : `bg-[#2A2A2A]/70 border-` + COLORS.PRIMARY + `/30 rounded-tl-sm`
               }`}>
-                <div className="text-sm md:text-base text-gray-200 leading-relaxed">
-                  {isAI ? (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
+                <div className="text-sm md:text-base text-gray-200 leading-relaxed prose prose-invert max-w-none">
+                  {message.text === "" && isAI ? (
+                    <div className="flex gap-1 py-1">
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                  ) : isAI ? (
+                    <ReactMarkdown 
+                      components={{
+                        p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                        ul: ({children}) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+                        li: ({children}) => <li className="mb-1">{children}</li>,
+                        h3: ({children}) => <h3 className="text-sm md:text-base font-bold mb-2 mt-3">{children}</h3>,
+                      }}
                     >
-                      {message.text.split("").map((char, index) => (
-                        <motion.span
-                          key={index}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{
-                            duration: 0.01,
-                            delay: index * 0.02,
-                            ease: "linear",
-                          }}
-                        >
-                          {char}
-                        </motion.span>
-                      ))}
-                    </motion.span>
+                      {message.text}
+                    </ReactMarkdown>
                   ) : (
                     message.text
                   )}
