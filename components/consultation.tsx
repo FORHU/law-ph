@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
@@ -33,16 +34,18 @@ export default function Consultation({
   const [inputMessage, setInputMessage] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const {
     messages,
     isLoading,
     recentConsultations,
+    currentConsultationId,
     handleLoadConsultation,
-    handleNewConsultation,
+    handleNewConsultation: coreHandleNewConsultation,
     handleRemoveConsultation,
     handleSendMessage
-  } = useConsultation();
+  } = useConsultation(session?.user?.id, activeConversationId);
 
   const quickQuestions = [
     "What are my tenant rights?",
@@ -58,6 +61,13 @@ export default function Consultation({
     }
   }, [messages]);
 
+  // Sync state to URL for new consultations
+  useEffect(() => {
+    if (currentConsultationId && !activeConversationId && messages.length > 0) {
+      router.push(`/consultation/${currentConsultationId}`);
+    }
+  }, [currentConsultationId, activeConversationId, messages.length, router]);
+
   const onSendMessage = () => {
     if (inputMessage.trim()) {
       handleSendMessage(inputMessage);
@@ -72,9 +82,14 @@ export default function Consultation({
   const sidebarRecentItems = recentConsultations.map(c => ({
     id: c.id,
     title: c.title,
-    onClick: () => handleLoadConsultation(c),
+    onClick: () => router.push(`/consultation/${c.id}`),
     onRemove: () => handleRemoveConsultation(c.id)
   }));
+
+  const handleNewConsultation = () => {
+    coreHandleNewConsultation();
+    router.push('/consultation');
+  };
 
   return (
     <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>

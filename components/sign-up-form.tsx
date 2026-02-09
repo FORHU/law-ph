@@ -7,6 +7,7 @@ import { UserPlus, Eye, EyeOff, Shield, Scale, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
 import { AuthBackground } from './auth-background';
+import { SignUpSuccessModal } from './auth/sign-up-success-modal';
 
 export function SignUpForm() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export function SignUpForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const supabase = createClient();
   const navigate = (path: string) => router.push(path);
@@ -54,7 +56,7 @@ export function SignUpForm() {
 
       if (error) throw error;
       
-      router.push('/auth/sign-up-success');
+      setShowSuccessModal(true);
     } catch (error: any) {
       setError(error.message || "An error occurred during sign up");
     } finally {
@@ -327,6 +329,12 @@ export function SignUpForm() {
           </motion.div>
         </motion.div>
       </div>
+
+      <SignUpSuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => router.push('/auth/login')}
+        email={formData.email}
+      />
     </div>
   );
 }

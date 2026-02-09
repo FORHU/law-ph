@@ -17,20 +17,39 @@ export interface ConsultationSession {
   messages: Message[];
 }
 
-export function useConsultation() {
+export function useConsultation(userId?: string, syncedConversationId?: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConsultationId, setCurrentConsultationId] = useState<number | null>(null);
   const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([]);
   const [chatSessionId, setChatSessionId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const storageKey = userId ? `${STORAGE_KEYS.CONSULTATIONS}_${userId}` : STORAGE_KEYS.CONSULTATIONS;
+
   // Load consultations and initialize session
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
+    // Clear state if no user (privacy protection)
+    if (!userId) {
+      setRecentConsultations([]);
+      setMessages([]);
+      setCurrentConsultationId(null);
+      return;
+    }
+
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         setRecentConsultations(parsed);
+        
+        // If we have a synced ID, load it immediately
+        if (syncedConversationId) {
+          const synced = parsed.find((c: ConsultationSession) => c.id.toString() === syncedConversationId);
+          if (synced) {
+            setMessages(synced.messages);
+            setCurrentConsultationId(synced.id);
+          }
+        }
       } catch (e) {
         console.error('Failed to parse consultations', e);
       }
@@ -48,13 +67,13 @@ export function useConsultation() {
       }
     };
     fetchSession();
-  }, []);
+  }, [userId, syncedConversationId, storageKey]);
 
   useEffect(() => {
-    if (recentConsultations.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(recentConsultations));
+    if (userId && recentConsultations.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(recentConsultations));
     }
-  }, [recentConsultations]);
+  }, [recentConsultations, userId, storageKey]);
 
   const handleLoadConsultation = (consultation: ConsultationSession) => {
     setMessages(consultation.messages);
@@ -72,7 +91,9 @@ export function useConsultation() {
     if (currentConsultationId === id) {
       handleNewConsultation();
     }
-    localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(updated));
+    if (userId) {
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    }
   };
 
   const handleSendMessage = async (text: string) => {
@@ -188,6 +209,7 @@ export function useConsultation() {
     messages,
     isLoading,
     recentConsultations,
+    currentConsultationId,
     handleLoadConsultation,
     handleNewConsultation,
     handleRemoveConsultation,

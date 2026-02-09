@@ -14,7 +14,7 @@ const TimerCard = ({ navigate }: TimerCardProps) => {
   // Clock animation
   useEffect(() => {
     let frame = 0;
-    const targetMs = 120000; // 2 minutes in milliseconds (2 * 60 * 1000)
+    const targetMs = 6000; //  6 seconds
     const startTime = Date.now();
 
     const animate = () => {
