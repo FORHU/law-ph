@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
+import { COLORS, BRAND } from '@/lib/constants';
+import { createClient } from '@/lib/supabase/client';
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -20,8 +22,19 @@ export function Header({ isLoggedIn }: HeaderProps) {
     setMobileMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+    } else {
+      router.push('/');
+      router.refresh();
+    }
+    setMobileMenuOpen(false);
+  };
+
   const scrollToSection = (id: string) => {
-    // Navigate to landing screen first if needed, logic preserved from original
     setTimeout(() => {
       const section = document.getElementById(id);
       if (section) {
@@ -47,14 +60,19 @@ export function Header({ isLoggedIn }: HeaderProps) {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1A1A1A]/95 backdrop-blur-sm border-b border-[#8B4564]/20">
+    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b"
+      style={{ 
+        backgroundColor: `${COLORS.BG_DARK}F2`, // 95% opacity
+        borderColor: `${COLORS.PRIMARY}33` 
+      }}
+    >
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="text-2xl font-semibold">
             <button onClick={navigateToHome}>
-              <span className="text-white">ilove</span>
-              <span className="text-[#8B4564]">lawyer</span>
+              <span className="text-white">{BRAND.NAME_PART1}</span>
+              <span style={{ color: COLORS.PRIMARY }}>{BRAND.NAME_PART2}</span>
             </button>
           </div>
 
@@ -62,28 +80,65 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <div className="hidden md:flex items-center gap-8">
             <button
               onClick={handleAboutClick}
-              className="text-gray-200 hover:text-[#8B4564] transition-colors"
+              className="text-gray-200 hover:text-white transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
             >
               ABOUT
             </button>
             <button
               onClick={handleFaqClick}
-              className="text-gray-200 hover:text-[#8B4564] transition-colors"
+              className="text-gray-200 hover:text-white transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
             >
               FAQS
             </button>
             <button
               onClick={handleResourcesClick}
-              className="text-gray-200 hover:text-[#8B4564] transition-colors"
+              className="text-gray-200 hover:text-white transition-colors"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
             >
               RESOURCES
             </button>
-            {!isLoggedIn && (
+            {!isLoggedIn ? (
               <button
                 onClick={navigateToLogin}
-                className="px-6 py-2 border-2 border-[#8B4564] rounded-md hover:bg-[#8B4564] hover:text-[#1A1A1A] transition-all text-[#ffffff]"
+                className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
+                style={{ 
+                  borderColor: COLORS.PRIMARY,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
+                  e.currentTarget.style.color = COLORS.BG_DARK;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'white';
+                }}
               >
                 LOGIN
+              </button>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
+                style={{ 
+                  borderColor: COLORS.PRIMARY,
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
+                  e.currentTarget.style.color = COLORS.BG_DARK;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'white';
+                }}
+              >
+                LOGOUT
               </button>
             )}
           </div>
@@ -102,28 +157,65 @@ export function Header({ isLoggedIn }: HeaderProps) {
           <div className="md:hidden mt-4 pb-4 flex flex-col gap-4">
             <button
               onClick={handleAboutClick}
-              className="text-gray-300 hover:text-[#8B4564] transition-colors text-left"
+              className="text-gray-300 hover:text-white transition-colors text-left"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
             >
               ABOUT
             </button>
             <button
               onClick={handleFaqClick}
-              className="text-gray-300 hover:text-[#8B4564] transition-colors text-left"
+              className="text-gray-300 hover:text-white transition-colors text-left"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
             >
               FAQS
             </button>
             <button
               onClick={handleResourcesClick}
-              className="text-gray-300 hover:text-[#8B4564] transition-colors text-left"
+              className="text-gray-300 hover:text-white transition-colors text-left"
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#d1d5db'}
             >
               RESOURCES
             </button>
-            {!isLoggedIn && (
+            {!isLoggedIn ? (
               <button
                 onClick={navigateToLogin}
-                className="px-6 py-2 border-2 border-[#8B4564] text-[#8B4564] rounded-md hover:bg-[#8B4564] hover:text-[#1A1A1A] transition-all w-full md:w-auto"
+                className="px-6 py-2 border-2 rounded-md transition-all w-full text-center font-medium"
+                style={{ 
+                  borderColor: COLORS.PRIMARY,
+                  color: COLORS.PRIMARY
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
+                  e.currentTarget.style.color = COLORS.BG_DARK;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = COLORS.PRIMARY;
+                }}
               >
                 LOGIN
+              </button>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 border-2 rounded-md transition-all w-full text-center font-medium"
+                style={{ 
+                  borderColor: COLORS.PRIMARY,
+                  color: COLORS.PRIMARY
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
+                  e.currentTarget.style.color = COLORS.BG_DARK;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = COLORS.PRIMARY;
+                }}
+              >
+                LOGOUT
               </button>
             )}
           </div>

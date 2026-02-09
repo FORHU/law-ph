@@ -1,118 +1,231 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
+import Slider from 'react-slick';
+import { Building, Scale, Briefcase, BookOpen, FileText, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 
-interface ResourceCardProps {
-  title: string;
-  description: string;
-  link: string;
-  icon: string;
-  tag?: string;
-}
+// Import slick-carousel styles partially here if not in globals
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
-const ResourceCard: React.FC<ResourceCardProps> = ({ title, description, link, icon, tag }) => (
-  <a 
-    href={link} 
-    target="_blank" 
-    rel="noopener noreferrer"
-    className="group p-6 rounded-3xl bg-card-dark/40 border border-border-dark hover:border-primary/50 hover:bg-slate-800/50 transition-all duration-300"
-  >
-    <div className="flex justify-between items-start mb-4">
-      <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      {tag && (
-        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-slate-800 text-slate-500 group-hover:text-primary transition-colors">
-          {tag}
-        </span>
-      )}
-    </div>
-    <h4 className="text-lg font-bold mb-2 text-white group-hover:text-primary transition-colors">{title}</h4>
-    <p className="text-sm text-slate-500 leading-relaxed group-hover:text-slate-300 transition-colors">{description}</p>
-    <div className="mt-4 flex items-center gap-2 text-primary text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-      Visit Portal <span className="material-symbols-outlined text-sm">open_in_new</span>
-    </div>
-  </a>
-);
+const NextArrow = (props: any) => {
+  const { onClick } = props;
+  return (
+    <button
+      onClick={onClick}
+      className="absolute right-0 top-[48%] -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-[#1A1A1A]/80 border border-[#8B4564]/30 text-[#8B4564] hover:bg-[#8B4564] hover:text-white transition-all duration-300 shadow-lg shadow-[#8B4564]/20"
+      aria-label="Next Slide"
+    >
+      <ChevronRight size={24} />
+    </button>
+  );
+};
+
+const PrevArrow = (props: any) => {
+  const { onClick } = props;
+  return (
+    <button
+      onClick={onClick}
+      className="absolute left-0 top-[48%] -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-[#1A1A1A]/80 border border-[#8B4564]/30 text-[#8B4564] hover:bg-[#8B4564] hover:text-white transition-all duration-300 shadow-lg shadow-[#8B4564]/20"
+      aria-label="Previous Slide"
+    >
+      <ChevronLeft size={24} />
+    </button>
+  );
+};
 
 const ResourcesSection: React.FC = () => {
+  const resources = [
+    { 
+      icon: <Building size={28} />, 
+      badge: 'GOVERNMENT', 
+      title: 'Department of Justice', 
+      desc: 'Access official DOJ services, legal opinions, and information on Philippine law and regulations.', 
+      link: 'Visit Website',
+      url: 'https://www.doj.gov.ph/'
+    },
+    { 
+      icon: <Scale size={28} />, 
+      badge: 'JUDICIARY', 
+      title: 'Supreme Court E-Library', 
+      desc: 'Search Philippine jurisprudence, Supreme Court decisions, and legal precedents dating back decades.', 
+      link: 'Visit Website',
+      url: 'https://elibrary.judiciary.gov.ph/'
+    },
+    { 
+      icon: <Briefcase size={28} />, 
+      badge: 'LEGAL AID', 
+      title: "Public Attorney's Office", 
+      desc: 'Free legal assistance for indigent Filipinos. Find your nearest PAO office for consultation.', 
+      link: 'Visit Website',
+      url: 'https://pao.gov.ph/'
+    },
+    { 
+      icon: <BookOpen size={28} />, 
+      badge: 'DATABASE', 
+      title: 'LawPhil Project', 
+      desc: 'Comprehensive database of Philippine laws, Supreme Court decisions, and legal resources maintained by Arellano Law Foundation.', 
+      link: 'Visit Website',
+      url: 'https://lawphil.net/'
+    },
+    { 
+      icon: <FileText size={28} />, 
+      badge: 'OFFICIAL', 
+      title: 'Official Gazette', 
+      desc: 'The official journal of the Republic of the Philippines featuring newly enacted laws, executive orders, and proclamations.', 
+      link: 'Visit Website',
+      url: 'https://www.officialgazette.gov.ph/'
+    },
+    { 
+      icon: <Scale size={28} />, 
+      badge: 'PROFESSIONAL', 
+      title: 'Integrated Bar of the Philippines', 
+      desc: 'Find accredited lawyers, legal resources, and information about the Philippine legal profession.', 
+      link: 'Visit Website',
+      url: 'https://www.ibp.ph/'
+    }
+  ];
+
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 800,
+    slidesToShow: 3,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3500,
+    pauseOnHover: true,
+    cssEase: "cubic-bezier(0.4, 0, 0.2, 1)",
+    nextArrow: <NextArrow />,
+    prevArrow: <PrevArrow />,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1,
+        }
+      }
+    ]
+  };
+
   return (
-    <section id="resources" className="py-24 scroll-mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-4">
-              Citizen Hub
-            </div>
-            <h2 className="text-4xl font-black tracking-tight mb-4">Verified Legal Resources</h2>
-            <p className="text-slate-500 text-lg">Direct access to official government portals and free legal assistance programs in the Philippines.</p>
-          </div>
-          <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors whitespace-nowrap">
-            View All Directories <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
+    <section id="resources" className="relative py-20 px-6 z-10 overflow-hidden">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-12 text-center md:text-left">
+          <motion.div 
+            className="inline-block border rounded-full px-4 py-2 text-sm mb-6"
+            style={{ backgroundColor: COLORS.BG_CARD, borderColor: `${COLORS.PRIMARY}4D` }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="text-[#8B4564] font-bold tracking-widest text-xs uppercase">CITIZEN HUB</span>
+          </motion.div>
+          <motion.h2 
+            className="text-4xl md:text-5xl mb-4"
+            style={{ fontFamily: 'Playfair Display, serif' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Verified Legal Resources
+          </motion.h2>
+          <motion.div 
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <p className="text-gray-400 max-w-2xl">Direct access to official government portals and free legal assistance programs in the Philippines.</p>
+          </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Official Portals */}
-          <ResourceCard 
-            title="Official Gazette"
-            description="The public journal and main publication of the Republic of the Philippines. Access R.A.s and E.O.s."
-            link="https://www.officialgazette.gov.ph/"
-            icon="public"
-            tag="Government"
-          />
-          <ResourceCard 
-            title="Supreme Court E-Library"
-            description="A comprehensive database of SC decisions, resolutions, and administrative matters."
-            link="https://elibrary.judiciary.gov.ph/"
-            icon="account_balance"
-            tag="Judiciary"
-          />
-          <ResourceCard 
-            title="PAO Website"
-            description="Official portal of the Public Attorney's Office for indigent litigants seeking free legal aid."
-            link="https://pao.gov.ph/"
-            icon="diversity_3"
-            tag="Legal Aid"
-          />
-          
-          {/* Reference Materials */}
-          <ResourceCard 
-            title="1987 Constitution"
-            description="The fundamental law of the land. Essential reading for every Filipino citizen's rights."
-            link="https://www.officialgazette.gov.ph/constitutions/the-1987-constitution-of-the-republic-of-the-philippines/"
-            icon="menu_book"
-            tag="Reference"
-          />
-          <ResourceCard 
-            title="Revised Penal Code"
-            description="Access the primary law defining crimes and penalties in the Philippines (Act No. 3815)."
-            link="https://lawphil.net/statutes/acts/act_3815_1930.html"
-            icon="gavel"
-            tag="Reference"
-          />
-          <ResourceCard 
-            title="Integrated Bar (IBP)"
-            description="Directory of local chapters for finding licensed lawyers and legal aid programs."
-            link="https://ibp.ph/"
-            icon="groups"
-            tag="Professional"
-          />
-        </div>
+        {/* Custom Carousel */}
+        <div className="relative px-4 md:px-10 overflow-hidden">
+          <Slider {...settings} className="legal-resources-carousel pb-12">
+            {resources.map((item, index) => (
+              <div key={index} className="px-3 pb-4">
+                <div 
+                  className="group relative backdrop-blur border rounded-2xl p-6 h-[340px] flex flex-col transition-all duration-500 hover:-translate-y-2 overflow-hidden"
+                  style={{ 
+                    background: `linear-gradient(to bottom right, ${COLORS.BG_CARD}CC, ${COLORS.BG_DARK}CC)`,
+                    borderColor: `${COLORS.PRIMARY}33`
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}99`}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}33`}
+                >
+                  {/* Decorative gradient orb */}
+                  <div 
+                    className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-1xl transition-all duration-500"
+                    style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
+                  ></div>
+                  
+                  <div className="relative flex-1 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-5">
+                      <div 
+                        className="p-3 rounded-xl border transition-all duration-300 group-hover:scale-110"
+                        style={{ backgroundColor: `${COLORS.PRIMARY}1A`, borderColor: `${COLORS.PRIMARY}33` }}
+                      >
+                        <div style={{ color: COLORS.PRIMARY }}>{item.icon}</div>
+                      </div>
+                      <span 
+                        className="text-[10px] px-3 py-1.5 rounded-full border font-bold tracking-wider"
+                        style={{ 
+                          backgroundColor: `${COLORS.PRIMARY}1A`, 
+                          color: COLORS.PRIMARY,
+                          borderColor: `${COLORS.PRIMARY}33`
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    </div>
 
-        <div className="mt-16 p-8 rounded-[32px] bg-gradient-to-r from-primary/20 to-transparent border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white shadow-xl">
-              <span className="material-symbols-outlined text-4xl">emergency</span>
-            </div>
-            <div>
-              <h4 className="text-xl font-bold">Emergency Legal Help?</h4>
-              <p className="text-slate-400 text-sm">Need immediate assistance for arrests or rights violations?</p>
-            </div>
-          </div>
-          <div className="flex gap-4">
-             <a href="tel:911" className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-all active:scale-95">Call Emergency Services</a>
-             <button className="px-6 py-3 rounded-xl border border-white/20 text-white font-bold text-sm hover:bg-white/10 transition-all">List of 24/7 Hotlines</button>
-          </div>
+                    {/* Content */}
+                    <h3 
+                      className="text-xl mb-3 text-white leading-tight group-hover:text-white transition-colors duration-300" 
+                      style={{ fontFamily: 'Playfair Display, serif' }}
+                    >
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                      {item.desc}
+                    </p>
+
+                    {/* Link */}
+                    <a 
+                      href={item.url} 
+                      className="flex items-center gap-2 text-sm font-bold transition-colors group/link"
+                      style={{ color: COLORS.PRIMARY }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {item.link} 
+                      <ExternalLink size={14} className="group-hover/link:translate-x-1 group-hover/link:-translate-y-0.5 transition-transform" />
+                    </a>
+                  </div>
+
+                  {/* Bottom accent line */}
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-transparent to-transparent group-hover:via-[#8B4564]/60 transition-all duration-500"
+                    style={{ backgroundImage: `linear-gradient(to right, transparent, ${COLORS.PRIMARY}99, transparent)` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </Slider>
         </div>
       </div>
     </section>

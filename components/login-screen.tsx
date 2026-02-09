@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, Shield, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
+import { AuthBackground } from './auth-background';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -40,12 +41,9 @@ const LoginScreen = () => {
   };
 
   return (
-    <div className="min-h-screen min-w-screen flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
+    <div className="min-h-screen w-full flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
       {/* Dynamic Background */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#8B4564]/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#8B4564]/5 rounded-full blur-[120px] animate-pulse [animation-delay:2s]"></div>
-      </div>
+      <AuthBackground />
 
       <BackButton
         label="Return"
@@ -54,7 +52,7 @@ const LoginScreen = () => {
       />
 
       {/* Main Login Container */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 z-10">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 z-10">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 30 }}
@@ -62,7 +60,7 @@ const LoginScreen = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           {/* Login Card */}
-          <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 shadow-2xl">
+          <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl mt-12 sm:mt-0">
             {/* Icon */}
             <motion.div
               className="flex justify-center mb-6"

@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { UserPlus, Eye, EyeOff, Shield, Scale, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
+import { AuthBackground } from './auth-background';
+import { SignUpSuccessModal } from './auth/sign-up-success-modal';
 
 export function SignUpForm() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export function SignUpForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const supabase = createClient();
   const navigate = (path: string) => router.push(path);
@@ -40,7 +43,7 @@ export function SignUpForm() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -51,9 +54,24 @@ export function SignUpForm() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("User already registered") || error.code === 'user_already_exists') {
+          setError("This email is already registered. Please sign in instead.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Supabase returns a user object on success, but if the user already exists 
+      // (and email confirmation is enabled), the identities array will be empty.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setError("This email is already registered. Please sign in instead.");
+        setIsLoading(false);
+        return;
+      }
       
-      router.push('/auth/sign-up-success');
+      setShowSuccessModal(true);
     } catch (error: any) {
       setError(error.message || "An error occurred during sign up");
     } finally {
@@ -62,12 +80,9 @@ export function SignUpForm() {
   };
 
   return (
-    <div className="min-h-screen min-w-screen flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
+    <div className="min-h-screen w-full flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
       {/* Dynamic Background */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#8B4564]/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#8B4564]/5 rounded-full blur-[120px] animate-pulse [animation-delay:2s]"></div>
-      </div>
+      <AuthBackground />
 
        <BackButton
               label="Return"
@@ -76,7 +91,7 @@ export function SignUpForm() {
             />
 
       {/* Main Signup Container */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 z-10">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 z-10">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 30 }}
@@ -84,7 +99,7 @@ export function SignUpForm() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           {/* Signup Card */}
-          <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 shadow-2xl">
+          <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl mt-12 sm:mt-0">
             {/* Icon */}
             <motion.div
               className="flex justify-center mb-6"
@@ -329,6 +344,12 @@ export function SignUpForm() {
           </motion.div>
         </motion.div>
       </div>
+
+      <SignUpSuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => router.push('/auth/login')}
+        email={formData.email}
+      />
     </div>
   );
 }

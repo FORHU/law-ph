@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "LexPH - AI Legal Assistant",
+  title: "ILoveLawyer - AI Legal Assistant",
   description: "AI Legal Assistant",
 };
 

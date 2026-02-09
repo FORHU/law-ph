@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from "@/components/auth-provider";
-import ConsultationScreen from "@/components/consultation-screen";
+import ConsultationScreen from "@/components/consultation";
 import { useConversations } from "@/components/conversation-provider";
 import { useParams, useRouter } from "next/navigation";
 

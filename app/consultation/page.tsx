@@ -1,6 +1,6 @@
 'use client'
 import { useAuth } from "@/components/auth-provider";
-import ConsultationScreen from "@/components/consultation-screen";
+import ConsultationScreen from "@/components/consultation";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

@@ -1,89 +1,122 @@
-
 import React from 'react';
-
-interface FAQItemProps {
-  question: string;
-  answer: string;
-  isOpen: boolean;
-  onClick: () => void;
-}
-
-const FAQItem: React.FC<FAQItemProps> = ({ question, answer, isOpen, onClick }) => (
-  <div className="border-b border-border-dark last:border-0 overflow-hidden">
-    <button
-      onClick={onClick}
-      className="w-full py-6 flex items-center justify-between text-left group transition-all"
-    >
-      <span className={`text-lg font-bold transition-colors ${isOpen ? 'text-primary' : 'text-slate-200 group-hover:text-white'}`}>
-        {question}
-      </span>
-      <span className={`material-symbols-outlined transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : 'text-slate-500'}`}>
-        expand_more
-      </span>
-    </button>
-    <div 
-      className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 pb-6 opacity-100' : 'max-h-0 opacity-0'}`}
-    >
-      <p className="text-slate-400 leading-relaxed text-sm">
-        {answer}
-      </p>
-    </div>
-  </div>
-);
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 
 const FAQSection: React.FC = () => {
-  const [activeIndex, setActiveIndex] = React.useState<number | null>(0);
+  const [openFaq, setOpenFaq] = React.useState<number | null>(0);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
 
   const faqs = [
     {
-      question: "Is LexPH a replacement for a licensed lawyer?",
-      answer: "No. LexPH is an AI legal information tool designed to assist with research and document explanation. While it is highly accurate regarding Philippine statutes, it does not provide professional legal advice. We always recommend consulting with a member of the Integrated Bar of the Philippines (IBP) for sensitive legal matters."
+      question: 'Is ilovelawyer a replacement for a licensed lawyer?',
+      answer: 'No, ilovelawyer is an AI legal information tool designed to assist with research and document verification. It provides information based on Republic Acts, Batas Pambansa, various Codes, and jurisprudence. We strongly recommend consulting with a member of the Integrated Bar of the Philippines (IBP) for sensitive legal matters.'
     },
     {
-      question: "Which Philippine laws are included in the AI's knowledge base?",
-      answer: "LexPH is trained on a wide range of Philippine legal documents, including the Revised Penal Code, Civil Code, Labor Code, Family Code, and major Republic Acts like the Data Privacy Act (R.A. 10173). It also uses Google Search grounding to reference recent Supreme Court decisions."
+      question: 'Which Philippine laws are included in the AI\'s knowledge base?',
+      answer: 'Our AI is trained on the Revised Penal Code, Civil Code, Labor Code, Family Code, and many other laws and regulations. We continuously update our database with new legislation and Supreme Court decisions.'
     },
     {
-      question: "How secure is the information I share?",
-      answer: "Your privacy is our priority. LexPH is built to be fully compliant with the Philippine Data Privacy Act of 2012. All consultations are encrypted, and we do not use your private legal inquiries to train our public AI models."
+      question: 'How secure is the information I share?',
+      answer: 'We use AES-256 encryption and comply with the Data Privacy Act of 2012. Your conversations are encrypted end-to-end and we never share your information with third parties without consent.'
     },
     {
-      question: "Can the AI help me draft legal documents like Affidavits?",
-      answer: "Yes, LexPH can help generate initial drafts for simple legal documents, contracts, and demand letters. However, these drafts should always be reviewed and notarized by a qualified lawyer to ensure they are legally binding and contextually accurate."
+      question: 'Can the AI help me draft legal documents like affidavits?',
+      answer: 'Yes, our AI can help you draft basic legal documents and contracts. However, we recommend having any important legal documents reviewed by a licensed attorney before signing.'
     },
     {
-      question: "Is there a cost to use LexPH?",
-      answer: "We offer a free tier for basic legal inquiries and general research. For advanced document analysis, workspace features, and priority grounding, we offer a premium plan designed for students, legal professionals, and small businesses."
+      question: 'Is there a cost to use ilovelawyer?',
+      answer: 'We offer free consultations to get started. Premium features like unlimited consultations, document analysis, and priority support are available through our subscription plans.'
     }
   ];
 
   return (
-    <section id="faq" className="py-24 bg-background-dark/50 scroll-mt-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-4">
-            Common Questions
-          </div>
-          <h2 className="text-4xl font-black tracking-tight mb-4">Frequently Asked Questions</h2>
-          <p className="text-slate-500 text-lg">Everything you need to know about our legal AI service.</p>
-        </div>
+    <section id="faq" className="relative py-20 px-6 z-10">
+      <div className="max-w-3xl mx-auto">
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div 
+            className="text-xs sm:text-sm uppercase tracking-wider mb-3 font-bold"
+            style={{ color: COLORS.PRIMARY }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            COMMON QUESTIONS
+          </motion.div>
+          <h2 
+            className="text-3xl sm:text-4xl md:text-5xl mb-4 text-white"
+            style={{ fontFamily: 'Playfair Display, serif' }}
+          >
+            Frequently Asked Questions
+          </h2>
+          <p className="text-gray-400 text-sm sm:text-base px-4">Everything you need to know about our legal AI assistant.</p>
+        </motion.div>
 
-        <div className="bg-card-dark/30 border border-border-dark rounded-[32px] p-8 md:p-12 backdrop-blur-sm">
+        <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <FAQItem
-              key={index}
-              question={faq.question}
-              answer={faq.answer}
-              isOpen={activeIndex === index}
-              onClick={() => setActiveIndex(activeIndex === index ? null : index)}
-            />
+            <motion.div 
+              key={index} 
+              className="backdrop-blur border rounded-lg overflow-hidden transition-all"
+              style={{ 
+                backgroundColor: `${COLORS.BG_CARD}80`, 
+                borderColor: `${COLORS.PRIMARY}33` 
+              }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ 
+                scale: 1.02, 
+                borderColor: `${COLORS.PRIMARY}80`,
+                transition: { duration: 0.2 } 
+              }}
+            >
+              <button
+                onClick={() => toggleFaq(index)}
+                className="w-full px-6 py-5 flex items-center justify-between text-left cursor-pointer transition-colors"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${COLORS.PRIMARY}0D`}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span className={`text-lg transition-colors ${openFaq === index ? 'text-white' : 'text-gray-300'}`} style={openFaq === index ? { color: 'white' } : {}}>
+                  {faq.question}
+                </span>
+                <motion.div
+                  animate={{ rotate: openFaq === index ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown 
+                    size={20} 
+                    style={{ color: COLORS.PRIMARY }}
+                  />
+                </motion.div>
+              </button>
+              <AnimatePresence initial={false}>
+                {openFaq === index && (
+                  <motion.div 
+                    className="px-6 text-gray-400 overflow-hidden"
+                    initial={{ opacity: 0, height: 0, paddingBottom: 0 }}
+                    animate={{ opacity: 1, height: 'auto', paddingBottom: 20 }}
+                    exit={{ opacity: 0, height: 0, paddingBottom: 0 }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <p className="leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           ))}
-        </div>
-        
-        <div className="mt-12 text-center">
-          <p className="text-slate-500 text-sm">
-            Still have questions? <button className="text-primary font-bold hover:underline">Contact our support team</button>
-          </p>
         </div>
       </div>
     </section>
