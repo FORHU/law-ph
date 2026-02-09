@@ -125,6 +125,12 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           }
 
           if (chunk.startsWith("[Error]")) {
+            if (chunk.includes("Unknown session")) {
+              localStorage.removeItem('chat_session_id');
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            }
             if (onError) onError(chunk);
             break;
           }
