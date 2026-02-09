@@ -58,6 +58,14 @@ export function MessageList({ messages }: MessageListProps) {
                         ol: ({children}) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
                         li: ({children}) => <li className="mb-1">{children}</li>,
                         h3: ({children}) => <h3 className="text-sm md:text-base font-bold mb-2 mt-3">{children}</h3>,
+                        a: ({node, ...props}) => (
+                          <a 
+                            {...props} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[#8B4564] hover:text-[#9D5373] underline font-medium transition-colors"
+                          />
+                        ),
                       }}
                     >
                       {message.text}
