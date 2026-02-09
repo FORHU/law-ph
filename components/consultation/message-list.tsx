@@ -5,7 +5,7 @@ import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
-  id: number;
+  id: string | number;
   text: string;
   sender: typeof CHAT_SENDER.USER | typeof CHAT_SENDER.AI;
   time: string;

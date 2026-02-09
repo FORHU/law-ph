@@ -43,7 +43,7 @@ export function SignUpForm() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -54,7 +54,22 @@ export function SignUpForm() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("User already registered") || error.code === 'user_already_exists') {
+          setError("This email is already registered. Please sign in instead.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Supabase returns a user object on success, but if the user already exists 
+      // (and email confirmation is enabled), the identities array will be empty.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setError("This email is already registered. Please sign in instead.");
+        setIsLoading(false);
+        return;
+      }
       
       setShowSuccessModal(true);
     } catch (error: any) {
