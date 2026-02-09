@@ -172,9 +172,14 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
       setIsLoading(false);
       isLoadingRef.current = false;
 
+      const finalTime = new Date();
       saveMessageToDB({
+        id: Date.now(),
         role: 'assistant',
         content: accumulatedContent,
+        text: accumulatedContent,
+        sender: 'ai' as const,
+        time: finalTime.toLocaleTimeString(),
         conversation_id,
       });
 
