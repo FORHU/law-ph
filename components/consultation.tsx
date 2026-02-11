@@ -44,8 +44,11 @@ export default function Consultation({
     handleLoadConsultation,
     handleNewConsultation: coreHandleNewConsultation,
     handleRemoveConsultation,
-    handleSendMessage
+    handleSendMessage,
+    handleDeleteMessage
   } = useConsultation(session?.user?.id, activeConversationId);
+
+  console.log("[Consultation] Render. Messages:", messages.length, "RecentItems:", recentConsultations.length, "ActiveID:", activeConversationId);
 
   const quickQuestions = [
     "What are my tenant rights?",
@@ -61,9 +64,19 @@ export default function Consultation({
     }
   }, [messages]);
 
+  const lastIdRef = useRef<string | null>(null);
+
   // Sync state to URL for new consultations
   useEffect(() => {
-    if (currentConsultationId && !activeConversationId && messages.length > 0) {
+    // Only redirect if we have a real UUID (string) and messages, and we aren't already on that URL
+    const shouldRedirect = currentConsultationId && 
+                          typeof currentConsultationId === 'string' && 
+                          !activeConversationId && 
+                          messages.length > 0 &&
+                          currentConsultationId !== lastIdRef.current;
+
+    if (shouldRedirect) {
+      lastIdRef.current = currentConsultationId as string;
       router.push(`/consultation/${currentConsultationId}`);
     }
   }, [currentConsultationId, activeConversationId, messages.length, router]);
@@ -79,16 +92,30 @@ export default function Consultation({
     setInputMessage(question);
   };
 
-  const sidebarRecentItems = recentConsultations.map(c => ({
+  const sidebarRecentItems = recentConsultations.map((c: any) => ({
     id: c.id,
     title: c.title,
     onClick: () => router.push(`/consultation/${c.id}`),
-    onRemove: () => handleRemoveConsultation(c.id)
+    onRemove: async () => {
+      console.log("[Consultation] Removing item in sidebar:", c.id);
+      const isDeletingActive = c.id === activeConversationId || c.id?.toString() === currentConsultationId?.toString();
+      
+      // If we are deleting the active one, push BEFORE awaiting to clear the URL ID immediately
+      if (isDeletingActive) {
+        console.log("[Consultation] Deleting active item, pushing to /consultation");
+        router.push('/consultation');
+      }
+      
+      await handleRemoveConsultation(c.id);
+    }
   }));
 
   const handleNewConsultation = () => {
+    // Clear state and reset redirect ref to allow fresh start
+    lastIdRef.current = null;
     coreHandleNewConsultation();
-    router.push('/consultation');
+    // Navigating to /consultation will trigger the sync logic but with clean state
+    router.push('/consultation', { scroll: false });
   };
 
   return (
@@ -135,7 +162,10 @@ export default function Consultation({
               />
             )}
 
-            <MessageList messages={messages} />
+            <MessageList 
+              messages={messages} 
+              onDelete={handleDeleteMessage}
+            />
           </div>
         </div>
 

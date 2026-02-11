@@ -1,6 +1,6 @@
 'use client';
 
-import { Scale, User } from 'lucide-react';
+import { Scale, User, Trash2 } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
 import { AuthRequestCard } from '@/components/auth-request-card';
@@ -14,9 +14,10 @@ interface Message {
 
 interface MessageListProps {
   messages: Message[];
+  onDelete?: (id: string | number) => void;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, onDelete }: MessageListProps) {
   return (
     <div className="space-y-4">
       {messages.map((message) => {
@@ -38,12 +39,23 @@ export function MessageList({ messages }: MessageListProps) {
                 <User size={16} className="text-white md:w-[18px] md:h-[18px]" />
               </div>
             )}
-            <div className={`flex-1 ${isUser ? 'max-w-[90%] md:max-w-[85%] ml-auto' : 'max-w-[90%] md:max-w-[85%]'}`}>
+            <div className={`flex-1 ${isUser ? 'max-w-[90%] md:max-w-[85%] ml-auto' : 'max-w-[90%] md:max-w-[85%]'} group/msg relative`}>
               <div className={`backdrop-blur border rounded-2xl p-3.5 md:p-5 ${
                 isUser 
                   ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
                   : `bg-[#2A2A2A]/70 border-` + COLORS.PRIMARY + `/30 rounded-tl-sm`
               }`}>
+                {/* Delete Button */}
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(message.id)}
+                    className={`absolute ${isUser ? '-left-8' : '-right-8'} top-2 p-1.5 text-gray-500 hover:text-red-400 opacity-0 group-hover/msg:opacity-100 transition-all transition-opacity`}
+                    title="Delete message"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+                
                 <div className="text-sm md:text-base text-gray-200 leading-relaxed prose prose-invert max-w-none">
                   {message.text === "" && isAI ? (
                     <div className="flex gap-1 py-1">
