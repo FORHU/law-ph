@@ -1,8 +1,8 @@
 import { Message } from "@/types";
 
 export default function useSaveMessage(){
-    async function saveMessageToDB({ role, content, conversation_id, imagePreview, timestamp, created_at } : Partial<Message>){
-    if(!content || !content.trim()) return;
+    async function saveMessageToDB({ role, content, conversation_id, imagePreview, timestamp } : Message){
+    if(!content.trim()) return;
 
     if(!conversation_id) return;
 

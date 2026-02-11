@@ -173,13 +173,57 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       return
     }
 
+<<<<<<< HEAD
     // Fetch Chat Session ID
+=======
+    // Load from Local Storage
+    const saved = localStorage.getItem(storageKey)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setRecentConsultations(parsed)
+        
+        if (syncedConversationId) {
+          // GUARD: Skip reload if we are already in sync.
+          if (currentConsultationId?.toString() === syncedConversationId) {
+            // State is already correct
+          } else {
+            const synced = parsed.find((c: ConsultationSession) => c.id.toString() === syncedConversationId)
+            if (synced) {
+              setMessages(synced.messages)
+              setCurrentConsultationId(synced.id)
+            } else {
+              // Not in recent consultations, maybe it's in Supabase?
+              // The fetchMessages effect below will handle that.
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse consultations', e)
+      }
+    }
+
+    // Fetch Chat Session ID (or retrieve from localStorage)
+>>>>>>> e04d1a57b66a6b70d458ed804532388949eef533
     const fetchSession = async () => {
       try {
+        // Check if we already have a session ID in localStorage
+        const storedSessionId = localStorage.getItem('chat_session_id');
+        if (storedSessionId) {
+          console.log("[Session] Using cached session ID:", storedSessionId);
+          setChatSessionId(storedSessionId);
+          return;
+        }
+
+        // If not, fetch a new one from the backend
         const res = await fetch('/api/chat/session')
         if (res.ok) {
           const data = await res.json()
-          setChatSessionId(data.session_id)
+          const newSessionId = data.session_id;
+          setChatSessionId(newSessionId);
+          // Store it for future use
+          localStorage.setItem('chat_session_id', newSessionId);
+          console.log("[Session] New session ID created:", newSessionId);
         }
       } catch (err) {
         console.error("Failed to initialize session:", err)

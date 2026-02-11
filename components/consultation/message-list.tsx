@@ -3,6 +3,7 @@
 import { Scale, User, Trash2 } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
+import { AuthRequestCard } from '@/components/auth-request-card';
 
 interface Message {
   id: string | number;
@@ -63,6 +64,7 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                     </div>
                   ) : isAI ? (
+                    <>
                     <ReactMarkdown 
                       components={{
                         p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -80,8 +82,16 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                         ),
                       }}
                     >
-                      {message.text}
+                      {message.text.replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").trim()}
                     </ReactMarkdown>
+                    {(() => {
+                        const authUrlMatch = message.text.match(/\[AUTH_URL\]\s*(https?:\/\/[^\s]+)/);
+                        if (authUrlMatch) {
+                            return <AuthRequestCard authUrl={authUrlMatch[1]} />;
+                        }
+                        return null;
+                    })()}
+                    </>
                   ) : (
                     message.text
                   )}
