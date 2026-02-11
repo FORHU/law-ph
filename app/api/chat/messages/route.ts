@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: Request) {
   const supabase = await createClient()
-  const { conversation_id, role, content, imagePreview, timestamp } = await req.json()
+  const { conversation_id, role, content, imagePreview, created_at } = await req.json()
 
   if (!conversation_id || !role || !content) {
     return NextResponse.json(
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       role,
       content,
       imagePreview: imagePreview || null,
-      timestamp: timestamp ? new Date(timestamp) : new Date()
+      created_at: created_at ? new Date(created_at) : new Date()
     })
 
   if (error) {

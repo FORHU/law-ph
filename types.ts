@@ -4,8 +4,9 @@ export interface Message {
   content?: string
   conversation_id?: string
   imagePreview?: string
-  created_at?: Date
-  timestamp?: Date
+  created_at?: Date | string
+  /** @deprecated use created_at instead */
+  timestamp?: Date | string
   // Chat UI fields (required for UI but can be mapped from content)
   text: string
   sender: 'user' | 'ai'
@@ -13,17 +14,17 @@ export interface Message {
 }
 
 export interface ConsultationSession {
-  id: number;
+  id: string | number;
   title: string;
   subtitle: string;
-  messages: any[]; // Using any temporarily to avoid deep recursion during transition
+  messages: Message[];
 }
 
 export interface Conversation {
-  id?: string
-  user_id?: string
-  title: string
-  created_at?: string
+  id: string; // Changed to string for UUID support
+  user_id?: string;
+  title: string;
+  created_at?: string;
 }
 
 export enum AppScreen {

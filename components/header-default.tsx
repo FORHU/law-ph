@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { COLORS, BRAND } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
+import { LogoutButton } from './logout-button';
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -22,17 +23,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
     setMobileMenuOpen(false);
   };
 
-  const handleLogout = async () => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-    } else {
-      router.push('/');
-      router.refresh();
-    }
-    setMobileMenuOpen(false);
-  };
+  /* handleLogout removed in favor of LogoutButton component */
 
   const scrollToSection = (id: string) => {
     setTimeout(() => {
@@ -122,8 +113,11 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 LOGIN
               </button>
             ) : (
-              <button
-                onClick={handleLogout}
+              <LogoutButton
+                onLogoutSuccess={() => {
+                  router.push('/');
+                  router.refresh();
+                }}
                 className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
                 style={{ 
                   borderColor: COLORS.PRIMARY,
@@ -139,7 +133,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 }}
               >
                 LOGOUT
-              </button>
+              </LogoutButton>
             )}
           </div>
 
@@ -199,8 +193,12 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 LOGIN
               </button>
             ) : (
-              <button
-                onClick={handleLogout}
+              <LogoutButton
+                onLogoutSuccess={() => {
+                  router.push('/');
+                  router.refresh();
+                  setMobileMenuOpen(false);
+                }}
                 className="px-6 py-2 border-2 rounded-md transition-all w-full text-center font-medium"
                 style={{ 
                   borderColor: COLORS.PRIMARY,
@@ -216,7 +214,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                 }}
               >
                 LOGOUT
-              </button>
+              </LogoutButton>
             )}
           </div>
         )}

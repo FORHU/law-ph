@@ -31,10 +31,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  let session = null;
+  try {
+    const supabase = await createClient();
+    const { data: { session: fetchedSession } } = await supabase.auth.getSession();
+    session = fetchedSession;
+  } catch (error) {
+    console.error("Critical: Failed to retrieve session in RootLayout", error);
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>

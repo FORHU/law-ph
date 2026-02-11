@@ -6,7 +6,7 @@ import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface RecentItem {
-  id: number;
+  id: string | number;
   title: string;
   subtitle?: string;
   onClick: () => void;

@@ -42,6 +42,8 @@ export function ChatInput({
           <div className="flex items-end gap-2 md:gap-3">
             <div className="flex-1 relative">
               <textarea
+                id="chat-message-input"
+                name="message"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyDown}

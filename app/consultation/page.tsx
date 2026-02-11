@@ -11,22 +11,8 @@ export default function Page() {
    const router = useRouter()
 
 
-  useEffect( () => {
-    const fetchConversations = async () => {
-    if(loggedIn){
-      const userId = session?.user?.id
-      const { data : lastConversation } =  await supabase.from("conversations").select("*").eq("user_id", userId ).order("created_at", { ascending: false}).limit(1).maybeSingle()
-
-      // create new conversation if no conversation yet
-      if(lastConversation){
-        const id = lastConversation?.id
-        router.push(`/consultation/${id}`)
-      } 
-    }
-
-    }
-    fetchConversations()
-  }, [])
+  // Removed auto-redirect to latest conversation to allow "New Consultation" flow 
+  // to correctly land on the base /consultation route.
 
 
   const navigateToHome = () => {

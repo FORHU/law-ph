@@ -1,12 +1,16 @@
 // components/auth-provider.tsx
 'use client';
 import { createClient } from '@/lib/supabase/client';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { Session, SupabaseClient } from '@supabase/supabase-js';
 
-type AuthContextType = { loggedIn: boolean; session: Session | null };
+type AuthContextType = { 
+  loggedIn: boolean; 
+  session: Session | null;
+  supabase: SupabaseClient;
+};
 
-const AuthContext = createContext<AuthContextType>({ loggedIn: false, session: null });
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export default function AuthProvider({
   initialSession,
@@ -16,18 +20,29 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const [session, setSession] = useState(initialSession);
+  const supabase = useMemo(() => createClient(), []);
 
   const loggedIn = !!session;
   
   useEffect(() => {
-    const supabase = createClient();
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
-    return () => (subscription as any)?.unsubscribe();
-  }, []);
 
-  return <AuthContext.Provider value={{ loggedIn, session }}>{children}</AuthContext.Provider>;
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  return (
+    <AuthContext.Provider value={{ loggedIn, session, supabase }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
+};
