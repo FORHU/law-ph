@@ -173,10 +173,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       return
     }
 
-<<<<<<< HEAD
-    // Fetch Chat Session ID
-=======
     // Load from Local Storage
+    const storageKey = STORAGE_KEYS.CONSULTATIONS
     const saved = localStorage.getItem(storageKey)
     if (saved) {
       try {
@@ -192,9 +190,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
             if (synced) {
               setMessages(synced.messages)
               setCurrentConsultationId(synced.id)
-            } else {
-              // Not in recent consultations, maybe it's in Supabase?
-              // The fetchMessages effect below will handle that.
             }
           }
         }
@@ -204,7 +199,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     }
 
     // Fetch Chat Session ID (or retrieve from localStorage)
->>>>>>> e04d1a57b66a6b70d458ed804532388949eef533
     const fetchSession = async () => {
       try {
         // Check if we already have a session ID in localStorage
