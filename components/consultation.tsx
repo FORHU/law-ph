@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
 import { Session } from '@supabase/supabase-js';
 import { Conversation } from '@/types';
 
 import { useConsultation } from '@/hooks/use-consultation';
+import { useConversations } from '@/components/conversation-provider';
 
 // Sub-components
 import { ConsultationHeader } from './consultation/consultation-header';
@@ -32,7 +33,6 @@ export default function Consultation({
   session
 }: ConsultationProps) {
   const [inputMessage, setInputMessage] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -44,9 +44,12 @@ export default function Consultation({
     handleLoadConsultation,
     handleNewConsultation: coreHandleNewConsultation,
     handleRemoveConsultation,
+    handleRenameConsultation,
     handleSendMessage,
     handleDeleteMessage
   } = useConsultation(session?.user?.id, activeConversationId);
+
+  const { isSidebarOpen, setIsSidebarOpen } = useConversations();
 
   console.log("[Consultation] Render. Messages:", messages.length, "RecentItems:", recentConsultations.length, "ActiveID:", activeConversationId);
 
@@ -55,6 +58,13 @@ export default function Consultation({
     "How do I file a small claims case?",
     "Explain employment contract basics",
     "What is breach of contract?"
+  ];
+
+  const suggestedQuestions = [
+    "Can you access my email?",
+    "Can you send an email to this person for me?",
+    "Can you create a schedule for me?",
+    "Can you set a schedule for this person on my behalf?"
   ];
 
   // Auto-scroll to bottom when messages change
@@ -92,6 +102,16 @@ export default function Consultation({
     setInputMessage(question);
   };
 
+  const handleSuggestedQuestion = (question: string) => {
+    setInputMessage(question);
+    // Optional: Focus the input after selecting
+    const textarea = document.getElementById('chat-message-input');
+    if (textarea) {
+      textarea.focus();
+    }
+  };
+
+  /* sidebarRecentItems update to include onRename */
   const sidebarRecentItems = recentConsultations.map((c: any) => ({
     id: c.id,
     title: c.title,
@@ -107,7 +127,8 @@ export default function Consultation({
       }
       
       await handleRemoveConsultation(c.id);
-    }
+    },
+    onRename: (newTitle: string) => handleRenameConsultation(c.id, newTitle)
   }));
 
   const handleNewConsultation = () => {
@@ -117,6 +138,13 @@ export default function Consultation({
     // Navigating to /consultation will trigger the sync logic but with clean state
     router.push('/consultation', { scroll: false });
   };
+
+  // Find active conversation for title
+  const activeConversation = recentConsultations.find((c: any) => c.id === currentConsultationId) || 
+                             (activeConversationId ? recentConsultations.find((c: any) => c.id === activeConversationId) : null);
+  
+  const headerTitle = activeConversation?.title || "AI Legal Consultation";
+  const isDefaultTitle = !activeConversation;
 
   return (
     <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -132,22 +160,39 @@ export default function Consultation({
         <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/80 via-[#1A1A1A]/70 to-[#1A1A1A]/95"></div>
       </div>
 
-      <AppSidebar 
-        activePage="chat"
-        onNewItem={handleNewConsultation}
-        newItemLabel="New Consultation"
-        showWorkspace={messages.length > 0}
-        workspaceTitle="Active Consultation"
-        workspaceSubtitle="AI Legal Analysis"
-        recentItems={sidebarRecentItems}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      <AnimatePresence mode="wait">
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 240, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="h-full z-20 flex-shrink-0"
+          >
+            <AppSidebar 
+              activePage="chat"
+              onNewItem={handleNewConsultation}
+              newItemLabel="New Consultation"
+              recentItems={sidebarRecentItems}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden">
         <ConsultationHeader 
-          title="AI Legal Consultation"
+          title={headerTitle}
           onMenuClick={() => setIsSidebarOpen(true)}
+          showMenuButton={!isSidebarOpen}
+          isEditable={!isDefaultTitle}
+          onTitleChange={(newTitle) => {
+            if (currentConsultationId) {
+              handleRenameConsultation(currentConsultationId, newTitle);
+            }
+          }}
+          showSubtitle={isDefaultTitle}
         />
 
         <div 
@@ -191,6 +236,8 @@ export default function Consultation({
           onChange={setInputMessage}
           onSend={onSendMessage}
           disabled={isLoading}
+          suggestedQuestions={suggestedQuestions}
+          onQuestionClick={handleSuggestedQuestion}
         />
       </main>
     </div>

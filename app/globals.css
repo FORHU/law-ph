@@ -156,3 +156,21 @@ body {
 .legal-resources-carousel .slick-dots li button:hover:before {
   opacity: 0.6 !important;
 }
+
+/* Sidebar Scrollbar */
+.custom-sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 69, 100, 0.2);
+  border-radius: 10px;
+}
+
+.custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 69, 100, 0.4);
+}
