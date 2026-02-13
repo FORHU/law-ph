@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Conversation, Message, ConsultationSession } from "@/types"
@@ -23,7 +25,10 @@ type ConversationContextType = {
   handleLoadConsultation: (consultation: ConsultationSession) => void,
   handleNewConsultation: () => void,
   handleRemoveConsultation: (id: string | number) => void,
-  handleDeleteMessage: (messageId: string | number) => Promise<void>
+  handleRenameConsultation: (id: string | number, newTitle: string) => Promise<void>,
+  handleDeleteMessage: (messageId: string | number) => Promise<void>,
+  isSidebarOpen: boolean,
+  setIsSidebarOpen: (isOpen: boolean) => void
 }
 
 const ConversationContext = createContext<ConversationContextType | null>(null)
@@ -39,6 +44,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([])
   const [chatSessionId, setChatSessionId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
   // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -234,6 +240,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     const fetchCloudMessages = async () => {
       // If we're on the root /consultation route (no ID), clear state and bail
       if (!syncedConversationId) {
+        // GUARD: Don't clear if we're currently loading/streaming or if we just started a session
+        if (isLoading) return;
+
         if (currentConsultationId !== null || messages.length > 0) {
           console.log("No synced ID, clearing state");
           handleNewConsultation();
@@ -310,6 +319,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
           messages: [] // Messages are fetched on demand
         }))
         setRecentConsultations(mappedSessions)
+        
+        // Sync local storage whenever we get fresh data from cloud to avoid revert loops
+        localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(mappedSessions))
+        
         setLoaded(true)
       }
     } catch (err) {
@@ -329,6 +342,40 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const handleLoadConsultation = (consultation: ConsultationSession) => {
     setMessages(consultation.messages)
     setCurrentConsultationId(consultation.id)
+  }
+
+  const handleRenameConsultation = async (id: string | number, newTitle: string) => {
+    const idStr = id.toString();
+    console.log(`[ConversationProvider] handleRenameConsultation: "${idStr}" -> "${newTitle}"`);
+    
+    // 1. Optimistic Update (UI responsiveness)
+    setRecentConsultations(prev => {
+      const updated = prev.map(c => c.id.toString() === idStr ? { ...c, title: newTitle } : c);
+      localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Atomic DB Update
+    if (loggedIn) {
+      try {
+        console.log(`[ConversationProvider] Cloud Syncing rename: ${idStr}`);
+        const { data, error } = await supabase
+          .from("conversations")
+          .update({ title: newTitle })
+          .eq("id", idStr)
+          .select();
+        
+        if (error) {
+          console.error("[ConversationProvider] DB Rename failed:", error.message);
+        } else if (data && data.length === 0) {
+          console.warn("[ConversationProvider] DB Update returned 0 rows. RLS likely blocking update for ID:", idStr);
+        } else {
+          console.log("[ConversationProvider] DB Rename successful. Updated rows:", data?.length);
+        }
+      } catch (err) {
+        console.error("[ConversationProvider] Critical rename error:", err);
+      }
+    }
   }
 
   const handleNewConsultation = () => {
@@ -443,7 +490,26 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
             }
             
             if (chunk.startsWith("[Error]")) {
-              accumulatedText = "Error: " + chunk.replace("[Error]", "")
+              if (chunk.includes("Unknown session")) {
+                console.warn("[Session] Unknown session detected in stream. Clearing cache.");
+                localStorage.removeItem('chat_session_id');
+                setChatSessionId('');
+                accumulatedText = "Session expired. Reconnecting...";
+                
+                // Optional: Attempt to re-fetch session immediately
+                fetch('/api/chat/session')
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.session_id) {
+                      localStorage.setItem('chat_session_id', data.session_id);
+                      setChatSessionId(data.session_id);
+                      console.log("[Session] Session re-initialized automatically.");
+                    }
+                  })
+                  .catch(err => console.error("Failed to re-initialize session:", err));
+              } else {
+                accumulatedText = "Error: " + chunk.replace("[Error]", "")
+              }
               break
             }
 
@@ -521,7 +587,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         handleLoadConsultation,
         handleNewConsultation,
         handleRemoveConsultation,
-        handleDeleteMessage
+        handleRenameConsultation,
+        handleDeleteMessage,
+        isSidebarOpen,
+        setIsSidebarOpen
       }}
     >
       {children}

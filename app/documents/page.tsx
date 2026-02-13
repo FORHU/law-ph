@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Upload,
@@ -12,6 +12,7 @@ import {
   Menu
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
+import { useConversations } from '@/components/conversation-provider';
 import { STORAGE_KEYS, ASSETS } from '@/lib/constants';
 
 interface StoredDocument {
@@ -25,7 +26,7 @@ export default function Documents() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSidebarOpen, setIsSidebarOpen } = useConversations();
 
   // Load documents from localStorage
   useEffect(() => {
@@ -124,13 +125,25 @@ export default function Documents() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/80 via-[#1A1A1A]/70 to-[#1A1A1A]/95"></div>
       </div>
 
-      <AppSidebar 
-        activePage="documents"
-        recentLabel="RECENT DOCUMENTS"
-        recentItems={sidebarRecentItems}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      <AnimatePresence mode="wait">
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 240, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="h-full z-20 flex-shrink-0"
+          >
+            <AppSidebar 
+              activePage="documents"
+              recentLabel="RECENT DOCUMENTS"
+              recentItems={sidebarRecentItems}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative w-full overflow-hidden">
@@ -140,7 +153,7 @@ export default function Documents() {
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
+                className="p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
               >
                 <Menu size={20} className="text-gray-300" />
               </button>

@@ -9,6 +9,7 @@ export function useConsultation(_userId?: string, _syncedConversationId?: string
     handleLoadConsultation,
     handleNewConsultation,
     handleRemoveConsultation,
+    handleRenameConsultation,
     handleSendMessage,
     handleDeleteMessage
   } = useConversations()
@@ -21,6 +22,7 @@ export function useConsultation(_userId?: string, _syncedConversationId?: string
     handleLoadConsultation,
     handleNewConsultation,
     handleRemoveConsultation,
+    handleRenameConsultation,
     handleSendMessage,
     handleDeleteMessage
   }

@@ -35,6 +35,14 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     const fetchSessionWithRetry = async (retries = 3) => {
         if (sessionId) return; // Prevent re-fetching if already set
         try {
+            // Check if we already have a session ID in localStorage
+            const storedSessionId = localStorage.getItem('chat_session_id');
+            if (storedSessionId) {
+                setSessionId(storedSessionId);
+                console.log("Using cached session:", storedSessionId);
+                return;
+            }
+
             const res = await fetch('/api/chat/session');
             if (!res.ok) throw new Error("Failed to fetch session ID");
             const data = await res.json();

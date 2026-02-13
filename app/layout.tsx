@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import AuthProvider from "@/components/auth-provider";
+import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
 import AuthLoading from "@/components/auth-loading";
 
@@ -64,7 +65,9 @@ export default async function RootLayout({
         >
           <Suspense fallback={<AuthLoading />}>
             <AuthProvider initialSession={session}>
-              {children}
+              <ConversationProvider>
+                {children}
+              </ConversationProvider>
             </AuthProvider>
           </Suspense>
         </ThemeProvider>
