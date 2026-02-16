@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { UserPlus, Eye, EyeOff, Shield, Scale, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
-import { AuthBackground } from './auth-background';
+import { AuthBackground } from './auth/auth-background';
 import { SignUpSuccessModal } from './auth/sign-up-success-modal';
 
 export function SignUpForm() {

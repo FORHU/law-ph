@@ -1,37 +1,20 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Conversation, Message, ConsultationSession } from "@/types"
-import { useAuth } from "@/components/auth-provider"
+import { Conversation, ConsultationSession } from "@/types"
+import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER, STORAGE_KEYS } from "@/lib/constants"
+import { extractLegalSources, extractRelatedCases } from '@/lib/citation-parser'
+import { 
+  ConversationContext, 
+  Message,
+  type ConversationContextType 
+} from './conversation-provider/conversation-context'
+import { useDetailSidebar } from './conversation-provider/use-detail-sidebar'
+import { useSendMessage } from './conversation-provider/use-send-message'
 
-type ConversationContextType = {
-  // Supabase/Cloud state
-  conversations: Conversation[],
-  refreshConversations: () => Promise<void>,
-  
-  // Local/Consultation state (hoisted from useConsultation)
-  messages: Message[],
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
-  isLoading: boolean,
-  recentConsultations: ConsultationSession[],
-  currentConsultationId: string | number | null,
-  chatSessionId: string,
-  
-  // Handlers
-  handleSendMessage: (text: string) => Promise<void>,
-  handleLoadConsultation: (consultation: ConsultationSession) => void,
-  handleNewConsultation: () => void,
-  handleRemoveConsultation: (id: string | number) => void,
-  handleRenameConsultation: (id: string | number, newTitle: string) => Promise<void>,
-  handleDeleteMessage: (messageId: string | number) => Promise<void>,
-  isSidebarOpen: boolean,
-  setIsSidebarOpen: (isOpen: boolean) => void
-}
-
-const ConversationContext = createContext<ConversationContextType | null>(null)
 
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
   const { loggedIn, session, supabase } = useAuth()
@@ -46,10 +29,20 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
+  // Detail sidebar hook
+  const {
+    isDetailSidebarOpen,
+    selectedSource,
+    selectedCase,
+    detailContext,
+    openSourceDetail,
+    openCaseDetail,
+    closeDetailSidebar,
+  } = useDetailSidebar(setIsSidebarOpen);
+  
   // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loaded, setLoaded] = useState(false)
-  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Ref to track all IDs deleted during this session to prevent any "resurrection" from stale API data
   const deletedIdsRef = useRef<Set<string>>(new Set())
@@ -141,6 +134,66 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     sender: msg.sender || (msg.role === 'assistant' ? 'ai' : 'user'),
     time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
   }), [])
+
+  // Sync Supabase Conversations
+  const fetchConversations = useCallback(async () => {
+    if (!loggedIn || !userId) return
+    console.log("[ConversationProvider] fetchConversations starting for user:", userId);
+
+    try {
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[ConversationProvider] fetchConversations error:", error.message);
+        return;
+      }
+
+      if (data) {
+        // Double-check: Filter out ANY ID that was deleted in this session
+        const liveData = data.filter(c => !deletedIdsRef.current.has(c.id.toString()));
+        console.log("[ConversationProvider] Sync complete. Filtered items:", data.length - liveData.length);
+        
+        setConversations(liveData)
+        // Map basic conversation list to ConsultationSession format for UI compatibility
+        const mappedSessions: ConsultationSession[] = liveData.map(conv => ({
+          id: conv.id,
+          title: conv.title,
+          subtitle: `Cloud Session`,
+          messages: [] // Messages are fetched on demand
+        }))
+        setRecentConsultations(mappedSessions)
+        
+        // Sync local storage whenever we get fresh data from cloud to avoid revert loops
+        localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(mappedSessions))
+        
+        setLoaded(true)
+      }
+    } catch (err) {
+      console.error("[ConversationProvider] Unexpected error in fetchConversations:", err);
+    } finally {
+      console.log("[ConversationProvider] fetchConversations complete.");
+    }
+  }, [loggedIn, userId, supabase])
+
+  // Message sending hook
+  const { handleSendMessage, abortMessage, abortControllerRef } = useSendMessage({
+    messages,
+    setMessages,
+    isLoading,
+    setIsLoading,
+    currentConsultationId,
+    setCurrentConsultationId,
+    chatSessionId,
+    setChatSessionId,
+    userId,
+    fetchConversations,
+    mapCloudMessage,
+    supabase
+  });
 
   // Background Cleanup: Retry deleting "shadow-deleted" items
   useEffect(() => {
@@ -288,50 +341,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     return () => { ignore = true; };
   }, [syncedConversationId, userId, loggedIn, mapCloudMessage, supabase, loaded, conversations])
 
-  // Sync Supabase Conversations
-  const fetchConversations = useCallback(async () => {
-    if (!loggedIn || !userId) return
-    console.log("[ConversationProvider] fetchConversations starting for user:", userId);
-
-    try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("[ConversationProvider] fetchConversations error:", error.message);
-        return;
-      }
-
-      if (data) {
-        // Double-check: Filter out ANY ID that was deleted in this session
-        const liveData = data.filter(c => !deletedIdsRef.current.has(c.id.toString()));
-        console.log("[ConversationProvider] Sync complete. Filtered items:", data.length - liveData.length);
-        
-        setConversations(liveData)
-        // Map basic conversation list to ConsultationSession format for UI compatibility
-        const mappedSessions: ConsultationSession[] = liveData.map(conv => ({
-          id: conv.id,
-          title: conv.title,
-          subtitle: `Cloud Session`,
-          messages: [] // Messages are fetched on demand
-        }))
-        setRecentConsultations(mappedSessions)
-        
-        // Sync local storage whenever we get fresh data from cloud to avoid revert loops
-        localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(mappedSessions))
-        
-        setLoaded(true)
-      }
-    } catch (err) {
-      console.error("[ConversationProvider] Unexpected error in fetchConversations:", err);
-    } finally {
-      console.log("[ConversationProvider] fetchConversations complete.");
-    }
-  }, [loggedIn, userId, supabase])
-
   useEffect(() => {
     if (!loaded && loggedIn) {
       fetchConversations()
@@ -379,198 +388,16 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   }
 
   const handleNewConsultation = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
+    abortMessage()
     setMessages([])
     setCurrentConsultationId(null)
     setIsLoading(false)
   }
 
 
-  // Functions have been hoisted to the top near state definitions to support the Shadow Delete logic.
-  // This block is intentionally left empty to remove the old implementations.
+  // Detail sidebar handlers are now provided by the useDetailSidebar hook
 
-  const handleSendMessage = async (text: string) => {
-    if (text.trim() && !isLoading) {
-      const currentInput = text.trim()
-      const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      const newMessage = {
-        id: Date.now(),
-        text: currentInput,
-        sender: CHAT_SENDER.USER,
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      }
-      
-      let sessionId = currentConsultationId
 
-      // 1. Create conversation if it doesn't exist
-      if (!sessionId || typeof sessionId === 'number') {
-        const { data: convData, error: convError } = await supabase
-          .from("conversations")
-          .insert({
-            user_id: userId,
-            title: currentInput.substring(0, 50)
-          })
-          .select()
-          .single()
-
-        if (convError) {
-          console.error("Failed to create conversation:", convError)
-          return
-        }
-        
-        sessionId = convData.id
-        setCurrentConsultationId(sessionId)
-        await fetchConversations() // Refresh sidebar
-      }
-
-      // 2. Save user message to cloud
-      const updatedMessages = [...messages, newMessage]
-      setMessages(updatedMessages)
-      
-      const { data: savedUserMsg, error: userMsgError } = await supabase
-        .from("messages")
-        .insert({
-          conversation_id: sessionId,
-          role: 'user',
-          content: currentInput
-        })
-        .select()
-        .single()
-
-      if (!userMsgError && savedUserMsg) {
-        setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m))
-      }
-
-      setIsLoading(true)
-      
-      try {
-        const aiMessageId = Date.now() + 1
-        const initialAiMessage = {
-          id: aiMessageId,
-          text: "",
-          sender: CHAT_SENDER.AI,
-          time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-        }
-
-        setMessages(prev => [...prev, initialAiMessage])
-
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort()
-        }
-        const controller = new AbortController()
-        abortControllerRef.current = controller
-
-        const response = await fetch('/api/chat/stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_input: `[Legal AI] ${currentInput}`,
-            session_id: chatSessionId || `session_${Date.now()}`,
-          }),
-          signal: controller.signal
-        })
-
-        if (!response.ok) throw new Error("Failed to connect to AI")
-
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        let accumulatedText = ""
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            let chunk = decoder.decode(value, { stream: true })
-            if (chunk.includes("__END__")) {
-              chunk = chunk.replace("__END__", "")
-            }
-            
-            if (chunk.startsWith("[Error]")) {
-              if (chunk.includes("Unknown session")) {
-                console.warn("[Session] Unknown session detected in stream. Clearing cache.");
-                localStorage.removeItem('chat_session_id');
-                setChatSessionId('');
-                accumulatedText = "Session expired. Reconnecting...";
-                
-                // Optional: Attempt to re-fetch session immediately
-                fetch('/api/chat/session')
-                  .then(res => res.json())
-                  .then(data => {
-                    if (data.session_id) {
-                      localStorage.setItem('chat_session_id', data.session_id);
-                      setChatSessionId(data.session_id);
-                      console.log("[Session] Session re-initialized automatically.");
-                    }
-                  })
-                  .catch(err => console.error("Failed to re-initialize session:", err));
-              } else {
-                accumulatedText = "Error: " + chunk.replace("[Error]", "")
-              }
-              break
-            }
-
-            if (chunk.startsWith("[Tool]")) continue
-
-            accumulatedText += chunk
-
-            setMessages(prev => {
-              const updated = [...prev]
-              const lastIdx = updated.length - 1
-              if (updated[lastIdx]?.id === aiMessageId) {
-                updated[lastIdx] = { ...updated[lastIdx], text: accumulatedText }
-              }
-              return updated
-            })
-          }
-
-          const finalMessages = [...updatedMessages, { ...initialAiMessage, text: accumulatedText }]
-          setMessages(finalMessages)
-
-          // 3. Save AI message to cloud
-          const { data: savedAiMsg, error: aiMsgError } = await supabase
-            .from("messages")
-            .insert({
-              conversation_id: sessionId,
-              role: 'assistant',
-              content: accumulatedText
-            })
-            .select()
-            .single()
-
-          if (!aiMsgError && savedAiMsg) {
-            setMessages(prev => {
-              const updated = [...prev]
-              const lastIdx = updated.length - 1
-              if (updated[lastIdx]?.sender === CHAT_SENDER.AI) {
-                updated[lastIdx] = mapCloudMessage(savedAiMsg)
-              }
-              return updated
-            })
-          }
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError') return
-        console.error("AI Stream Error:", error)
-        setMessages(prev => {
-          const updated = [...prev]
-          const lastIdx = updated.length - 1
-          if (updated[lastIdx]) {
-            updated[lastIdx] = { ...updated[lastIdx], text: "I'm sorry, I'm having trouble connecting right now. Please try again later." }
-          }
-          return updated
-        })
-      } finally {
-        setIsLoading(false)
-        if (abortControllerRef.current?.signal.aborted) {
-          abortControllerRef.current = null
-        }
-      }
-    }
-  }
 
   return (
     <ConversationContext.Provider
@@ -590,7 +417,14 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         handleRenameConsultation,
         handleDeleteMessage,
         isSidebarOpen,
-        setIsSidebarOpen
+        setIsSidebarOpen,
+        isDetailSidebarOpen,
+        selectedSource,
+        selectedCase,
+        detailContext,
+        openSourceDetail,
+        openCaseDetail,
+        closeDetailSidebar,
       }}
     >
       {children}
@@ -598,8 +432,3 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   )
 }
 
-export const useConversations = () => {
-  const ctx = useContext(ConversationContext)
-  if (!ctx) throw new Error("useConversations must be used inside ConversationProvider")
-  return ctx
-}

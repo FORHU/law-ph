@@ -3,22 +3,27 @@ import React, { useState } from 'react';
 import { Scale, User, Trash2, Mail, Calendar, BookOpen, Gavel, Copy } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
-import { AuthRequestCard } from '@/components/auth-request-card';
+import { AuthRequestCard } from '@/components/auth/auth-request-card';
 import { stripMarkdown } from '@/lib/clipboard-utils';
+import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 
 interface Message {
   id: string | number;
   text: string;
   sender: 'user' | 'ai';
   time: string;
+  sources?: LegalSource[];
+  relatedCases?: RelatedCase[];
 }
 
 interface MessageListProps {
   messages: Message[];
   onDelete?: (id: string | number) => void;
+  onSourceClick?: (source: LegalSource, context?: string) => void;
+  onCaseClick?: (caseItem: RelatedCase, context?: string) => void;
 }
 
-export function MessageList({ messages, onDelete }: MessageListProps) {
+export function MessageList({ messages, onDelete, onSourceClick, onCaseClick }: MessageListProps) {
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
 
   const handleTabChange = (messageId: string | number, tab: string) => {
@@ -69,34 +74,53 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                       <Calendar size={14} />
                       Schedule
                     </button>
-                    <button 
-                      onClick={() => handleTabChange(message.id, 'sources')}
-                      className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap group/tab ${
-                        activeTabs[message.id] === 'sources'
-                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border border-[#8B4564]/40'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                      }`}
-                    >
-                      <BookOpen size={14} />
-                      Sources
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
-                        activeTabs[message.id] === 'sources' ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40 group-hover/tab:bg-white/20 group-hover/tab:text-white/60'
-                      }`}>3</span>
+                    
+                    <button className="px-3 py-1.5 rounded-md text-gray-500 hover:text-white hover:bg-white/5 flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap cursor-not-allowed">
+                      <Mail size={14} />
+                      Timeline
                     </button>
-                    <button 
-                      onClick={() => handleTabChange(message.id, 'related')}
-                      className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap group/tab ${
-                        activeTabs[message.id] === 'related'
-                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border border-[#8B4564]/40'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                      }`}
-                    >
-                      <Gavel size={14} />
-                      Related Cases
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
-                        activeTabs[message.id] === 'related' ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40 group-hover/tab:bg-white/20 group-hover/tab:text-white/60'
-                      }`}>2</span>
+                    <button className="px-3 py-1.5 rounded-md text-gray-500 hover:text-white hover:bg-white/5 flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap cursor-not-allowed">
+                      <Mail size={14} />
+                      Mind Map
                     </button>
+
+                    {/* Only show Related Cases tab if there are cases */}
+                    {message.relatedCases && message.relatedCases.length > 0 && (
+                      <button 
+                        onClick={() => handleTabChange(message.id, 'related')}
+                        className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap group/tab ${
+                          activeTabs[message.id] === 'related'
+                            ? 'bg-[#8B4564]/30 text-[#E0A7C2] border border-[#8B4564]/40'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                        }`}
+                      >
+                        <Gavel size={14} />
+                        Related Cases
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
+                          activeTabs[message.id] === 'related' ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40 group-hover/tab:bg-white/20 group-hover/tab:text-white/60'
+                        }`}>{message.relatedCases.length}</span>
+                      </button>
+                    )}
+
+                    {/* Only show Sources tab if there are sources */}
+                    {message.sources && message.sources.length > 0 && (
+                      <button 
+                        onClick={() => handleTabChange(message.id, 'sources')}
+                        className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-medium transition-all whitespace-nowrap group/tab ${
+                          activeTabs[message.id] === 'sources'
+                            ? 'bg-[#8B4564]/30 text-[#E0A7C2] border border-[#8B4564]/40'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                        }`}
+                      >
+                        <BookOpen size={14} />
+                        Sources
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
+                          activeTabs[message.id] === 'sources' ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40 group-hover/tab:bg-white/20 group-hover/tab:text-white/60'
+                        }`}>{message.sources.length}</span>
+                      </button>
+                    )}
+
+                    
                   </div>
                 </div>
               )}
@@ -121,18 +145,18 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                           // Then strip markdown formatting for "perfect" plain text
                           textToCopy = stripMarkdown(cleanText);
                         } else if (activeTab === 'sources') {
-                          // Generate sources text
+                          // Generate sources text from actual data
+                          const sources = message.sources || [];
                           textToCopy = "Legal Sources & Citations:\n\n" + 
-                            [1, 2, 3].map(i => 
-                              `CONSTITUTIONAL PROVISION: ARTICLE ${i}, SEC ${i+2}\n` +
-                              `Citing the Revised Penal Code of the Philippines regarding specialized obligations.`
+                            sources.map(source => 
+                              `${source.type.toUpperCase()}: ${source.reference}\n${source.description}`
                             ).join("\n\n");
                         } else if (activeTab === 'related') {
-                          // Generate related cases text
+                          // Generate related cases text from actual data
+                          const cases = message.relatedCases || [];
                           textToCopy = "Related Jurisprudence:\n\n" + 
-                            [1, 2].map(i => 
-                              `SUPREME COURT CASE: G.R. NO. 2${i}45${i}6\n` +
-                              `People vs. Dela Cruz (202${i}) - Regarding the application of small claims procedures.`
+                            cases.map(caseItem => 
+                              `SUPREME COURT CASE: ${caseItem.caseNumber}\n${caseItem.description}`
                             ).join("\n\n");
                         }
 
@@ -171,19 +195,24 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                       const currentTab = activeTabs[message.id] || 'answer';
                       
                       if (currentTab === 'sources') {
+                        const sources = message.sources || [];
                         return (
                           <div className="py-4 space-y-4">
                             <h4 className="text-white font-bold flex items-center gap-2">
                               <BookOpen size={16} /> Legal Sources & Citations
                             </h4>
                             <div className="space-y-3">
-                              {[1, 2, 3].map(i => (
-                                <div key={i} className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group">
+                              {sources.map((source, i) => (
+                                <div 
+                                  key={i} 
+                                  className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group"
+                                  onClick={() => onSourceClick?.(source, message.text)}
+                                >
                                   <div className="flex justify-between items-start mb-1">
-                                    <span className="text-xs font-bold text-[#E0A7C2]">CONSTITUTIONAL PROVISION</span>
-                                    <span className="text-[10px] text-gray-500">ARTICLE {i}, SEC {i+2}</span>
+                                    <span className="text-xs font-bold text-[#E0A7C2]">{source.type.toUpperCase()}</span>
+                                    <span className="text-[10px] text-gray-500">{source.reference}</span>
                                   </div>
-                                  <p className="text-sm text-gray-300 group-hover:text-white transition-colors">Citing the Revised Penal Code of the Philippines regarding specialized obligations.</p>
+                                  <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{source.description}</p>
                                 </div>
                               ))}
                             </div>
@@ -192,19 +221,24 @@ export function MessageList({ messages, onDelete }: MessageListProps) {
                       }
 
                       if (currentTab === 'related') {
+                        const cases = message.relatedCases || [];
                         return (
                           <div className="py-4 space-y-4">
                             <h4 className="text-white font-bold flex items-center gap-2">
                               <Gavel size={16} /> Related Jurisprudence
                             </h4>
                             <div className="space-y-3">
-                              {[1, 2].map(i => (
-                                <div key={i} className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group">
+                              {cases.map((caseItem, i) => (
+                                <div 
+                                  key={i} 
+                                  className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group"
+                                  onClick={() => onCaseClick?.(caseItem, message.text)}
+                                >
                                   <div className="flex justify-between items-start mb-1">
                                     <span className="text-xs font-bold text-[#E0A7C2]">SUPREME COURT CASE</span>
-                                    <span className="text-[10px] text-gray-500">G.R. NO. 2{i}45{i}6</span>
+                                    <span className="text-[10px] text-gray-500">{caseItem.caseNumber}</span>
                                   </div>
-                                  <p className="text-sm text-gray-300 group-hover:text-white transition-colors">People vs. Dela Cruz (202{i}) - Regarding the application of small claims procedures.</p>
+                                  <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{caseItem.description}</p>
                                 </div>
                               ))}
                             </div>

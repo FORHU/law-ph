@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
@@ -9,32 +9,20 @@ import { Session } from '@supabase/supabase-js';
 import { Conversation } from '@/types';
 
 import { useConsultation } from '@/hooks/use-consultation';
-import { useConversations } from '@/components/conversation-provider';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 // Sub-components
 import { ConsultationHeader } from './consultation/consultation-header';
 import { QuickQuestions } from './consultation/quick-questions';
 import { MessageList } from './consultation/message-list';
 import { ChatInput } from './consultation/chat-input';
+import { SourceDetailSidebar } from './consultation/source-detail-sidebar';
 
-interface ConsultationProps {
-  onBack?: () => void;
-  isLoggedIn?: boolean;
-  activeConversationId?: string;
-  conversations?: Conversation[];
-  session?: Session | null;
-}
-
-export default function Consultation({
-  onBack,
-  isLoggedIn,
-  activeConversationId,
-  conversations: externalConversations,
-  session
-}: ConsultationProps) {
+export default function Consultation() {
   const [inputMessage, setInputMessage] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { conversationId: activeConversationId } = useParams() as { conversationId?: string };
 
   const {
     messages,
@@ -47,9 +35,19 @@ export default function Consultation({
     handleRenameConsultation,
     handleSendMessage,
     handleDeleteMessage
-  } = useConsultation(session?.user?.id, activeConversationId);
+  } = useConsultation();
 
-  const { isSidebarOpen, setIsSidebarOpen } = useConversations();
+  const { 
+    isSidebarOpen, 
+    setIsSidebarOpen,
+    isDetailSidebarOpen,
+    selectedSource,
+    selectedCase,
+    detailContext,
+    openSourceDetail,
+    openCaseDetail,
+    closeDetailSidebar
+  } = useConversations();
 
   console.log("[Consultation] Render. Messages:", messages.length, "RecentItems:", recentConsultations.length, "ActiveID:", activeConversationId);
 
@@ -90,6 +88,42 @@ export default function Consultation({
       router.push(`/consultation/${currentConsultationId}`);
     }
   }, [currentConsultationId, activeConversationId, messages.length, router]);
+
+  // Handle Legal Wizard Data
+  useEffect(() => {
+    const wizardDataStr = sessionStorage.getItem('legal_wizard_data');
+    
+    // Check if we have data, no messages, no active consultation, AND checking isLoading to ensure socket is likely ready
+    if (wizardDataStr && messages.length === 0 && !currentConsultationId && !isLoading) {
+      try {
+        const data = JSON.parse(wizardDataStr);
+        
+        // Construct a more natural "User" message
+        // Handle "Other" vs specific categories text
+        const issueText = data.specificIssue ? `specifically regarding ${data.specificIssue}` : '';
+        const descriptionText = data.description ? `Here are the details: "${data.description}"` : '';
+        
+        const prompt = `I am a ${data.userType} dealing with a ${data.legalArea} matter ${issueText}. ${descriptionText} ${data.consultationHistory}. My primary goal is to ${data.primaryGoal}. The situation is ${data.urgency}.`;
+        
+        // Store wizard data in sessionStorage with a special flag for title generation
+        sessionStorage.setItem('wizard_title_data', JSON.stringify({
+          userType: data.userType,
+          legalArea: data.legalArea,
+          specificIssue: data.specificIssue || data.description?.substring(0, 30)
+        }));
+        
+        // Small delay to ensure socket/auth is stable
+        const timer = setTimeout(() => {
+            handleSendMessage(prompt);
+            sessionStorage.removeItem('legal_wizard_data');
+        }, 500);
+        
+        return () => clearTimeout(timer);
+      } catch (e) {
+        console.error("Failed to parse wizard data", e);
+      }
+    }
+  }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
   const onSendMessage = () => {
     if (inputMessage.trim()) {
@@ -207,16 +241,18 @@ export default function Consultation({
               />
             )}
 
-            <MessageList 
-              messages={messages} 
+            <MessageList
+              messages={messages}
               onDelete={handleDeleteMessage}
+              onSourceClick={openSourceDetail}
+              onCaseClick={openCaseDetail}
             />
           </div>
         </div>
 
         <div className="max-w-4xl mx-auto w-full px-4 md:px-6 h-6 mb-1 relative z-10">
           {isLoading && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-2 text-xs text-gray-400"
@@ -231,7 +267,7 @@ export default function Consultation({
           )}
         </div>
 
-        <ChatInput 
+        <ChatInput
           value={inputMessage}
           onChange={setInputMessage}
           onSend={onSendMessage}
@@ -240,6 +276,15 @@ export default function Consultation({
           onQuestionClick={handleSuggestedQuestion}
         />
       </main>
+
+      {/* Source Detail Sidebar */}
+      <SourceDetailSidebar
+        isOpen={isDetailSidebarOpen}
+        onClose={closeDetailSidebar}
+        source={selectedSource || undefined}
+        caseItem={selectedCase || undefined}
+        context={detailContext}
+      />
     </div>
   );
 }

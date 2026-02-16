@@ -5,7 +5,7 @@ import { Header } from "@/components/header-default";
 import { Footer } from "@/components/footer-default";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function Home() {
 

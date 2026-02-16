@@ -53,8 +53,6 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
   const handleStartRename = () => {
     setEditingId(item.id);
     setEditValue(item.title);
-    setEditingId(item.id);
-    setEditValue(item.title);
     onToggle?.(); // Close menu when renaming starts
   };
 

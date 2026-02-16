@@ -1,4 +1,4 @@
-import { useConversations } from "@/components/conversation-provider"
+import { useConversations } from "@/components/conversation-provider/conversation-context"
 
 export function useConsultation(_userId?: string, _syncedConversationId?: string) {
   const {
