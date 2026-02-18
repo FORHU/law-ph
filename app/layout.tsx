@@ -4,10 +4,10 @@ import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
-import AuthProvider from "@/components/auth-provider";
+import AuthProvider from "@/components/auth/auth-provider";
 import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
-import AuthLoading from "@/components/auth-loading";
+import AuthLoading from "@/components/auth/auth-loading";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`

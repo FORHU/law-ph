@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Lock, Mail, CheckCircle, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
-import { AuthBackground } from './auth-background';
+import { AuthBackground } from './auth/auth-background';
 
 export function ForgotPasswordForm() {
   const router = useRouter();

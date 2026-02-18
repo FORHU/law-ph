@@ -1,11 +1,10 @@
-import { useConversations } from '@/components/conversation-provider';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import useSaveMessage from './use-save-message';
-import { Message } from '@/types';
+import { Message } from '@/components/conversation-provider/conversation-context';
 
 // Extended for local state needs
 interface SocketMessage extends Message {
-  sources?: any[];
   imagePreview?: string;
 }
 
@@ -72,12 +71,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     const now = new Date();
     const userMsg: SocketMessage = {
       id: Date.now(),
-      role: 'user',
-      content: text,
       text: text,
       sender: 'user' as const,
       time: now.toLocaleTimeString(),
-      created_at: now,
       imagePreview: image // Passthrough but ignored by backend for now
     };
     
@@ -90,12 +86,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     const assistantPlaceholder = new Date();
     setMessages(prev => [...prev, {
       id: Date.now() + 1,
-      role: 'assistant',
-      content: '',
       text: '',
       sender: 'ai' as const,
-      time: assistantPlaceholder.toLocaleTimeString(),
-      created_at: assistantPlaceholder
+      time: assistantPlaceholder.toLocaleTimeString()
     }]);
 
     let accumulatedContent = '';
@@ -161,12 +154,11 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
 
           setMessages(currentMessages => {
             const lastMsg = currentMessages[currentMessages.length - 1];
-            if (lastMsg?.role === 'assistant') {
+            if (lastMsg?.sender === 'ai') {
               const updated = [...currentMessages];
               updated[updated.length - 1] = {
                 ...lastMsg,
-                content: accumulatedContent,
-                text: accumulatedContent,
+                text: accumulatedContent
               };
               return updated;
             }
@@ -183,8 +175,6 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
       const finalTime = new Date();
       saveMessageToDB({
         id: Date.now(),
-        role: 'assistant',
-        content: accumulatedContent,
         text: accumulatedContent,
         sender: 'ai' as const,
         time: finalTime.toLocaleTimeString(),
@@ -207,7 +197,7 @@ if (onStreamComplete) onStreamComplete();
           const updated = [...prev];
           updated[updated.length - 1] = {
             ...updated[updated.length - 1],
-            content: "Connection failed. Please try again."
+            text: "Connection failed. Please try again."
           };
           return updated;
         });

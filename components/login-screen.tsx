@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Lock, Eye, EyeOff, Shield, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BackButton from './back-button';
-import { AuthBackground } from './auth-background';
+import { AuthBackground } from './auth/auth-background';
 
 const LoginScreen = () => {
   const router = useRouter();

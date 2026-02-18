@@ -11,7 +11,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
-import { useConversations } from '@/components/conversation-provider';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { ASSETS } from '@/lib/constants';
 
 export default function CalendarPage() {

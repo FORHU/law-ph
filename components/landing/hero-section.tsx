@@ -1,16 +1,25 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { AuthBackground } from '../auth-background';
+import { AuthBackground } from '../auth/auth-background';
 import { BRAND, COLORS } from '@/lib/constants';
+import { LegalWizard } from './legal-wizard';
 
 interface HeroSectionProps {
   onStartConsultation: () => void;
 }
 
 export function HeroSection({ onStartConsultation }: HeroSectionProps) {
+  const [showWizard, setShowWizard] = React.useState(false);
   const router = useRouter();
   const navigate = (path: string) => router.push(path);
+
+  const handleWizardComplete = (data: any) => {
+    // Save to sessionStorage for the consultation page to pick up
+    sessionStorage.setItem('legal_wizard_data', JSON.stringify(data));
+    setShowWizard(false);
+    navigate('/consultation');
+  };
 
   return (
     <section className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-12">
@@ -65,47 +74,73 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
         
         {/* CTA Buttons */}
         <motion.div 
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
+          className="flex flex-col gap-4 justify-center items-center mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.7 }}
         >
-          <motion.button 
-            onClick={() => navigate('/consultation')}
-            className="group relative px-8 py-4 rounded-md overflow-hidden flex items-center justify-center gap-2 text-[#1a1a1a] font-medium"
-            style={{ backgroundColor: COLORS.PRIMARY }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <motion.div 
-              className="absolute inset-0"
+          {/* Top row: Quick Consultation and Learn How It Works */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <motion.button 
+              className="group relative px-8 py-4 rounded-md overflow-hidden flex items-center justify-center gap-2 text-white font-medium"
               style={{ 
-                background: `linear-gradient(to right, ${COLORS.PRIMARY_LIGHT}, ${COLORS.PRIMARY})` 
+                backgroundColor: COLORS.PRIMARY,
+                boxShadow: `0 0 30px ${COLORS.PRIMARY}40`
               }}
-              initial={{ x: '-100%' }}
-              whileHover={{ x: 0 }}
-              transition={{ duration: 0.3 }}
-            />
-            <span className="relative">START QUICK CONSULTATION</span>
-          </motion.button>
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/consultation')}
+            >
+              <motion.div 
+                className="absolute inset-0 bg-white/20"
+                initial={{ scaleX: 0 }}
+                whileHover={{ scaleX: 1 }}
+                transition={{ duration: 0.3 }}
+                style={{ transformOrigin: 'left' }}
+              />
+              <span className="relative z-10">START QUICK CONSULTATION</span>
+            </motion.button>
+
+            <motion.button 
+              className="group px-8 py-4 border-2 rounded-md flex items-center justify-center gap-2 text-white relative overflow-hidden"
+              style={{ borderColor: COLORS.PRIMARY }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                const element = document.getElementById('how-it-works');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
+              <motion.div 
+                className="absolute inset-0"
+                style={{ backgroundColor: COLORS.PRIMARY }}
+                initial={{ scaleX: 0 }}
+                whileHover={{ scaleX: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+              <span className="relative z-10">LEARN HOW IT WORKS</span>
+            </motion.button>
+          </div>
+
+          {/* Bottom row: Guided Consultation (centered) */}
           <motion.button 
-            className="group px-8 py-4 border-2 rounded-md flex items-center justify-center gap-2 text-white relative overflow-hidden"
-            style={{ borderColor: COLORS.PRIMARY }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              const aboutSection = document.getElementById('about');
-              aboutSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            className="px-6 py-2 rounded-full border text-xs font-bold tracking-wider backdrop-blur-sm transition-all duration-300"
+            style={{ 
+              borderColor: COLORS.PRIMARY,
+              color: COLORS.PRIMARY_LIGHT,
+              backgroundColor: 'rgba(139, 69, 100, 0.1)'
             }}
+            whileHover={{ 
+              scale: 1.05,
+              backgroundColor: 'rgba(139, 69, 100, 0.2)',
+              boxShadow: `0 0 20px ${COLORS.PRIMARY}40`
+            }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowWizard(true)}
           >
-            <motion.div 
-              className="absolute inset-0"
-              style={{ backgroundColor: COLORS.PRIMARY }}
-              initial={{ scaleX: 0 }}
-              whileHover={{ scaleX: 1 }}
-              transition={{ duration: 0.3 }}
-            />
-            <span className="relative z-10">LEARN HOW IT WORKS</span>
+            GUIDED CONSULTATION
           </motion.button>
         </motion.div>
 
@@ -119,6 +154,16 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
           <em>Disclaimer: {BRAND.NAME_PART1}{BRAND.NAME_PART2} provides legal information for educational purposes, not professional legal advice. It is not a replacement for a certified lawyer.</em>
         </motion.div>
       </div>
+      {showWizard && (
+        <LegalWizard 
+            onClose={() => setShowWizard(false)} 
+            onSkip={() => {
+                setShowWizard(false);
+                navigate('/consultation');
+            }}
+            onComplete={handleWizardComplete} 
+        />
+      )}
     </section>
   );
 }

@@ -12,7 +12,7 @@ import {
   Menu
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
-import { useConversations } from '@/components/conversation-provider';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { STORAGE_KEYS, ASSETS } from '@/lib/constants';
 
 interface StoredDocument {
