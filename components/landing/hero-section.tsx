@@ -106,7 +106,12 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
               style={{ borderColor: COLORS.PRIMARY }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/how-it-works')}
+              onClick={() => {
+                const element = document.getElementById('how-it-works');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
             >
               <motion.div 
                 className="absolute inset-0"

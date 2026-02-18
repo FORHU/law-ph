@@ -17,7 +17,9 @@ export function LandingPage({ onStartConsultation } : LandingPageProps ) {
   return (
     <div className="space-y-0">
       <HeroSection onStartConsultation={onStartConsultation} />
-      <HowItWorksSection />
+      <div id="how-it-works">
+        <HowItWorksSection />
+      </div>
       <DemoSection />
       <CapabilitiesSection />
       <WhyChooseSection />

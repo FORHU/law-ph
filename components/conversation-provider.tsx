@@ -14,6 +14,7 @@ import {
 } from './conversation-provider/conversation-context'
 import { useDetailSidebar } from './conversation-provider/use-detail-sidebar'
 import { useSendMessage } from './conversation-provider/use-send-message'
+import { useChatSession } from './conversation-provider/use-chat-session'
 
 
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
@@ -25,7 +26,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [messages, setMessages] = useState<Message[]>([])
   const [currentConsultationId, setCurrentConsultationId] = useState<string | number | null>(null)
   const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([])
-  const [chatSessionId, setChatSessionId] = useState<string>('')
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
@@ -39,6 +40,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     openCaseDetail,
     closeDetailSidebar,
   } = useDetailSidebar(setIsSidebarOpen);
+
+  // Chat session hook
+  const { chatSessionId, setChatSessionId } = useChatSession();
+
   
   // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -196,28 +201,40 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   });
 
   // Background Cleanup: Retry deleting "shadow-deleted" items
+  const hasRetriedDeletions = useRef(false);
+
   useEffect(() => {
     const retryDeletions = async () => {
-        if (!userId || deletedIdsRef.current.size === 0) return;
-
+        if (!userId || deletedIdsRef.current.size === 0 || hasRetriedDeletions.current) return;
+        
+        hasRetriedDeletions.current = true; // Mark as run for this session
+        
         const idsToRetry = Array.from(deletedIdsRef.current);
-        console.log("[ConversationProvider] Retrying deletion for shadow items:", idsToRetry);
+        console.log("[ConversationProvider] Retrying deletion for shadow items (One-time check):", idsToRetry.length);
 
         for (const id of idsToRetry) {
-          const { error, status } = await supabase.from("conversations").delete().eq("id", id);
+          // Check if it still exists
+          const { data: check, error: checkError } = await supabase.from("conversations").select("id").eq("id", id).maybeSingle();
           
-          // Better Check:
-          const { data: check } = await supabase.from("conversations").select("id").eq("id", id).maybeSingle();
           if (!check) {
             console.log("[ConversationProvider] Item confirmed gone from DB. Removing from shadow list:", id);
             deletedIdsRef.current.delete(id);
-            localStorage.setItem("deleted_conversation_ids", JSON.stringify(Array.from(deletedIdsRef.current)));
           } else {
-            console.log("[ConversationProvider] Item still exists in DB (RLS Block). Keeping in shadow list:", id);
-            // We try to delete again just in case rights were fixed
-            await supabase.from("conversations").delete().eq("id", id);
+             // Try to delete ONE last time for this session
+             const { error, status } = await supabase.from("conversations").delete().eq("id", id);
+             
+             if (error || (status !== 200 && status !== 204)) {
+                console.warn(`[ConversationProvider] Failed to delete item ${id}. Stopping retries for this session to avoid spam. Status: ${status}`);
+                // We keep it in the list (so it stays hidden in UI) but we won't try again until page reload.
+             } else {
+                console.log("[ConversationProvider] Successfully deleted item on retry:", id);
+                deletedIdsRef.current.delete(id);
+             }
           }
         }
+        
+        // Update local storage with remaining items (those that failed or haven't been processed yet)
+        localStorage.setItem("deleted_conversation_ids", JSON.stringify(Array.from(deletedIdsRef.current)));
     }
     
     retryDeletions();
@@ -256,34 +273,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         console.error('Failed to parse consultations', e)
       }
     }
-
-    // Fetch Chat Session ID (or retrieve from localStorage)
-    const fetchSession = async () => {
-      try {
-        // Check if we already have a session ID in localStorage
-        const storedSessionId = localStorage.getItem('chat_session_id');
-        if (storedSessionId) {
-          console.log("[Session] Using cached session ID:", storedSessionId);
-          setChatSessionId(storedSessionId);
-          return;
-        }
-
-        // If not, fetch a new one from the backend
-        const res = await fetch('/api/chat/session')
-        if (res.ok) {
-          const data = await res.json()
-          const newSessionId = data.session_id;
-          setChatSessionId(newSessionId);
-          // Store it for future use
-          localStorage.setItem('chat_session_id', newSessionId);
-          console.log("[Session] New session ID created:", newSessionId);
-        }
-      } catch (err) {
-        console.error("Failed to initialize session:", err)
-      }
-    }
-    fetchSession()
   }, [userId, syncedConversationId])
+
 
 
   // Fetch Cloud Messages if needed
@@ -393,11 +384,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     setCurrentConsultationId(null)
     setIsLoading(false)
   }
-
-
-  // Detail sidebar handlers are now provided by the useDetailSidebar hook
-
-
 
   return (
     <ConversationContext.Provider
