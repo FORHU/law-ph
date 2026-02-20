@@ -1,6 +1,6 @@
 // Conversation Context - Types and Context Definition
 import { createContext, useContext } from 'react';
-import { Conversation, ConsultationSession } from '@/types';
+import { Conversation, ConsultationSession, CaseData } from '@/types';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 
 export interface Message {
@@ -43,6 +43,12 @@ export type ConversationContextType = {
   openSourceDetail: (source: LegalSource, context?: string) => void;
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
   closeDetailSidebar: () => void;
+
+  // Cases
+  cases: CaseData[];
+  refreshCases: () => Promise<void>;
+  handleCreateCase: (caseData: { name: string; party: string; notes: string }) => Promise<void>;
+  handleDeleteCase: (id: string) => Promise<void>;
 };
 
 export const ConversationContext = createContext<ConversationContextType | null>(null);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Conversation, ConsultationSession } from "@/types"
+import { Conversation, ConsultationSession, CaseData } from "@/types"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER, STORAGE_KEYS } from "@/lib/constants"
@@ -29,6 +29,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  
+  // Cases state
+  const [cases, setCases] = useState<CaseData[]>([])
   
   // Detail sidebar hook
   const {
@@ -385,6 +388,58 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     setIsLoading(false)
   }
 
+  // ---- Cases ----
+  const fetchCases = useCallback(async () => {
+    if (!loggedIn || !userId) return;
+    try {
+      const { data, error } = await supabase
+        .from('cases')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (!error && data) setCases(data as CaseData[]);
+    } catch (err) {
+      console.error('[ConversationProvider] fetchCases error:', err);
+    }
+  }, [loggedIn, userId, supabase]);
+
+  const handleCreateCase = useCallback(async (caseData: { name: string; party: string; notes: string }) => {
+    if (!userId || !loggedIn) {
+      console.warn('[ConversationProvider] handleCreateCase: User not authenticated');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.from('cases').insert({
+        user_id: userId,
+        case_name: caseData.name,
+        party_involved: caseData.party,
+        notes: caseData.notes,
+      }).select().single();
+
+      if (!error && data) {
+        setCases(prev => [data as CaseData, ...prev]);
+      } else {
+        console.error('[ConversationProvider] handleCreateCase error:', error?.message);
+      }
+    } catch (err) {
+      console.error('[ConversationProvider] Unexpected error in handleCreateCase:', err);
+    }
+  }, [userId, loggedIn, supabase]);
+
+  const handleDeleteCase = useCallback(async (id: string) => {
+    setCases(prev => prev.filter(c => c.id !== id));
+    const { error } = await supabase.from('cases').delete().eq('id', id);
+    if (error) {
+      console.error('[ConversationProvider] handleDeleteCase error:', error.message);
+      await fetchCases(); // Revert on failure
+    }
+  }, [supabase, fetchCases]);
+
+  useEffect(() => {
+    if (loggedIn) fetchCases();
+  }, [loggedIn, fetchCases]);
+
   return (
     <ConversationContext.Provider
       value={{
@@ -411,10 +466,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         openSourceDetail,
         openCaseDetail,
         closeDetailSidebar,
+        cases,
+        refreshCases: fetchCases,
+        handleCreateCase,
+        handleDeleteCase,
       }}
     >
       {children}
     </ConversationContext.Provider>
   )
 }
-

@@ -1,22 +1,25 @@
-'use client'
+"use client"
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, Shield, Scale } from 'lucide-react';
+import { Lock, Shield, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import BackButton from './back-button';
-import { AuthBackground } from './auth/auth-background';
+import { AUTH_ROUTES } from '@/lib/constants';
+import { GoogleLoginButton } from './auth/google-login-button';
+import { AuthLayout } from './auth/shared/auth-layout';
+import { AuthCard } from './auth/shared/auth-card';
+import { AuthHeader } from './auth/shared/auth-header';
+import { AuthInput } from './auth/shared/auth-input';
+import { AuthButton } from './auth/shared/auth-button';
+import { motion } from 'framer-motion';
 
 const LoginScreen = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const navigate = (path: string) => router.push(path);
   const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,219 +28,123 @@ const LoginScreen = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
       
       router.push('/consultation');
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during sign in');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during sign in');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#0a0e17] relative overflow-hidden text-white font-sans">
-      {/* Dynamic Background */}
-      <AuthBackground />
+    <AuthLayout maxWidth="max-w-xl">
+      <AuthCard>
+        <AuthHeader 
+          icon={Lock}
+          title="Secure Sign In"
+          description="Access your legal AI consultation platform"
+        />
 
-      <BackButton
-        label="Return"
-        className="absolute top-6 left-6 z-20"
-        fallbackHref="/"
-      />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <AuthInput 
+            id="email"
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your.email@example.com"
+            required
+          />
 
-      {/* Main Login Container */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 z-10">
-        <motion.div
-          className="w-full max-w-md"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          {/* Login Card */}
-          <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl mt-12 sm:mt-0">
-            {/* Icon */}
+          <AuthInput 
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            required
+          />
+
+          {error && (
             <motion.div
-              className="flex justify-center mb-6"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-red-400 text-sm text-center bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
             >
-              <div className="w-16 h-16 rounded-full bg-[#8B4564]/20 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-[#8B4564]" />
-              </div>
+              {error}
             </motion.div>
+          )}
 
-            {/* Heading */}
-            <motion.h1
-              className="text-3xl md:text-4xl text-center text-white mb-2"
-              style={{ fontFamily: "'Playfair Display', serif" }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => router.push(AUTH_ROUTES.FORGOT_PASSWORD)}
+              className="text-[#8B4564] hover:text-[#a85678] transition-colors text-sm cursor-pointer"
             >
-              Secure Sign In
-            </motion.h1>
-            
-            <motion.p
-              className="text-center text-white/60 mb-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              Access your legal AI consultation platform
-            </motion.p>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-              >
-                <label htmlFor="email" className="block text-white/80 mb-2 text-sm">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@example.com"
-                  className="w-full px-4 py-3 bg-[#1A1A1A]/60 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B4564] focus:ring-1 focus:ring-[#8B4564] transition-all"
-                  required
-                />
-              </motion.div>
-
-              {/* Password Field */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 }}
-              >
-                <label htmlFor="password" className="block text-white/80 mb-2 text-sm">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full px-4 py-3 bg-[#1A1A1A]/60 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B4564] focus:ring-1 focus:ring-[#8B4564] transition-all pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors cursor-pointer"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-
-              {/* Error Message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-red-400 text-sm text-center"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              {/* Forgot Password Link */}
-              <motion.div
-                className="flex justify-end"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => navigate('/auth/forgot-password')}
-                  className="text-[#8B4564] hover:text-[#a85678] transition-colors text-sm cursor-pointer"
-                >
-                  Forgot password?
-                </button>
-              </motion.div>
-
-              {/* Sign In Button */}
-              <motion.button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#8B4564] hover:bg-[#a85678] text-white py-3 rounded-lg transition-all shadow-lg hover:shadow-[#8B4564]/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.9 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </motion.button>
-            </form>
-
-            {/* Sign Up Link */}
-            <motion.div
-              className="mt-6 text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1 }}
-            >
-              <p className="text-white/60 text-sm">
-                No account yet?{' '}
-                <button
-                  onClick={() => navigate('/auth/sign-up')}
-                  className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
-                >
-                  Sign up
-                </button>
-              </p>
-            </motion.div>
+              Forgot password?
+            </button>
           </div>
 
-          {/* Privacy Standards Section */}
-          <motion.div
-            className="mt-8 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.1 }}
-          >
-            <p className="text-white/50 text-xs uppercase tracking-wider mb-4">
-              Privacy Standards
-            </p>
-            <div className="flex items-center justify-center gap-8 mb-6">
-              <Shield className="w-6 h-6 text-white/40" />
-              <Lock className="w-6 h-6 text-white/40" />
-              <Scale className="w-6 h-6 text-white/40" />
-            </div>
-            <p className="text-white/40 text-xs">
-              By signing in, you agree to our{' '}
-              <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
-                Legal Terms
-              </button>
-              {' '}&{' '}
-              <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
-                Data Privacy Policy
-              </button>
-            </p>
-          </motion.div>
-        </motion.div>
+          <AuthButton isLoading={isLoading} loadingText="Signing In...">
+            Sign In
+          </AuthButton>
+        </form>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-white/10" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#242424] px-2 text-white/40">Or continue with</span>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <GoogleLoginButton />
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-white/60 text-sm">
+            No account yet?{' '}
+            <button
+              onClick={() => router.push(AUTH_ROUTES.SIGN_UP)}
+              className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
+            >
+              Sign up
+            </button>
+          </p>
+        </div>
+      </AuthCard>
+
+      <div className="mt-8 text-center">
+        <p className="text-white/50 text-xs uppercase tracking-wider mb-4">
+          Privacy Standards
+        </p>
+        <div className="flex items-center justify-center gap-8 mb-6">
+          <Shield className="w-6 h-6 text-white/40" />
+          <Lock className="w-6 h-6 text-white/40" />
+          <Scale className="w-6 h-6 text-white/40" />
+        </div>
+        <p className="text-white/40 text-xs">
+          By signing in, you agree to our{' '}
+          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
+            Legal Terms
+          </button>
+          {' '}&{' '}
+          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
+            Data Privacy Policy
+          </button>
+        </p>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

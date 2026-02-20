@@ -35,8 +35,11 @@ export default async function RootLayout({
   let session = null;
   try {
     const supabase = await createClient();
-    const { data: { session: fetchedSession } } = await supabase.auth.getSession();
-    session = fetchedSession;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: { session: fetchedSession } } = await supabase.auth.getSession();
+      session = fetchedSession;
+    }
   } catch (error) {
     console.error("Critical: Failed to retrieve session in RootLayout", error);
   }

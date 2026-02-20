@@ -1,14 +1,16 @@
 // components/app-sidebar.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, X } from 'lucide-react';
+import { MessageSquare, Briefcase, X } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
 import { SidebarNav } from './sidebar/sidebar-nav';
 import { RecentItem, SidebarPage, SIDEBAR_STYLES } from './sidebar/sidebar-constants';
+import { CreateCaseModal } from './create-case-modal';
+import { ViewCasesModal } from './view-cases-modal';
 
 interface AppSidebarProps {
   activePage: SidebarPage;
@@ -24,13 +26,14 @@ export function AppSidebar({
   activePage,
   recentItems = [],
   onNewItem,
-  newItemLabel = 'New Item',
   recentLabel = 'RECENT',
   isOpen = false,
   onClose,
 }: AppSidebarProps) {
   const router = useRouter();
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
+  const [isCaseModalOpen, setIsCaseModalOpen] = useState(false);
+  const [isViewCasesModalOpen, setIsViewCasesModalOpen] = useState(false);
 
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
@@ -58,26 +61,39 @@ export function AppSidebar({
         )}
       </div>
 
-      {/* New Item Button */}
-      {onNewItem && (
-        <div className="p-4">
-          <button 
-            onClick={() => {
-              onNewItem();
-            }}
-            className="w-full px-4 py-3 bg-gradient-to-r from-[#8B4564]/10 to-[#8B4564]/5 border border-[#8B4564]/30 rounded-xl hover:bg-[#8B4564]/20 transition-all flex items-center justify-center gap-2 text-[#E0A7C2] font-medium shadow-lg shadow-black/20"
-          >
-            <Plus size={18} />
-            {newItemLabel}
-          </button>
-        </div>
-      )}
+      {/* Action Buttons */}
+      <div className="p-4 space-y-2 border-b border-[#8B4564]/10">
+        <button 
+          onClick={() => onNewItem?.()}
+          className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+        >
+          <MessageSquare size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+          <span className="text-sm font-medium">New Consultation</span>
+        </button>
+
+        <button 
+          onClick={() => setIsCaseModalOpen(true)}
+          className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+        >
+          <Briefcase size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+          <span className="text-sm font-medium">Create Case</span>
+        </button>
+
+        <button 
+          onClick={() => setIsViewCasesModalOpen(true)}
+          className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+        >
+          <Briefcase size={16} className="text-gray-400 group-hover:text-white transition-colors" />
+          <span className="text-sm font-medium">View Cases</span>
+        </button>
+      </div>
 
       {/* Content Area (Recent) */}
       <div className={SIDEBAR_STYLES.contentArea}>
+
         {/* Recent Section */}
         {recentItems.length > 0 && (
-          <div className="mt-2">
+          <div className="mt-2 text-white">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-4 px-2">{recentLabel}</h3>
             <div className="space-y-2">
               {recentItems.map((item) => (
@@ -95,6 +111,18 @@ export function AppSidebar({
 
       {/* Bottom Navigation */}
       <SidebarNav activePage={activePage} />
+
+      {/* Create Case Modal */}
+      <CreateCaseModal 
+        isOpen={isCaseModalOpen}
+        onClose={() => setIsCaseModalOpen(false)}
+      />
+
+      {/* View Cases Modal */}
+      <ViewCasesModal
+        isOpen={isViewCasesModalOpen}
+        onClose={() => setIsViewCasesModalOpen(false)}
+      />
     </div>
   );
 
