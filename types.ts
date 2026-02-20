@@ -43,3 +43,11 @@ export interface SessionResponse {
   session_id: string;
 }
 
+export interface CaseData {
+  id: string;
+  user_id?: string;
+  case_name: string;
+  party_involved?: string;
+  notes?: string;
+  created_at?: string;
+}

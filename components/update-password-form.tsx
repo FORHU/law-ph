@@ -1,79 +1,137 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { motion } from "framer-motion";
+import { Lock, CheckCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { AUTH_ROUTES } from "@/lib/constants";
+import { AuthLayout } from "./auth/shared/auth-layout";
+import { AuthCard } from "./auth/shared/auth-card";
+import { AuthHeader } from "./auth/shared/auth-header";
+import { AuthInput } from "./auth/shared/auth-input";
+import { AuthButton } from "./auth/shared/auth-button";
 
-export function UpdatePasswordForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+export function UpdatePasswordForm() {
   const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
+      const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      // router.push("/protected");
-      router.push('/auth/login')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      
+      setIsSubmitted(true);
+      setTimeout(() => {
+        router.push(AUTH_ROUTES.LOGIN);
+      }, 3000);
+    } catch (error: any) {
+      setError(error.message || "An error occurred during password update");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
-            Please enter your new password below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleForgotPassword}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="password">New password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="New password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+    <AuthLayout 
+      backButtonLabel="Return to login" 
+      backButtonHref={AUTH_ROUTES.LOGIN}
+      maxWidth="max-w-xl"
+    >
+      <AuthCard>
+        {!isSubmitted ? (
+          <>
+            <AuthHeader 
+              icon={Lock}
+              title="Update Password"
+              description="Secure your account with a new password"
+            />
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <AuthInput 
+                id="password"
+                label="New Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your new password"
+                required
+                minLength={6}
+              />
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-red-400 text-sm text-center"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <AuthButton isLoading={isLoading} loadingText="Updating...">
+                Update Password
+              </AuthButton>
+            </form>
+          </>
+        ) : (
+          <>
+            <motion.div
+              className="flex justify-center mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", duration: 0.6 }}
+            >
+              <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save new password"}
-              </Button>
+            </motion.div>
+
+            <motion.h1
+              className="text-3xl md:text-4xl text-center text-white mb-2"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              Password Updated
+            </motion.h1>
+
+            <motion.p
+              className="text-center text-white/60 mb-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              Your password has been changed successfully. Redirecting to login...
+            </motion.p>
+          </>
+        )}
+      </AuthCard>
+
+      {!isSubmitted && (
+        <motion.div
+          className="mt-8 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
+        >
+          <div className="flex items-center justify-center gap-6 text-white/50 text-sm">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              <span>Secure Update</span>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        </motion.div>
+      )}
+    </AuthLayout>
   );
 }

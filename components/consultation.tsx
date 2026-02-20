@@ -9,6 +9,7 @@ import { Session } from '@supabase/supabase-js';
 import { Conversation } from '@/types';
 
 import { useConsultation } from '@/hooks/use-consultation';
+import { useAuth } from '@/components/auth/auth-provider';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 // Sub-components
@@ -23,6 +24,13 @@ export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { conversationId: activeConversationId } = useParams() as { conversationId?: string };
+  const { loggedIn } = useAuth();
+ 
+  useEffect(() => {
+    if (!loggedIn) {
+      router.push('/auth/login');
+    }
+  }, [loggedIn, router]);
 
   const {
     messages,

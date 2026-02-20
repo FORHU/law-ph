@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { AuthBackground } from '../auth/auth-background';
 import { BRAND, COLORS } from '@/lib/constants';
+import { useAuth } from '../auth/auth-provider';
 import { LegalWizard } from './legal-wizard';
 
 interface HeroSectionProps {
@@ -12,7 +13,24 @@ interface HeroSectionProps {
 export function HeroSection({ onStartConsultation }: HeroSectionProps) {
   const [showWizard, setShowWizard] = React.useState(false);
   const router = useRouter();
+  const { loggedIn } = useAuth();
   const navigate = (path: string) => router.push(path);
+
+  const handleStartConsultation = () => {
+    if (!loggedIn) {
+      navigate('/auth/login');
+      return;
+    }
+    navigate('/consultation');
+  };
+
+  const handleStartWizard = () => {
+    if (!loggedIn) {
+      navigate('/auth/login');
+      return;
+    }
+    setShowWizard(true);
+  };
 
   const handleWizardComplete = (data: any) => {
     // Save to sessionStorage for the consultation page to pick up
@@ -89,7 +107,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/consultation')}
+              onClick={handleStartConsultation}
             >
               <motion.div 
                 className="absolute inset-0 bg-white/20"
@@ -138,7 +156,7 @@ export function HeroSection({ onStartConsultation }: HeroSectionProps) {
               boxShadow: `0 0 20px ${COLORS.PRIMARY}40`
             }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setShowWizard(true)}
+            onClick={handleStartWizard}
           >
             GUIDED CONSULTATION
           </motion.button>
