@@ -11,6 +11,12 @@ export interface Message {
   text: string
   sender: 'user' | 'ai'
   time: string
+  recordingUrl?: string
+  isEditing?: boolean
+  originalText?: string
+  highlights?: { id: string, snippet: string, note: string }[]
+  timeline?: any[]
+  mindMap?: any
 }
 
 export interface ConsultationSession {

@@ -12,6 +12,13 @@ export interface RelatedCase {
   description: string;
 }
 
+export interface TimelineItem {
+  title: string;
+  date?: string;
+  description: string;
+  status: 'completed' | 'pending' | 'active';
+}
+
 /**
  * Extracts legal sources from AI response text
  * Looks for patterns like:
@@ -216,3 +223,79 @@ export function extractRelatedCases(text: string): RelatedCase[] {
   
   return uniqueCases;
 }
+
+/**
+ * Extracts a timeline from AI responses.
+ * Supports: [TIMELINE]...[/TIMELINE] JSON wrapper, bare JSON array, and Markdown numbered list fallback.
+ */
+export function extractTimeline(text: string): TimelineItem[] | undefined {
+  // 1. Try [TIMELINE]...[/TIMELINE] wrapper first
+  const timelineRegex = /\[TIMELINE\]([\s\S]*?)\[\/TIMELINE\]/i;
+  const match = text.match(timelineRegex);
+  
+  let jsonStr = "";
+  if (match) {
+    jsonStr = match[1].trim();
+  } else {
+    // 2. Fallback: look for a bare JSON array
+    const fallbackMatch = text.match(/(\[\s*\{\s*"title"\s*:[\s\S]*?\}\s*\])/i);
+    if (fallbackMatch) {
+      jsonStr = fallbackMatch[1].trim();
+    }
+  }
+
+  if (jsonStr) {
+    if (jsonStr.startsWith('```json')) {
+      jsonStr = jsonStr.replace(/^```json/i, '').replace(/```$/i, '').trim();
+    } else if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```/i, '').replace(/```$/i, '').trim();
+    }
+    
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed as TimelineItem[];
+      }
+    } catch (e) {
+      console.error("Failed to parse timeline JSON:", e);
+    }
+  }
+
+  // 3. Final fallback: parse Markdown numbered list timeline
+  // Matches: "1. **Title** - 2026-02-23: Description" or "1. **Title** - 2026-02-23: ..."
+  const mdTimelineSection = text.match(/(?:timeline|actionable steps)[^\n]*\n((?:\d+\..+\n?)+)/i);
+  if (mdTimelineSection) {
+    const items: TimelineItem[] = [];
+    const lineRe = /^\d+\.\s+\*?\*?([^*\n-]+)\*?\*?\s*[-–]\s*(\d{4}-\d{2}-\d{2})(?:[^:]*)?:\s*(.+)/;
+    const lines = mdTimelineSection[1].split('\n');
+    for (const line of lines) {
+      const m = line.trim().match(lineRe);
+      if (m) {
+        items.push({
+          title: m[1].trim(),
+          date: m[2].trim(),
+          description: m[3].trim(),
+          status: 'pending',
+        });
+      }
+    }
+    // Also try simpler pattern: "1. **Title**: Description" without date
+    if (items.length === 0) {
+      for (const line of lines) {
+        const m2 = line.trim().match(/^\d+\.\s+\*?\*?([^*\n]+)\*?\*?:\s*(.+)/);
+        if (m2) {
+          items.push({
+            title: m2[1].trim(),
+            date: new Date().toISOString().split('T')[0],
+            description: m2[2].trim(),
+            status: 'pending',
+          });
+        }
+      }
+    }
+    if (items.length > 0) return items;
+  }
+
+  return undefined;
+}
+

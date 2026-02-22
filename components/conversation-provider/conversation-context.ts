@@ -10,6 +10,11 @@ export interface Message {
   time: string;
   sources?: LegalSource[];
   relatedCases?: RelatedCase[];
+  timeline?: any[];
+  recordingUrl?: string;
+  isEditing?: boolean;
+  originalText?: string;
+  highlights?: { id: string, snippet: string, note: string }[];
 }
 
 export type ConversationContextType = {
@@ -27,6 +32,7 @@ export type ConversationContextType = {
   
   // Handlers
   handleSendMessage: (text: string) => Promise<void>;
+  updateMessage: (id: string | number, updates: Partial<Message>) => void;
   handleLoadConsultation: (consultation: ConsultationSession) => void;
   handleNewConsultation: () => void;
   handleRemoveConsultation: (id: string | number) => void;
@@ -44,10 +50,9 @@ export type ConversationContextType = {
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
   closeDetailSidebar: () => void;
 
-  // Cases
   cases: CaseData[];
   refreshCases: () => Promise<void>;
-  handleCreateCase: (caseData: { name: string; party: string; notes: string }) => Promise<void>;
+  handleCreateCase: (caseData: { name: string; party: string; notes: string }) => Promise<CaseData | null>;
   handleDeleteCase: (id: string) => Promise<void>;
 };
 

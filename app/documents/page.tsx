@@ -1,261 +1,285 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, 
-  Upload,
-  Scale,
-  HelpCircle,
-  FileText,
-  Menu
+  Upload, FileText, X, Briefcase, Scale, ExternalLink,
+  Menu, ArrowLeft, ChevronDown, Loader2, CheckCircle, Bot, Search, FileMinus, Download, Printer, Share2, PanelRightClose, AlertCircle
 } from 'lucide-react';
-import { AppSidebar } from '@/components/app-sidebar';
+import { PageLayout } from '@/components/ui/page-layout';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
-import { STORAGE_KEYS, ASSETS } from '@/lib/constants';
+import { ASSETS } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
 
 interface StoredDocument {
   id: number;
   name: string;
   timestamp: number;
+  caseId?: string;
+  caseName?: string;
+  content?: string;
 }
 
 export default function Documents() {
   const router = useRouter();
+  const { isSidebarOpen, setIsSidebarOpen, cases } = useConversations();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
-  const { isSidebarOpen, setIsSidebarOpen } = useConversations();
+  const [rightPanelDoc, setRightPanelDoc] = useState<StoredDocument | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [analysisText, setAnalysisText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load documents from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+    const saved = localStorage.getItem('lawph_documents');
     if (saved) {
-      try {
-        setRecentDocuments(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load documents', e);
-      }
+      try { setRecentDocuments(JSON.parse(saved)); } catch {}
     }
   }, []);
 
-  // Save documents to localStorage
-  useEffect(() => {
-    if (recentDocuments.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(recentDocuments));
-    }
-  }, [recentDocuments]);
-
   const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    e.preventDefault(); e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files?.[0]) setSelectedFile(e.dataTransfer.files[0]);
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!selectedFile) return;
+    setIsSidebarOpen(false); // Close left sidebar
 
+    const attachedCase = cases.find(c => c.id === selectedCaseId);
     const newDoc: StoredDocument = {
       id: Date.now(),
       name: selectedFile.name,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      caseId: selectedCaseId || undefined,
+      caseName: attachedCase?.case_name,
+      content: `Document: ${selectedFile.name}\nSize: ${(selectedFile.size / 1024).toFixed(1)} KB\nType: ${selectedFile.type || 'Unknown'}\nAttached case: ${attachedCase?.case_name || 'None'}\n\nThis document has been uploaded for AI analysis. The content preview would display here for a real file.`,
     };
 
     const updated = [newDoc, ...recentDocuments];
     setRecentDocuments(updated);
-    setSelectedFile(null); // Clear after "analysis"
-    
-    // Also update localStorage immediately
-    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(updated));
-    
-    // In a real app, you'd trigger actual processing here
-    alert(`Analyzing ${newDoc.name}...`);
+    localStorage.setItem('lawph_documents', JSON.stringify(updated));
+    setSelectedFile(null);
+    setSelectedCaseId('');
+    setRightPanelDoc(newDoc);
+    setAnalysisComplete(false);
+    setAnalysisText('');
   };
 
-  const handleRemoveDocument = (id: number) => {
-    const updated = recentDocuments.filter(doc => doc.id !== id);
-    setRecentDocuments(updated);
-    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(updated));
+  const handleAiAnalyze = async (doc: StoredDocument) => {
+    setIsAnalyzing(true);
+    setAnalysisText('');
+    // Simulate streaming analysis
+    const lines = [
+      '**Document Analysis Report**\n\n',
+      `**File:** ${doc.name}\n`,
+      doc.caseName ? `**Attached Case:** ${doc.caseName}\n\n` : '\n',
+      '**Key Findings:**\n',
+      '- Document appears to be a legal agreement or contract\n',
+      '- Identified 3 potential risk clauses under Philippine Civil Code\n',
+      '- Recommend legal review of section 4.2 (Liability Waiver)\n',
+      '- Arbitration clause found — may limit judicial remedies\n\n',
+      '**Recommendation:** Consult with senior counsel before signing. The liability limitation clause may not be enforceable under Art. 1306 of the Civil Code.',
+    ];
+    for (const chunk of lines) {
+      await new Promise(r => setTimeout(r, 200));
+      setAnalysisText(prev => prev + chunk);
+    }
+    setIsAnalyzing(false);
+    setAnalysisComplete(true);
   };
 
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return new Date(timestamp).toLocaleDateString();
+  const formatTimeAgo = (ts: number) => {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+    return new Date(ts).toLocaleDateString();
   };
-
-  const sidebarRecentItems = recentDocuments.map(doc => ({
-    id: doc.id,
-    title: doc.name,
-    subtitle: formatTimeAgo(doc.timestamp),
-    onClick: () => alert(`Opening analysis for ${doc.name}`),
-    onRemove: () => handleRemoveDocument(doc.id)
-  }));
 
   return (
-    <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>
-      {/* Background Image with Overlay - Fixed Position */}
-      <div className="fixed inset-0 z-0">
-        <motion.img 
-          src={ASSETS.LADY_JUSTICE_IMAGE}
-          alt="Lady Justice"
-          className="w-full h-full object-cover opacity-30 grayscale"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/80 via-[#1A1A1A]/70 to-[#1A1A1A]/95"></div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {isSidebarOpen && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 240, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="h-full z-20 flex-shrink-0"
-          >
-            <AppSidebar 
-              activePage="documents"
-              recentLabel="RECENT DOCUMENTS"
-              recentItems={sidebarRecentItems}
-              isOpen={isSidebarOpen}
-              onClose={() => setIsSidebarOpen(false)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative w-full overflow-hidden">
-        {/* Header */}
-        <header className="relative z-10 border-b border-[#8B4564]/20 bg-[#1A1A1A]/80 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
-              >
-                <Menu size={20} className="text-gray-300" />
-              </button>
-              <button 
-                onClick={() => router.back()}
-                className="hidden md:block p-2 hover:bg-[#8B4564]/20 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} className="text-gray-300" />
-              </button>
-              <div>
-                <h1 className="text-base md:text-lg font-semibold">Document Analysis</h1>
-                <p className="hidden md:block text-xs text-gray-400">Upload and review legal documents</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="relative z-10 flex-1 overflow-y-auto px-6 py-8">
-          <div className="max-w-4xl mx-auto">
-            {/* Upload Card */}
-            <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl p-8">
-              <h2 className="text-2xl mb-6">Upload Document for Analysis</h2>
-              
-              {/* Drop Zone */}
+    <PageLayout
+      activePage="documents"
+      title="Document Analysis"
+      subtitle="Upload and review legal documents"
+      recentLabel="RECENT DOCUMENTS"
+      recentItems={recentDocuments.map(doc => ({
+        id: doc.id,
+        title: doc.name,
+        subtitle: `${doc.caseName ? `📁 ${doc.caseName} · ` : ''}${formatTimeAgo(doc.timestamp)}`,
+        onClick: () => {
+          setRightPanelDoc(doc);
+          setAnalysisText('');
+          setAnalysisComplete(false);
+        },
+        onRemove: () => {
+          const updated = recentDocuments.filter(d => d.id !== doc.id);
+          setRecentDocuments(updated);
+          localStorage.setItem('lawph_documents', JSON.stringify(updated));
+          if (rightPanelDoc?.id === doc.id) setRightPanelDoc(null);
+        },
+      }))}
+      maxWidth="max-w-7xl"
+    >
+      <div className="relative z-10 flex-1 flex overflow-hidden h-full">
+        {/* Left: Upload Panel */}
+        <div className={`flex-1 overflow-y-auto p-6 transition-all duration-300 ${rightPanelDoc ? 'md:w-1/2 md:flex-none md:border-r md:border-white/5' : 'w-full'}`}>
+          <div className="max-w-xl mx-auto space-y-6">
+            {/* Drop Zone */}
+            <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4">Upload Document</h2>
               <div
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                className={`relative border-2 border-dashed rounded-xl p-12 transition-all ${
-                  dragActive 
-                    ? 'border-[#8B4564] bg-[#8B4564]/10' 
-                    : 'border-[#8B4564]/30 bg-[#3A2F2A]/30'
+                onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer ${
+                  dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
                 }`}
               >
-                <input
-                  type="file"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedFile(e.target.files[0]);
-                    }
-                  }}
+                <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt"
+                  onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
                 />
-                
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#8B4564]/20 flex items-center justify-center mb-4">
-                    <Upload size={32} className="text-[#8B4564]" />
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-[#8B4564]/20 flex items-center justify-center">
+                    <Upload size={28} className="text-[#E0A7C2]" />
                   </div>
-                  
                   {selectedFile ? (
-                    <div className="flex flex-col items-center">
-                      <div className="bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-4 py-2 rounded flex items-center gap-2 mb-2">
-                        <FileText size={16} className="text-[#8B4564]" />
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
+                        <FileText size={14} className="text-[#E0A7C2]" />
                         <span className="text-sm font-medium truncate max-w-[200px]">{selectedFile.name}</span>
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                          className="text-gray-500 hover:text-white ml-1"><X size={12} /></button>
                       </div>
-                      <p className="text-xs text-[#8B4564]">File ready for analysis</p>
+                      <p className="text-xs text-[#E0A7C2]">{(selectedFile.size / 1024).toFixed(1)} KB — ready for analysis</p>
                     </div>
                   ) : (
                     <>
-                      <p className="text-lg text-white mb-2">
-                        Drop your document here or click to browse
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        Supports PDF, DOC, DOCX (Max 10MB)
-                      </p>
+                      <p className="text-base text-white">Drop document here or click to browse</p>
+                      <p className="text-sm text-gray-500">PDF, DOC, DOCX, TXT (Max 10MB)</p>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Analyze Button */}
-              <button 
-                onClick={handleAnalyze}
-                disabled={!selectedFile}
-                className={`w-full mt-6 px-6 py-4 bg-[#8B4564] text-white rounded-lg transition-all flex items-center justify-center gap-2 ${
-                  !selectedFile ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#9D5373]'
-                }`}
-              >
-                <Scale size={20} />
-                Analyze Document
-              </button>
-            </div>
-
-            {/* Help Section */}
-            <div className="mt-6 bg-[#2A2A2A]/50 backdrop-blur border border-[#8B4564]/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <HelpCircle size={20} className="text-[#8B4564] mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium mb-1">What can I analyze?</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Upload contracts, agreements, legal forms, or any legal document. Our AI will analyze the content, 
-                    identify key clauses, flag potential issues, and provide recommendations based on Philippine law.
-                  </p>
+              {/* Attach to Case */}
+              <div className="mt-4">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                  Attach to Case (Optional)
+                </label>
+                <div className="relative">
+                  <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <select
+                    value={selectedCaseId}
+                    onChange={(e) => setSelectedCaseId(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 appearance-none cursor-pointer"
+                  >
+                    <option value="">— No case selected —</option>
+                    {cases.map(c => (
+                      <option key={c.id} value={c.id}>{c.case_name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
               </div>
+
+              <button
+                onClick={handleAnalyze}
+                disabled={!selectedFile}
+                className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                  selectedFile
+                    ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
+                    : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed'
+                }`}
+              >
+                <Scale size={18} /> Analyze Document
+              </button>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+
+        {/* Right: Document Preview & Analysis Panel */}
+          <AnimatePresence>
+            {rightPanelDoc && (
+              <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="w-full md:w-[480px] flex-shrink-0 bg-[#111111] border-l border-white/10 flex flex-col overflow-hidden absolute md:relative inset-y-0 right-0 z-20"
+              >
+                {/* Panel Header */}
+                <div className="flex items-center justify-between p-4 border-b border-white/5 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <FileText size={16} className="text-[#E0A7C2]" />
+                    <span className="font-semibold text-sm text-white truncate max-w-[200px]">{rightPanelDoc.name}</span>
+                  </div>
+                  <button onClick={() => setRightPanelDoc(null)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-all">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="p-4 border-b border-white/5 flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleAiAnalyze(rightPanelDoc)}
+                    disabled={isAnalyzing}
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                  >
+                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}
+                    {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+                  </button>
+                  <button
+                    onClick={() => alert('In production, this would open the original document.')}
+                    className="flex items-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
+                  >
+                    <ExternalLink size={14} /> View Original
+                  </button>
+                </div>
+
+                {/* Document Preview / Analysis */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {analysisComplete || analysisText ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        {analysisComplete
+                          ? <><CheckCircle size={14} className="text-emerald-400" /><span className="text-xs font-semibold text-emerald-400">Analysis Complete</span></>
+                          : <><Loader2 size={14} className="animate-spin text-[#E0A7C2]" /><span className="text-xs text-gray-400">Analyzing document...</span></>
+                        }
+                      </div>
+                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-mono">
+                        {analysisText}
+                        {!analysisComplete && <span className="animate-pulse">▌</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Document Preview</p>
+                      <div className="bg-black/30 rounded-xl p-4 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap font-mono border border-white/5">
+                        {rightPanelDoc.content || 'No preview available.'}
+                      </div>
+                      {rightPanelDoc.caseName && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-[#8B4564]/10 border border-[#8B4564]/20 px-3 py-2 rounded-lg">
+                          <Briefcase size={12} className="text-[#E0A7C2]" />
+                          Attached to case: <span className="font-semibold text-[#E0A7C2]">{rightPanelDoc.caseName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+    </PageLayout>
   );
 }

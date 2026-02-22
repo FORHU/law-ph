@@ -123,6 +123,14 @@ body {
   background-color: #0a0e17; /* Fallback for landing page theme */
 }
 
+/* Fix mobile browser backdrop-blur border rendering artifacts (green/color bands on scroll) */
+.backdrop-blur,
+[class*="backdrop-blur"] {
+  background-clip: padding-box;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
 /* ================================
    SLICK CAROUSEL CUSTOM STYLES
    ================================ */
@@ -155,6 +163,27 @@ body {
 
 .legal-resources-carousel .slick-dots li button:hover:before {
   opacity: 0.6 !important;
+}
+
+/* Global Glass Panel Utility */
+.glass-panel {
+  background: rgba(42, 42, 42, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+}
+
+/* Page Container Padding */
+.page-container-padding {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-container-padding {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 /* Sidebar Scrollbar */

@@ -2,7 +2,7 @@
 import { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases } from '@/lib/citation-parser';
+import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
 
 interface UseSendMessageParams {
@@ -12,6 +12,7 @@ interface UseSendMessageParams {
   setIsLoading: (loading: boolean) => void;
   currentConsultationId: string | number | null;
   setCurrentConsultationId: (id: string | number | null) => void;
+  syncedConversationId?: string;
   chatSessionId: string;
   setChatSessionId: (id: string) => void;
   userId: string | undefined;
@@ -27,6 +28,7 @@ export function useSendMessage({
   setIsLoading,
   currentConsultationId,
   setCurrentConsultationId,
+  syncedConversationId,
   chatSessionId,
   setChatSessionId,
   userId,
@@ -47,7 +49,7 @@ export function useSendMessage({
         time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
       };
       
-      let sessionId = currentConsultationId;
+      let sessionId = syncedConversationId || currentConsultationId;
 
       // 1. Create conversation if it doesn't exist
       if (!sessionId || typeof sessionId === 'number') {
@@ -131,10 +133,10 @@ export function useSendMessage({
         const response = await fetch('/api/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_input: `[Legal AI] ${currentInput}`,
-            session_id: chatSessionId || `session_${Date.now()}`,
-          }),
+            body: JSON.stringify({
+              user_input: `${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. Do NOT write it as a numbered list, bullet points, or any other Markdown format. The ONLY accepted format is:\n[TIMELINE]\n[{"title":"Descriptive Title","date":"YYYY-MM-DD","description":"One sentence description of the action.","status":"completed|pending|active"}]\n[/TIMELINE]\nThe first item MUST always be {"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}. Do not include any timeline text in the conversation prose itself.`,
+              session_id: chatSessionId || `session_${Date.now()}`,
+            }),
           signal: controller.signal
         });
 
@@ -182,11 +184,33 @@ export function useSendMessage({
 
             accumulatedText += chunk;
 
+            // Strip timeline JSON/Markdown in real-time so it never shows in the chat bubble
+            const strippedForDisplay = (() => {
+              let t = accumulatedText;
+              // Cut at [TIMELINE] tag
+              const tagIdx = t.lastIndexOf('[TIMELINE]');
+              // Cut at JSON array start
+              const arrM = t.match(/\[\s*\{\s*["']title["']/i);
+              const arrIdx = arrM?.index ?? -1;
+              // Cut at markdown timeline heading (e.g. "Timeline of Actionable Steps\n1.")
+              const mdM = t.match(/\n[^\n]{0,60}(?:timeline|actionable steps)[^\n]{0,60}\n\s*(?:1\.|\*)/i);
+              const mdIdx = mdM?.index ?? -1;
+              let cutIdx = t.length;
+              if (tagIdx !== -1) cutIdx = Math.min(cutIdx, tagIdx);
+              if (arrIdx !== -1) cutIdx = Math.min(cutIdx, arrIdx);
+              if (mdIdx !== -1) cutIdx = Math.min(cutIdx, mdIdx);
+              if (cutIdx !== t.length) {
+                t = t.substring(0, cutIdx).trim();
+                t = t.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
+              }
+              return t;
+            })();
+
             setMessages(prev => {
               const updated = [...prev];
               const lastIdx = updated.length - 1;
               if (updated[lastIdx]?.id === aiMessageId) {
-                updated[lastIdx] = { ...updated[lastIdx], text: accumulatedText };
+                updated[lastIdx] = { ...updated[lastIdx], text: strippedForDisplay };
               }
               return updated;
             });
@@ -195,12 +219,36 @@ export function useSendMessage({
           // Parse citations from the completed AI response
           const sources = extractLegalSources(accumulatedText);
           const relatedCases = extractRelatedCases(accumulatedText);
+          const timeline = extractTimeline(accumulatedText);
           
+          let cleanText = accumulatedText.trim();
+          
+          // Cut off the timeline portion brutally to guarantee it doesn't show in chat
+          const cutIdxTimelineTag = cleanText.lastIndexOf('[TIMELINE]');
+          const arrayMatch = cleanText.match(/\[\s*\{\s*["']title["']/i);
+          const cutIdxJsonStart = arrayMatch?.index ?? -1;
+          const mdMatchFinal = cleanText.match(/\n[^\n]{0,60}(?:timeline|actionable steps)[^\n]{0,60}\n\s*(?:1\.|\*)/i);
+          const cutIdxMd = mdMatchFinal?.index ?? -1;
+          
+          let finalIdx = cleanText.length;
+          if (cutIdxTimelineTag !== -1) finalIdx = Math.min(finalIdx, cutIdxTimelineTag);
+          if (cutIdxJsonStart !== -1) finalIdx = Math.min(finalIdx, cutIdxJsonStart);
+          if (cutIdxMd !== -1) finalIdx = Math.min(finalIdx, cutIdxMd);
+          
+          if (finalIdx !== cleanText.length) {
+            cleanText = cleanText.substring(0, finalIdx).trim();
+            
+            // Also chop off any dangling "Proposed Timeline:" labels right before the cut
+            cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed )?Timeline[\s\S]*?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
+            cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
+          }
+
           const finalMessages = [...updatedMessages, { 
             ...initialAiMessage, 
-            text: accumulatedText,
+            text: cleanText,
             sources,
-            relatedCases
+            relatedCases,
+            timeline
           }];
           setMessages(finalMessages);
 
@@ -220,13 +268,7 @@ export function useSendMessage({
               const updated = [...prev];
               const lastIdx = updated.length - 1;
               if (updated[lastIdx]?.sender === CHAT_SENDER.AI) {
-                const mappedMsg = mapCloudMessage(savedAiMsg);
-                // Re-parse citations for the mapped message
-                updated[lastIdx] = {
-                  ...mappedMsg,
-                  sources,
-                  relatedCases
-                };
+                updated[lastIdx] = mapCloudMessage(savedAiMsg);
               }
               return updated;
             });
@@ -257,6 +299,7 @@ export function useSendMessage({
     setMessages, 
     setIsLoading, 
     setCurrentConsultationId,
+    syncedConversationId,
     chatSessionId,
     setChatSessionId,
     userId,

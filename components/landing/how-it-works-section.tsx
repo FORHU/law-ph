@@ -53,7 +53,7 @@ export function HowItWorksSection() {
         </motion.div>
 
         {/* Desktop View - Horizontal with connecting lines */}
-        <div className="hidden md:block relative">
+        <div className="hidden lg:block relative">
           {/* Connecting Line - Animated */}
           <motion.div 
             className="absolute top-[50px] left-0 right-0 h-0.5"
@@ -142,7 +142,7 @@ export function HowItWorksSection() {
         </div>
 
         {/* Mobile View - Vertical with timeline */}
-        <div className="md:hidden space-y-8">
+        <div className="lg:hidden space-y-8">
           {steps.map((item, index) => (
             <motion.div 
               key={index} 

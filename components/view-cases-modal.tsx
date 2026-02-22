@@ -6,13 +6,15 @@ import { X, Briefcase, Trash2, FileText, Users, Loader2 } from 'lucide-react';
 import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
 import { CaseData } from '@/types';
+import { useRouter } from 'next/navigation';
 
 interface ViewCasesModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-function CaseCard({ caseItem, onDelete }: { caseItem: CaseData; onDelete: (id: string) => void }) {
+function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelete: (id: string) => void; onClose: () => void }) {
+  const router = useRouter();
   const [deleting, setDeleting] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
 
@@ -24,7 +26,13 @@ function CaseCard({ caseItem, onDelete }: { caseItem: CaseData; onDelete: (id: s
   };
 
   return (
-    <div className="group p-4 bg-black/30 border border-[#8B4564]/20 rounded-xl hover:border-[#8B4564]/40 transition-all">
+    <div 
+      onClick={() => {
+        onClose();
+        router.push(`/cases/${caseItem.id}`);
+      }}
+      className="group p-4 bg-black/30 border border-[#8B4564]/20 rounded-xl hover:border-[#8B4564]/40 transition-all cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-white text-sm truncate">{caseItem.case_name}</h3>
@@ -54,7 +62,7 @@ function CaseCard({ caseItem, onDelete }: { caseItem: CaseData; onDelete: (id: s
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setShowConfirm(true)}
+                onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }}
                 className="opacity-0 group-hover:opacity-100 p-2 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                 title="Delete Case"
               >
@@ -69,14 +77,14 @@ function CaseCard({ caseItem, onDelete }: { caseItem: CaseData; onDelete: (id: s
                 className="flex items-center gap-2"
               >
                 <button
-                  onClick={() => setShowConfirm(false)}
+                  onClick={(e) => { e.stopPropagation(); setShowConfirm(false); }}
                   disabled={deleting}
                   className="px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(); }}
                   disabled={deleting}
                   className="px-3 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-md text-[11px] font-bold transition-all flex items-center gap-1"
                 >
@@ -144,7 +152,7 @@ export function ViewCasesModal({ isOpen, onClose }: ViewCasesModalProps) {
                   </div>
                 ) : (
                   cases.map(c => (
-                    <CaseCard key={c.id} caseItem={c} onDelete={handleDeleteCase} />
+                    <CaseCard key={c.id} caseItem={c} onDelete={handleDeleteCase} onClose={onClose} />
                   ))
                 )}
               </div>

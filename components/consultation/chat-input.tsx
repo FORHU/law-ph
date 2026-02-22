@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Send, AlertTriangle, Loader2 } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar } from 'lucide-react';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
@@ -12,6 +12,9 @@ interface ChatInputProps {
   disabled?: boolean;
   suggestedQuestions?: string[];
   onQuestionClick?: (question: string) => void;
+  activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule';
+  onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule') => void;
+  hasMessages?: boolean;
 }
 
 export function ChatInput({ 
@@ -21,7 +24,10 @@ export function ChatInput({
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
   suggestedQuestions = [],
-  onQuestionClick
+  onQuestionClick,
+  activeTab = 'chat',
+  onTabChange,
+  hasMessages = false
 }: ChatInputProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -71,43 +77,104 @@ export function ChatInput({
   };
 
   return (
-    <div className="relative z-10 border-t border-[#8B4564]/20 bg-[#1A1A1A]/90 backdrop-blur-sm">
+    <div className="relative z-10 border-t border-[#8B4564]/20 bg-[#1A1A1A]/90 backdrop-blur-sm landscape:border-t-0 landscape:bg-[#1A1A1A]/95">
       
       {/* Input Box */}
-      <div className="px-4 md:px-6 py-3 md:py-4">
+      <div className="px-4 md:px-6 py-3 md:py-4 landscape:py-1.5 md:pt-4 pt-2">
         <div className="max-w-4xl mx-auto">
-          {/* Suggested Questions */}
-          {suggestedQuestions.length > 0 && (
-            <div className="mb-3">
-              <div 
-                ref={sliderRef}
-                className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing"
-                onMouseDown={handleMouseDown}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-              >
-                {suggestedQuestions.map((q, idx) => (
+          {/* Tabs or Suggested Questions Area */}
+          <div className="mb-3 landscape:mb-1.5 overflow-hidden">
+            <div 
+              ref={sliderRef}
+              className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing"
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+            >
+              {hasMessages ? (
+                <>
+                  <button 
+                    onClick={() => onTabChange?.('chat')}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                      activeTab === 'chat' 
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    <MessageSquare size={14} />
+                    Conversation
+                  </button>
+                  <button 
+                    onClick={() => onTabChange?.('timeline')}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                      activeTab === 'timeline' 
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    <History size={14} />
+                    Timeline
+                  </button>
+                  <button 
+                    onClick={() => onTabChange?.('mindmap')}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                      activeTab === 'mindmap' 
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    <GitGraph size={14} />
+                    Mind Map
+                  </button>
+                  <button 
+                    onClick={() => onTabChange?.('email')}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                      activeTab === 'email' 
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Mail size={14} />
+                    Send Email
+                    <span className="flex h-3.5 w-3.5 ml-0.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
+                      1
+                    </span>
+                  </button>
+                  <button 
+                    onClick={() => onTabChange?.('schedule')}
+                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                      activeTab === 'schedule' 
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Calendar size={14} />
+                    Schedule
+                  </button>
+                </>
+              ) : (
+                suggestedQuestions.map((q, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleQuestionClick(q)}
-                    className="whitespace-nowrap px-4 py-2 bg-[#2A2A2A]/40 border border-[#8B4564]/20 rounded-full text-xs text-gray-300 hover:bg-[#8B4564]/20 hover:border-[#8B4564]/40 transition-all flex-shrink-0 select-none"
+                    className="whitespace-nowrap px-4 py-2 bg-[#2A2A2A]/40 border border-[#8B4564]/20 rounded-full text-xs text-gray-300 hover:bg-[#8B4564]/20 hover:border-[#8B4564]/40 transition-all flex-shrink-0 select-none landscape:py-1 landscape:px-3"
                   >
                     {q}
                   </button>
-                ))}
-              </div>
+                ))
+              )}
             </div>
-          )}
+          </div>
 
-          <div className="flex items-end gap-2 md:gap-3">
-            <div className="flex-1 relative">
-              {/* Note inside textarea area (centered vertically on right) */}
-              <div className="absolute top-1/2 right-4 -translate-y-1/2 z-20 flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-[${COLORS.PRIMARY}] pointer-events-none opacity-60">
-                <AlertTriangle size={10} />
-                <span>IMAGE ANALYSIS LIMITED</span>
-              </div>
-              
+          <div className="relative group">
+            {/* Compact Note above input */}
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
+              <AlertTriangle size={10} />
+              <span>IMAGE ANALYSIS LIMITED</span>
+            </div>
+
+            <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
               <textarea
                 id="chat-message-input"
                 name="message"
@@ -116,28 +183,26 @@ export function ChatInput({
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                className="w-full pl-4 md:pl-5 pr-[180px] py-4 bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-xl text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:border-[#8B4564]/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ minHeight: '60px', maxHeight: '160px' }}
+                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px]"
                 disabled={disabled}
               />
-              
+              <button 
+                className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                onClick={onSend}
+                disabled={disabled || !value.trim()}
+              >
+                {disabled ? (
+                  <Loader2 size={18} className="text-white animate-spin" />
+                ) : (
+                  <Send size={18} className="text-white" />
+                )}
+              </button>
             </div>
-            <button 
-              className={`h-12 w-12 md:h-[60px] md:w-[60px] bg-gradient-to-r from-[${COLORS.PRIMARY}] to-[${COLORS.PRIMARY}] rounded-xl hover:from-[${COLORS.PRIMARY_LIGHT}] hover:to-[${COLORS.PRIMARY_LIGHT}] transition-all flex items-center justify-center flex-shrink-0 mb-0.5 disabled:opacity-50 disabled:cursor-not-allowed`}
-              onClick={onSend}
-              disabled={disabled || !value.trim()}
-            >
-              {disabled ? (
-                <Loader2 size={18} className="text-white animate-spin" />
-              ) : (
-                <Send size={18} className="text-white" />
-              )}
-            </button>
           </div>
           
           {/* Disclaimer */}
-          <div className="mt-1 text-center">
-            <p className="text-xs text-gray-500">
+          <div className="mt-0.5 text-center hidden md:block landscape:hidden">
+            <p className="text-[10px] text-gray-500">
               AI can make mistakes. Verify important legal information.
             </p>
           </div>

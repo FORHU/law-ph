@@ -18,32 +18,12 @@ export function AuthBackground() {
         transition={{ duration: 1.5, ease: "easeOut" }}
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/70 via-[#1A1A1A]/50 to-[#1A1A1A]/90"></div>
-      {/* Animated gradient orbs */}
-      <motion.div 
+      {/* Static gradient orbs instead of animated to reduce lag */}
+      <div 
         className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
-        animate={{ 
-          x: [0, 50, 0],
-          y: [0, 30, 0],
-          scale: [1, 1.1, 1]
-        }}
-        transition={{ 
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
       />
-      <motion.div 
+      <div 
         className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
-        animate={{ 
-          x: [0, -50, 0],
-          y: [0, -30, 0],
-          scale: [1, 1.2, 1]
-        }}
-        transition={{ 
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
       />
     </div>
   );

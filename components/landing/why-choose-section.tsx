@@ -52,18 +52,9 @@ const TimerCard = ({ navigate }: TimerCardProps) => {
         }}
       >
         {/* Decorative gradient orb like in CapabilitiesSection */}
-        <motion.div 
+        <div 
           className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl transition-all duration-500"
           style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3]
-          }}
-          transition={{ 
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
         />
         
         {/* Stopwatch Icon - Updated to rounded-xl */}

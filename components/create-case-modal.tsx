@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mic, StopCircle, Briefcase, Loader2 } from 'lucide-react';
+import { X, Mic, StopCircle, Briefcase, Loader2, Play, Pause, Trash2, Volume2, Sparkles, History } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
 
@@ -11,66 +12,30 @@ interface CreateCaseModalProps {
   onClose: () => void;
 }
 
-const MODAL_STYLES = {
-  overlay: "fixed inset-0 z-[100] flex items-center justify-center p-4",
-  backdrop: "absolute inset-0 bg-black/60 backdrop-blur-sm",
-  container: "relative w-full max-w-2xl bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]",
-  content: "p-5 md:p-6 overflow-y-auto custom-scrollbar",
-  input: "w-full px-4 py-2.5 bg-black/40 border border-[#8B4564]/30 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#8B4564] transition-all text-[13px]",
-  textarea: "w-full px-4 py-3 bg-black/40 border border-[#8B4564]/30 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#8B4564] transition-all resize-none text-[13px]",
-  label: "block text-[13px] font-medium text-gray-400 mb-1.5 font-inter",
-  buttonCancel: "flex-1 px-4 py-2.5 border border-[#8B4564]/30 rounded-xl text-gray-400 hover:bg-white/5 transition-all font-medium text-[13px]",
-  buttonSubmit: "flex-[1.5] px-4 py-2.5 bg-[#8B4564] text-white rounded-xl hover:bg-[#A05273] transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-[13px]"
-};
-
-const ModalHeader = ({ title, onClose }: { title: string; onClose: () => void }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-[#8B4564]/20 rounded-lg text-[#E0A7C2]">
-        <Briefcase size={18} />
-      </div>
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
-    </div>
-    <button onClick={onClose} className="p-2 text-gray-500 hover:text-white transition-colors">
-      <X size={20} />
-    </button>
-  </div>
-);
-
-const FormField = ({ label, children, rightElement }: { label: string; children: React.ReactNode; rightElement?: React.ReactNode }) => (
-  <div>
-    <div className="flex items-center justify-between mb-1.5">
-      <label className={MODAL_STYLES.label}>{label}</label>
-      {rightElement}
-    </div>
-    {children}
-  </div>
-);
-
-const RecordingButton = ({ isRecording, onClick }: { isRecording: boolean; onClick: () => void }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-      isRecording 
-        ? 'bg-red-500/20 text-red-400 animate-pulse' 
-        : 'bg-[#8B4564]/20 text-[#E0A7C2] hover:bg-[#8B4564]/30'
-    }`}
-  >
-    {isRecording ? <StopCircle size={14} /> : <Mic size={14} />}
-    {isRecording ? 'Stop Recording' : 'Start Recording'}
-  </button>
-);
+// Master state and logic for Case Creation
+import { ModalHeader } from './create-case/header';
+import { FormField } from './create-case/form-field';
+import { TranscriptionButton, AudioRecordButton } from './create-case/recording-buttons';
+import { SimpleAudioPlayer } from './create-case/audio-player';
+import { AISummarizerControls } from './create-case/ai-summarizer';
+import { MODAL_STYLES, STRINGS } from './create-case/constants';
 
 export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
+  const router = useRouter();
   const { handleCreateCase } = useConversations();
   const [caseName, setCaseName] = useState('');
   const [partyInvolved, setPartyInvolved] = useState('');
   const [notes, setNotes] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useState(false); // Speech-to-text
+  const [isAudioRecording, setIsAudioRecording] = useState(false); // Raw audio
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [originalNotes, setOriginalNotes] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -81,26 +46,48 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
 
       recognitionRef.current.onresult = (event: any) => {
         let finalTranscript = '';
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += (finalTranscript ? ' ' : '') + transcript;
+          }
         }
-        if (finalTranscript) setNotes(prev => prev + (prev ? ' ' : '') + finalTranscript);
+
+        if (finalTranscript) {
+          console.log('Transcription final result:', finalTranscript);
+          setNotes(prev => {
+            const newNotes = prev + (prev && !prev.endsWith(' ') ? ' ' : '') + finalTranscript.trim();
+            return newNotes;
+          });
+        }
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          // These are common and don't need to be treated as critical failures
+          console.log(`Speech recognition ${event.error} (handled)`);
+          return;
+        }
+        
+        console.error('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
           alert('Microphone access is denied. Please allow microphone access in your browser settings to use speech-to-text.');
         }
         setIsRecording(false);
       };
 
-      recognitionRef.current.onend = () => setIsRecording(false);
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
     }
     
     return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
         recognitionRef.current.onresult = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
@@ -110,14 +97,69 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
 
   const toggleRecording = () => {
     if (isRecording) {
-      recognitionRef.current?.stop();
+      setIsRecording(false);
+      try {
+        recognitionRef.current?.stop();
+      } catch (e) {
+        console.error('Failed to stop recognition:', e);
+      }
     } else {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      
       if (!recognitionRef.current) {
         alert('Speech recognition is not supported in this browser.');
         return;
       }
-      recognitionRef.current.start();
-      setIsRecording(true);
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (e) {
+        console.error('Failed to start recognition:', e);
+        setIsRecording(false);
+      }
+    }
+  };
+
+  const toggleAudioRecording = async () => {
+    if (isAudioRecording) {
+      setIsAudioRecording(false);
+      mediaRecorderRef.current?.stop();
+    } else {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          
+          // Stop all tracks to release the microphone
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        setIsAudioRecording(true);
+      } catch (err) {
+        console.error('Failed to start audio recording:', err);
+        alert('Could not access microphone. Please check permissions.');
+      }
     }
   };
 
@@ -127,16 +169,78 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
     
     setIsSubmitting(true);
     try {
-      await handleCreateCase({ name: caseName, party: partyInvolved, notes });
+      const newCase = await handleCreateCase({ name: caseName, party: partyInvolved, notes });
       onClose();
       setCaseName('');
       setPartyInvolved('');
       setNotes('');
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+      
+      if (newCase) {
+        router.push('/cases/' + newCase.id);
+      }
     } catch (error) {
       console.error('Failed to create case:', error);
       alert('Failed to create case. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSummarize = async () => {
+    if (!notes.trim() || isSummarizing) return;
+    
+    // Save current as original before summarizing
+    const currentNotes = notes;
+    setOriginalNotes(currentNotes);
+    setIsSummarizing(true);
+    setNotes(''); // Clear to show streaming summary
+    
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_input: `[STRICT SUMMARY] Summarize the following legal notes/transcript concisely into a professional case summary: ${currentNotes}`,
+          session_id: `summarize_${Date.now()}`,
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to summarize");
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          let chunk = decoder.decode(value, { stream: true });
+          if (chunk.includes("__END__")) chunk = chunk.replace("__END__", "");
+          if (chunk.startsWith("[Tool]") || chunk.startsWith("[Error]")) continue;
+          
+          accumulatedText += chunk;
+          setNotes(accumulatedText);
+        }
+      }
+    } catch (error) {
+      console.error("Summarization error:", error);
+      alert("Failed to summarize notes. Restoring original.");
+      setNotes(currentNotes);
+      setOriginalNotes(null);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    if (originalNotes !== null) {
+      const current = notes;
+      setNotes(originalNotes);
+      setOriginalNotes(current); // Allow toggling back and forth
     }
   };
 
@@ -159,58 +263,89 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className={MODAL_STYLES.container}
             >
-              <div className={MODAL_STYLES.content}>
-                <ModalHeader title="Create New Case" onClose={onClose} />
+              <div className={MODAL_STYLES.content} onClick={(e) => e.stopPropagation()}>
+                <ModalHeader title={STRINGS.title} onClose={onClose} />
 
                 <p className="text-[13px] text-gray-400 mb-6 leading-relaxed">
-                  Fill in the case details below. Use the microphone to record or transcribe conversations.
+                  {STRINGS.description}
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <FormField label="Case Name">
+                  <FormField label={STRINGS.caseNameLabel}>
                     <input
                       required
                       type="text"
                       value={caseName}
                       onChange={e => setCaseName(e.target.value)}
-                      placeholder="e.g., Smith vs. Jones Property Dispute"
+                      placeholder={STRINGS.caseNamePlaceholder}
                       className={MODAL_STYLES.input}
                     />
                   </FormField>
 
-                  <FormField label="Party Involved">
+                  <FormField label={STRINGS.partyLabel}>
                     <input
                       type="text"
                       value={partyInvolved}
                       onChange={e => setPartyInvolved(e.target.value)}
-                      placeholder="e.g., John Smith, Jane Doe"
+                      placeholder={STRINGS.partyPlaceholder}
                       className={MODAL_STYLES.input}
                     />
                   </FormField>
 
                   <FormField 
-                    label="Transcript / Notes" 
-                    rightElement={<RecordingButton isRecording={isRecording} onClick={toggleRecording} />}
+                    label={STRINGS.notesLabel} 
+                    rightElement={
+                      <div className="flex gap-2">
+                        <AudioRecordButton isRecording={isAudioRecording} onClick={toggleAudioRecording} />
+                        <TranscriptionButton isRecording={isRecording} onClick={toggleRecording} />
+                      </div>
+                    }
                   >
-                    <textarea
-                      value={notes}
-                      onChange={e => setNotes(e.target.value)}
-                      placeholder="Type notes or use the microphone button to record a conversation..."
-                      rows={5}
-                      className={MODAL_STYLES.textarea}
+                    <div className="relative group">
+                      <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        placeholder={STRINGS.notesPlaceholder}
+                        rows={5}
+                        className={MODAL_STYLES.textarea}
+                      />
+                      {isSummarizing && (
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center rounded-xl">
+                          <Loader2 size={24} className="text-[#8B4564] animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <AISummarizerControls 
+                      onSummarize={handleSummarize}
+                      onRestoreOriginal={handleRestoreOriginal}
+                      isSummarizing={isSummarizing}
+                      hasNotes={!!notes.trim()}
+                      hasOriginalNotes={originalNotes !== null}
+                      isShowingSummary={originalNotes !== null && notes.length < (originalNotes?.length || 0)}
                     />
+                    
+                    {audioUrl && (
+                      <SimpleAudioPlayer 
+                        url={audioUrl} 
+                        onDiscard={() => {
+                          URL.revokeObjectURL(audioUrl);
+                          setAudioUrl(null);
+                        }} 
+                      />
+                    )}
                   </FormField>
 
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={onClose} className={MODAL_STYLES.buttonCancel}>
-                      Cancel
+                      {STRINGS.cancelBtn}
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting || !caseName.trim()}
                       className={MODAL_STYLES.buttonSubmit}
                     >
-                      {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Create Case'}
+                      {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : STRINGS.createBtn}
                     </button>
                   </div>
                 </form>

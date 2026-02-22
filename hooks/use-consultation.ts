@@ -11,6 +11,7 @@ export function useConsultation(_userId?: string, _syncedConversationId?: string
     handleRemoveConsultation,
     handleRenameConsultation,
     handleSendMessage,
+    updateMessage,
     handleDeleteMessage
   } = useConversations()
 
@@ -24,6 +25,7 @@ export function useConsultation(_userId?: string, _syncedConversationId?: string
     handleRemoveConsultation,
     handleRenameConsultation,
     handleSendMessage,
+    updateMessage,
     handleDeleteMessage
   }
 }
