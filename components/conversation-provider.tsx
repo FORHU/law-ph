@@ -6,7 +6,7 @@ import { Conversation, ConsultationSession, CaseData } from "@/types"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER, STORAGE_KEYS } from "@/lib/constants"
-import { extractLegalSources, extractRelatedCases } from '@/lib/citation-parser'
+import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser'
 import { 
   ConversationContext, 
   Message,
@@ -18,8 +18,9 @@ import { useChatSession } from './conversation-provider/use-chat-session'
 
 
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
-  const { loggedIn, session, supabase } = useAuth()
-  const { conversationId: syncedConversationId } = useParams() as { conversationId?: string }
+  const { loggedIn, session, supabase } = useAuth();
+  const params = useParams();
+  const syncedConversationId = (params?.conversationId || params?.id) as string | undefined;
   const userId = session?.user?.id
 
   // Local/UI state
@@ -29,6 +30,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  const updateMessage = useCallback((id: string | number, updates: Partial<Message>) => {
+    setMessages((prev) => 
+      prev.map((msg) => msg.id === id ? { ...msg, ...updates } : msg)
+    )
+  }, [])
+
   
   // Cases state
   const [cases, setCases] = useState<CaseData[]>([])
@@ -136,12 +144,27 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   }
 
   // Helper to map Supabase/Cloud messages to UI format
-  const mapCloudMessage = useCallback((msg: any): Message => ({
-    ...msg,
-    text: msg.text || msg.content || "",
-    sender: msg.sender || (msg.role === 'assistant' ? 'ai' : 'user'),
-    time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
-  }), [])
+  const mapCloudMessage = useCallback((msg: any): Message => {
+    const text = msg.text || msg.content || "";
+    const sender = msg.sender || (msg.role === 'assistant' ? 'ai' : 'user');
+    
+    // Auto-extract citations for AI messages on load/map
+    const sources = sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
+    const relatedCases = sender === CHAT_SENDER.AI ? extractRelatedCases(text) : undefined;
+    const timeline = sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
+
+    const cleanText = sender === CHAT_SENDER.AI ? text.replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/i, '').trim() : text;
+
+    return {
+      ...msg,
+      text: cleanText,
+      sender,
+      sources,
+      relatedCases,
+      timeline,
+      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
+    };
+  }, [])
 
   // Sync Supabase Conversations
   const fetchConversations = useCallback(async () => {
@@ -156,13 +179,18 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         .order("created_at", { ascending: false })
 
       if (error) {
-        console.error("[ConversationProvider] fetchConversations error:", error.message);
+        if (error.message === 'Failed to fetch') {
+          console.warn("[ConversationProvider] fetchConversations: Network connection issues (Failed to fetch).");
+        } else {
+          console.error("[ConversationProvider] fetchConversations error:", error.message);
+        }
         return;
       }
 
       if (data) {
         // Double-check: Filter out ANY ID that was deleted in this session
-        const liveData = data.filter(c => !deletedIdsRef.current.has(c.id.toString()));
+        // AND exclude cases so they don't appear in the standard consultation history UI
+        const liveData = data.filter(c => !deletedIdsRef.current.has(c.id.toString()) && !c.title.startsWith('[CASE]'));
         console.log("[ConversationProvider] Sync complete. Filtered items:", data.length - liveData.length);
         
         setConversations(liveData)
@@ -195,6 +223,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     setIsLoading,
     currentConsultationId,
     setCurrentConsultationId,
+    syncedConversationId,
     chatSessionId,
     setChatSessionId,
     userId,
@@ -305,7 +334,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
       // Check existence
       const exists = conversations.some(c => c.id.toString() === syncedConversationId);
-      if (!exists) {
+      const existsAsCase = cases.some(c => c.id.toString() === syncedConversationId);
+      if (!exists && !existsAsCase) {
         console.log("Conversation not found in list, clearing state. ID:", syncedConversationId);
         handleNewConsultation();
         return;
@@ -403,10 +433,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     }
   }, [loggedIn, userId, supabase]);
 
-  const handleCreateCase = useCallback(async (caseData: { name: string; party: string; notes: string }) => {
+  const handleCreateCase = useCallback(async (caseData: { name: string; party: string; notes: string }): Promise<CaseData | null> => {
     if (!userId || !loggedIn) {
       console.warn('[ConversationProvider] handleCreateCase: User not authenticated');
-      return;
+      return null;
     }
     
     try {
@@ -418,12 +448,26 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       }).select().single();
 
       if (!error && data) {
+        // Create an associated invisible conversation for the case chat
+        const { error: convError } = await supabase.from('conversations').insert({
+          id: data.id,
+          user_id: userId,
+          title: `[CASE] ${caseData.name}`
+        });
+
+        if (convError) {
+          console.error('[ConversationProvider] Failed to link conversation to case:', convError.message);
+        }
+
         setCases(prev => [data as CaseData, ...prev]);
+        return data as CaseData;
       } else {
         console.error('[ConversationProvider] handleCreateCase error:', error?.message);
+        return null;
       }
     } catch (err) {
       console.error('[ConversationProvider] Unexpected error in handleCreateCase:', err);
+      return null;
     }
   }, [userId, loggedIn, supabase]);
 
@@ -451,6 +495,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         recentConsultations,
         currentConsultationId,
         chatSessionId,
+        updateMessage,
         handleSendMessage,
         handleLoadConsultation,
         handleNewConsultation,

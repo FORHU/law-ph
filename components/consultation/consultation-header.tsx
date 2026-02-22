@@ -12,6 +12,7 @@ interface ConsultationHeaderProps {
   isEditable?: boolean;
   onTitleChange?: (newTitle: string) => void;
   showSubtitle?: boolean;
+  actions?: React.ReactNode;
 }
 
 export function ConsultationHeader({ 
@@ -21,7 +22,8 @@ export function ConsultationHeader({
   showMenuButton = true,
   isEditable = false,
   onTitleChange,
-  showSubtitle = true
+  showSubtitle = true,
+  actions,
 }: ConsultationHeaderProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -54,7 +56,7 @@ export function ConsultationHeader({
   return (
     <header className="relative z-10 border-b border-[#8B4564]/10 bg-[#1A1A1A]/60 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-4 w-full">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           {showMenuButton && onMenuClick && (
             <button 
               onClick={onMenuClick}
@@ -103,6 +105,11 @@ export function ConsultationHeader({
             )}
           </div>
         </div>
+        {actions && (
+          <div className="flex-shrink-0 ml-3">
+            {actions}
+          </div>
+        )}
       </div>
     </header>
   );

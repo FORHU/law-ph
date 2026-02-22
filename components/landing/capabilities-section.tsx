@@ -55,19 +55,10 @@ export function CapabilitiesSection() {
             onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}4D`}
           >
             {/* Decorative gradient orb */}
-            <motion.div 
+            <div 
               className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl transition-all duration-500"
               style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0.8, 0.5]
-              }}
-              transition={{ 
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            ></motion.div>
+            ></div>
             
             <div className="relative grid md:grid-cols-2 gap-8 items-center">
               <div>
@@ -332,7 +323,7 @@ export function CapabilitiesSection() {
         </div>
 
         {/* Additional Capabilities Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           {[
             { 
               icon: <Briefcase size={24} />, 

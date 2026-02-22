@@ -33,7 +33,15 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
       if (source) {
         detail = await fetchSourceContent(source, context);
       } else if (caseItem) {
-        detail = await fetchCaseContent(caseItem, context);
+        if ((caseItem as any).isLocalCase) {
+          detail = {
+            title: caseItem.title,
+            reference: '',
+            fullText: caseItem.description,
+          };
+        } else {
+          detail = await fetchCaseContent(caseItem, context);
+        }
       } else {
         return;
       }
@@ -83,7 +91,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     {isCase ? 'Case Details' : 'Legal Source'}
                   </h2>
                   <p className="text-xs text-gray-400">
-                    {content?.reference || 'Loading...'}
+                    {content?.reference && content.reference.length > 20 && isCase ? '' : (content?.reference || 'Loading...')}
                   </p>
                 </div>
               </div>
@@ -108,7 +116,9 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     <h1 className="text-2xl font-bold text-white mb-2">
                       {content.title}
                     </h1>
-                    <p className="text-sm text-gray-400">{content.reference}</p>
+                    {content.reference && content.reference.length > 20 && isCase ? null : (
+                      <p className="text-sm text-gray-400">{content.reference}</p>
+                    )}
                   </div>
 
                   {/* Relevant Section Highlight */}
