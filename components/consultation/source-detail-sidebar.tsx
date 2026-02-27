@@ -7,6 +7,7 @@ import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
 import { COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
+import { HtmlRenderer } from '@/components/ui/html-renderer';
 
 interface SourceDetailSidebarProps {
   isOpen: boolean;
@@ -143,47 +144,51 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
 
                   {/* Full Text */}
                   <div className="prose prose-invert max-w-none">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-2xl font-bold text-white mb-4 mt-6">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-xl font-bold text-white mb-3 mt-5">
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-lg font-semibold text-white mb-2 mt-4">
-                            {children}
-                          </h3>
-                        ),
-                        p: ({ children }) => (
-                          <p className="text-gray-300 mb-4 leading-relaxed">
-                            {children}
-                          </p>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-disc ml-5 mb-4 space-y-2 text-gray-300">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-decimal ml-5 mb-4 space-y-2 text-gray-300">
-                            {children}
-                          </ol>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="text-white font-semibold">
-                            {children}
-                          </strong>
-                        ),
-                      }}
-                    >
-                      {content.fullText}
-                    </ReactMarkdown>
+                    {content.isHtml ? (
+                      <HtmlRenderer content={content.fullText} />
+                    ) : (
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ children }) => (
+                            <h1 className="text-2xl font-bold text-white mb-4 mt-6">
+                              {children}
+                            </h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="text-xl font-bold text-white mb-3 mt-5">
+                              {children}
+                            </h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="text-lg font-semibold text-white mb-2 mt-4">
+                              {children}
+                            </h3>
+                          ),
+                          p: ({ children }) => (
+                            <p className="text-gray-300 mb-4 leading-relaxed">
+                              {children}
+                            </p>
+                          ),
+                          ul: ({ children }) => (
+                            <ul className="list-disc ml-5 mb-4 space-y-2 text-gray-300">
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="list-decimal ml-5 mb-4 space-y-2 text-gray-300">
+                              {children}
+                            </ol>
+                          ),
+                          strong: ({ children }) => (
+                            <strong className="text-white font-semibold">
+                              {children}
+                            </strong>
+                          ),
+                        }}
+                      >
+                        {content.fullText}
+                      </ReactMarkdown>
+                    )}
                   </div>
 
                   {/* External Link */}

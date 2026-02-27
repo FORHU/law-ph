@@ -169,10 +169,23 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           setMessages(currentMessages => {
             const lastMsg = currentMessages[currentMessages.length - 1];
             if (lastMsg?.sender === 'ai') {
+              let streamRelated = lastMsg.relatedCases;
+              if (streamSources && streamSources.length > 0) {
+                streamRelated = streamSources.map((item: any) => ({
+                  caseNumber: item.gr_number || item.case_number || 'N/A',
+                  title: item.title || 'Philippine Legal Document',
+                  description: item.title || item.source_type || 'Legal Source',
+                  score: item.relevance,
+                  url: item.url,
+                  type: item.source_type,
+                  itemId: item.item_id,
+                }));
+              }
               const updated = [...currentMessages];
               updated[updated.length - 1] = {
                 ...lastMsg,
-                text: accumulatedContent
+                text: accumulatedContent,
+                relatedCases: streamRelated,
               };
               return updated;
             }

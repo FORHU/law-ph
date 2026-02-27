@@ -14,6 +14,7 @@ export interface RelatedCase {
   score?: number;
   url?: string;
   type?: string;
+  itemId?: string; // DB item_id used to fetch full case content
 }
 
 export interface TimelineItem {

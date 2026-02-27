@@ -50,6 +50,7 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
               score: item.score,
               url: item.url,
               type: item.type,
+              itemId: item.item_id,
             }));
 
             onUpdateMessage?.(messageId, { relatedCases });
