@@ -92,6 +92,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     }]);
 
     let accumulatedContent = '';
+    let streamSources: any[] | null = null;
 
 
     // Create abort controller for this request
@@ -129,6 +130,19 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           if (done) break;
 
           let chunk = decoder.decode(value, { stream: true });
+
+          // Parse [Sources] JSON sent from the Python server
+          if (chunk.startsWith("[Sources]")) {
+            try {
+              const sourcesJson = chunk.replace("[Sources] ", "");
+              const sourcesData: any[] = JSON.parse(sourcesJson);
+              streamSources = sourcesData;
+              console.log('[Legal Sources] Received from server stream:', sourcesData.length, 'sources');
+            } catch (e) {
+              console.warn('[Legal Sources] Failed to parse:', e);
+            }
+            continue;
+          }
 
           // Strip END marker, don’t skip content
           if (chunk.includes("__END__")) {
@@ -181,7 +195,8 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
         conversation_id,
       });
 
-if (onStreamComplete) onStreamComplete();
+      if (onStreamComplete) onStreamComplete();
+
 
     } catch (err: any) {
       console.error("Stream error:", err);

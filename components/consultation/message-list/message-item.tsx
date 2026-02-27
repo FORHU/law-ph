@@ -34,6 +34,7 @@ interface MessageItemProps {
   onOpenNote?: (id: string | number, text: string) => void;
   onConfirmDeleteVoiceNote: (messageId: string | number, noteId: string, label: string) => void;
   scrollToMessage: (id: string | number) => void;
+  isRelatedCasesLoading?: boolean;
 }
 
 export function MessageItem({
@@ -52,7 +53,8 @@ export function MessageItem({
   onUpdateMessage,
   onOpenNote,
   onConfirmDeleteVoiceNote,
-  scrollToMessage
+  scrollToMessage,
+  isRelatedCasesLoading = false,
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
@@ -261,19 +263,66 @@ export function MessageItem({
                 {activeTab === 'related' && (
                    <motion.div key="related" {...ANIMATION_VARIANTS.container}>
                       <div className="space-y-3">
-                        {message.relatedCases?.map((caseItem, idx) => (
-                          <div 
-                            key={idx} 
-                            className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
-                            onClick={() => onCaseClick?.(caseItem, message.text)}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-xs font-bold text-[#E0A7C2]">SUPREME COURT CASE</span>
-                              <span className="text-[10px] text-gray-500">{caseItem.caseNumber}</span>
+                        {isRelatedCasesLoading ? (
+                          <div className="py-8 text-center space-y-3">
+                            <div className="flex justify-center gap-1">
+                              {[0, 150, 300].map(delay => (
+                                <span
+                                  key={delay}
+                                  className="w-2 h-2 bg-[#E0A7C2]/60 rounded-full animate-bounce"
+                                  style={{ animationDelay: `${delay}ms` }}
+                                />
+                              ))}
                             </div>
-                            <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{caseItem.description}</p>
+                            <p className="text-gray-400 text-sm">Searching legal database...</p>
                           </div>
-                        ))}
+                        ) : message.relatedCases && message.relatedCases.length > 0 ? (
+                          message.relatedCases.map((caseItem, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/10 transition-all group"
+                            >
+                              <div className="flex justify-between items-start mb-1 gap-2">
+                                <span className="text-xs font-bold text-[#E0A7C2] uppercase tracking-wide flex-shrink-0">
+                                  {caseItem.type === 'lawphil_statute' ? 'STATUTE' : 'SUPREME COURT CASE'}
+                                </span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {caseItem.score !== undefined && (
+                                    <span className="text-[10px] bg-[#8B4564]/20 text-[#E0A7C2] px-1.5 py-0.5 rounded-full font-semibold">
+                                      {(caseItem.score * 100).toFixed(0)}% match
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-gray-500">{caseItem.caseNumber}</span>
+                                </div>
+                              </div>
+                              <p
+                                className="text-sm text-gray-300 group-hover:text-white transition-colors cursor-pointer"
+                                onClick={() => onCaseClick?.(caseItem, message.text)}
+                              >
+                                {caseItem.title || caseItem.description}
+                              </p>
+                              {caseItem.url && (
+                                <a
+                                  href={caseItem.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 inline-flex items-center gap-1 text-[10px] text-[#E0A7C2]/60 hover:text-[#E0A7C2] transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View full document ↗
+                                </a>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-8 text-center space-y-2">
+                            <div className="p-3 bg-[#8B4564]/10 rounded-full w-fit mx-auto">
+                              <GitGraph size={24} className="text-[#E0A7C2]/50" />
+                            </div>
+                            <p className="text-gray-500 text-sm">No related cases found.</p>
+                            <p className="text-gray-600 text-xs">Cases are retrieved from the legal database when you open this tab.</p>
+                          </div>
+                        )}
                       </div>
                    </motion.div>
                 )}

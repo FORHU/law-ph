@@ -10,6 +10,10 @@ export interface RelatedCase {
   caseNumber: string;
   title: string;
   description: string;
+  // Fields from the real /api/legal/search API
+  score?: number;
+  url?: string;
+  type?: string;
 }
 
 export interface TimelineItem {
