@@ -110,12 +110,17 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     "Can you set a schedule for this person on my behalf?"
   ];
 
-  // Auto-scroll to bottom when messages change
+  const prevMessagesLengthRef = useRef(messages.length);
+
+  // Auto-scroll to bottom only when new messages arrive or AI is streaming
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      if (messages.length > prevMessagesLengthRef.current || isLoading) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
     }
-  }, [messages]);
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, isLoading]);
 
   const lastIdRef = useRef<string | null>(null);
 

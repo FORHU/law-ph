@@ -23,6 +23,7 @@ interface SidebarItemProps {
 export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps) {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   // Left: menuPosition local state is fine as it depends on the specific element ref
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -31,12 +32,11 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
     e.preventDefault();
     e.stopPropagation();
     
+    // Reset confirmation state when opening/closing menu
+    setIsConfirmingDelete(false);
+
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      setMenuPosition({ 
-        top: rect.top, 
-        left: rect.right + 8 
-      });
       setMenuPosition({ 
         top: rect.top, 
         left: rect.right + 8 
@@ -69,6 +69,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
         const target = e.target as HTMLElement;
         if (!target.closest('.portal-menu') && !target.closest('.menu-trigger')) {
           onToggle?.();
+          setIsConfirmingDelete(false);
         }
       }
     };
@@ -130,7 +131,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
             <MoreHorizontal size={14} />
           </button>
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {isOpen && menuPosition && (
               <PortalWrapper>
                 <motion.div
@@ -145,30 +146,70 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                     left: menuPosition.left,
                     zIndex: 9999 
                   }}
-                  className="w-32 bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl shadow-2xl p-1.5 portal-menu"
+                  className={`${isConfirmingDelete ? 'w-40' : 'w-32'} bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl shadow-2xl p-1.5 portal-menu`}
                   onClick={e => e.stopPropagation()}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleStartRename();
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-gray-300 hover:text-white hover:bg-[#8B4564]/20 rounded-lg transition-all"
-                  >
-                    <Edit3 size={14} />
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      item.onRemove?.();
-                      onToggle?.(); 
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                  >
-                    <Trash2 size={14} />
-                    Delete
-                  </button>
+                  <AnimatePresence mode="wait">
+                    {isConfirmingDelete ? (
+                      <motion.div
+                        key="confirm-delete"
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="space-y-1.5"
+                      >
+                        <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-tight">Confirm Delete?</div>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setIsConfirmingDelete(false)}
+                            className="flex-1 py-1.5 text-[10px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              item.onRemove?.();
+                              onToggle?.();
+                              setIsConfirmingDelete(false);
+                            }}
+                            className="flex-1 py-1.5 text-[10px] font-bold text-white bg-red-500/80 hover:bg-red-500 rounded-lg transition-all shadow-lg shadow-red-500/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="normal-menu"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-0.5"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleStartRename();
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-gray-300 hover:text-white hover:bg-[#8B4564]/20 rounded-lg transition-all"
+                        >
+                          <Edit3 size={14} />
+                          Rename
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsConfirmingDelete(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               </PortalWrapper>
             )}

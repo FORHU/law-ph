@@ -31,11 +31,41 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const updateMessage = useCallback((id: string | number, updates: Partial<Message>) => {
-    setMessages((prev) => 
-      prev.map((msg) => msg.id === id ? { ...msg, ...updates } : msg)
-    )
-  }, [])
+  const updateMessage = useCallback(async (id: string | number, updates: Partial<Message>) => {
+    setMessages((prev) => {
+      const newMessages = prev.map((msg) => msg.id === id ? { ...msg, ...updates } : msg);
+      
+      // Fire-and-forget DB update for persistence
+      if (loggedIn) {
+        const targetMsg = newMessages.find(m => m.id === id);
+        if (targetMsg && (updates.text !== undefined || updates.originalText !== undefined || updates.recordingUrl !== undefined || updates.voiceNotes !== undefined || updates.highlights !== undefined)) {
+          setTimeout(async () => {
+            try {
+              const meta = {
+                originalText: targetMsg.originalText,
+                editedAt: targetMsg.editedAt,
+                editedBy: targetMsg.editedBy,
+                recordingUrl: targetMsg.recordingUrl,
+                voiceNotes: targetMsg.voiceNotes,
+                highlights: targetMsg.highlights
+              };
+              
+              let newContent = targetMsg.text;
+              if (Object.values(meta).some(v => v !== undefined)) {
+                newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+              }
+
+              const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', id);
+              if (error) console.error("[ConversationProvider] DB Update message failed:", error.message);
+            } catch (err) {
+              console.error("[ConversationProvider] DB Update message critical error:", err);
+            }
+          }, 0);
+        }
+      }
+      return newMessages;
+    });
+  }, [loggedIn, supabase])
 
   
   // Cases state
@@ -90,37 +120,34 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     // 1. Optimistic UI update
     setRecentConsultations(prev => prev.filter(c => c.id.toString() !== idStr))
     setConversations(prev => prev.filter(c => c.id.toString() !== idStr))
-    
-    // 2. Persist to Shadow Realm immediately
-    persistDeletedId(idStr)
 
     // If it's the active one, clear state immediately
     if (currentConsultationId?.toString() === idStr) {
       handleNewConsultation()
     }
 
-    // 3. Cloud removal (Best Effort)
-    if (typeof id === 'string') {
-      try {
-        console.log(`[ConversationProvider] Shadow Delete Active. ID: "${id}"`);
-        
-        const { error, status } = await supabase
-          .from("conversations")
-          .delete()
-          .eq("id", id);
-        
-        if (error || (status !== 200 && status !== 204)) {
-          console.warn("[ConversationProvider] DB Delete failed (RLS Block). Item Shadow-Deleted locally.", status, error?.message);
-        } else {
-          console.log("[ConversationProvider] DB deletion confirmed.");
-        }
-
-        // Always sync, but the filter in fetchConversations will hide it thanks to deletedIdsRef
+    // 2. Cloud removal
+    try {
+      const { error, status } = await supabase
+        .from("conversations")
+        .delete()
+        .eq("id", idStr);
+      
+      if (error || (status !== 200 && status !== 204)) {
+        // Only shadow-delete if the DB delete actually failed
+        console.warn("[ConversationProvider] DB Delete failed. Shadow-deleting locally.", status, error?.message);
+        persistDeletedId(idStr);
+      } else {
+        // Success: ensure it's NOT in the shadow list (clean up any old entry)
+        console.log("[ConversationProvider] DB deletion confirmed. Cleaning shadow list.");
+        deletedIdsRef.current.delete(idStr);
+        localStorage.setItem("deleted_conversation_ids", JSON.stringify(Array.from(deletedIdsRef.current)));
         await fetchConversations();
-      } catch (err) {
-        console.error("[ConversationProvider] Critical delete error:", err);
-        // Do NOT restore state. Keep it deleted.
       }
+    } catch (err) {
+      console.error("[ConversationProvider] Critical delete error:", err);
+      // Shadow-delete as fallback so UI stays correct
+      persistDeletedId(idStr);
     }
   }
 
@@ -145,15 +172,27 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
   // Helper to map Supabase/Cloud messages to UI format
   const mapCloudMessage = useCallback((msg: any): Message => {
-    const text = msg.text || msg.content || "";
+    let text = msg.text || msg.content || "";
     const sender = msg.sender || (msg.role === 'assistant' ? 'ai' : 'user');
     
+    // Extract custom ILM metadata
+    let meta: any = {};
+    const metaMatch = text.match(/\[ILM_META\](.*?)\[\/ILM_META\]/);
+    if (metaMatch) {
+      try {
+        meta = JSON.parse(metaMatch[1]);
+        text = text.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, '').trim();
+      } catch (e) {
+        console.error("Failed to parse ILM_META", e);
+      }
+    }
+
     // Auto-extract citations for AI messages on load/map
     const sources = sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
     const relatedCases = sender === CHAT_SENDER.AI ? extractRelatedCases(text) : undefined;
     const timeline = sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
 
-    const cleanText = sender === CHAT_SENDER.AI ? text.replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/i, '').trim() : text;
+    const cleanText = sender === CHAT_SENDER.AI ? text.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim() : text;
 
     return {
       ...msg,
@@ -162,6 +201,12 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       sources,
       relatedCases,
       timeline,
+      originalText: meta.originalText,
+      editedAt: meta.editedAt,
+      editedBy: meta.editedBy,
+      recordingUrl: meta.recordingUrl,
+      voiceNotes: meta.voiceNotes,
+      highlights: meta.highlights,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
     };
   }, [])
@@ -232,40 +277,26 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     supabase
   });
 
-  // Background Cleanup: Retry deleting "shadow-deleted" items
+  // Background Cleanup: Retry deleting shadow-items that previously failed (e.g. network error)
   const hasRetriedDeletions = useRef(false);
 
   useEffect(() => {
     const retryDeletions = async () => {
         if (!userId || deletedIdsRef.current.size === 0 || hasRetriedDeletions.current) return;
-        
-        hasRetriedDeletions.current = true; // Mark as run for this session
+        hasRetriedDeletions.current = true;
         
         const idsToRetry = Array.from(deletedIdsRef.current);
-        console.log("[ConversationProvider] Retrying deletion for shadow items (One-time check):", idsToRetry.length);
+        console.log("[ConversationProvider] Retrying shadow-deleted items:", idsToRetry.length);
 
         for (const id of idsToRetry) {
-          // Check if it still exists
-          const { data: check, error: checkError } = await supabase.from("conversations").select("id").eq("id", id).maybeSingle();
-          
-          if (!check) {
-            console.log("[ConversationProvider] Item confirmed gone from DB. Removing from shadow list:", id);
+          const { error, status } = await supabase.from("conversations").delete().eq("id", id);
+          // On success OR if not found (already gone), remove from shadow list
+          if (!error || status === 404) {
             deletedIdsRef.current.delete(id);
-          } else {
-             // Try to delete ONE last time for this session
-             const { error, status } = await supabase.from("conversations").delete().eq("id", id);
-             
-             if (error || (status !== 200 && status !== 204)) {
-                console.warn(`[ConversationProvider] Failed to delete item ${id}. Stopping retries for this session to avoid spam. Status: ${status}`);
-                // We keep it in the list (so it stays hidden in UI) but we won't try again until page reload.
-             } else {
-                console.log("[ConversationProvider] Successfully deleted item on retry:", id);
-                deletedIdsRef.current.delete(id);
-             }
           }
         }
         
-        // Update local storage with remaining items (those that failed or haven't been processed yet)
+        // Persist the (now smaller) shadow list
         localStorage.setItem("deleted_conversation_ids", JSON.stringify(Array.from(deletedIdsRef.current)));
     }
     

@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Slider from 'react-slick';
-import { Building, Scale, Briefcase, BookOpen, FileText, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building, Scale, Briefcase, BookOpen, FileText, ExternalLink, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
 import { COLORS } from '@/lib/constants';
 
 // Import slick-carousel styles partially here if not in globals
@@ -84,6 +84,22 @@ const ResourcesSection: React.FC = () => {
       desc: 'Find accredited lawyers, legal resources, and information about the Philippine legal profession.', 
       link: 'Visit Website',
       url: 'https://www.ibp.ph/'
+    },
+    {
+      icon: <Shield size={28} />, 
+      badge: 'OFFICIAL', 
+      title: 'Security and Exchange Commission', 
+      desc: 'Responsible for the oversight and regulation of the financial services industry within the Philippines.', 
+      link: 'Visit Website',
+      url: 'https://www.sec.gov.ph/'
+    },
+    {
+      icon: <FileText size={28} />, 
+      badge: 'OFFICIAL', 
+      title: 'Bureau of Internal Revenue', 
+      desc: 'The government agency in charge of collecting taxes and enforcing tax laws in the Philippines.', 
+      link: 'Visit Website',
+      url: 'https://www.bir.gov.ph/'
     }
   ];
 
