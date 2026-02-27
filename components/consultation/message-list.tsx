@@ -8,14 +8,63 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
   const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
+  const [relatedCasesLoading, setRelatedCasesLoading] = useState<Record<string | number, boolean>>({});
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<BlobPart[]>([]);
   const [editingNoteLabel, setEditingNoteLabel] = useState<Record<string, string | null>>({});
   const [confirmDelete, setConfirmDelete] = useState<{ messageId: string | number; noteId: string; label: string } | null>(null);
 
-  const handleTabChange = (messageId: string | number, tab: string) => {
+  const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
+
+    // Lazy-load legal cases when user clicks Related Cases tab
+    if (tab === 'related') {
+      const msgIndex = messages.findIndex(m => m.id === messageId);
+      const msg = messages[msgIndex];
+      // Only fetch if we don't already have results
+      if (msg && (!msg.relatedCases || msg.relatedCases.length === 0)) {
+        // Use the preceding user message as the prompt, not the AI response
+        const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
+        const searchPrompt = precedingUserMsg?.text || msg.text;
+
+        setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
+        try {
+          const res = await fetch('/api/legal/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: searchPrompt,
+              max_results: 5,
+              content_types: ['case', 'statute'],
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const apiResults: any[] = data.results || [];
+
+            const relatedCases = apiResults.map((item: any) => ({
+              caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
+              title: item.title || 'Philippine Legal Document',
+              description: item.title || item.type,
+              score: item.score,
+              url: item.url,
+              type: item.type,
+              itemId: item.item_id,
+            }));
+
+            onUpdateMessage?.(messageId, { relatedCases });
+          }
+        } catch (err) {
+          console.warn('[Related Cases] Fetch failed:', err);
+        } finally {
+          setRelatedCasesLoading(prev => ({ ...prev, [messageId]: false }));
+        }
+      }
+    }
   };
+
+
 
   const scrollToMessage = (id: string | number) => {
     setTimeout(() => {
@@ -71,6 +120,7 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
           showOriginal={showOriginal[message.id] || false}
           onToggleOriginal={() => setShowOriginal(prev => ({ ...prev, [message.id]: !prev[message.id] }))}
           isRecording={isRecording[message.id] || false}
+          isRelatedCasesLoading={relatedCasesLoading[message.id] || false}
           onStartStopRecording={async () => {
             if (!isRecording[message.id]) {
               try {

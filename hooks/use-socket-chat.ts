@@ -92,6 +92,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     }]);
 
     let accumulatedContent = '';
+    let streamSources: any[] | null = null;
 
 
     // Create abort controller for this request
@@ -130,6 +131,19 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
 
           let chunk = decoder.decode(value, { stream: true });
 
+          // Parse [Sources] JSON sent from the Python server
+          if (chunk.startsWith("[Sources]")) {
+            try {
+              const sourcesJson = chunk.replace("[Sources] ", "");
+              const sourcesData: any[] = JSON.parse(sourcesJson);
+              streamSources = sourcesData;
+              console.log('[Legal Sources] Received from server stream:', sourcesData.length, 'sources');
+            } catch (e) {
+              console.warn('[Legal Sources] Failed to parse:', e);
+            }
+            continue;
+          }
+
           // Strip END marker, don’t skip content
           if (chunk.includes("__END__")) {
             chunk = chunk.replace("__END__", "");
@@ -155,10 +169,23 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           setMessages(currentMessages => {
             const lastMsg = currentMessages[currentMessages.length - 1];
             if (lastMsg?.sender === 'ai') {
+              let streamRelated = lastMsg.relatedCases;
+              if (streamSources && streamSources.length > 0) {
+                streamRelated = streamSources.map((item: any) => ({
+                  caseNumber: item.gr_number || item.case_number || 'N/A',
+                  title: item.title || 'Philippine Legal Document',
+                  description: item.title || item.source_type || 'Legal Source',
+                  score: item.relevance,
+                  url: item.url,
+                  type: item.source_type,
+                  itemId: item.item_id,
+                }));
+              }
               const updated = [...currentMessages];
               updated[updated.length - 1] = {
                 ...lastMsg,
-                text: accumulatedContent
+                text: accumulatedContent,
+                relatedCases: streamRelated,
               };
               return updated;
             }
@@ -181,7 +208,8 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
         conversation_id,
       });
 
-if (onStreamComplete) onStreamComplete();
+      if (onStreamComplete) onStreamComplete();
+
 
     } catch (err: any) {
       console.error("Stream error:", err);

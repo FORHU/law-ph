@@ -1,6 +1,7 @@
 // Legal Content Fetcher - Provides detailed content for legal sources and cases
 
 import { LegalSource, RelatedCase } from './citation-parser';
+import TurndownService from 'turndown';
 
 export interface LegalContentDetail {
   title: string;
@@ -8,6 +9,7 @@ export interface LegalContentDetail {
   fullText: string;
   relevantSection?: string;
   url?: string;
+  isHtml?: boolean;
 }
 
 /**
@@ -34,9 +36,40 @@ export async function fetchSourceContent(source: LegalSource, context?: string):
  * Fetches detailed content for a related case
  */
 export async function fetchCaseContent(caseItem: RelatedCase, context?: string): Promise<LegalContentDetail> {
-  // Simulate API call delay
+  // If we have a real database itemId from our search API, fetch the real content
+  if (caseItem.itemId) {
+    try {
+      const res = await fetch(`/api/legal/case/${encodeURIComponent(caseItem.itemId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Convert the ugly LawPhil HTML from the DB into clean Markdown
+        const turndownService = new TurndownService({
+          headingStyle: 'atx',
+          codeBlockStyle: 'fenced',
+          bulletListMarker: '-',
+        });
+        
+        // LawPhil often has excessive <br> and tables; Turndown smartly unwraps text
+        const cleanMarkdown = turndownService.turndown(data.text_content || '');
+
+        return {
+          title: data.title || caseItem.title,
+          reference: data.gr_number || caseItem.caseNumber,
+          fullText: cleanMarkdown,
+          relevantSection: extractRelevantSection(cleanMarkdown, context),
+          url: data.url || generateCaseUrl(caseItem),
+          isHtml: false // We successfully converted it to pure Markdown
+        };
+      }
+      console.warn('[Fetch Case] API returned error, falling back:', res.status);
+    } catch (err) {
+      console.error('[Fetch Case] Network error, falling back:', err);
+    }
+  }
+
+  // Fallback to mock content for locally parsed cases or if API fails
   await new Promise(resolve => setTimeout(resolve, 300));
-  
   const mockContent = generateMockCaseContent(caseItem);
   
   return {
