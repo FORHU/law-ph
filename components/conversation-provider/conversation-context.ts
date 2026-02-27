@@ -11,9 +11,12 @@ export interface Message {
   sources?: LegalSource[];
   relatedCases?: RelatedCase[];
   timeline?: any[];
-  recordingUrl?: string;
+  recordingUrl?: string; // @deprecated
+  voiceNotes?: { id: string, url: string }[];
   isEditing?: boolean;
   originalText?: string;
+  editedAt?: string;
+  editedBy?: string;
   highlights?: { id: string, snippet: string, note: string }[];
 }
 

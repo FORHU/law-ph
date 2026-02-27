@@ -11,9 +11,12 @@ export interface Message {
   text: string
   sender: 'user' | 'ai'
   time: string
-  recordingUrl?: string
+  recordingUrl?: string // @deprecated
+  voiceNotes?: { id: string, url: string }[]
   isEditing?: boolean
   originalText?: string
+  editedAt?: string
+  editedBy?: string
   highlights?: { id: string, snippet: string, note: string }[]
   timeline?: any[]
   mindMap?: any
