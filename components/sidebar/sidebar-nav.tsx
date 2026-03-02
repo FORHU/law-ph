@@ -11,10 +11,11 @@ interface SidebarNavProps {
 
 export function SidebarNav({ activePage }: SidebarNavProps) {
   const router = useRouter();
+  const showChatTab = activePage === 'documents' || activePage === 'calendar';
 
   return (
     <div className={SIDEBAR_STYLES.navArea}>
-      {NAV_ITEMS.map((item) => {
+      {showChatTab && NAV_ITEMS.filter(item => item.id === 'chat').map((item) => {
         const Icon = item.icon;
         const isActive = activePage === item.id;
         

@@ -95,26 +95,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
             >
               RESOURCES
             </button>
-            {!isLoggedIn ? (
-              <button
-                onClick={navigateToLogin}
-                className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
-                style={{ 
-                  borderColor: COLORS.PRIMARY,
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
-                  e.currentTarget.style.color = COLORS.BG_DARK;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'white';
-                }}
-              >
-                LOGIN
-              </button>
-            ) : (
+            {isLoggedIn && (
               <LogoutButton
                 onLogoutSuccess={() => {
                   router.push('/');

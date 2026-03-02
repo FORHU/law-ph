@@ -19,21 +19,24 @@ export interface NavItem {
   href: string;
 }
 
+export const SCROLL_THRESHOLD = 50;
+
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare, href: '/consultation' },
   { id: 'documents', label: 'Documents', icon: FileText, href: '/documents' },
   { id: 'calendar', label: 'Calendar', icon: Calendar, href: '/calendar' },
+  { id: 'chat', label: 'Chat', icon: MessageSquare, href: '/consultation' },
 ];
 
 export const SIDEBAR_STYLES = {
-  container: "w-60 bg-[#2A1F1A] border-r border-[#8B4564]/30 flex flex-col h-full shadow-2xl overflow-visible",
-  contentArea: "px-4 py-2 overflow-x-visible",
-  navArea: "mt-auto p-4 border-t border-[#8B4564]/10 space-y-2",
+  container: "w-60 bg-[#2A1F1A] border-r border-[#8B4564]/30 flex flex-col h-full shadow-2xl overflow-hidden relative",
+  contentArea: "px-4 py-2 overflow-y-auto custom-sidebar-scrollbar flex-1",
+  navArea: "p-4 border-t border-[#8B4564]/10 space-y-2",
   activeItem: "bg-[#8B4564]/20 border border-[#8B4564]/30 text-white shadow-lg",
   inactiveItem: "hover:bg-white/5 text-gray-400 hover:text-white",
   recentItem: {
     base: "group relative py-3 px-4 text-sm rounded-xl transition-all cursor-pointer border border-transparent",
     editing: "bg-[#3A2F2A] border-[#8B4564]/40",
     hover: "text-gray-400 hover:text-white hover:bg-[#3A2F2A]/40"
-  }
+  },
+  profileArea: "mt-auto p-4 border-t border-[#8B4564]/10 bg-[#2A1F1A]/95 backdrop-blur-md sticky bottom-0 z-20"
 };
