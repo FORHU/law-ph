@@ -31,41 +31,60 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const updateMessage = useCallback(async (id: string | number, updates: Partial<Message>) => {
-    setMessages((prev) => {
-      const newMessages = prev.map((msg) => msg.id === id ? { ...msg, ...updates } : msg);
-      
-      // Fire-and-forget DB update for persistence
-      if (loggedIn) {
-        const targetMsg = newMessages.find(m => m.id === id);
-        if (targetMsg && (updates.text !== undefined || updates.originalText !== undefined || updates.recordingUrl !== undefined || updates.voiceNotes !== undefined || updates.highlights !== undefined)) {
-          setTimeout(async () => {
-            try {
-              const meta = {
-                originalText: targetMsg.originalText,
-                editedAt: targetMsg.editedAt,
-                editedBy: targetMsg.editedBy,
-                recordingUrl: targetMsg.recordingUrl,
-                voiceNotes: targetMsg.voiceNotes,
-                highlights: targetMsg.highlights
-              };
-              
-              let newContent = targetMsg.text;
-              if (Object.values(meta).some(v => v !== undefined)) {
-                newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
-              }
-
-              const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', id);
-              if (error) console.error("[ConversationProvider] DB Update message failed:", error.message);
-            } catch (err) {
-              console.error("[ConversationProvider] DB Update message critical error:", err);
-            }
-          }, 0);
+  const updateMessage = useCallback(async (id: string | number, updates: Partial<Message> & { __appendVoiceNote?: { id: string; url: string } }) => {
+    // 1. Update state immediately for UI responsiveness
+    setMessages((prev) => 
+      prev.map((msg) => {
+        if (msg.id.toString() !== id.toString()) return msg;
+        // Handle special __appendVoiceNote: append to voiceNotes array
+        if (updates.__appendVoiceNote) {
+          const currentNotes = msg.voiceNotes || (msg.recordingUrl ? [{ id: 'legacy', url: msg.recordingUrl }] : []);
+          const newNotes = [...currentNotes, updates.__appendVoiceNote];
+          return { ...msg, voiceNotes: newNotes, recordingUrl: newNotes[0]?.url };
         }
+        return { ...msg, ...updates };
+      })
+    );
+
+    // 2. Perform DB update if logged in
+    if (loggedIn) {
+      try {
+        const currentMessages = messages; 
+        const targetMsg = currentMessages.find(m => m.id.toString() === id.toString());
+        
+        if (targetMsg) {
+          // Compute what the merged message looks like
+          let mergedMsg: any;
+          if (updates.__appendVoiceNote) {
+            const currentNotes = targetMsg.voiceNotes || (targetMsg.recordingUrl ? [{ id: 'legacy', url: targetMsg.recordingUrl }] : []);
+            const newNotes = [...currentNotes, updates.__appendVoiceNote];
+            mergedMsg = { ...targetMsg, voiceNotes: newNotes, recordingUrl: newNotes[0]?.url };
+          } else {
+            mergedMsg = { ...targetMsg, ...updates };
+          }
+
+          const meta = {
+            originalText: mergedMsg.originalText,
+            editedAt: mergedMsg.editedAt,
+            editedBy: mergedMsg.editedBy,
+            recordingUrl: mergedMsg.recordingUrl,
+            voiceNotes: mergedMsg.voiceNotes,
+            highlights: mergedMsg.highlights
+          };
+          
+          let newContent = mergedMsg.text;
+          if (Object.values(meta).some(v => v !== undefined)) {
+            newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+          }
+
+          const { error } = await supabase.from('messages').update({ content: newContent }).eq('id', id);
+          if (error) console.error("[ConversationProvider] DB Update message failed:", error.message);
+        }
+      } catch (err) {
+        console.error("[ConversationProvider] DB Update message critical error:", err);
       }
-      return newMessages;
-    });
-  }, [loggedIn, supabase])
+    }
+  }, [loggedIn, supabase, messages])
 
   
   // Cases state
