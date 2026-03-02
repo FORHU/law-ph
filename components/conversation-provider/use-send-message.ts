@@ -132,28 +132,34 @@ export function useSendMessage({
 
         let currentChatSessionId = chatSessionId;
         
-        // If chatSessionId is empty (e.g. fresh load and user types instantly before fetch completes),
-        // we MUST block and fetch one now, otherwise the API will return "Unknown session".
-        if (!currentChatSessionId) {
-          console.log("[SendMessage] chatSessionId is empty, fetching new session before sending...");
+        // Helper to refresh session silently
+        const refreshSession = async (): Promise<string | null> => {
+          console.log("[Session] Refreshing chat session...");
           try {
             const res = await fetch('/api/chat/session');
             if (res.ok) {
               const data = await res.json();
               if (data.session_id) {
-                currentChatSessionId = data.session_id;
-                setChatSessionId(currentChatSessionId);
-                localStorage.setItem('chat_session_id', currentChatSessionId);
+                const newId = data.session_id;
+                setChatSessionId(newId);
+                localStorage.setItem('chat_session_id', newId);
+                return newId;
               }
             }
           } catch (err) {
-            console.error("[SendMessage] Failed to inline fetch session:", err);
+            console.error("[Session] Refresh failed:", err);
           }
+          return null;
+        };
+
+        // 1. Initial check: If no session ID, try to get one.
+        if (!currentChatSessionId) {
+          currentChatSessionId = await refreshSession() || "";
         }
 
         let accumulatedText = "";
         let retryCount = 0;
-        const maxRetries = 1;
+        const maxRetries = 2; // Allow up to 2 retries for session issues
 
         const executeStream = async (session: string): Promise<boolean> => {
           try {
@@ -167,7 +173,16 @@ export function useSendMessage({
               signal: controller.signal
             });
 
-            if (!response.ok) throw new Error("Failed to connect to AI");
+            // Handle non-OK responses (like 401/403 session errors)
+            if (!response.ok) {
+              if ((response.status === 401 || response.status === 403 || response.status === 500) && retryCount < maxRetries) {
+                retryCount++;
+                console.warn(`[Session] POST failed with ${response.status}. Refreshing and retrying... (${retryCount})`);
+                const nextSession = await refreshSession();
+                if (nextSession) return await executeStream(nextSession);
+              }
+              throw new Error(`Failed to connect to AI: ${response.statusText}`);
+            }
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
@@ -185,28 +200,18 @@ export function useSendMessage({
               }
               
               if (chunk.startsWith("[Error]")) {
-                if (chunk.includes("Unknown session")) {
-                  console.warn("[Session] Unknown session detected in stream.");
+                if (chunk.includes("Unknown session") || chunk.includes("expired") || chunk.includes("invalid")) {
+                  console.warn("[Session] Session error detected in stream chunk.");
                   if (retryCount < maxRetries) {
                     retryCount++;
-                    console.log(`[Session] Retrying... Attempt ${retryCount}`);
-                    localStorage.removeItem('chat_session_id');
-                    setChatSessionId('');
-                    
-                    // Fetch new session inline
-                    const res = await fetch('/api/chat/session');
-                    if (res.ok) {
-                      const data = await res.json();
-                      if (data.session_id) {
-                        const newSessionId = data.session_id;
-                        localStorage.setItem('chat_session_id', newSessionId);
-                        setChatSessionId(newSessionId);
-                        // Recursive retry
-                        return await executeStream(newSessionId);
-                      }
+                    console.log(`[Session] Retrying stream... Attempt ${retryCount}`);
+                    const newSessionId = await refreshSession();
+                    if (newSessionId) {
+                      // Recursive retry
+                      return await executeStream(newSessionId);
                     }
                   }
-                  accumulatedText = "Session expired. Reconnecting...";
+                  accumulatedText = "Session issue encountered. Please refresh the page.";
                 } else {
                   accumulatedText = "Error: " + chunk.replace("[Error]", "");
                 }

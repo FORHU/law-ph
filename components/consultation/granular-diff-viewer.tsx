@@ -1,97 +1,91 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-export function GranularDiffViewer({ original, current }: { original?: string, current: string }) {
-  // If no original provided or texts match exactly, just render normally
-  if (!original || original === current) {
-    return (
-      <ReactMarkdown 
-        components={{
-          p: ({children}) => <p className="mb-4 last:mb-0 text-gray-200">{children}</p>,
-          ul: ({children}) => <ul className="list-disc ml-5 mb-4 space-y-2">{children}</ul>,
-          ol: ({children}) => <ol className="list-decimal ml-5 mb-4 space-y-2">{children}</ol>,
-          li: ({children}) => <li className="text-gray-200">{children}</li>,
-          h3: ({children}) => <h3 className="text-lg md:text-xl font-bold mb-3 mt-4 text-white">{children}</h3>,
-          a: ({node, ...props}) => (
-            <a 
-              {...props} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors"
-            />
-          ),
-        }}
-      >
-        {current.replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").trim()}
-      </ReactMarkdown>
-    );
-  }
+// Helper to normalize words for comparison
+const normalizeWord = (word: string) => word.toLowerCase().trim().replace(/[.,!?;:()\[\]{}"'“”‘’]/g, '');
 
-  // Strip out punctuation for cleaner diffing but display the actual words
-  const normalizeForDiff = (str: string) => str.replace(/[.,\/#!$%\^\&\*;:{}=\-_`~()]/g, "").toLowerCase();
-  
-  const originalSet = new Set(
-    original.split(/\s+/)
-      .map(normalizeForDiff)
-      .filter(Boolean)
-  );
+function DiffHighlighter({ children, originalSet }: { children: React.ReactNode, originalSet: Set<string> }) {
+  if (children === undefined || children === null) return null;
 
   const processText = (text: string) => {
-    // Split by words but KEEP the whitespace tokens in the array layout
+    if (!text) return text;
+    // Split on spaces but keep them to preserve spacing intent
     const tokens = text.split(/(\s+)/);
-    
     return tokens.map((token, i) => {
-      if (/^\s+$/.test(token)) return token; // Keep raw space/newlines
-      
-      const normalizedToken = normalizeForDiff(token);
-      
-      // It's a "new" word if it has semantic length and isn't in original text
-      const isNew = normalizedToken.length > 0 && !originalSet.has(normalizedToken);
-      
-      return isNew ? <span key={`new-${i}-${token}`} className="text-[#E0A7C2] font-medium">{token}</span> : token;
-    });
-  };
-
-  const processChildren = (children: React.ReactNode): React.ReactNode => {
-    return React.Children.map(children, child => {
-      if (typeof child === 'string') {
-        return processText(child);
+      if (!token) return null;
+      // Whitespace tokens: render as-is inside a span to preserve visual spacing
+      if (/^\s+$/.test(token)) {
+        return <span key={i} style={{ whiteSpace: 'pre' }}>{token}</span>;
       }
-      if (React.isValidElement(child)) {
-        // Don't recurse into anchors — let them render their children as-is
-        // to preserve href interactivity
-        const type = child.type;
-        if (type === 'a') return child;
-        return React.cloneElement(child, {}, processChildren((child.props as any).children));
-      }
-      return child; 
+      const cleanWord = normalizeWord(token);
+      const isNew = cleanWord && !originalSet.has(cleanWord);
+      return (
+        <span
+          key={i}
+          className={isNew ? 'text-[#E0A7C2] font-semibold tracking-wide' : 'tracking-normal'}
+        >
+          {token}
+        </span>
+      );
     });
   };
 
   return (
+    <>
+      {React.Children.map(children, (child) => {
+        if (typeof child === 'string') {
+          return processText(child);
+        }
+        if (React.isValidElement(child)) {
+          const element = child as React.ReactElement<any>;
+          // We only process children that are strings or have string children
+          if (typeof element.props.children === 'string') {
+            return React.cloneElement(element, {
+              children: processText(element.props.children)
+            } as any);
+          }
+          return child;
+        }
+        return child;
+      })}
+    </>
+  );
+}
+
+export function GranularDiffViewer({ original, current }: { original?: string, current?: string }) {
+  const safeOriginal = original || "";
+  const safeCurrent = current || "";
+  
+  // Use a cleaner word set for comparison to avoid punctuation issues
+  const originalWords = safeOriginal.split(/[\s,!?;:()\[\]{}"'“”‘’]+/).filter(Boolean);
+  const originalSet = new Set(originalWords.map(normalizeWord).filter(Boolean));
+  const hasEdit = safeOriginal && safeOriginal !== safeCurrent;
+
+  return (
     <ReactMarkdown 
-        components={{
-          p: ({children}) => <p className="mb-4 last:mb-0 text-gray-200 whitespace-pre-wrap">{processChildren(children)}</p>,
-          ul: ({children}) => <ul className="list-disc ml-5 mb-4 space-y-2">{children}</ul>,
-          ol: ({children}) => <ol className="list-decimal ml-5 mb-4 space-y-2">{children}</ol>,
-          li: ({children}) => <li className="text-gray-200">{processChildren(children)}</li>,
-          h3: ({children}) => <h3 className="text-lg md:text-xl font-bold mb-3 mt-4 text-white">{processChildren(children)}</h3>,
-          strong: ({children}) => <strong>{processChildren(children)}</strong>,
-          em: ({children}) => <em>{processChildren(children)}</em>,
-          a: ({node, href, children, ...props}: any) => (
-            <a 
-              href={href}
-              {...props} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors cursor-pointer"
-            >
-              {children}
-            </a>
-          ),
-        }}
-      >
-        {current.replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").replace(/[\u00A0\u200B-\u200D\uFEFF]/g, ' ').trim()}
+      components={{
+        p: ({children}) => <p className="mb-2 last:mb-0 text-gray-200 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</p>,
+        ul: ({children}) => <ul className="list-disc ml-5 mb-2 space-y-1 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</ul>,
+        ol: ({children}) => <ol className="list-decimal ml-5 mb-2 space-y-1 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</ol>,
+        li: ({children}) => <li className="text-gray-200 mb-0.5 last:mb-0 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</li>,
+        h3: ({children}) => <h3 className="text-lg md:text-xl font-bold mb-2 mt-4 text-white tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
+        strong: ({children}) => <strong className="font-bold text-white">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</strong>,
+        em: ({children}) => <em className="italic">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</em>,
+        a: ({node, children, ...props}) => (
+          <a 
+            {...props} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors"
+          >
+            {children}
+          </a>
+        ),
+      }}
+      remarkPlugins={[remarkGfm]}
+    >
+      {safeCurrent.replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").trim()}
     </ReactMarkdown>
   );
 }
