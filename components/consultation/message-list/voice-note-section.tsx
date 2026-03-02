@@ -1,128 +1,96 @@
 import React from 'react';
-import { Mic, MoreHorizontal, Download, Trash2 } from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem 
-} from '@/components/ui/dropdown-menu';
+import { Mic, Download, X, Square } from 'lucide-react';
 import { Message } from './types';
 
 interface VoiceNoteSectionProps {
   message: Message;
-  editingNoteLabel: Record<string, string | null>;
-  setEditingNoteLabel: React.Dispatch<React.SetStateAction<Record<string, string | null>>>;
+  isRecording?: boolean;
+  recordingTime?: number;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
   onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
-  onConfirmDelete: (messageId: string | number, noteId: string, label: string) => void;
+  formatTime: (secs: number) => string;
 }
 
 export function VoiceNoteSection({ 
   message, 
-  editingNoteLabel, 
-  setEditingNoteLabel, 
+  isRecording, 
+  recordingTime = 0, 
+  onStartRecording, 
+  onStopRecording, 
   onUpdateMessage,
-  onConfirmDelete
+  formatTime
 }: VoiceNoteSectionProps) {
-  // Migrate legacy logic locally for display
-  const notes = message.voiceNotes ? [...message.voiceNotes] : [];
-  if (message.recordingUrl && notes.length === 0) {
-    notes.push({ id: 'legacy-audio', url: message.recordingUrl });
-  }
-
-  if (notes.length === 0) return null;
-
+  const notes = message.voiceNotes || (message.recordingUrl ? [{ id: 'legacy', url: message.recordingUrl }] : []);
+  
   return (
-    <div className="mt-4 space-y-2">
-      {notes.map((note, idx) => {
-        const labelKey = `${message.id}-${note.id}`;
-        const isEditingLabel = editingNoteLabel[labelKey] !== undefined && editingNoteLabel[labelKey] !== null;
-        const defaultLabel = note.label || (notes.length > 1 ? `Voice Note #${idx + 1}` : 'Voice Note');
-
-        return (
-          <div key={note.id} className="p-3 bg-black/30 rounded-lg border border-white/5 flex flex-col gap-2">
-            {/* Label row */}
+    <div className="mt-4 flex flex-col gap-2">
+      {/* List existing notes */}
+      {notes.map((note: { id: string; url: string }, idx: number) => (
+        <div key={note.id || idx} className="p-3 bg-black/30 rounded-lg border border-white/5 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-400 flex items-center gap-1">
+              <Mic size={12}/> Voice Note {notes.length > 1 ? `#${idx + 1}` : ''}
+            </span>
             <div className="flex items-center gap-1">
-              <Mic size={12} className="text-gray-400 flex-shrink-0" />
-              {isEditingLabel ? (
-                <input
-                  autoFocus
-                  type="text"
-                  value={editingNoteLabel[labelKey] ?? ''}
-                  onChange={(e) => setEditingNoteLabel(prev => ({ ...prev, [labelKey]: e.target.value }))}
-                  onBlur={() => {
-                    const newLabel = editingNoteLabel[labelKey]?.trim() || defaultLabel;
-                    if (onUpdateMessage) {
-                      const updatedNotes = notes.map(n => n.id === note.id ? { ...n, label: newLabel } : n);
-                      onUpdateMessage(message.id, { voiceNotes: updatedNotes });
-                    }
-                    setEditingNoteLabel(prev => ({ ...prev, [labelKey]: null }));
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    if (e.key === 'Escape') setEditingNoteLabel(prev => ({ ...prev, [labelKey]: null }));
-                  }}
-                  className="text-xs font-semibold text-gray-200 bg-white/10 border border-[#8B4564]/40 rounded px-2 py-0.5 outline-none focus:border-[#E0A7C2]/60 flex-1"
-                />
-              ) : (
-                <span
-                  className="text-xs font-semibold text-gray-400 cursor-pointer hover:text-gray-200 transition-colors truncate flex-1"
-                  title="Click to rename"
-                  onClick={() => setEditingNoteLabel(prev => ({ ...prev, [labelKey]: defaultLabel }))}
-                >
-                  {defaultLabel}
-                </span>
-              )}
-            </div>
-            {/* Audio + action buttons row */}
-            <div className="flex items-center gap-2">
-              <audio 
-                controls 
-                controlsList="nodownload noplaybackrate"
-                src={note.url} 
-                className="h-8 flex-1 min-w-0" 
-              />
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1.5 text-gray-400 hover:text-white transition-colors rounded flex-shrink-0">
-                    <MoreHorizontal size={14} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#1E1E1E] border-white/10">
-                  <DropdownMenuItem 
-                    className="text-gray-200 focus:text-white focus:bg-white/10 cursor-pointer"
-                    onClick={() => {
-                      const binary = atob(note.url.split(',')[1]);
-                      const mime = note.url.split(',')[0].split(':')[1].split(';')[0];
-                      const bytes = new Uint8Array(binary.length);
-                      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                      const blob = new Blob([bytes], { type: mime });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${defaultLabel.replace(/[^a-z0-9]/gi, '_')}.webm`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    <Download size={14} className="mr-2" />
-                    Download Recording
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer"
-                    onClick={() => onConfirmDelete(message.id, note.id, defaultLabel)}
-                  >
-                    <Trash2 size={14} className="mr-2" />
-                    Delete Recording
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Download button */}
+              <button
+                title="Download recording"
+                className="p-1 text-gray-500 hover:text-[#E0A7C2] transition-colors"
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = note.url;
+                  a.download = `voice-note-${idx + 1}.webm`;
+                  a.click();
+                }}
+              >
+                <Download size={13} />
+              </button>
+              {/* Delete button */}
+              <button
+                title="Delete recording"
+                className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                onClick={() => {
+                  if (onUpdateMessage) {
+                    const remaining = notes.filter((_: any, i: number) => i !== idx);
+                    onUpdateMessage(message.id, {
+                      voiceNotes: remaining,
+                      recordingUrl: remaining.length > 0 ? remaining[0].url : undefined
+                    });
+                  }
+                }}
+              >
+                <X size={13} />
+              </button>
             </div>
           </div>
-        );
-      })}
+          <audio controls src={note.url} className="h-8 max-w-full" />
+        </div>
+      ))}
+
+      {/* Recording indicator / controls */}
+      {isRecording ? (
+        <div className="flex items-center gap-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+          </span>
+          <span className="text-xs font-mono font-semibold text-red-400">REC {formatTime(recordingTime)}</span>
+          <button
+            onClick={onStopRecording}
+            className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 rounded-md text-xs font-semibold text-red-400 hover:text-white transition-colors"
+          >
+            <Square size={10} className="fill-red-400" /> Stop
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onStartRecording}
+          className="flex items-center gap-2 px-3 py-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/25 border border-[#8B4564]/30 rounded-lg text-xs font-semibold text-[#E0A7C2] hover:text-white transition-colors w-fit"
+        >
+          <Mic size={13} /> Record Audio Note
+        </button>
+      )}
     </div>
   );
 }

@@ -1,18 +1,77 @@
 import React, { useState } from 'react';
-import { Trash2, StopCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Message, MessageListProps } from './message-list/types';
-import { MessageItem } from './message-list/message-item';
+import { CHAT_SENDER } from '@/lib/constants';
+import { useAuth } from '@/components/auth/auth-provider';
+import { MessageItem } from '@/components/consultation/message-list/message-item';
+import { Message } from '@/components/consultation/message-list/types';
+
+interface MessageListProps {
+  messages: Message[];
+  onDelete?: (id: string | number) => void;
+  onSourceClick?: (source: any, context?: string) => void;
+  onCaseClick?: (caseItem: any, context?: string) => void;
+  onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
+  onOpenNote?: (id: string | number, text: string) => void;
+}
 
 export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, onUpdateMessage, onOpenNote }: MessageListProps) {
+  const { session } = useAuth();
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
   const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
+  const [recordingTime, setRecordingTime] = useState<Record<string | number, number>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
   const [relatedCasesLoading, setRelatedCasesLoading] = useState<Record<string | number, boolean>>({});
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<BlobPart[]>([]);
-  const [editingNoteLabel, setEditingNoteLabel] = useState<Record<string, string | null>>({});
-  const [confirmDelete, setConfirmDelete] = useState<{ messageId: string | number; noteId: string; label: string } | null>(null);
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const startRecording = async (messageId: string | number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.addEventListener('dataavailable', event => {
+        audioChunksRef.current.push(event.data);
+      });
+
+      mediaRecorder.addEventListener('stop', () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        if (onUpdateMessage) {
+          const newNote = { id: Date.now().toString(), url: audioUrl };
+          onUpdateMessage(messageId, { __appendVoiceNote: newNote });
+        }
+        stream.getTracks().forEach(track => track.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
+        setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
+      });
+
+      mediaRecorder.start();
+      setIsRecording(prev => ({ ...prev, [messageId]: true }));
+      setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => ({ ...prev, [messageId]: (prev[messageId] || 0) + 1 }));
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied or error:', err);
+      alert('Could not access microphone.');
+    }
+  };
+
+  const stopRecording = (messageId: string | number) => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(prev => ({ ...prev, [messageId]: false }));
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
@@ -21,9 +80,7 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
     if (tab === 'related') {
       const msgIndex = messages.findIndex(m => m.id === messageId);
       const msg = messages[msgIndex];
-      // Only fetch if we don't already have results
       if (msg && (!msg.relatedCases || msg.relatedCases.length === 0)) {
-        // Use the preceding user message as the prompt, not the AI response
         const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
         const searchPrompt = precedingUserMsg?.text || msg.text;
 
@@ -42,7 +99,6 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
           if (res.ok) {
             const data = await res.json();
             const apiResults: any[] = data.results || [];
-
             const relatedCases = apiResults.map((item: any) => ({
               caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
               title: item.title || 'Philippine Legal Document',
@@ -52,7 +108,6 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
               type: item.type,
               itemId: item.item_id,
             }));
-
             onUpdateMessage?.(messageId, { relatedCases });
           }
         } catch (err) {
@@ -64,55 +119,16 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
     }
   };
 
-
-
   const scrollToMessage = (id: string | number) => {
     setTimeout(() => {
-      document.getElementById(`message-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById(`message-bubble-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
 
-  const recordingMessageId = Object.entries(isRecording).find(([_, active]) => active)?.[0];
-
   return (
-    <div className="space-y-4 relative">
-      <AnimatePresence>
-        {recordingMessageId && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="sticky top-0 z-[60] flex justify-center pt-2 pointer-events-none"
-          >
-            <div className="bg-[#1E1E1E]/90 backdrop-blur-md border border-red-500/30 rounded-full px-4 py-2 shadow-2xl shadow-red-500/20 flex items-center gap-3 pointer-events-auto">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                <span className="text-white text-xs font-bold tracking-tight uppercase">Recording...</span>
-              </div>
-              <div className="w-px h-4 bg-white/10" />
-              <button
-                onClick={() => {
-                  if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                    mediaRecorderRef.current.stop();
-                  }
-                  setIsRecording(prev => ({...prev, [recordingMessageId]: false}));
-                  if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = null;
-                    navigator.mediaSession.playbackState = 'none';
-                  }
-                }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md"
-              >
-                <StopCircle size={12} className="fill-current" />
-                Stop
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+    <div className="space-y-4">
       {messages.map((message) => (
-        <MessageItem 
+        <MessageItem
           key={message.id}
           message={message}
           activeTab={activeTabs[message.id] || 'answer'}
@@ -120,132 +136,20 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
           showOriginal={showOriginal[message.id] || false}
           onToggleOriginal={() => setShowOriginal(prev => ({ ...prev, [message.id]: !prev[message.id] }))}
           isRecording={isRecording[message.id] || false}
-          isRelatedCasesLoading={relatedCasesLoading[message.id] || false}
-          onStartStopRecording={async () => {
-            if (!isRecording[message.id]) {
-              try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
-                });
-                const mediaRecorder = new MediaRecorder(stream);
-                mediaRecorderRef.current = mediaRecorder;
-                audioChunksRef.current = [];
-
-                mediaRecorder.addEventListener("dataavailable", event => {
-                  audioChunksRef.current.push(event.data);
-                });
-
-                mediaRecorder.addEventListener("stop", () => {
-                  const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    const base64data = reader.result as string;
-                    if (onUpdateMessage) {
-                      const currentNotes = message.voiceNotes || [];
-                      onUpdateMessage(message.id, { 
-                        voiceNotes: [...currentNotes, { id: `audio-${Date.now()}`, url: base64data }],
-                        recordingUrl: undefined 
-                      });
-                    }
-                  };
-                  reader.readAsDataURL(audioBlob);
-                  stream.getTracks().forEach(track => track.stop());
-                });
-
-                mediaRecorder.start();
-                setIsRecording(prev => ({...prev, [message.id]: true}));
-                
-                if ('mediaSession' in navigator) {
-                  navigator.mediaSession.metadata = new MediaMetadata({
-                    title: 'Voice Recording',
-                    artist: 'ilovelawyer',
-                    album: 'Consultation'
-                  });
-                  navigator.mediaSession.playbackState = 'playing';
-                }
-              } catch (err) {
-                console.error("Microphone error:", err);
-                alert("Could not access microphone.");
-              }
-            } else {
-              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.stop();
-              }
-              setIsRecording(prev => ({...prev, [message.id]: false}));
-              if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = null;
-                navigator.mediaSession.playbackState = 'none';
-              }
-            }
-          }}
-          editingNoteLabel={editingNoteLabel}
-          setEditingNoteLabel={setEditingNoteLabel}
+          recordingTime={recordingTime[message.id] || 0}
+          onStartRecording={() => startRecording(message.id)}
+          onStopRecording={() => stopRecording(message.id)}
           onDelete={onDelete}
           onSourceClick={onSourceClick}
           onCaseClick={onCaseClick}
           onUpdateMessage={onUpdateMessage}
           onOpenNote={onOpenNote}
-          onConfirmDeleteVoiceNote={(mId, nId, label) => setConfirmDelete({ messageId: mId, noteId: nId, label })}
           scrollToMessage={scrollToMessage}
+          formatTime={formatTime}
+          session={session}
+          relatedCasesLoading={relatedCasesLoading[message.id]}
         />
       ))}
-
-      {/* Reusable confirmation modal for deleting voice notes */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setConfirmDelete(null)}
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-2xl p-6"
-            >
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="p-3 bg-red-500/10 rounded-full text-red-500">
-                  <Trash2 size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Delete Recording?</h3>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Are you sure you want to delete <span className="text-[#E0A7C2] font-semibold">"{confirmDelete.label}"</span>? 
-                    This action cannot be undone.
-                  </p>
-                </div>
-                <div className="flex gap-3 w-full pt-2">
-                  <button
-                    onClick={() => setConfirmDelete(null)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (onUpdateMessage) {
-                        const message = messages.find(m => m.id === confirmDelete.messageId);
-                        if (message && message.voiceNotes) {
-                          const updatedNotes = message.voiceNotes.filter(n => n.id !== confirmDelete.noteId);
-                          onUpdateMessage(message.id, { voiceNotes: updatedNotes });
-                        }
-                      }
-                      setConfirmDelete(null);
-                    }}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-all shadow-lg shadow-red-500/20"
-                  >
-                    Delete Now
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

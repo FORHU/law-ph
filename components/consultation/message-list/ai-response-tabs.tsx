@@ -1,45 +1,56 @@
 import React from 'react';
-import { BookOpen, Mail, Calendar, History, GitGraph } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
+import { Message } from './types';
 
-const icons: Record<string, any> = {
-  BookOpen,
-  Mail,
-  Calendar,
-  History,
-  GitGraph
-};
-
-interface TabConfig {
+interface TabConfigItem {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
+  countKey?: keyof Message;
 }
 
 interface AIResponseTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  tabConfig: TabConfig[];
+  tabConfig: readonly TabConfigItem[];
+  message?: Message;
 }
 
-export function AIResponseTabs({ activeTab, onTabChange, tabConfig }: AIResponseTabsProps) {
+export function AIResponseTabs({ activeTab, onTabChange, tabConfig, message }: AIResponseTabsProps) {
   return (
     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#252525]/80 backdrop-blur-md rounded-lg p-1 border border-white/5 shadow-2xl flex-1 md:flex-none">
       {tabConfig.map((tab) => {
-        const Icon = icons[tab.icon];
+        // Only show Related Cases and Sources if they have data
+        if (tab.countKey && message) {
+          const data = message[tab.countKey];
+          if (!data || (Array.isArray(data) && data.length === 0)) {
+            return null;
+          }
+        }
+
+        const Icon = tab.icon;
         const isActive = activeTab === tab.id;
-        
+        const count = tab.countKey && message ? (message[tab.countKey] as any[])?.length : null;
+
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold whitespace-nowrap transition-all ${
-              isActive 
-                ? 'bg-[#8B4564]/30 text-white shadow-lg ring-1 ring-white/10' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
+              isActive
+                ? 'bg-[#8B4564]/30 text-[#E0A7C2] border border-[#8B4564]/40 shadow-inner'
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
             }`}
           >
-            {Icon && <Icon size={14} className={isActive ? 'text-[#E0A7C2]' : 'text-gray-500'} />}
-            <span>{tab.label}</span>
+            <Icon size={14} />
+            {tab.label}
+            {count !== null && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
+                isActive ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40'
+              }`}>
+                {count}
+              </span>
+            )}
           </button>
         );
       })}
