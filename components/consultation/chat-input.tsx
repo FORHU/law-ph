@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar } from 'lucide-react';
 import { COLORS } from '@/lib/constants';
 
@@ -10,11 +10,10 @@ interface ChatInputProps {
   onSend: () => void;
   placeholder?: string;
   disabled?: boolean;
-  suggestedQuestions?: string[];
-  onQuestionClick?: (question: string) => void;
   activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule';
   onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule') => void;
   hasMessages?: boolean;
+  isCaseMode?: boolean;
 }
 
 export function ChatInput({ 
@@ -23,17 +22,24 @@ export function ChatInput({
   onSend, 
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
-  suggestedQuestions = [],
-  onQuestionClick,
   activeTab = 'chat',
   onTabChange,
-  hasMessages = false
+  hasMessages = false,
+  isCaseMode = false
 }: ChatInputProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDragRef = useRef(false);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -70,11 +76,6 @@ export function ChatInput({
     }
   };
 
-  const handleQuestionClick = (q: string) => {
-    if (!isDragRef.current) {
-      onQuestionClick?.(q);
-    }
-  };
 
   return (
     <div className="relative z-10 border-t border-[#8B4564]/20 bg-[#1A1A1A]/90 backdrop-blur-sm landscape:border-t-0 landscape:bg-[#1A1A1A]/95">
@@ -82,90 +83,84 @@ export function ChatInput({
       {/* Input Box */}
       <div className="px-4 md:px-6 py-3 md:py-4 landscape:py-1.5 md:pt-4 pt-2">
         <div className="max-w-4xl mx-auto">
-          {/* Tabs or Suggested Questions Area */}
-          <div className="mb-3 landscape:mb-1.5 overflow-hidden">
-            <div 
-              ref={sliderRef}
-              className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing"
-              onMouseDown={handleMouseDown}
-              onMouseLeave={handleMouseLeave}
-              onMouseUp={handleMouseUp}
-              onMouseMove={handleMouseMove}
-            >
-              {hasMessages ? (
-                <>
-                  <button 
-                    onClick={() => onTabChange?.('chat')}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                      activeTab === 'chat' 
-                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <MessageSquare size={14} />
-                    Conversation
-                  </button>
-                  <button 
-                    onClick={() => onTabChange?.('timeline')}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                      activeTab === 'timeline' 
-                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <History size={14} />
-                    Timeline
-                  </button>
-                  <button 
-                    onClick={() => onTabChange?.('mindmap')}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                      activeTab === 'mindmap' 
-                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <GitGraph size={14} />
-                    Mind Map
-                  </button>
-                  <button 
-                    onClick={() => onTabChange?.('email')}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                      activeTab === 'email' 
-                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <Mail size={14} />
-                    Send Email
-                    <span className="flex h-3.5 w-3.5 ml-0.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
-                      1
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => onTabChange?.('schedule')}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                      activeTab === 'schedule' 
-                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <Calendar size={14} />
-                    Schedule
-                  </button>
-                </>
-              ) : (
-                suggestedQuestions.map((q, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleQuestionClick(q)}
-                    className="whitespace-nowrap px-4 py-2 bg-[#2A2A2A]/40 border border-[#8B4564]/20 rounded-full text-xs text-gray-300 hover:bg-[#8B4564]/20 hover:border-[#8B4564]/40 transition-all flex-shrink-0 select-none landscape:py-1 landscape:px-3"
-                  >
-                    {q}
-                  </button>
-                ))
-              )}
+          {hasMessages && (
+            <div className="mb-3 landscape:mb-1.5 overflow-hidden">
+              <div 
+                ref={sliderRef}
+                className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing"
+                onMouseDown={handleMouseDown}
+                onMouseLeave={handleMouseLeave}
+                onMouseUp={handleMouseUp}
+                onMouseMove={handleMouseMove}
+              >
+                <button 
+                  onClick={() => onTabChange?.('chat')}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                    activeTab === 'chat' 
+                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  <MessageSquare size={14} />
+                  Conversation
+                </button>
+
+                {isCaseMode && (
+                  <>
+                    <button 
+                      onClick={() => onTabChange?.('timeline')}
+                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                        activeTab === 'timeline' 
+                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                          : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                      }`}
+                    >
+                      <History size={14} />
+                      Timeline
+                    </button>
+                    <button 
+                      onClick={() => onTabChange?.('mindmap')}
+                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                        activeTab === 'mindmap' 
+                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                          : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                      }`}
+                    >
+                      <GitGraph size={14} />
+                      Mind Map
+                    </button>
+                  </>
+                )}
+
+                <button 
+                  onClick={() => onTabChange?.('email')}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                    activeTab === 'email' 
+                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  <Mail size={14} />
+                  Send Email
+                  <span className="flex h-3.5 w-3.5 ml-0.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
+                    1
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => onTabChange?.('schedule')}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                    activeTab === 'schedule' 
+                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  <Calendar size={14} />
+                  Schedule
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="relative group">
             {/* Compact Note above input */}
@@ -176,6 +171,7 @@ export function ChatInput({
 
             <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
               <textarea
+                ref={textareaRef}
                 id="chat-message-input"
                 name="message"
                 value={value}
@@ -183,7 +179,7 @@ export function ChatInput({
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px]"
+                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
                 disabled={disabled}
               />
               <button 

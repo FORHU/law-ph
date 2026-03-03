@@ -3,13 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase } from 'lucide-react';
+import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase, PenTool } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
 import { Session } from '@supabase/supabase-js';
 import { Conversation } from '@/types';
 
-import { useConsultation } from '@/hooks/use-consultation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 
@@ -48,10 +47,7 @@ export default function Consultation() {
     handleRemoveConsultation,
     handleRenameConsultation,
     handleSendMessage,
-    handleDeleteMessage
-  } = useConsultation();
-
-  const { 
+    handleDeleteMessage,
     isSidebarOpen, 
     setIsSidebarOpen,
     isDetailSidebarOpen,
@@ -96,19 +92,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
   console.log("[Consultation] Render. Messages:", messages.length, "RecentItems:", recentConsultations.length, "ActiveID:", activeConversationId);
 
-  const quickQuestions = [
-    "What are my tenant rights?",
-    "How do I file a small claims case?",
-    "Explain employment contract basics",
-    "What is breach of contract?"
-  ];
-
-  const suggestedQuestions = [
-    "Can you access my email?",
-    "Can you send an email to this person for me?",
-    "Can you create a schedule for me?",
-    "Can you set a schedule for this person on my behalf?"
-  ];
 
   const prevMessagesLengthRef = useRef(messages.length);
 
@@ -188,19 +171,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     }
   };
 
-  const handleQuickQuestion = (question: string) => {
-    setInputMessage(question);
-  };
-
-  const handleSuggestedQuestion = (question: string) => {
-    setInputMessage(question);
-    // Optional: Focus the input after selecting
-    const textarea = document.getElementById('chat-message-input');
-    if (textarea) {
-      textarea.focus();
-    }
-  };
-
   /* sidebarRecentItems update to include onRename */
   const sidebarRecentItems = recentConsultations.map((c: any) => ({
     id: c.id,
@@ -238,7 +208,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const activeConversation = recentConsultations.find((c: any) => c.id === currentConsultationId) || 
                              (activeConversationId ? recentConsultations.find((c: any) => c.id === activeConversationId) : null);
   
-  let headerTitle = activeConversation?.title || "AI Legal Consultation";
+  let headerTitle = activeConversation?.title || "New Consultation";
   if (isCaseMode && activeCase) {
     headerTitle = activeCase.case_name;
   }
@@ -248,7 +218,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     <PageLayout
       activePage="chat"
       title={headerTitle}
-      subtitle={isDefaultTitle ? "Immediate guidance based on Philippine law" : undefined}
+      subtitle={undefined}
       onNewItem={handleNewConsultation}
       newItemLabel="New Consultation"
       recentItems={sidebarRecentItems}
@@ -258,14 +228,18 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
           handleRenameConsultation(currentConsultationId, newTitle);
         }
       }}
-      headerActions={isCaseMode && activeCase && messages.length > 0 ? (
-        <button 
-          onClick={handleViewCaseDetails} 
-          className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
-        >
-          <Briefcase size={13} /> View Case Details
-        </button>
-      ) : undefined}
+      headerActions={(
+        <div className="flex items-center gap-2">
+          {isCaseMode && activeCase && messages.length > 0 && (
+            <button 
+              onClick={handleViewCaseDetails} 
+              className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
+            >
+              <Briefcase size={13} /> View Case Details
+            </button>
+          )}
+        </div>
+      )}
     >
       <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
         <div 
@@ -302,10 +276,15 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                       </button>
                     </div>
                   ) : (
-                    <QuickQuestions 
-                      questions={quickQuestions} 
-                      onSelect={handleQuickQuestion} 
-                    />
+                    <div className="py-20 text-center">
+                      <div className="inline-flex p-5 bg-[#8B4564]/10 rounded-full mb-4">
+                        <MessageSquare size={32} className="text-[#E0A7C2]" />
+                      </div>
+                      <h2 className="text-2xl font-bold mb-2">Start a New Consultation</h2>
+                      <p className="text-gray-400 max-w-md mx-auto">
+                        Describe your legal situation and get immediate AI-powered guidance. 
+                      </p>
+                    </div>
                   )}
                 </motion.div>
               )}
@@ -571,11 +550,10 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
           onChange={setInputMessage}
           onSend={onSendMessage}
           disabled={isLoading}
-          suggestedQuestions={messages.length === 0 ? suggestedQuestions : []}
-          onQuestionClick={handleSuggestedQuestion}
           activeTab={globalTab}
           onTabChange={setGlobalTab}
           hasMessages={messages.length > 0}
+          isCaseMode={isCaseMode}
         />
       </div>
  

@@ -36,7 +36,8 @@ export const SIDEBAR_STYLES = {
   recentItem: {
     base: "group relative py-3 px-4 text-sm rounded-xl transition-all cursor-pointer border border-transparent",
     editing: "bg-[#3A2F2A] border-[#8B4564]/40",
-    hover: "text-gray-400 hover:text-white hover:bg-[#3A2F2A]/40"
+    hover: "text-gray-400 hover:text-white hover:bg-[#3A2F2A]/40",
+    active: "bg-[#8B4564]/20 border-[#8B4564]/40 text-white shadow-lg"
   },
   profileArea: "mt-auto p-4 border-t border-[#8B4564]/10 bg-[#2A1F1A]/95 backdrop-blur-md sticky bottom-0 z-20"
 };

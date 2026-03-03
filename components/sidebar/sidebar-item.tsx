@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoreHorizontal, Edit3, Trash2, Check, X } from 'lucide-react';
 import { RecentItem, SIDEBAR_STYLES } from './sidebar-constants';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 const PortalWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mounted, setMounted] = useState(false);
@@ -21,12 +22,15 @@ interface SidebarItemProps {
 }
 
 export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps) {
+  const { currentConsultationId } = useConversations();
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   // Left: menuPosition local state is fine as it depends on the specific element ref
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const isActive = currentConsultationId?.toString() === item.id?.toString();
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -85,6 +89,8 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
       className={`${SIDEBAR_STYLES.recentItem.base} ${
         editingId === item.id 
           ? SIDEBAR_STYLES.recentItem.editing 
+          : isActive
+          ? SIDEBAR_STYLES.recentItem.active
           : SIDEBAR_STYLES.recentItem.hover
       }`}
       onClick={() => {
@@ -114,8 +120,8 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
           </div>
         ) : (
           <>
-            <div className="truncate font-medium">{item.title}</div>
-            <div className="text-[10px] text-gray-500 mt-0.5 truncate uppercase tracking-wider">{item.subtitle || 'CONSULTATION'}</div>
+            <div className={`truncate font-medium ${isActive ? 'text-white' : ''}`}>{item.title}</div>
+            <div className={`text-[10px] ${isActive ? 'text-[#E0A7C2]' : 'text-gray-500'} mt-0.5 truncate uppercase tracking-wider`}>{item.subtitle || 'CONSULTATION'}</div>
           </>
         )}
       </div>
