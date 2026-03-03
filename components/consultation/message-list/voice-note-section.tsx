@@ -24,7 +24,7 @@ export function VoiceNoteSection({
   const notes = message.voiceNotes || (message.recordingUrl ? [{ id: 'legacy', url: message.recordingUrl }] : []);
   
   return (
-    <div className="mt-4 flex flex-col gap-2">
+    <div className="mt-0 flex flex-col gap-2">
       {/* List existing notes */}
       {notes.map((note: { id: string; url: string }, idx: number) => (
         <div key={note.id || idx} className="p-3 bg-black/30 rounded-lg border border-white/5 flex flex-col gap-2">

@@ -298,15 +298,26 @@ export function MessageItem({
                       return authUrlMatch ? <div className="mt-4"><AuthRequestCard authUrl={authUrlMatch[1]} /></div> : null;
                     })()}
 
-                    <VoiceNoteSection 
-                      message={message}
-                      isRecording={isRecording}
-                      recordingTime={recordingTime}
-                      onStartRecording={onStartRecording}
-                      onStopRecording={onStopRecording}
-                      onUpdateMessage={onUpdateMessage}
-                      formatTime={formatTime}
-                    />
+                    <div className="mt-4 flex flex-wrap items-end gap-3">
+                      <VoiceNoteSection 
+                        message={message}
+                        isRecording={isRecording}
+                        recordingTime={recordingTime}
+                        onStartRecording={onStartRecording}
+                        onStopRecording={onStopRecording}
+                        onUpdateMessage={onUpdateMessage}
+                        formatTime={formatTime}
+                      />
+                      
+                      {message.highlights && message.highlights.length > 0 && (
+                        <button
+                          onClick={() => onOpenNote?.(message.id, message.text)}
+                          className="flex items-center gap-2 px-3 py-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/25 border border-[#8B4564]/30 text-[#E0A7C2] hover:text-white rounded-lg text-xs font-semibold transition-all w-fit"
+                        >
+                          <PenTool size={13} /> View Notes ({message.highlights.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })()

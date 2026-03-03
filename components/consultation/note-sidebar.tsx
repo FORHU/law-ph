@@ -125,7 +125,7 @@ export function NoteSidebar({
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[#8B4564]/20 bg-[#252525]/80 backdrop-blur-md">
               <div className="flex items-center gap-2">
                 <PenTool size={18} className="text-[#E0A7C2]" />
-                <h3 className="text-sm font-semibold text-white">Sticky Notes</h3>
+                <h3 className="text-sm font-semibold text-white">Create Case Notes</h3>
               </div>
 
               <button
@@ -168,7 +168,7 @@ export function NoteSidebar({
                   )}
                 </div>
 
-                {/* Sticky Notes List */}
+                {/* Notes List */}
                 <div className="mt-16 space-y-8">
                   <div className="flex items-center justify-between border-b border-white/5 pb-3">
                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Active Notes ({highlights.length})</span>
