@@ -13,8 +13,4 @@ export const TAB_CONFIG = [
   { id: 'answer', label: 'Answer', icon: Scale },
   { id: 'sources', label: 'Sources', icon: BookOpen, countKey: 'sources' },
   { id: 'related', label: 'Related Cases', icon: Gavel, countKey: 'relatedCases' },
-  { id: 'timeline', label: 'Timeline View', icon: History },
-  { id: 'mindmap', label: 'Legal Mind Map', icon: GitGraph },
-  { id: 'email', label: 'AI Email', icon: Mail },
-  { id: 'schedule', label: 'Calendar', icon: Calendar },
 ] as const;

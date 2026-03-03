@@ -138,7 +138,7 @@ export function MessageItem({
                     onClick={() => onOpenNote?.(message.id, message.text)}
                   >
                     <PenTool size={14} className="mr-2 text-gray-400 group-hover:text-white" />
-                    <span>Add Sticky Note</span>
+                    <span>Add Note</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -231,48 +231,6 @@ export function MessageItem({
                             <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{caseItem.description}</p>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (activeTab === 'timeline') {
-                  return (
-                    <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-                      <div className="p-4 bg-[#8B4564]/10 rounded-full">
-                        <History size={32} className="text-[#E0A7C2]" />
-                      </div>
-                      <div>
-                        <h4 className="text-white font-bold text-lg">Timeline View</h4>
-                        <p className="text-gray-400 text-sm max-w-xs mx-auto">
-                          ilovelawyer is generating a chronological overview of your case.
-                        </p>
-                        <div className="mt-4 flex gap-1 justify-center">
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (activeTab === 'mindmap') {
-                  return (
-                    <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-                      <div className="p-4 bg-[#8B4564]/10 rounded-full">
-                        <GitGraph size={32} className="text-[#E0A7C2]" />
-                      </div>
-                      <div>
-                        <h4 className="text-white font-bold text-lg">Legal Mind Map</h4>
-                        <p className="text-gray-400 text-sm max-w-xs mx-auto">
-                          Visualizing the nodes and connections of your legal situation.
-                        </p>
-                        <div className="mt-4 flex gap-1 justify-center">
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="w-1.5 h-1.5 bg-[#8B4564]/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
                       </div>
                     </div>
                   );

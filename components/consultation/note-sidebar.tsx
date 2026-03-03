@@ -243,7 +243,7 @@ export function NoteSidebar({
                       addHighlight();
                     }}
                     className="pointer-events-auto p-2.5 bg-[#8B4564] text-white rounded-full shadow-2xl shadow-[#8B4564]/50 hover:bg-[#A35276] transition-transform hover:scale-110 flex items-center justify-center border-2 border-white/20"
-                    title="Add Sticky Note"
+                    title="Add Note"
                   >
                     <PenTool size={20} />
                   </button>

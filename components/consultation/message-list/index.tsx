@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CHAT_SENDER } from '@/lib/constants';
 import { useAuth } from '@/components/auth/auth-provider';
-import { MessageItem } from '@/components/consultation/message-list/message-item';
-import { Message } from '@/components/consultation/message-list/types';
+import { MessageItem } from './message-item';
+import { Message } from './types';
 
 interface MessageListProps {
   messages: Message[];

@@ -67,7 +67,7 @@ export function ConsultationHeader({
             </button>
           )}
           <button 
-            onClick={() => router.push("/")}
+            onClick={() => router.back()}
             className="p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group flex-shrink-0"
             title="Go Home"
           >
