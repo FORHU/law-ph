@@ -307,6 +307,8 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                   setIsNoteSidebarOpen(true);
                   setIsSidebarOpen(false); // Close left panel
                 }}
+                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
               />
             ) : globalTab === 'timeline' ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">

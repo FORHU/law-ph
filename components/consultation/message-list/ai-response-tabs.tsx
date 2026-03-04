@@ -20,13 +20,7 @@ export function AIResponseTabs({ activeTab, onTabChange, tabConfig, message }: A
   return (
     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar bg-[#252525]/80 backdrop-blur-md rounded-lg p-1 border border-white/5 shadow-2xl flex-1 md:flex-none">
       {tabConfig.map((tab) => {
-        // Only show Related Cases and Sources if they have data
-        if (tab.countKey && message) {
-          const data = message[tab.countKey];
-          if (!data || (Array.isArray(data) && data.length === 0)) {
-            return null;
-          }
-        }
+    
 
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

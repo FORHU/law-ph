@@ -77,84 +77,6 @@ export function AppSidebar({
         )}
       </div>
 
-      {/* Action Buttons & Primary Nav (Fixed at top of scrollable area) */}
-      <div className="p-4 space-y-2 border-b border-[#8B4564]/10 flex-shrink-0">
-        {isDocumentsOrCalendar ? (
-          <>
-            {/* Chat button (moves to top when in Documents/Calendar) */}
-            <button 
-              onClick={() => router.push('/consultation')}
-              className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-200 hover:text-white hover:bg-white/5"
-            >
-              <MessageSquare size={16} className="text-gray-300" />
-              <span className="text-sm font-medium text-white">Chat</span>
-            </button>
-
-            <button 
-              onClick={() => router.push('/documents')}
-              className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
-                activePage === 'documents' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
-              <span className="text-sm font-medium text-white">Documents</span>
-            </button>
-
-            <button 
-              onClick={() => router.push('/calendar')}
-              className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
-                activePage === 'calendar' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <CalendarIcon size={16} className={activePage === 'calendar' ? 'text-white' : 'text-gray-300'} />
-              <span className="text-sm font-medium text-white">Calendar</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button 
-              onClick={() => onNewItem?.()}
-              className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
-            >
-              <MessageSquare size={16} className="text-white transition-colors" />
-              <span className="text-sm font-medium text-white">New Consultation</span>
-            </button>
-
-            <button 
-              onClick={() => router.push('/documents')}
-              className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
-            >
-              <FileText size={16} className="text-gray-300" />
-              <span className="text-sm font-medium text-white">Documents</span>
-            </button>
-
-            <button 
-              onClick={() => router.push('/calendar')}
-              className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
-            >
-              <CalendarIcon size={16} className="text-gray-300" />
-              <span className="text-sm font-medium text-white">Calendar</span>
-            </button>
-
-            <button 
-              onClick={() => setIsCaseModalOpen(true)}
-              className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
-            >
-              <Briefcase size={16} className="text-white transition-colors" />
-              <span className="text-sm font-medium text-white">Create Case</span>
-            </button>
-
-            <button 
-              onClick={() => setIsViewCasesModalOpen(true)}
-              className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
-            >
-              <Binoculars size={16} className="text-white transition-colors" />
-              <span className="text-sm font-medium text-white">View Cases</span>
-            </button>
-          </>
-        )}
-      </div>
-
       {/* Unified Scrollable Container for List and Nav */}
       <div 
         ref={scrollContainerRef}
@@ -162,9 +84,87 @@ export function AppSidebar({
         className="flex flex-col flex-1 overflow-y-auto scroll-smooth custom-sidebar-scrollbar relative"
       >
         <ScrollToTop isVisible={showScrollToTop} onClick={scrollToTop} />
+
+        {/* Action Buttons & Primary Nav (NOW IN SCROLLABLE AREA) */}
+        <div className="p-4 space-y-2 border-b border-[#8B4564]/10 flex-shrink-0">
+          {isDocumentsOrCalendar ? (
+            <>
+              {/* Chat button (moves to top when in Documents/Calendar) */}
+              <button 
+                onClick={() => router.push('/consultation')}
+                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-200 hover:text-white hover:bg-white/5"
+              >
+                <MessageSquare size={16} className="text-gray-300" />
+                <span className="text-sm font-medium text-white">Chat</span>
+              </button>
+
+              <button 
+                onClick={() => router.push('/documents')}
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
+                  activePage === 'documents' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
+                <span className="text-sm font-medium text-white">Documents</span>
+              </button>
+
+              <button 
+                onClick={() => router.push('/calendar')}
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
+                  activePage === 'calendar' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <CalendarIcon size={16} className={activePage === 'calendar' ? 'text-white' : 'text-gray-300'} />
+                <span className="text-sm font-medium text-white">Calendar</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => onNewItem?.()}
+                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+              >
+                <MessageSquare size={16} className="text-white transition-colors" />
+                <span className="text-sm font-medium text-white">New Consultation</span>
+              </button>
+
+              <button 
+                onClick={() => router.push('/documents')}
+                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+              >
+                <FileText size={16} className="text-gray-300" />
+                <span className="text-sm font-medium text-white">Documents</span>
+              </button>
+
+              <button 
+                onClick={() => router.push('/calendar')}
+                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+              >
+                <CalendarIcon size={16} className="text-gray-300" />
+                <span className="text-sm font-medium text-white">Calendar</span>
+              </button>
+
+              <button 
+                onClick={() => setIsCaseModalOpen(true)}
+                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+              >
+                <Briefcase size={16} className="text-white transition-colors" />
+                <span className="text-sm font-medium text-white">Create Case</span>
+              </button>
+
+              <button 
+                onClick={() => setIsViewCasesModalOpen(true)}
+                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+              >
+                <Binoculars size={16} className="text-white transition-colors" />
+                <span className="text-sm font-medium text-white">View Cases</span>
+              </button>
+            </>
+          )}
+        </div>
         
         {/* Content Area (Recent) */}
-        <div className={SIDEBAR_STYLES.contentArea}>
+        <div className={`${SIDEBAR_STYLES.contentArea} flex-shrink-0`}>
           {/* Recent Section */}
           {recentItems.length > 0 && (
             <div className="mt-2 text-white">
@@ -196,7 +196,11 @@ export function AppSidebar({
         </div>
 
         {/* Bottom Navigation (Conditional Chat tab) */}
-        {!isDocumentsOrCalendar && <SidebarNav activePage={activePage} />}
+        {!isDocumentsOrCalendar && (
+          <div className="flex-shrink-0">
+            <SidebarNav activePage={activePage} />
+          </div>
+        )}
       </div>
 
       {/* Sticky Profile Section */}

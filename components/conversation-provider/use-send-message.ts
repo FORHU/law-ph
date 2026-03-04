@@ -43,7 +43,7 @@ export function useSendMessage({
       const currentInput = text.trim();
       const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const newMessage = {
-        id: Date.now(),
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         text: currentInput,
         sender: CHAT_SENDER.USER,
         time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -94,8 +94,7 @@ export function useSendMessage({
       }
 
       // 2. Save user message to cloud
-      const updatedMessages = [...messages, newMessage];
-      setMessages(updatedMessages);
+      setMessages(prev => [...prev, newMessage]);
       
       const { data: savedUserMsg, error: userMsgError } = await supabase
         .from("messages")
@@ -114,7 +113,7 @@ export function useSendMessage({
       setIsLoading(true);
       
       try {
-        const aiMessageId = Date.now() + 1;
+        const aiMessageId = `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const initialAiMessage = {
           id: aiMessageId,
           text: "",
@@ -294,14 +293,13 @@ export function useSendMessage({
             cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
           }
 
-          const finalMessages = [...updatedMessages, { 
-            ...initialAiMessage, 
+          setMessages(prev => prev.map(m => m.id === aiMessageId ? { 
+            ...m, 
             text: cleanText,
             sources,
             relatedCases,
             timeline
-          }];
-          setMessages(finalMessages);
+          } : m));
 
           // 3. Save AI message to cloud
           const { data: savedAiMsg, error: aiMsgError } = await supabase
@@ -315,14 +313,7 @@ export function useSendMessage({
             .single();
 
           if (!aiMsgError && savedAiMsg) {
-            setMessages(prev => {
-              const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              if (updated[lastIdx]?.sender === CHAT_SENDER.AI) {
-                updated[lastIdx] = mapCloudMessage(savedAiMsg);
-              }
-              return updated;
-            });
+            setMessages(prev => prev.map(m => m.id === aiMessageId ? mapCloudMessage(savedAiMsg) : m));
           }
         }
       } catch (error: any) {

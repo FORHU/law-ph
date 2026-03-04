@@ -41,7 +41,7 @@ export function EditMessageForm({
            }}
            className="px-4 py-1.5 text-xs font-semibold bg-[#8B4564] text-white rounded-md hover:bg-[#A35276] transition-colors shadow-lg shadow-[#8B4564]/20"
         >
-          Save Changes
+          Send
         </button>
       </div>
     </div>

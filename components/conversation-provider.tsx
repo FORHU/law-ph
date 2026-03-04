@@ -46,8 +46,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       })
     );
 
-    // 2. Perform DB update if logged in
+    // 2. Perform DB update if logged in and ID is a valid UUID
     if (loggedIn) {
+      const isUuid = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (!isUuid) return; // Skip DB update for temporary numeric IDs
+
       try {
         const currentMessages = messages; 
         const targetMsg = currentMessages.find(m => m.id.toString() === id.toString());
@@ -174,8 +177,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     // 1. Optimistic UI update
     setMessages(messages.filter(m => m.id !== messageId))
 
-    // 2. Cloud removal (Best Effort)
-    if (typeof messageId === 'string' || typeof messageId === 'number') {
+    // 2. Cloud removal (Best Effort) - Only if it's a valid UUID
+    const isUuid = typeof messageId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId);
+    
+    if (isUuid) {
       try {
         const { error } = await supabase.from("messages").delete().eq("id", messageId)
         if (error) {
