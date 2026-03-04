@@ -35,6 +35,8 @@ interface MessageItemProps {
   formatTime: (secs: number) => string;
   session?: any;
   relatedCasesLoading?: boolean;
+  isLoading?: boolean;
+  onSendMessage?: (text: string) => void;
 }
 
 export function MessageItem({
@@ -55,7 +57,9 @@ export function MessageItem({
   scrollToMessage,
   formatTime,
   session,
-  relatedCasesLoading
+  relatedCasesLoading,
+  isLoading,
+  onSendMessage
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
@@ -76,7 +80,7 @@ export function MessageItem({
         </div>
       )}
       
-      <div className={`flex-1 ${isUser ? 'max-w-[90%] md:max-w-[85%] ml-auto' : 'w-full md:max-w-[90%] lg:max-w-[85%]'} group/msg relative overflow-hidden`}>
+      <div className={`flex-1 ${isUser ? 'max-w-[90%] md:max-w-[85%] ml-auto' : 'w-full md:max-w-[90%] lg:max-w-[85%]'} group/msg relative`}>
         {!isUser && isAI && (
           <div className="flex items-center justify-between gap-2 mb-2 px-1">
             <AIResponseTabs 
@@ -88,14 +92,26 @@ export function MessageItem({
           </div>
         )}
 
-        <div className={`backdrop-blur border rounded-2xl p-3.5 md:p-6 pt-8 pb-6 relative group/inner break-words overflow-hidden ${
+        <div className={`backdrop-blur border rounded-2xl p-3.5 md:p-6 pt-8 pb-6 relative group/inner break-words ${
           isUser 
             ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
             : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
         }`}>
           {/* AI Menu Icon at Top Right */}
           {!isUser && isAI && !message.isEditing && (
-            <div className="absolute top-2 right-2 z-20">
+            <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5">
+              {message.highlights && message.highlights.length > 0 && (
+                <button
+                  onClick={() => onOpenNote?.(message.id, message.text)}
+                  className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none flex items-center relative"
+                  title={`View Notes (${message.highlights.length})`}
+                >
+                  <BookOpen size={14} />
+                  <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold bg-[#8B4564] text-white px-0.5 rounded-full min-w-[10px] h-[10px] flex items-center justify-center border border-[#1A1A1A]">
+                    {message.highlights.length}
+                  </span>
+                </button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-1.5 text-gray-400 hover:text-white rounded-md transition-colors focus:outline-none">
@@ -123,13 +139,6 @@ export function MessageItem({
                     <Copy size={14} className="mr-2 text-gray-400 group-hover:text-white" />
                     <span>Copy Content</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#8B4564]/20 focus:text-white"
-                    onClick={() => onUpdateMessage?.(message.id, { isEditing: !message.isEditing })}
-                  >
-                    <Edit2 size={14} className="mr-2 text-gray-400 group-hover:text-white" />
-                    <span>{message.isEditing ? 'Cancel Edit' : 'Edit Response'}</span>
-                  </DropdownMenuItem>
                   
                   <DropdownMenuSeparator className="bg-white/5" />
                   
@@ -145,16 +154,18 @@ export function MessageItem({
             </div>
           )}
           
-          {/* Message Actions For User (Delete) */}
-          {isUser && onDelete && (
-            <div className="absolute -left-8 top-2 flex flex-col gap-2 opacity-0 group-hover/msg:opacity-100 transition-all transition-opacity z-20">
-              <button
-                onClick={() => onDelete(message.id)}
-                className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
-                title="Delete message"
-              >
-                <Trash2 size={14} />
-              </button>
+          {/* Message Actions For User (Edit Only) */}
+          {isUser && (
+            <div className="absolute top-2 right-2 transition-all z-20">
+              {!isLoading && (
+                <button
+                  onClick={() => onUpdateMessage?.(message.id, { isEditing: true })}
+                  className="p-1.5 text-gray-500 hover:text-[#E0A7C2] transition-colors"
+                  title="Edit prompt"
+                >
+                  <Edit2 size={14} />
+                </button>
+              )}
             </div>
           )}
           
@@ -236,23 +247,6 @@ export function MessageItem({
                   );
                 }
 
-                if (message.isEditing) {
-                  return (
-                    <EditMessageForm 
-                       initialText={(message.text || "").replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").trim()}
-                       onSave={(newText) => {
-                         onUpdateMessage?.(message.id, {
-                           text: newText,
-                           originalText: message.originalText || message.text,
-                           isEditing: false,
-                           editedAt: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                           editedBy: session?.user?.email || "You"
-                         });
-                       }}
-                       onCancel={() => onUpdateMessage?.(message.id, { isEditing: false })}
-                    />
-                  )
-                }
                 
                 const displayContent = showOriginal && message.originalText ? message.originalText : message.text;
                 
@@ -308,21 +302,32 @@ export function MessageItem({
                         onUpdateMessage={onUpdateMessage}
                         formatTime={formatTime}
                       />
-                      
-                      {message.highlights && message.highlights.length > 0 && (
-                        <button
-                          onClick={() => onOpenNote?.(message.id, message.text)}
-                          className="flex items-center gap-2 px-3 py-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/25 border border-[#8B4564]/30 text-[#E0A7C2] hover:text-white rounded-lg text-xs font-semibold transition-all w-fit"
-                        >
-                          <PenTool size={13} /> View Notes ({message.highlights.length})
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
               })()
             ) : (
+            !message.isEditing ? (
               message.text
+            ) : (
+              <div className="w-full min-w-[300px] md:min-w-[500px]">
+                <EditMessageForm
+                  initialText={message.text}
+                  onSave={(newText) => {
+                    if (onUpdateMessage) {
+                      // Reset the current message's editing state WITHOUT changing its text
+                      onUpdateMessage(message.id, { isEditing: false });
+                      
+                      // Send the edited version as a NEW message at the bottom
+                      if (onSendMessage) {
+                        onSendMessage(newText);
+                      }
+                    }
+                  }}
+                  onCancel={() => onUpdateMessage?.(message.id, { isEditing: false })}
+                />
+              </div>
+            )
             )}
           </div>
           <div className="mt-3 text-[10px] text-gray-500 flex items-center gap-1.5 font-medium">

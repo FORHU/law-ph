@@ -11,9 +11,20 @@ interface MessageListProps {
   onCaseClick?: (caseItem: any, context?: string) => void;
   onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
   onOpenNote?: (id: string | number, text: string) => void;
+  isLoading?: boolean;
+  onSendMessage?: (text: string) => void;
 }
 
-export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, onUpdateMessage, onOpenNote }: MessageListProps) {
+export function MessageList({ 
+  messages, 
+  onDelete, 
+  onSourceClick, 
+  onCaseClick, 
+  onUpdateMessage, 
+  onOpenNote,
+  isLoading,
+  onSendMessage 
+}: MessageListProps) {
   const { session } = useAuth();
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
   const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
@@ -148,6 +159,8 @@ export function MessageList({ messages, onDelete, onSourceClick, onCaseClick, on
           formatTime={formatTime}
           session={session}
           relatedCasesLoading={relatedCasesLoading[message.id]}
+          isLoading={isLoading}
+          onSendMessage={onSendMessage}
         />
       ))}
     </div>
