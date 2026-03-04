@@ -22,6 +22,7 @@ import { ChatInput } from './consultation/chat-input';
 import { SourceDetailSidebar } from './consultation/source-detail-sidebar';
 import { NoteSidebar } from './consultation/note-sidebar';
 import { MindMap } from './consultation/mind-map';
+import { DocumentAnalyzer } from './consultation/document-analyzer';
 
 export default function Consultation() {
   const [inputMessage, setInputMessage] = useState('');
@@ -158,7 +159,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     }
   }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
-  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule'>('chat');
+  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
 
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
@@ -169,6 +170,17 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       setInputMessage('');
       setGlobalTab('chat'); // Switch back to chat on new message
     }
+  };
+
+  const handleDocumentAnalyzed = (content: string, filename: string) => {
+    setGlobalTab('chat');
+    // If the content already looks like an AI analysis (has markdown headers), ask for follow-up discussion
+    // Otherwise, ask for a full analysis of the raw document text
+    const isPreAnalyzed = content.includes('## ');
+    const prompt = isPreAnalyzed
+      ? `[Document Analysis] I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\nPlease review this analysis and let me know if you have any additional insights, concerns, or questions I should consider.`
+      : `[Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide a comprehensive summary, identify the key legal issues, relevant Philippine laws or jurisprudence, and any notable clauses or provisions:\n\n${content}`;
+    handleSendMessage(prompt);
   };
 
   /* sidebarRecentItems update to include onRename */
@@ -520,7 +532,14 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                   </div>
                 </div>
               </div>
-             ) : (
+             ) : globalTab === 'document' ? (
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-1">
+                <DocumentAnalyzer
+                  onDocumentAnalyzed={handleDocumentAnalyzed}
+                  disabled={isLoading}
+                />
+              </div>
+            ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mt-4">
                  <MindMap rootTitle={activeCase ? activeCase.case_name : "Case Analysis"} />
               </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText } from 'lucide-react';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
@@ -10,8 +10,8 @@ interface ChatInputProps {
   onSend: () => void;
   placeholder?: string;
   disabled?: boolean;
-  activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule';
-  onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule') => void;
+  activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document';
+  onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document') => void;
   hasMessages?: boolean;
   isCaseMode?: boolean;
 }
@@ -158,6 +158,18 @@ export function ChatInput({
                   <Calendar size={14} />
                   Schedule
                 </button>
+
+                <button 
+                  onClick={() => onTabChange?.('document')}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                    activeTab === 'document' 
+                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  <FileText size={14} />
+                  Analyze Doc
+                </button>
               </div>
             </div>
           )}
@@ -182,6 +194,19 @@ export function ChatInput({
                 className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
                 disabled={disabled}
               />
+              {/* Document upload quick-access button */}
+              <button
+                type="button"
+                title="Analyze a legal document"
+                onClick={() => onTabChange?.('document')}
+                className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+                  activeTab === 'document'
+                    ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
+                    : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
+                }`}
+              >
+                <FileText size={17} />
+              </button>
               <button 
                 className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
                 onClick={onSend}

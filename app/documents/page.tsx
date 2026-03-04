@@ -10,6 +10,8 @@ import { PageLayout } from '@/components/ui/page-layout';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { ASSETS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface StoredDocument {
   id: number;
@@ -18,6 +20,7 @@ interface StoredDocument {
   caseId?: string;
   caseName?: string;
   content?: string;
+  aiSummary?: string;
 }
 
 export default function Documents() {
@@ -28,6 +31,7 @@ export default function Documents() {
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
   const [rightPanelDoc, setRightPanelDoc] = useState<StoredDocument | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -55,46 +59,68 @@ export default function Documents() {
   const handleAnalyze = async () => {
     if (!selectedFile) return;
     setIsSidebarOpen(false); // Close left sidebar
+    setIsUploading(true);
 
-    const attachedCase = cases.find(c => c.id === selectedCaseId);
-    const newDoc: StoredDocument = {
-      id: Date.now(),
-      name: selectedFile.name,
-      timestamp: Date.now(),
-      caseId: selectedCaseId || undefined,
-      caseName: attachedCase?.case_name,
-      content: `Document: ${selectedFile.name}\nSize: ${(selectedFile.size / 1024).toFixed(1)} KB\nType: ${selectedFile.type || 'Unknown'}\nAttached case: ${attachedCase?.case_name || 'None'}\n\nThis document has been uploaded for AI analysis. The content preview would display here for a real file.`,
-    };
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
 
-    const updated = [newDoc, ...recentDocuments];
-    setRecentDocuments(updated);
-    localStorage.setItem('lawph_documents', JSON.stringify(updated));
-    setSelectedFile(null);
-    setSelectedCaseId('');
-    setRightPanelDoc(newDoc);
-    setAnalysisComplete(false);
-    setAnalysisText('');
+      const response = await fetch('/api/legal/analyze-document', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.error || 'Failed to analyze document.');
+      }
+
+      const attachedCase = cases.find(c => c.id === selectedCaseId);
+      const newDoc: StoredDocument = {
+        id: Date.now(),
+        name: selectedFile.name,
+        timestamp: Date.now(),
+        caseId: selectedCaseId || undefined,
+        caseName: attachedCase?.case_name,
+        content: data.text,
+        aiSummary: data.ai_summary,
+      };
+
+      const updated = [newDoc, ...recentDocuments];
+      setRecentDocuments(updated);
+      localStorage.setItem('lawph_documents', JSON.stringify(updated));
+      setSelectedFile(null);
+      setSelectedCaseId('');
+      setRightPanelDoc(newDoc);
+      setAnalysisComplete(!!data.ai_summary);
+      setAnalysisText(data.ai_summary || '');
+
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAiAnalyze = async (doc: StoredDocument) => {
-    setIsAnalyzing(true);
-    setAnalysisText('');
-    // Simulate streaming analysis
-    const lines = [
-      '**Document Analysis Report**\n\n',
-      `**File:** ${doc.name}\n`,
-      doc.caseName ? `**Attached Case:** ${doc.caseName}\n\n` : '\n',
-      '**Key Findings:**\n',
-      '- Document appears to be a legal agreement or contract\n',
-      '- Identified 3 potential risk clauses under Philippine Civil Code\n',
-      '- Recommend legal review of section 4.2 (Liability Waiver)\n',
-      '- Arbitration clause found — may limit judicial remedies\n\n',
-      '**Recommendation:** Consult with senior counsel before signing. The liability limitation clause may not be enforceable under Art. 1306 of the Civil Code.',
-    ];
-    for (const chunk of lines) {
-      await new Promise(r => setTimeout(r, 200));
-      setAnalysisText(prev => prev + chunk);
+    if (!doc.aiSummary) {
+      alert('AI Summary is not available for this document.');
+      return;
     }
+    setAnalysisText('');
+    setAnalysisComplete(false);
+    setIsAnalyzing(true);
+
+    // Simulate typed streaming for effect, since we already have the text
+    const words = doc.aiSummary.split(' ');
+    let currentText = '';
+    
+    for (let i = 0; i < words.length; i += 3) {
+      currentText += words.slice(i, i + 3).join(' ') + ' ';
+      setAnalysisText(currentText);
+      await new Promise(r => setTimeout(r, 10)); // extremely fast pseudo-streaming
+    }
+    setAnalysisText(doc.aiSummary);
     setIsAnalyzing(false);
     setAnalysisComplete(true);
   };
@@ -194,14 +220,15 @@ export default function Documents() {
 
               <button
                 onClick={handleAnalyze}
-                disabled={!selectedFile}
+                disabled={!selectedFile || isUploading}
                 className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                  selectedFile
+                  selectedFile && !isUploading
                     ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
                     : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed'
                 }`}
               >
-                <Scale size={18} /> Analyze Document
+                {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Scale size={18} />} 
+                {isUploading ? 'Uploading & Analyzing...' : 'Analyze Document'}
               </button>
             </div>
           </div>
@@ -256,16 +283,26 @@ export default function Documents() {
                           : <><Loader2 size={14} className="animate-spin text-[#E0A7C2]" /><span className="text-xs text-gray-400">Analyzing document...</span></>
                         }
                       </div>
-                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-mono">
-                        {analysisText}
-                        {!analysisComplete && <span className="animate-pulse">▌</span>}
+                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed [scrollbar-width:thin] overflow-y-auto max-h-[50vh]">
+                        {analysisComplete ? (
+                          <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {analysisText}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap font-mono">
+                            {analysisText}
+                            <span className="animate-pulse">▌</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
                     <div>
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Document Preview</p>
-                      <div className="bg-black/30 rounded-xl p-4 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap font-mono border border-white/5">
-                        {rightPanelDoc.content || 'No preview available.'}
+                      <div className="bg-black/30 rounded-xl p-4 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap font-mono border border-white/5 max-h-[50vh] overflow-y-auto [scrollbar-width:thin]">
+                        {rightPanelDoc.content ? rightPanelDoc.content.substring(0, 1500) + (rightPanelDoc.content.length > 1500 ? '\n\n...[truncated for preview]' : '') : 'No preview available.'}
                       </div>
                       {rightPanelDoc.caseName && (
                         <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-[#8B4564]/10 border border-[#8B4564]/20 px-3 py-2 rounded-lg">
