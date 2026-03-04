@@ -5,6 +5,7 @@ const CHAT_WONDER_API_URL = process.env.CHAT_WONDER_API_URL || 'http://localhost
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
 
     const response = await fetch(`${CHAT_WONDER_API_URL}/api/legal/search`, {
       method: 'POST',

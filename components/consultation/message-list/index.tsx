@@ -102,7 +102,7 @@ export function MessageList({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               prompt: searchPrompt,
-              max_results: 5,
+              max_results: 20,
               content_types: ['case', 'statute'],
             }),
           });
