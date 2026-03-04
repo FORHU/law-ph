@@ -65,7 +65,10 @@ export function SidebarProfile() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-[#8B4564]/20" />
-          <DropdownMenuItem className="py-2.5 px-4 focus:bg-[#8B4564]/20 focus:text-white cursor-pointer transition-colors">
+          <DropdownMenuItem
+            onClick={() => router.push('/settings')}
+            className="py-2.5 px-4 focus:bg-[#8B4564]/20 focus:text-white cursor-pointer transition-colors"
+          >
             <User className="mr-2 h-4 w-4 text-gray-400" />
             <span>Profile Settings</span>
           </DropdownMenuItem>
