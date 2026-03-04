@@ -3,6 +3,7 @@ import { CHAT_SENDER } from '@/lib/constants';
 import { useAuth } from '@/components/auth/auth-provider';
 import { MessageItem } from './message-item';
 import { Message } from './types';
+import { RelatedCase } from '@/lib/citation-parser';
 
 interface MessageListProps {
   messages: Message[];
@@ -31,6 +32,8 @@ export function MessageList({
   const [recordingTime, setRecordingTime] = useState<Record<string | number, number>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
   const [relatedCasesLoading, setRelatedCasesLoading] = useState<Record<string | number, boolean>>({});
+  const [relatedCasesPage, setRelatedCasesPage] = useState<Record<string | number, number>>({});
+  const [relatedCasesHasMore, setRelatedCasesHasMore] = useState<Record<string | number, boolean>>({});
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<BlobPart[]>([]);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -84,48 +87,65 @@ export function MessageList({
     return `${m}:${s}`;
   };
 
+  const fetchRelatedCases = async (messageId: string | number, isLoadMore: boolean = false) => {
+    const msgIndex = messages.findIndex(m => m.id === messageId);
+    if (msgIndex === -1) return;
+    const msg = messages[msgIndex];
+    
+    const currentPage = isLoadMore ? (relatedCasesPage[messageId] || 1) + 1 : 1;
+    const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
+    const searchPrompt = precedingUserMsg?.text || msg.text;
+
+    setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
+    try {
+      const res = await fetch('/api/legal/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: searchPrompt,
+          page: currentPage,
+          limit: 10,
+          content_types: ['case', 'statute'],
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const apiResults: any[] = data.results || [];
+        const newCases: RelatedCase[] = apiResults.map((item: any) => ({
+          caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
+          title: item.title || 'Philippine Legal Document',
+          description: item.title || item.type,
+          score: item.score,
+          url: item.url,
+          type: item.type,
+          itemId: item.item_id,
+        }));
+        
+        let updatedCases: RelatedCase[] = newCases;
+        if (isLoadMore && msg.relatedCases) {
+            updatedCases = [...msg.relatedCases, ...newCases];
+        }
+
+        onUpdateMessage?.(messageId, { relatedCases: updatedCases });
+        setRelatedCasesPage(prev => ({ ...prev, [messageId]: currentPage }));
+        setRelatedCasesHasMore(prev => ({ ...prev, [messageId]: newCases.length === 10 }));
+      }
+    } catch (err) {
+      console.warn('[Related Cases] Fetch failed:', err);
+    } finally {
+      setRelatedCasesLoading(prev => ({ ...prev, [messageId]: false }));
+    }
+  };
+
   const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
 
     // Lazy-load legal cases when user clicks Related Cases tab
     if (tab === 'related') {
-      const msgIndex = messages.findIndex(m => m.id === messageId);
-      const msg = messages[msgIndex];
+      const msg = messages.find(m => m.id === messageId);
       if (msg && (!msg.relatedCases || msg.relatedCases.length === 0)) {
-        const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
-        const searchPrompt = precedingUserMsg?.text || msg.text;
-
-        setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
-        try {
-          const res = await fetch('/api/legal/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              prompt: searchPrompt,
-              max_results: 20,
-              content_types: ['case', 'statute'],
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const apiResults: any[] = data.results || [];
-            const relatedCases = apiResults.map((item: any) => ({
-              caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
-              title: item.title || 'Philippine Legal Document',
-              description: item.title || item.type,
-              score: item.score,
-              url: item.url,
-              type: item.type,
-              itemId: item.item_id,
-            }));
-            onUpdateMessage?.(messageId, { relatedCases });
-          }
-        } catch (err) {
-          console.warn('[Related Cases] Fetch failed:', err);
-        } finally {
-          setRelatedCasesLoading(prev => ({ ...prev, [messageId]: false }));
-        }
+        await fetchRelatedCases(messageId, false);
       }
     }
   };
@@ -159,6 +179,8 @@ export function MessageList({
           formatTime={formatTime}
           session={session}
           relatedCasesLoading={relatedCasesLoading[message.id]}
+          hasMoreRelatedCases={relatedCasesHasMore[message.id]}
+          onLoadMoreRelated={() => fetchRelatedCases(message.id, true)}
           isLoading={isLoading}
           onSendMessage={onSendMessage}
         />

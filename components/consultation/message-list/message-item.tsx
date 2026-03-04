@@ -35,6 +35,8 @@ interface MessageItemProps {
   formatTime: (secs: number) => string;
   session?: any;
   relatedCasesLoading?: boolean;
+  hasMoreRelatedCases?: boolean;
+  onLoadMoreRelated?: () => void;
   isLoading?: boolean;
   onSendMessage?: (text: string) => void;
 }
@@ -58,6 +60,8 @@ export function MessageItem({
   formatTime,
   session,
   relatedCasesLoading,
+  hasMoreRelatedCases,
+  onLoadMoreRelated,
   isLoading,
   onSendMessage
 }: MessageItemProps) {
@@ -207,7 +211,7 @@ export function MessageItem({
                 if (activeTab === 'related') {
                   const cases = message.relatedCases || [];
                   
-                  if (relatedCasesLoading) {
+                  if (relatedCasesLoading && cases.length === 0) {
                     return (
                       <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
                         <div className="p-4 bg-[#8B4564]/10 rounded-full">
@@ -243,6 +247,25 @@ export function MessageItem({
                           </div>
                         ))}
                       </div>
+                      
+                      {hasMoreRelatedCases && (
+                        <div className="pt-4 flex justify-center">
+                          <button
+                            onClick={onLoadMoreRelated}
+                            disabled={relatedCasesLoading}
+                            className="bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-md px-6 py-2 text-sm font-semibold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {relatedCasesLoading ? (
+                              <>
+                                <Gavel size={14} className="animate-pulse" />
+                                Loading...
+                              </>
+                            ) : (
+                              'Load More Jurisprudence'
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 }
