@@ -301,6 +301,18 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     supabase
   });
 
+  // When set to true, fetchCloudMessages will skip its restore logic for ONE cycle.
+  // This prevents the re-fetch race when the user initiates a new consultation.
+  const ignoreFetchRef = useRef(false);
+
+  const handleNewConsultation = useCallback(() => {
+    abortMessage()
+    ignoreFetchRef.current = true; // Block the provider from re-fetching the old conversation
+    setMessages(prev => prev.length > 0 ? [] : prev)
+    setCurrentConsultationId(prev => prev !== null ? null : prev)
+    setIsLoading(prev => prev ? false : prev)
+  }, [abortMessage])
+
   // Background Cleanup: Retry deleting shadow-items that previously failed (e.g. network error)
   const hasRetriedDeletions = useRef(false);
 
@@ -387,17 +399,35 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       // We NEED the list to verify existence and avoid "resurrecting" deleted items.
       if (!loaded) return;
 
+      // Avoid redundant fetches if we already have the right data
+      // This MUST happen before the existence check so we don't clear the state of a newly created conversation
+      if (currentConsultationId?.toString() === syncedConversationId && messages.length > 0) return;
+
+      // If the user just clicked "New Consultation", skip restoration for this cycle.
+      // The URL will transition to /consultation shortly and clear the state naturally.
+      if (ignoreFetchRef.current) {
+        console.log("[ConversationProvider] Skipping re-fetch: navigating to new consultation.");
+        ignoreFetchRef.current = false; // Reset after consuming
+        return;
+      }
+
       // Check existence
       const exists = conversations.some(c => c.id.toString() === syncedConversationId);
       const existsAsCase = cases.some(c => c.id.toString() === syncedConversationId);
       if (!exists && !existsAsCase) {
         console.log("Conversation not found in list, clearing state. ID:", syncedConversationId);
-        handleNewConsultation();
+        if (currentConsultationId !== null || messages.length > 0) {
+          handleNewConsultation();
+        }
         return;
       }
-
-      // Avoid redundant fetches if we already have the right data
-      if (currentConsultationId?.toString() === syncedConversationId && messages.length > 0) return;
+      
+      // GUARD: If AI is actively streaming, do NOT wipe the local state and fetch from the database
+      // The local state has the real-time stream, the DB only has the partial/old state.
+      if (isLoading) {
+        console.log("Ignoring cloud fetch because AI is streaming");
+        return;
+      }
 
       console.log("Fetching messages for:", syncedConversationId);
       const { data, error } = await supabase
@@ -418,7 +448,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
     fetchCloudMessages();
     return () => { ignore = true; };
-  }, [syncedConversationId, userId, loggedIn, mapCloudMessage, supabase, loaded, conversations])
+  }, [syncedConversationId, userId, loggedIn, mapCloudMessage, supabase, loaded, conversations, isLoading, currentConsultationId, messages.length, handleNewConsultation])
 
   useEffect(() => {
     if (!loaded && loggedIn) {
@@ -466,12 +496,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  const handleNewConsultation = () => {
-    abortMessage()
-    setMessages([])
-    setCurrentConsultationId(null)
-    setIsLoading(false)
-  }
+
 
   // ---- Cases ----
   const fetchCases = useCallback(async () => {

@@ -110,18 +110,18 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
   // Sync state to URL for new consultations
   useEffect(() => {
-    // Only redirect if we have a real UUID (string) and messages, and we aren't already on that URL
+    // Only redirect if we have a real UUID (string), and we aren't already on that URL
     const shouldRedirect = currentConsultationId && 
                           typeof currentConsultationId === 'string' && 
                           !activeConversationId && 
-                          messages.length > 0 &&
                           currentConsultationId !== lastIdRef.current;
 
     if (shouldRedirect) {
       lastIdRef.current = currentConsultationId as string;
-      router.push(`/consultation/${currentConsultationId}`);
+      // Use replace so we don't blow up the history stack, and it transitions smoothly
+      router.replace(`/consultation/${currentConsultationId}`);
     }
-  }, [currentConsultationId, activeConversationId, messages.length, router]);
+  }, [currentConsultationId, activeConversationId, router]);
 
   // Handle Legal Wizard Data
   useEffect(() => {
@@ -208,11 +208,11 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   }));
 
   const handleNewConsultation = () => {
-    // Clear state and reset redirect ref to allow fresh start
+    // Reset redirect ref to allow fresh start
     lastIdRef.current = null;
     coreHandleNewConsultation();
     setGlobalTab('chat');
-    // Navigating to /consultation will trigger the sync logic but with clean state
+    // Navigating to /consultation will trigger the sync logic, and the Provider will clear state safely
     router.push('/consultation', { scroll: false });
   };
 
