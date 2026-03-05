@@ -11,6 +11,5 @@ export const ANIMATION_VARIANTS = {
 
 export const TAB_CONFIG = [
   { id: 'answer', label: 'Answer', icon: Scale },
-  { id: 'sources', label: 'Sources', icon: BookOpen, countKey: 'sources' },
   { id: 'related', label: 'Related Cases', icon: Gavel, countKey: 'relatedCases' },
 ] as const;

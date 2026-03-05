@@ -182,31 +182,6 @@ export function MessageItem({
               </div>
             ) : isAI ? (
               (() => {
-                if (activeTab === 'sources') {
-                  const sources = message.sources || [];
-                  return (
-                    <div className="py-4 space-y-4">
-                      <h4 className="text-white font-bold flex items-center gap-2">
-                        <BookOpen size={16} /> Legal Sources & Citations
-                      </h4>
-                      <div className="space-y-3">
-                        {sources.map((source: LegalSource, i: number) => (
-                          <div 
-                            key={i} 
-                            className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group"
-                            onClick={() => onSourceClick?.(source, message.text)}
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-xs font-bold text-[#E0A7C2]">{source.type.toUpperCase()}</span>
-                              <span className="text-[10px] text-gray-500">{source.reference}</span>
-                            </div>
-                            <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{source.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
 
                 if (activeTab === 'related') {
                   const cases = message.relatedCases || [];

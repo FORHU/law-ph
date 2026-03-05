@@ -40,6 +40,7 @@ export function useSendMessage({
 
   const handleSendMessage = useCallback(async (text: string) => {
     if (text.trim() && !isLoading) {
+      setIsLoading(true); 
       const currentInput = text.trim();
       const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const newMessage = {
@@ -51,7 +52,8 @@ export function useSendMessage({
       
       let sessionId = syncedConversationId || currentConsultationId;
 
-      // 1. Create conversation if it doesn't exist
+      setMessages(prev => [...prev, newMessage]);
+
       if (!sessionId || typeof sessionId === 'number') {
         // Check if this is from the wizard and create a smart title
         let conversationTitle = currentInput.substring(0, 50);
@@ -85,6 +87,7 @@ export function useSendMessage({
 
         if (convError) {
           console.error("Failed to create conversation:", convError);
+          setIsLoading(false);
           return;
         }
         
@@ -94,7 +97,6 @@ export function useSendMessage({
       }
 
       // 2. Save user message to cloud
-      setMessages(prev => [...prev, newMessage]);
       
       const { data: savedUserMsg, error: userMsgError } = await supabase
         .from("messages")
@@ -110,8 +112,6 @@ export function useSendMessage({
         setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
       }
 
-      setIsLoading(true);
-      
       try {
         const aiMessageId = `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const initialAiMessage = {
@@ -247,6 +247,8 @@ export function useSendMessage({
               setMessages(prev => {
                 const updated = [...prev];
                 const lastIdx = updated.length - 1;
+                // Add debug logging
+                console.log(`[Stream Debug] prev length: ${prev.length}, lastId: ${updated[lastIdx]?.id}, targetId: ${aiMessageId}`);
                 if (updated[lastIdx]?.id === aiMessageId) {
                   updated[lastIdx] = { ...updated[lastIdx], text: strippedForDisplay };
                 }

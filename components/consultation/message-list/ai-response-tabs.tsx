@@ -38,13 +38,6 @@ export function AIResponseTabs({ activeTab, onTabChange, tabConfig, message }: A
           >
             <Icon size={14} />
             {tab.label}
-            {count !== null && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors ${
-                isActive ? 'bg-[#E0A7C2]/20 text-[#E0A7C2]' : 'bg-white/10 text-white/40'
-              }`}>
-                {count}
-              </span>
-            )}
           </button>
         );
       })}
