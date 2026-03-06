@@ -178,8 +178,8 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     // Otherwise, ask for a full analysis of the raw document text
     const isPreAnalyzed = content.includes('## ');
     const prompt = isPreAnalyzed
-      ? `[Document Analysis] I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\nPlease review this analysis and let me know if you have any additional insights, concerns, or questions I should consider.`
-      : `[Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide a comprehensive summary, identify the key legal issues, relevant Philippine laws or jurisprudence, and any notable clauses or provisions:\n\n${content}`;
+      ? `[Document Analysis] I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).`
+      : `[Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}`;
     handleSendMessage(prompt);
   };
 
