@@ -223,7 +223,9 @@ export function useSendMessage({
 
               accumulatedText += chunk;
 
-              // Strip timeline JSON/Markdown in real-time so it never shows in the chat bubble
+              // Strip timeline JSON/Markdown in real-time so it never shows in the chat bubble.
+              // Never cut in the first 500 chars so we never drop disclaimer + "Bottom line" (live fix).
+              const HEAD_PROTECT = 500;
               const strippedForDisplay = (() => {
                 let t = accumulatedText;
                 // Cut at [TIMELINE] tag
@@ -231,13 +233,13 @@ export function useSendMessage({
                 // Cut at JSON array start
                 const arrM = t.match(/\[\s*\{\s*["']title["']/i);
                 const arrIdx = arrM?.index ?? -1;
-                // Cut at markdown timeline heading (e.g. "Timeline of Actionable Steps\n1.")
+                // Cut at markdown timeline heading (e.g. "Timeline of Actionable Steps\n1.") only after HEAD_PROTECT
                 const mdM = t.match(/(?:\n|^)[^\n]{0,60}(?:timeline|actionable steps)[^\n]{0,60}\n\s*(?:1\.|\*)[\s\S]*/i);
                 const mdIdx = mdM?.index ?? -1;
                 let cutIdx = t.length;
                 if (tagIdx !== -1) cutIdx = Math.min(cutIdx, tagIdx);
                 if (arrIdx !== -1) cutIdx = Math.min(cutIdx, arrIdx);
-                if (mdIdx !== -1) cutIdx = Math.min(cutIdx, mdIdx);
+                if (mdIdx !== -1 && mdIdx >= HEAD_PROTECT) cutIdx = Math.min(cutIdx, mdIdx);
                 if (cutIdx !== t.length) {
                   t = t.substring(0, cutIdx).trim();
                   t = t.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
@@ -276,7 +278,9 @@ export function useSendMessage({
           
           let cleanText = accumulatedText.trim();
           
-          // Cut off the timeline portion brutally to guarantee it doesn't show in chat
+          // Cut off the timeline portion brutally to guarantee it doesn't show in chat.
+          // Never cut in the first 500 chars so we never drop disclaimer + "Bottom line" (live fix).
+          const HEAD_PROTECT_FINAL = 500;
           const cutIdxTimelineTag = cleanText.search(/\[TIMELINE\]/i);
           const arrayMatch = cleanText.match(/\[\s*\{\s*["']title["']/i);
           const cutIdxJsonStart = arrayMatch?.index ?? -1;
@@ -286,7 +290,7 @@ export function useSendMessage({
           let finalIdx = cleanText.length;
           if (cutIdxTimelineTag !== -1) finalIdx = Math.min(finalIdx, cutIdxTimelineTag);
           if (cutIdxJsonStart !== -1) finalIdx = Math.min(finalIdx, cutIdxJsonStart);
-          if (cutIdxMd !== -1) finalIdx = Math.min(finalIdx, cutIdxMd);
+          if (cutIdxMd !== -1 && cutIdxMd >= HEAD_PROTECT_FINAL) finalIdx = Math.min(finalIdx, cutIdxMd);
           
           if (finalIdx !== cleanText.length) {
             cleanText = cleanText.substring(0, finalIdx).trim();
