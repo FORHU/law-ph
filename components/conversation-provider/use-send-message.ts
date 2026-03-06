@@ -219,9 +219,9 @@ export function useSendMessage({
                 return false;
               }
 
-              if (chunk.startsWith("[Tool]")) continue;
-
-              accumulatedText += chunk;
+              // Strip leading [Tool] line(s) only; keep the rest (backend may send "[Tool]...\n\nThis is general legal..." in one chunk)
+              const chunkWithoutTool = chunk.replace(/^(?:\[Tool\][^\n]*\n?)+/, "");
+              accumulatedText += chunkWithoutTool;
 
               // Strip leading [Sources] {...} so the chat bubble starts with the actual reply (disclaimer + Bottom line).
               // Backend sends [Sources] first; without this, the first paragraph can be hidden or break layout on live.
