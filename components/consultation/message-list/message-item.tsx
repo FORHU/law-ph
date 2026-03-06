@@ -29,6 +29,7 @@ interface MessageItemProps {
   onDelete?: (id: string | number) => void;
   onSourceClick?: (source: LegalSource, context?: string) => void;
   onCaseClick?: (caseItem: RelatedCase, context?: string) => void;
+  onSourceLinkClick?: (itemId: string) => void;
   onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
   onOpenNote?: (id: string | number, text: string) => void;
   scrollToMessage: (id: string | number) => void;
@@ -54,6 +55,7 @@ export function MessageItem({
   onDelete,
   onSourceClick,
   onCaseClick,
+  onSourceLinkClick,
   onUpdateMessage,
   onOpenNote,
   scrollToMessage,
@@ -252,7 +254,8 @@ export function MessageItem({
                   <div key="diff-view">
                    <GranularDiffViewer 
                       original={showOriginal ? '' : (message.originalText || '')} 
-                      current={displayContent} 
+                      current={displayContent}
+                      onSourceLinkClick={onSourceLinkClick}
                    />
                     
                     {message.originalText && message.text !== message.originalText && (

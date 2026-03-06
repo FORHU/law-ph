@@ -101,6 +101,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     detailContext,
     openSourceDetail,
     openCaseDetail,
+    openSourceByItemId,
     closeDetailSidebar,
   } = useDetailSidebar(setIsSidebarOpen);
 
@@ -590,6 +591,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         detailContext,
         openSourceDetail,
         openCaseDetail,
+        openSourceByItemId,
         closeDetailSidebar,
         cases,
         refreshCases: fetchCases,

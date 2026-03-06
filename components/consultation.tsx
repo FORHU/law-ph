@@ -57,6 +57,7 @@ export default function Consultation() {
     detailContext,
     openSourceDetail,
     openCaseDetail,
+    openSourceByItemId,
     closeDetailSidebar,
     updateMessage,
     cases
@@ -313,6 +314,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 onDelete={handleDeleteMessage}
                 onSourceClick={openSourceDetail}
                 onCaseClick={openCaseDetail}
+                onSourceLinkClick={openSourceByItemId}
                 onUpdateMessage={updateMessage}
                 onOpenNote={(msgId, msgText) => {
                   setSelectedNoteMessage({ id: msgId, text: msgText });
