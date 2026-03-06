@@ -223,11 +223,37 @@ export function useSendMessage({
 
               accumulatedText += chunk;
 
+              // Strip leading [Sources] {...} so the chat bubble starts with the actual reply (disclaimer + Bottom line).
+              // Backend sends [Sources] first; without this, the first paragraph can be hidden or break layout on live.
+              let textForDisplay = accumulatedText;
+              if (textForDisplay.startsWith("[Sources]")) {
+                const prefix = "[Sources] ";
+                const rest = textForDisplay.slice(prefix.length);
+                const firstBrace = rest.indexOf("{");
+                if (firstBrace === 0) {
+                  let depth = 0;
+                  let end = -1;
+                  for (let i = 0; i < rest.length; i++) {
+                    if (rest[i] === "{") depth++;
+                    else if (rest[i] === "}") {
+                      depth--;
+                      if (depth === 0) {
+                        end = i + 1;
+                        break;
+                      }
+                    }
+                  }
+                  if (end !== -1) {
+                    textForDisplay = rest.slice(end).replace(/^\s*\n?/, "").trimStart();
+                  }
+                }
+              }
+
               // Strip timeline JSON/Markdown in real-time so it never shows in the chat bubble.
               // Never cut in the first 500 chars so we never drop disclaimer + "Bottom line" (live fix).
               const HEAD_PROTECT = 500;
               const strippedForDisplay = (() => {
-                let t = accumulatedText;
+                let t = textForDisplay;
                 // Cut at [TIMELINE] tag
                 const tagIdx = t.search(/\[TIMELINE\]/i);
                 // Cut at JSON array start
@@ -277,6 +303,26 @@ export function useSendMessage({
           const timeline = extractTimeline(accumulatedText);
           
           let cleanText = accumulatedText.trim();
+          // Strip leading [Sources] so stored/displayed message starts with the actual reply
+          if (cleanText.startsWith("[Sources]")) {
+            const rest = cleanText.slice("[Sources] ".length);
+            const firstBrace = rest.indexOf("{");
+            if (firstBrace === 0) {
+              let depth = 0;
+              let end = -1;
+              for (let i = 0; i < rest.length; i++) {
+                if (rest[i] === "{") depth++;
+                else if (rest[i] === "}") {
+                  depth--;
+                  if (depth === 0) {
+                    end = i + 1;
+                    break;
+                  }
+                }
+              }
+              if (end !== -1) cleanText = rest.slice(end).replace(/^\s*\n?/, "").trimStart();
+            }
+          }
           
           // Cut off the timeline portion brutally to guarantee it doesn't show in chat.
           // Never cut in the first 500 chars so we never drop disclaimer + "Bottom line" (live fix).

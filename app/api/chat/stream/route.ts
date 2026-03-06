@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
-// Use Edge Runtime for true streaming support
-export const runtime = 'edge';
+// Use Node runtime to avoid Edge buffering the first chunk (which can drop disclaimer + Bottom line on Vercel)
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
