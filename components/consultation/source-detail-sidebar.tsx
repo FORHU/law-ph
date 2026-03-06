@@ -70,7 +70,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
             onClick={onClose}
           />
 
-          {/* Sidebar */}
+          {/* Sidebar - slides in from the right (uniform with Related Cases) */}
           <motion.div
             className="fixed right-0 top-0 h-full w-full md:w-[600px] lg:w-[700px] bg-[#1a1a1a] border-l border-white/10 z-50 overflow-hidden flex flex-col"
             initial={{ x: '100%' }}

@@ -54,7 +54,17 @@ function DiffHighlighter({ children, originalSet }: { children: React.ReactNode,
   );
 }
 
-export function GranularDiffViewer({ original, current }: { original?: string, current?: string }) {
+const SOURCE_PATH_REGEX = /\/sources\/([^/?#]+)/;
+
+export function GranularDiffViewer({
+  original,
+  current,
+  onSourceLinkClick,
+}: {
+  original?: string;
+  current?: string;
+  onSourceLinkClick?: (itemId: string) => void;
+}) {
   const safeOriginal = original || "";
   const safeCurrent = current || "";
   
@@ -74,16 +84,23 @@ export function GranularDiffViewer({ original, current }: { original?: string, c
         h3: ({children}) => <h3 className="text-lg md:text-xl font-bold mb-3 mt-5 text-white tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
         strong: ({children}) => <strong className="font-bold text-white">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</strong>,
         em: ({children}) => <em className="italic">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</em>,
-        a: ({node, children, ...props}) => (
-          <a 
-            {...props} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors"
-          >
-            {children}
-          </a>
-        ),
+        a: ({node, children, href, ...props}) => {
+          const match = href && SOURCE_PATH_REGEX.exec(href);
+          const itemId = match?.[1];
+          const isSourceLink = !!itemId && !!onSourceLinkClick;
+          return (
+            <a
+              {...props}
+              href={href}
+              target={isSourceLink ? undefined : '_blank'}
+              rel={isSourceLink ? undefined : 'noopener noreferrer'}
+              className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors cursor-pointer"
+              onClick={isSourceLink ? (e: React.MouseEvent) => { e.preventDefault(); onSourceLinkClick(itemId); } : undefined}
+            >
+              {children}
+            </a>
+          );
+        },
       }}
       remarkPlugins={[remarkGfm, remarkBreaks]}
     >

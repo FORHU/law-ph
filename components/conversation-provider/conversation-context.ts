@@ -51,6 +51,7 @@ export type ConversationContextType = {
   detailContext: string;
   openSourceDetail: (source: LegalSource, context?: string) => void;
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
+  openSourceByItemId: (itemId: string, context?: string) => void;
   closeDetailSidebar: () => void;
 
   cases: CaseData[];

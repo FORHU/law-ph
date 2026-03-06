@@ -26,6 +26,15 @@ export function useDetailSidebar(setIsSidebarOpen: (isOpen: boolean) => void) {
     setIsSidebarOpen(false);
   };
 
+  /** Open the source detail sidebar by item_id (e.g. from a /sources/123 link). Stays on current page. */
+  const openSourceByItemId = (itemId: string, context?: string) => {
+    setSelectedCase({ itemId, title: '', caseNumber: '', description: '' });
+    setSelectedSource(null);
+    setDetailContext(context || '');
+    setIsDetailSidebarOpen(true);
+    setIsSidebarOpen(false);
+  };
+
   const closeDetailSidebar = () => {
     setIsDetailSidebarOpen(false);
     setSelectedSource(null);
@@ -40,6 +49,7 @@ export function useDetailSidebar(setIsSidebarOpen: (isOpen: boolean) => void) {
     detailContext,
     openSourceDetail,
     openCaseDetail,
+    openSourceByItemId,
     closeDetailSidebar,
   };
 }
