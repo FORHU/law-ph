@@ -162,11 +162,13 @@ export function useSendMessage({
 
         const executeStream = async (session: string): Promise<boolean> => {
           try {
+            // Prepend [Legal AI] so the backend activates Legal AI persona (legal prompt + search_legal, formatted citations)
+            const payloadUserInput = `[Legal AI] ${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. Do NOT write it as a numbered list, bullet points, or any other Markdown format. The ONLY accepted format is:\n[TIMELINE]\n[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]\n[/TIMELINE]\nThe first item MUST always be {"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}. Do not include any timeline text in the conversation prose itself.`;
             const response = await fetch('/api/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                user_input: `${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. Do NOT write it as a numbered list, bullet points, or any other Markdown format. The ONLY accepted format is:\n[TIMELINE]\n[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]\n[/TIMELINE]\nThe first item MUST always be {"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}. Do not include any timeline text in the conversation prose itself.`,
+                user_input: payloadUserInput,
                 session_id: session || `session_${Date.now()}`,
               }),
               signal: controller.signal
