@@ -14,9 +14,10 @@ export interface UploadedDocumentData {
  * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001')
  * @returns Promise resolving to the uploaded document data
  */
-export async function uploadAndAnalyzeDocument(file: File, apiUrl: string = 'http://localhost:8001'): Promise<UploadedDocumentData> {
+export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Promise<UploadedDocumentData> {
+  const baseUrl = apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
   // Step 1: Get S3 presigned URL
-  const urlResponse = await fetch(`${apiUrl}/api/legal/document-upload-url`, {
+  const urlResponse = await fetch(`${baseUrl}/api/legal/document-upload-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -42,7 +43,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl: string = 'htt
   }
 
   // Step 3: Trigger backend analysis
-  const analyzeResponse = await fetch(`${apiUrl}/api/legal/analyze-document`, {
+  const analyzeResponse = await fetch(`${baseUrl}/api/legal/analyze-document`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
