@@ -12,6 +12,7 @@ import { ASSETS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 
 interface StoredDocument {
   id: number;
@@ -21,17 +22,20 @@ interface StoredDocument {
   caseName?: string;
   content?: string;
   aiSummary?: string;
+  file_url?: string;
+  s3_key?: string;
 }
 
 export default function Documents() {
   const router = useRouter();
   const { isSidebarOpen, setIsSidebarOpen, cases } = useConversations();
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
   const [rightPanelDoc, setRightPanelDoc] = useState<StoredDocument | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -53,52 +57,101 @@ export default function Documents() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files?.[0]) setSelectedFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files?.length) {
+      setSelectedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+    }
   };
 
   const handleAnalyze = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
+    
+    // Check file sizes
+    const overLimit = selectedFiles.find(f => f.size > 20 * 1024 * 1024);
+    if (overLimit) {
+      alert(`File ${overLimit.name} is too large. Maximum size is 20MB.`);
+      return;
+    }
+    
     setIsSidebarOpen(false); // Close left sidebar
     setIsUploading(true);
+    setUploadStatus(`Processing ${selectedFiles.length} document(s)...`);
 
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      const newDocs: StoredDocument[] = [];
+      const summaries: string[] = [];
 
-      const response = await fetch('/api/legal/analyze-document', {
-        method: 'POST',
-        body: formData,
-      });
+      // Process all files in parallel
+      await Promise.all(selectedFiles.map(async (file) => {
+        const data = await uploadAndAnalyzeDocument(
+          file, 
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+        );
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.detail || data.error || 'Failed to analyze document.');
-      }
+        const attachedCase = cases.find(c => c.id === selectedCaseId);
+        const newDoc: StoredDocument = {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          name: data.filename,
+          timestamp: Date.now(),
+          caseId: selectedCaseId || undefined,
+          caseName: attachedCase?.case_name,
+          aiSummary: data.ai_summary,
+          file_url: data.file_url,
+          s3_key: data.s3_key,
+        };
+        
+        newDocs.push(newDoc);
+        if (data.ai_summary) summaries.push(data.ai_summary);
+      }));
 
-      const attachedCase = cases.find(c => c.id === selectedCaseId);
-      const newDoc: StoredDocument = {
-        id: Date.now(),
-        name: selectedFile.name,
-        timestamp: Date.now(),
-        caseId: selectedCaseId || undefined,
-        caseName: attachedCase?.case_name,
-        content: data.text,
-        aiSummary: data.ai_summary,
-      };
-
-      const updated = [newDoc, ...recentDocuments];
+      // Update recent documents list
+      const updated = [...newDocs, ...recentDocuments];
       setRecentDocuments(updated);
       localStorage.setItem('lawph_documents', JSON.stringify(updated));
-      setSelectedFile(null);
+
+      // Level 2: Cross-Document Synthesis if multiple files
+      if (summaries.length > 1) {
+        setUploadStatus('Synthesizing cross-document analysis...');
+        const synthesisResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/legal/synthesize-documents`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summaries }),
+        });
+        
+        const synthesisData = await synthesisResponse.json();
+        if (synthesisResponse.ok && synthesisData.success) {
+          // Create a synthetic document to hold the combined analysis
+          const batchDoc: StoredDocument = {
+            id: Date.now(),
+            name: `Batch Synthesis (${summaries.length} files)`,
+            timestamp: Date.now(),
+            caseId: selectedCaseId || undefined,
+            caseName: cases.find(c => c.id === selectedCaseId)?.case_name,
+            aiSummary: synthesisData.synthesis
+          };
+          setRightPanelDoc(batchDoc);
+          setAnalysisComplete(true);
+          setAnalysisText(synthesisData.synthesis);
+        } else {
+           // Fallback to showing the first document if synthesis fails
+           setRightPanelDoc(newDocs[0]);
+           setAnalysisComplete(!!newDocs[0].aiSummary);
+           setAnalysisText(newDocs[0].aiSummary || '');
+        }
+      } else {
+        // Single document flow
+        setRightPanelDoc(newDocs[0]);
+        setAnalysisComplete(!!newDocs[0].aiSummary);
+        setAnalysisText(newDocs[0].aiSummary || '');
+      }
+
+      setSelectedFiles([]);
       setSelectedCaseId('');
-      setRightPanelDoc(newDoc);
-      setAnalysisComplete(!!data.ai_summary);
-      setAnalysisText(data.ai_summary || '');
 
     } catch (err: any) {
       alert('Upload failed: ' + err.message);
     } finally {
       setIsUploading(false);
+      setUploadStatus('');
     }
   };
 
@@ -171,27 +224,42 @@ export default function Documents() {
                   dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
                 }`}
               >
-                <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
+                <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt" multiple
+                  onChange={(e) => { 
+                    if (e.target.files?.length) {
+                      setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]); 
+                    }
+                  }}
                 />
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-[#8B4564]/20 flex items-center justify-center">
                     <Upload size={28} className="text-[#E0A7C2]" />
                   </div>
-                  {selectedFile ? (
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
-                        <FileText size={14} className="text-[#E0A7C2]" />
-                        <span className="text-sm font-medium truncate max-w-[200px]">{selectedFile.name}</span>
-                        <button onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
-                          className="text-gray-500 hover:text-white ml-1"><X size={12} /></button>
+                  {selectedFiles.length > 0 ? (
+                    <div className="flex flex-col items-center gap-2 w-full">
+                      <div className="flex flex-wrap gap-2 justify-center max-h-[120px] overflow-y-auto [scrollbar-width:thin]">
+                        {selectedFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
+                            <FileText size={14} className="text-[#E0A7C2]" />
+                            <span className="text-sm font-medium truncate max-w-[150px]">{file.name}</span>
+                            <button onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setSelectedFiles(prev => prev.filter((_, i) => i !== idx)); 
+                              }}
+                              className="text-gray-500 hover:text-white ml-1">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-xs text-[#E0A7C2]">{(selectedFile.size / 1024).toFixed(1)} KB — ready for analysis</p>
+                      <p className="text-xs text-[#E0A7C2] mt-2">
+                        {selectedFiles.length} file(s) selected ({(selectedFiles.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB total)
+                      </p>
                     </div>
                   ) : (
                     <>
-                      <p className="text-base text-white">Drop document here or click to browse</p>
-                      <p className="text-sm text-gray-500">PDF, DOC, DOCX, TXT (Max 10MB)</p>
+                      <p className="text-base text-white">Drop documents here or click to browse</p>
+                      <p className="text-sm text-gray-500">PDF, DOC, DOCX, TXT (Max 20MB per file). Select multiple to synthesize.</p>
                     </>
                   )}
                 </div>
@@ -220,15 +288,15 @@ export default function Documents() {
 
               <button
                 onClick={handleAnalyze}
-                disabled={!selectedFile || isUploading}
+                disabled={selectedFiles.length === 0 || isUploading}
                 className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                  selectedFile && !isUploading
+                  selectedFiles.length > 0 && !isUploading
                     ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
                     : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed'
                 }`}
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Scale size={18} />} 
-                {isUploading ? 'Uploading & Analyzing...' : 'Analyze Document'}
+                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Analyze & Synthesize Batch (${selectedFiles.length})` : 'Analyze Document'}
               </button>
             </div>
           </div>
@@ -265,15 +333,23 @@ export default function Documents() {
                     {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}
                     {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
                   </button>
-                  <button
-                    onClick={() => alert('In production, this would open the original document.')}
-                    className="flex items-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
-                  >
-                    <ExternalLink size={14} /> View Original
-                  </button>
+                  {rightPanelDoc.file_url && (
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          url: rightPanelDoc.file_url!,
+                          name: rightPanelDoc.name,
+                        });
+                        window.open(`/documents/viewer?${params.toString()}`, '_blank');
+                      }}
+                      className="flex items-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
+                    >
+                      <ExternalLink size={14} /> View Original
+                    </button>
+                  )}
                 </div>
 
-                {/* Document Preview / Analysis */}
+                {/* AI Analysis */}
                 <div className="flex-1 overflow-y-auto p-4">
                   {analysisComplete || analysisText ? (
                     <div>
@@ -283,7 +359,7 @@ export default function Documents() {
                           : <><Loader2 size={14} className="animate-spin text-[#E0A7C2]" /><span className="text-xs text-gray-400">Analyzing document...</span></>
                         }
                       </div>
-                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed [scrollbar-width:thin] overflow-y-auto max-h-[50vh]">
+                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed [scrollbar-width:thin] overflow-y-auto">
                         {analysisComplete ? (
                           <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -298,18 +374,22 @@ export default function Documents() {
                         )}
                       </div>
                     </div>
-                  ) : (
+                  ) : rightPanelDoc.aiSummary ? (
                     <div>
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Document Preview</p>
-                      <div className="bg-black/30 rounded-xl p-4 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap font-mono border border-white/5 max-h-[50vh] overflow-y-auto [scrollbar-width:thin]">
-                        {rightPanelDoc.content ? rightPanelDoc.content.substring(0, 1500) + (rightPanelDoc.content.length > 1500 ? '\n\n...[truncated for preview]' : '') : 'No preview available.'}
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle size={14} className="text-emerald-400" />
+                        <span className="text-xs font-semibold text-emerald-400">AI Summary</span>
                       </div>
-                      {rightPanelDoc.caseName && (
-                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-[#8B4564]/10 border border-[#8B4564]/20 px-3 py-2 rounded-lg">
-                          <Briefcase size={12} className="text-[#E0A7C2]" />
-                          Attached to case: <span className="font-semibold text-[#E0A7C2]">{rightPanelDoc.caseName}</span>
-                        </div>
-                      )}
+                      <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {rightPanelDoc.aiSummary}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-500">
+                      <Bot size={36} className="opacity-30" />
+                      <p className="text-sm text-center">No analysis yet.<br /><span className="text-xs text-gray-600">Click "Analyze with AI" to generate one.</span></p>
                     </div>
                   )}
                 </div>

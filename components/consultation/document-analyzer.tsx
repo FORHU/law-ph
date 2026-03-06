@@ -5,6 +5,7 @@ import { FileText, Upload, X, CheckCircle, AlertCircle, Loader2, Send, FileWarni
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 
 interface DocumentAnalyzerProps {
   onDocumentAnalyzed: (extractedText: string, filename: string) => void;
@@ -51,8 +52,8 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
   };
 
   const validateFile = (file: File): string | null => {
-    if (file.size > 10 * 1024 * 1024) {
-      return 'File is too large. Maximum size is 10MB.';
+    if (file.size > 20 * 1024 * 1024) {
+      return 'File is too large. Maximum size is 20MB.';
     }
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!ACCEPTED_TYPES.includes(ext) && !ACCEPTED_MIME.includes(file.type)) {
@@ -73,25 +74,15 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
     setUploadState('uploading');
     setErrorMessage('');
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/legal/analyze-document', {
-        method: 'POST',
-        body: formData,
-      });
+      const data = await uploadAndAnalyzeDocument(
+        file,
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+      );
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.detail || data.error || 'Failed to extract text from document.');
-      }
-
-      setExtractedText(data.text);
       setAiSummary(data.ai_summary ?? null);
       setFilename(data.filename);
-      setCharCount(data.char_count);
+      setCharCount(data.char_count ?? 0);
       setWasTruncated(data.truncated ?? false);
       setUploadState('success');
     } catch (err: any) {
@@ -167,7 +158,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                   {isDragging ? 'Drop file here' : 'Drag & drop your document'}
                 </p>
                 <p className="text-gray-500 text-xs">or click to browse</p>
-                <p className="text-gray-600 text-[11px] mt-3">PDF, DOC, DOCX, TXT · Max 10MB</p>
+                <p className="text-gray-600 text-[11px] mt-3">PDF, DOC, DOCX, TXT · Max 20MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -270,7 +261,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                     // Show AI summary using prose rendering
                     <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {aiSummary.substring(0, 1000) + (aiSummary.length > 1000 ? '\n\n*...[truncated for preview]*' : '')}
+                        {aiSummary}
                       </ReactMarkdown>
                     </div>
                   ) : (
