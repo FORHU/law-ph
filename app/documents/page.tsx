@@ -111,7 +111,7 @@ export default function Documents() {
       // Level 2: Cross-Document Synthesis if multiple files
       if (summaries.length > 1) {
         setUploadStatus('Synthesizing cross-document analysis...');
-        const synthesisResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/legal/synthesize-documents`, {
+        const synthesisResponse = await fetch('/api/proxy/api/legal/synthesize-documents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ summaries }),
@@ -336,11 +336,11 @@ export default function Documents() {
                   {rightPanelDoc.file_url && (
                     <button
                       onClick={() => {
-                        const params = new URLSearchParams({
-                          url: rightPanelDoc.file_url!,
-                          name: rightPanelDoc.name,
-                        });
-                        window.open(`/documents/viewer?${params.toString()}`, '_blank');
+                        const searchParams = new URLSearchParams();
+                        searchParams.set('url', rightPanelDoc.file_url!);
+                        searchParams.set('name', rightPanelDoc.name);
+                        
+                        window.open(`/documents/viewer?${searchParams.toString()}`, '_blank');
                       }}
                       className="flex items-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
                     >
