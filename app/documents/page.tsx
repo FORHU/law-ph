@@ -13,9 +13,11 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
+import { useAuth } from '@/components/auth/auth-provider';
+import { createClient } from '@/lib/supabase/client';
 
 interface StoredDocument {
-  id: number;
+  id: string;
   name: string;
   timestamp: number;
   caseId?: string;
@@ -28,6 +30,9 @@ interface StoredDocument {
 
 export default function Documents() {
   const router = useRouter();
+  const { loggedIn, session } = useAuth();
+  const userId = session?.user?.id;
+  const supabase = createClient();
   const { isSidebarOpen, setIsSidebarOpen, cases } = useConversations();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -41,12 +46,38 @@ export default function Documents() {
   const [analysisText, setAnalysisText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load documents from Supabase (authenticated) or localStorage (guest)
   useEffect(() => {
-    const saved = localStorage.getItem('lawph_documents');
-    if (saved) {
-      try { setRecentDocuments(JSON.parse(saved)); } catch {}
-    }
-  }, []);
+    const loadDocuments = async () => {
+      if (loggedIn && userId) {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          setRecentDocuments(data.map(d => ({
+            id: d.id,
+            name: d.name,
+            timestamp: new Date(d.created_at).getTime(),
+            caseId: d.case_id ?? undefined,
+            caseName: cases.find(c => c.id === d.case_id)?.case_name,
+            aiSummary: d.ai_summary ?? undefined,
+            file_url: d.file_url ?? undefined,
+            s3_key: d.s3_key ?? undefined,
+          })));
+        }
+      } else {
+        // Guest fallback
+        const saved = localStorage.getItem('lawph_documents');
+        if (saved) {
+          try { setRecentDocuments(JSON.parse(saved)); } catch {}
+        }
+      }
+    };
+    loadDocuments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, userId]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -89,7 +120,7 @@ export default function Documents() {
 
         const attachedCase = cases.find(c => c.id === selectedCaseId);
         const newDoc: StoredDocument = {
-          id: Date.now() + Math.floor(Math.random() * 1000),
+          id: crypto.randomUUID(),
           name: data.filename,
           timestamp: Date.now(),
           caseId: selectedCaseId || undefined,
@@ -106,7 +137,23 @@ export default function Documents() {
       // Update recent documents list
       const updated = [...newDocs, ...recentDocuments];
       setRecentDocuments(updated);
-      localStorage.setItem('lawph_documents', JSON.stringify(updated));
+
+      // Persist to Supabase (authenticated) or localStorage (guest)
+      if (loggedIn && userId) {
+        await supabase.from('documents').insert(
+          newDocs.map(doc => ({
+            id: doc.id,
+            user_id: userId,
+            name: doc.name,
+            case_id: doc.caseId || null,
+            file_url: doc.file_url || null,
+            s3_key: doc.s3_key || null,
+            ai_summary: doc.aiSummary || null,
+          }))
+        );
+      } else {
+        localStorage.setItem('lawph_documents', JSON.stringify(updated));
+      }
 
       // Level 2: Cross-Document Synthesis if multiple files
       if (summaries.length > 1) {
@@ -121,7 +168,7 @@ export default function Documents() {
         if (synthesisResponse.ok && synthesisData.success) {
           // Create a synthetic document to hold the combined analysis
           const batchDoc: StoredDocument = {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             name: `Batch Synthesis (${summaries.length} files)`,
             timestamp: Date.now(),
             caseId: selectedCaseId || undefined,
@@ -204,7 +251,11 @@ export default function Documents() {
         onRemove: () => {
           const updated = recentDocuments.filter(d => d.id !== doc.id);
           setRecentDocuments(updated);
-          localStorage.setItem('lawph_documents', JSON.stringify(updated));
+          if (loggedIn && userId) {
+            supabase.from('documents').delete().eq('id', doc.id);
+          } else {
+            localStorage.setItem('lawph_documents', JSON.stringify(updated));
+          }
           if (rightPanelDoc?.id === doc.id) setRightPanelDoc(null);
         },
       }))}

@@ -304,3 +304,69 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
   return undefined;
 }
 
+
+/**
+ * Checks if a title is generic or junk (like UUIDs or website names)
+ */
+export function isGenericTitle(title: string): boolean {
+  if (!title) return true;
+  
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(title)) return true;
+  
+  const genericTerms = [
+    'e-library',
+    'information at your fingertips',
+    'printer friendly',
+    'philippine legal document',
+    'supreme court case',
+    'no content available',
+    'loading...'
+  ];
+  
+  const lowerTitle = title.toLowerCase();
+  return genericTerms.some(term => lowerTitle.includes(term));
+}
+
+/**
+ * Cleans a legal title by removing common website junk
+ */
+export function cleanLegalTitle(title: string): string {
+  if (!title) return '';
+  
+  let cleaned = title
+    .replace(/E-Library\s*-?\s*Information at Your Fingertips:?\s*/gi, '')
+    .replace(/:\s*Printer Friendly/gi, '')
+    .replace(/Supreme Court Case\s*-\s*/gi, '')
+    .trim();
+    
+  return cleaned;
+}
+
+/**
+ * Attempts to extract a better title from the content if the provided title is generic
+ */
+export function extractTitleFromContent(content: string, currentTitle: string): string {
+  if (!isGenericTitle(currentTitle) && currentTitle.length > 10) return cleanLegalTitle(currentTitle);
+  
+  // Try to find a G.R. No. or RA No. at the start of the content
+  const firstLines = content.split('\n').slice(0, 10).join('\n');
+  
+  // Look for G.R. No. patterns
+  const grMatch = firstLines.match(/G\.R\.\s*No\.\s*[\w-]+/i);
+  if (grMatch) return grMatch[0];
+  
+  // Look for RA No. patterns
+  const raMatch = firstLines.match(/Republic Act\s+No\.\s+\d+/i) || firstLines.match(/R\.A\.\s+No\.\s+\d+/i);
+  if (raMatch) return raMatch[0];
+  
+  // Look for Case Titles (Party v. Party)
+  const caseMatch = firstLines.match(/([A-Z][A-Z\s.,&-]+?)\s+v[s]?\.\s+([A-Z][A-Z\s.,&-]+)/);
+  if (caseMatch) return `${caseMatch[1].trim()} v. ${caseMatch[2].trim()}`;
+  
+  // Look for Markdown headers
+  const headerMatch = content.match(/^#\s+(.+)$/m);
+  if (headerMatch && !isGenericTitle(headerMatch[1])) return cleanLegalTitle(headerMatch[1]);
+  
+  return cleanLegalTitle(currentTitle);
+}

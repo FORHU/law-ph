@@ -235,7 +235,13 @@ export function MessageItem({
                             {relatedCasesLoading ? (
                               <>
                                 <Gavel size={14} className="animate-pulse" />
-                                Loading...
+                                {(() => {
+                                  const ref = message.sources?.[0]?.reference || 
+                                              message.relatedCases?.[0]?.caseNumber || 
+                                              message.text.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)?.[0] || 
+                                              'Jurisprudence';
+                                  return `Loading ${ref}...`;
+                                })()}
                               </>
                             ) : (
                               'Load More Jurisprudence'

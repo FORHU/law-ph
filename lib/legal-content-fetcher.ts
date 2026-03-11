@@ -1,6 +1,6 @@
 // Legal Content Fetcher - Provides detailed content for legal sources and cases
 
-import { LegalSource, RelatedCase } from './citation-parser';
+import { LegalSource, RelatedCase, cleanLegalTitle, extractTitleFromContent } from './citation-parser';
 import TurndownService from 'turndown';
 
 export interface LegalContentDetail {
@@ -24,7 +24,7 @@ export async function fetchSourceContent(source: LegalSource, context?: string):
   const mockContent = generateMockSourceContent(source);
   
   return {
-    title: source.reference,
+    title: cleanLegalTitle(source.reference),
     reference: source.reference,
     fullText: mockContent,
     relevantSection: extractRelevantSection(mockContent, context),
@@ -50,11 +50,20 @@ export async function fetchCaseContent(caseItem: RelatedCase, context?: string):
           bulletListMarker: '-',
         });
         
+        // Remove images to prevent 404s for broken legacy assets
+        turndownService.addRule('removeImages', {
+          filter: ['img'],
+          replacement: () => ''
+        });
+        
         // LawPhil often has excessive <br> and tables; Turndown smartly unwraps text
         const cleanMarkdown = turndownService.turndown(data.text_content || '');
 
+        const apiTitle = data.title || caseItem.title;
+        const finalTitle = extractTitleFromContent(cleanMarkdown, apiTitle);
+
         return {
-          title: data.title || caseItem.title,
+          title: finalTitle,
           reference: data.gr_number || caseItem.caseNumber,
           fullText: cleanMarkdown,
           relevantSection: extractRelevantSection(cleanMarkdown, context),
@@ -73,7 +82,7 @@ export async function fetchCaseContent(caseItem: RelatedCase, context?: string):
   const mockContent = generateMockCaseContent(caseItem);
   
   return {
-    title: caseItem.title,
+    title: extractTitleFromContent(mockContent, caseItem.title),
     reference: caseItem.caseNumber,
     fullText: mockContent,
     relevantSection: extractRelevantSection(mockContent, context),

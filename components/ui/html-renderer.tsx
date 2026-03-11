@@ -12,6 +12,12 @@ interface HtmlRendererProps {
 export function HtmlRenderer({ content, className = '' }: HtmlRendererProps) {
   if (!content) return null;
 
+  // Sanitize: remove broken legacy images and background attributes from LawPhil content
+  const sanitizedContent = content
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/\sbackground="[^"]*"/gi, '')
+    .replace(/\sbgcolor="[^"]*"/gi, '');
+
   return (
     <div 
       className={`prose prose-invert max-w-none 
@@ -21,7 +27,7 @@ export function HtmlRenderer({ content, className = '' }: HtmlRendererProps) {
         prose-strong:text-white
         prose-a:text-[#E0A7C2] prose-a:no-underline hover:prose-a:underline
         ${className}`}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
   );
 }

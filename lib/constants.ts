@@ -5,7 +5,6 @@ export const CHAT_SENDER = {
 } as const;
 
 export const STORAGE_KEYS = {
-  CONSULTATIONS: 'ilovelawyer_consultations',
   DOCUMENTS: 'ilovelawyer_documents',
 } as const;
 

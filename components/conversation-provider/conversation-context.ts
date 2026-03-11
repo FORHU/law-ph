@@ -2,6 +2,7 @@
 import { createContext, useContext } from 'react';
 import { Conversation, ConsultationSession, CaseData } from '@/types';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
+import { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
 
 export interface Message {
   id: string | number;
@@ -58,6 +59,13 @@ export type ConversationContextType = {
   refreshCases: () => Promise<void>;
   handleCreateCase: (caseData: { name: string; party: string; notes: string }) => Promise<CaseData | null>;
   handleDeleteCase: (id: string) => Promise<void>;
+
+  // Bookmarks
+  bookmarks: Bookmark[];
+  refreshBookmarks: () => Promise<void>;
+  addBookmark: (bookmark: NewBookmark) => Promise<Bookmark | null>;
+  removeBookmark: (id: string) => Promise<void>;
+  isBookmarked: (itemId: string) => string | null; // returns bookmark id or null
 };
 
 export const ConversationContext = createContext<ConversationContextType | null>(null);
