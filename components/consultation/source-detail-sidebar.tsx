@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Loader2, BookOpen, Gavel } from 'lucide-react';
-import { LegalSource, RelatedCase } from '@/lib/citation-parser';
+import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark } from 'lucide-react';
+import { LegalSource, RelatedCase, isGenericTitle, extractTitleFromContent, cleanLegalTitle } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
 import { COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
 import { HtmlRenderer } from '@/components/ui/html-renderer';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 interface SourceDetailSidebarProps {
   isOpen: boolean;
@@ -20,6 +21,22 @@ interface SourceDetailSidebarProps {
 export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context }: SourceDetailSidebarProps) {
   const [content, setContent] = useState<LegalContentDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { addBookmark, removeBookmark, isBookmarked } = useConversations();
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  // Derive a stable item_id from the source/case reference
+  // Derive a stable item_id from the source/case reference
+  const itemId = source?.reference || caseItem?.caseNumber || caseItem?.itemId || content?.reference || content?.title || '';
+
+  const bookmarkId = itemId ? isBookmarked(itemId) : null;
+  const bookmarked = !!bookmarkId;
+
+  // Debug icon visibility
+  useEffect(() => {
+    if (isOpen && (source || caseItem)) {
+      console.log("[SourceDetailSidebar] Bookmark check:", { itemId, bookmarked, bookmarkId, isLocal: (caseItem as any)?.isLocalCase });
+    }
+  }, [isOpen, itemId, bookmarked, bookmarkId, caseItem]);
 
   useEffect(() => {
     if (isOpen && (source || caseItem)) {
@@ -51,6 +68,72 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
       console.error('Failed to load content:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const extractSection = (text: string, title: string): string => {
+    const regex = new RegExp(`(?:##|###)?\\s*${title}[^\\n]*\\n([\\s\\S]*?)(?=\\n(?:##|###)|$)`, 'i');
+    const match = text.match(regex);
+    return match ? match[1].trim() : '';
+  };
+
+  const handleBookmarkToggle = async () => {
+    if (!itemId || bookmarkLoading) return;
+    setBookmarkLoading(true);
+    try {
+      if (bookmarked && bookmarkId) {
+        await removeBookmark(bookmarkId);
+      } else {
+        const fullText = content?.fullText || '';
+        
+        // Improved extraction with fallbacks
+        const aiSummary = 
+          extractSection(fullText, 'Case Summary') || 
+          extractSection(fullText, 'AI Summary') || 
+          extractSection(fullText, 'Full Text').substring(0, 200) ||
+          fullText.replace(/[#*]/g, '').substring(0, 200).trim() + '...';
+
+        const doctrine = 
+          extractSection(fullText, 'Doctrine Established') || 
+          extractSection(fullText, 'Doctrine') ||
+          extractSection(fullText, 'Key Provisions') ||
+          extractSection(fullText, 'Elements of the Offense') || '';
+
+        const facts = 
+          extractSection(fullText, 'Facts of the Case') || 
+          extractSection(fullText, 'Facts') ||
+          extractSection(fullText, 'Background') || '';
+
+        // Better reference extraction if missing
+        let derivedReference = content?.reference || source?.reference || caseItem?.caseNumber || '';
+        
+        if (!derivedReference || derivedReference === 'No Reference') {
+          // Try to extract G.R. No. or RA No. from title or content
+          const textToSearch = (content?.title || '') + ' ' + (content?.fullText || '');
+          const grMatch = textToSearch.match(/G\.R\.\s*No\.\s*[\w-]+/i);
+          const raMatch = textToSearch.match(/R\.A\.\s*No\.\s*\d+/i);
+          const phMatch = textToSearch.match(/\d+\s+Phil\.\s+\d+/i);
+          
+          derivedReference = grMatch?.[0] || raMatch?.[0] || phMatch?.[0] || '';
+        }
+
+        // Improved title extraction
+        const rawTitle = content?.title || source?.reference || caseItem?.title || itemId;
+        const finalTitle = extractTitleFromContent(fullText, rawTitle);
+
+        await addBookmark({
+          item_id: itemId,
+          title: finalTitle,
+          reference: derivedReference,
+          type: caseItem ? 'case' : 'source',
+          url: content?.url || null,
+          ai_summary: aiSummary,
+          doctrine: doctrine,
+          facts: facts
+        });
+      }
+    } finally {
+      setBookmarkLoading(false);
     }
   };
 
@@ -92,17 +175,63 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     {isCase ? 'Case Details' : 'Legal Source'}
                   </h2>
                   <p className="text-xs text-gray-400">
-                    {content?.reference && content.reference.length > 20 && isCase ? '' : (content?.reference || 'Loading...')}
+                    {(() => {
+                      const rawTitle = content?.title || caseItem?.title || '';
+                      const rawRef = content?.reference || source?.reference || caseItem?.caseNumber || '';
+                      
+                      const cleanedTitle = cleanLegalTitle(rawTitle);
+                      const cleanedRef = cleanLegalTitle(rawRef);
+                      
+                      // 1. If title is a G.R./RA/AO No., it's the best "reference title"
+                      if (cleanedTitle.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)) {
+                        return cleanedTitle;
+                      }
+                      
+                      // 2. Short references are perfect for the subtitle
+                      if (cleanedRef && cleanedRef.length <= 30 && !isGenericTitle(cleanedRef)) {
+                        return cleanedRef;
+                      }
+                      
+                      // 3. Fallback to cleaned title if not generic
+                      if (cleanedTitle && !isGenericTitle(cleanedTitle)) {
+                        return cleanedTitle;
+                      }
+                      
+                      return cleanedRef || (isLoading ? 'Loading document...' : '');
+                    })()}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-gray-400" />
-              </button>
+
+              {/* Right-side action buttons (like anycase.ai) */}
+              <div className="flex items-center gap-1">
+                {/* Show bookmark icon if we have any way to identify the item */}
+                {(itemId || source || caseItem) && !((caseItem as any)?.isLocalCase) && (
+                  <button
+                    onClick={handleBookmarkToggle}
+                    disabled={bookmarkLoading}
+                    title={bookmarked ? 'Remove bookmark' : 'Bookmark this'}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50"
+                  >
+                    <Bookmark
+                      size={20}
+                      className={`transition-all duration-200 ${
+                        bookmarked
+                          ? 'text-[#8B4564] fill-[#8B4564] scale-110'
+                          : 'text-gray-400 hover:text-[#8B4564]'
+                      }`}
+                    />
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
             </div>
+
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">

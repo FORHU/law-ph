@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose } from 'lucide-react';
+import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
@@ -11,9 +11,11 @@ import { SidebarNav } from './sidebar/sidebar-nav';
 import { RecentItem, SidebarPage, SIDEBAR_STYLES, SCROLL_THRESHOLD } from './sidebar/sidebar-constants';
 import { CreateCaseModal } from './create-case-modal';
 import { ViewCasesModal } from './view-cases-modal';
+import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
 import { ScrollToTop } from './sidebar/scroll-to-top';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
+import { useConversations } from './conversation-provider/conversation-context';
 
 interface AppSidebarProps {
   activePage: SidebarPage;
@@ -37,10 +39,12 @@ export function AppSidebar({
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
   const [isCaseModalOpen, setIsCaseModalOpen] = useState(false);
   const [isViewCasesModalOpen, setIsViewCasesModalOpen] = useState(false);
+  const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const isDocumentsOrCalendar = activePage === 'documents' || activePage === 'calendar';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { openSourceByItemId } = useConversations() || {};
 
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
@@ -159,6 +163,14 @@ export function AppSidebar({
                 <Binoculars size={16} className="text-white transition-colors" />
                 <span className="text-sm font-medium text-white">View Cases</span>
               </button>
+
+              <button 
+                onClick={() => setIsBookmarksModalOpen(true)}
+                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+              >
+                <Bookmark size={16} className="text-white transition-colors" />
+                <span className="text-sm font-medium text-white">Bookmarks</span>
+              </button>
             </>
           )}
         </div>
@@ -216,6 +228,13 @@ export function AppSidebar({
       <ViewCasesModal
         isOpen={isViewCasesModalOpen}
         onClose={() => setIsViewCasesModalOpen(false)}
+      />
+
+      {/* Bookmarks Modal */}
+      <BookmarksModal
+        isOpen={isBookmarksModalOpen}
+        onClose={() => setIsBookmarksModalOpen(false)}
+        onOpenSource={openSourceByItemId}
       />
     </div>
   );

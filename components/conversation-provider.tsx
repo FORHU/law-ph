@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Conversation, ConsultationSession, CaseData } from "@/types"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
-import { CHAT_SENDER, STORAGE_KEYS } from "@/lib/constants"
+import { CHAT_SENDER } from "@/lib/constants"
 import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser'
 import { 
   ConversationContext, 
@@ -15,6 +15,7 @@ import {
 import { useDetailSidebar } from './conversation-provider/use-detail-sidebar'
 import { useSendMessage } from './conversation-provider/use-send-message'
 import { useChatSession } from './conversation-provider/use-chat-session'
+import { Bookmark, NewBookmark, getBookmarks, addBookmark as svcAddBookmark, removeBookmark as svcRemoveBookmark } from '@/lib/bookmarks-service'
 
 
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
@@ -90,6 +91,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   }, [loggedIn, supabase, messages])
 
   
+  // Bookmarks state
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+
   // Cases state
   const [cases, setCases] = useState<CaseData[]>([])
   
@@ -273,9 +277,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         }))
         setRecentConsultations(mappedSessions)
         
-        // Sync local storage whenever we get fresh data from cloud to avoid revert loops
-        localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(mappedSessions))
-        
         setLoaded(true)
       }
     } catch (err) {
@@ -346,34 +347,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       setRecentConsultations([])
       setMessages([])
       setCurrentConsultationId(null)
-      return
     }
-
-    // Load from Local Storage
-    const storageKey = STORAGE_KEYS.CONSULTATIONS
-    const saved = localStorage.getItem(storageKey)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setRecentConsultations(parsed)
-        
-        if (syncedConversationId) {
-          // GUARD: Skip reload if we are already in sync.
-          if (currentConsultationId?.toString() === syncedConversationId) {
-            // State is already correct
-          } else {
-            const synced = parsed.find((c: ConsultationSession) => c.id.toString() === syncedConversationId)
-            if (synced) {
-              setMessages(synced.messages)
-              setCurrentConsultationId(synced.id)
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse consultations', e)
-      }
-    }
-  }, [userId, syncedConversationId])
+  }, [userId])
 
 
 
@@ -470,7 +445,6 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     // 1. Optimistic Update (UI responsiveness)
     setRecentConsultations(prev => {
       const updated = prev.map(c => c.id.toString() === idStr ? { ...c, title: newTitle } : c);
-      localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(updated));
       return updated;
     });
 
@@ -565,6 +539,34 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     if (loggedIn) fetchCases();
   }, [loggedIn, fetchCases]);
 
+  // ---- Bookmarks ----
+  const fetchBookmarks = useCallback(async () => {
+    if (!loggedIn || !userId) return;
+    const data = await getBookmarks(userId);
+    setBookmarks(data);
+  }, [loggedIn, userId]);
+
+  const handleAddBookmark = useCallback(async (bookmark: NewBookmark): Promise<Bookmark | null> => {
+    if (!userId || !loggedIn) return null;
+    const result = await svcAddBookmark(userId, bookmark);
+    if (result) setBookmarks(prev => [result, ...prev]);
+    return result;
+  }, [userId, loggedIn]);
+
+  const handleRemoveBookmark = useCallback(async (id: string) => {
+    setBookmarks(prev => prev.filter(b => b.id !== id));
+    await svcRemoveBookmark(id);
+  }, []);
+
+  const isBookmarked = useCallback((itemId: string): string | null => {
+    const found = bookmarks.find(b => b.item_id === itemId);
+    return found ? found.id : null;
+  }, [bookmarks]);
+
+  useEffect(() => {
+    if (loggedIn) fetchBookmarks();
+  }, [loggedIn, fetchBookmarks]);
+
   return (
     <ConversationContext.Provider
       value={{
@@ -597,6 +599,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         refreshCases: fetchCases,
         handleCreateCase,
         handleDeleteCase,
+        bookmarks,
+        refreshBookmarks: fetchBookmarks,
+        addBookmark: handleAddBookmark,
+        removeBookmark: handleRemoveBookmark,
+        isBookmarked,
       }}
     >
       {children}

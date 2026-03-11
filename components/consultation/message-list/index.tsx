@@ -3,7 +3,7 @@ import { CHAT_SENDER } from '@/lib/constants';
 import { useAuth } from '@/components/auth/auth-provider';
 import { MessageItem } from './message-item';
 import { Message } from './types';
-import { RelatedCase } from '@/lib/citation-parser';
+import { RelatedCase, cleanLegalTitle, isGenericTitle } from '@/lib/citation-parser';
 
 interface MessageListProps {
   messages: Message[];
@@ -114,15 +114,24 @@ export function MessageList({
       if (res.ok) {
         const data = await res.json();
         const apiResults: any[] = data.results || [];
-        const newCases: RelatedCase[] = apiResults.map((item: any) => ({
-          caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
-          title: item.title || 'Philippine Legal Document',
-          description: item.title || item.type,
-          score: item.score,
-          url: item.url,
-          type: item.type,
-          itemId: item.item_id,
-        }));
+        const newCases: RelatedCase[] = apiResults.map((item: any) => {
+          const rawTitle = item.title || 'Philippine Legal Document';
+          const cleanedTitle = cleanLegalTitle(rawTitle);
+          // If the title is still a UUID or generic, try to use the case number
+          const finalTitle = isGenericTitle(cleanedTitle) && (item.gr_number || item.case_number)
+            ? (item.gr_number || item.case_number)
+            : cleanedTitle;
+
+          return {
+            caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
+            title: finalTitle,
+            description: item.title || item.type,
+            score: item.score,
+            url: item.url,
+            type: item.type,
+            itemId: item.item_id,
+          };
+        });
         
         let updatedCases: RelatedCase[] = newCases;
         if (isLoadMore && msg.relatedCases) {
