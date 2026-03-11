@@ -15,9 +15,8 @@ export interface UploadedDocumentData {
  * @returns Promise resolving to the uploaded document data
  */
 export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Promise<UploadedDocumentData> {
-  const baseUrl = apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-  // Step 1: Get S3 presigned URL
-  const urlResponse = await fetch(`${baseUrl}/api/legal/document-upload-url`, {
+  // Step 1: Get S3 presigned URL through proxy
+  const urlResponse = await fetch(`/api/proxy/api/legal/document-upload-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -42,8 +41,8 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Pro
     throw new Error(`Failed to upload ${file.name} to S3.`);
   }
 
-  // Step 3: Trigger backend analysis
-  const analyzeResponse = await fetch(`${baseUrl}/api/legal/analyze-document`, {
+  // Step 3: Trigger backend analysis through proxy
+  const analyzeResponse = await fetch(`/api/proxy/api/legal/analyze-document`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
