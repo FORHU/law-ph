@@ -236,6 +236,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       recordingUrl: meta.recordingUrl,
       voiceNotes: meta.voiceNotes,
       highlights: meta.highlights,
+      isAnalysis: meta.isAnalysis,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
     };
   }, [])
@@ -303,13 +304,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     supabase
   });
 
-  // When set to true, fetchCloudMessages will skip its restore logic for ONE cycle.
-  // This prevents the re-fetch race when the user initiates a new consultation.
-  const ignoreFetchRef = useRef(false);
+  const loadedHistoryIdRef = useRef<string | null>(null);
 
   const handleNewConsultation = useCallback(() => {
     abortMessage()
-    ignoreFetchRef.current = true; // Block the provider from re-fetching the old conversation
     setMessages(prev => prev.length > 0 ? [] : prev)
     setCurrentConsultationId(prev => prev !== null ? null : prev)
     setIsLoading(prev => prev ? false : prev)
@@ -353,59 +351,32 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
 
   // Fetch Cloud Messages if needed
-  useEffect(() => {
-    let ignore = false;
-
-    const fetchCloudMessages = async () => {
+    const fetchCloudMessages = useCallback(async (ignore: boolean) => {
       // If we're on the root /consultation route (no ID), clear state and bail
       if (!syncedConversationId) {
-        // GUARD: Don't clear if we're currently loading/streaming or if we just started a session
         if (isLoading) return;
-
-        if (currentConsultationId !== null || messages.length > 0) {
-          console.log("No synced ID, clearing state");
-          handleNewConsultation();
-        }
-        return;
-      }
-
-      if (!userId || !loggedIn) return;
-      
-      // If we haven't loaded conversations yet, wait.
-      // We NEED the list to verify existence and avoid "resurrecting" deleted items.
-      if (!loaded) return;
-
-      // Avoid redundant fetches if we already have the right data
-      // This MUST happen before the existence check so we don't clear the state of a newly created conversation
-      if (currentConsultationId?.toString() === syncedConversationId && messages.length > 0) return;
-
-      // If the user just clicked "New Consultation", skip restoration for this cycle.
-      // The URL will transition to /consultation shortly and clear the state naturally.
-      if (ignoreFetchRef.current) {
-        console.log("[ConversationProvider] Skipping re-fetch: navigating to new consultation.");
-        ignoreFetchRef.current = false; // Reset after consuming
-        return;
-      }
-
-      // Check existence
-      const exists = conversations.some(c => c.id.toString() === syncedConversationId);
-      const existsAsCase = cases.some(c => c.id.toString() === syncedConversationId);
-      if (!exists && !existsAsCase) {
-        console.log("Conversation not found in list, clearing state. ID:", syncedConversationId);
         if (currentConsultationId !== null || messages.length > 0) {
           handleNewConsultation();
         }
         return;
       }
+
+      if (!userId || !loggedIn || !loaded) return;
+
+      if (loadedHistoryIdRef.current === syncedConversationId && !isLoading) return;
+
+      const exists = conversations.some(c => c.id.toString() === syncedConversationId) ||
+                     cases.some(c => c.id.toString() === syncedConversationId);
       
-      // GUARD: If AI is actively streaming, do NOT wipe the local state and fetch from the database
-      // The local state has the real-time stream, the DB only has the partial/old state.
-      if (isLoading) {
-        console.log("Ignoring cloud fetch because AI is streaming");
+      if (!exists) {
+        // Only clear if we're not currently streaming.
+        // If we ARE streaming, the conversation might just be missing from the local list temporarily.
+        if (!isLoading && (currentConsultationId !== null || messages.length > 0)) {
+          handleNewConsultation();
+        }
         return;
       }
-
-      console.log("Fetching messages for:", syncedConversationId);
+      
       const { data, error } = await supabase
         .from("messages")
         .select("*")
@@ -415,16 +386,34 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       if (ignore) return;
 
       if (!error && data) {
-        setMessages(data.map(mapCloudMessage))
-        setCurrentConsultationId(syncedConversationId)
+        const cloudMessages = data.map(mapCloudMessage);
+        
+        if (isLoading) {
+          setMessages(prev => {
+            const tempMessages = prev.filter(m => m.id.toString().startsWith('temp-'));
+            
+            // Deduplicate: If any cloud message has the exact same content as a temp message,
+            // it means the message has been saved to DB. Favor the cloud version.
+            const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
+            const uniqueTempMessages = tempMessages.filter(m => !cloudContents.has(m.text.trim()));
+            
+            return [...cloudMessages, ...uniqueTempMessages];
+          });
+        } else {
+          setMessages(cloudMessages);
+          loadedHistoryIdRef.current = syncedConversationId.toString();
+        }
+        setCurrentConsultationId(syncedConversationId);
       } else if (error) {
         console.error("Error fetching messages:", error)
       }
-    }
+    }, [syncedConversationId, isLoading, userId, loggedIn, loaded, conversations, cases, supabase, mapCloudMessage, handleNewConsultation]);
 
-    fetchCloudMessages();
+  useEffect(() => {
+    let ignore = false;
+    fetchCloudMessages(ignore);
     return () => { ignore = true; };
-  }, [syncedConversationId, userId, loggedIn, mapCloudMessage, supabase, loaded, conversations, isLoading, currentConsultationId, messages.length, handleNewConsultation])
+  }, [fetchCloudMessages])
 
   useEffect(() => {
     if (!loaded && loggedIn) {
@@ -436,6 +425,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const handleLoadConsultation = (consultation: ConsultationSession) => {
     setMessages(consultation.messages)
     setCurrentConsultationId(consultation.id)
+    loadedHistoryIdRef.current = consultation.id.toString()
   }
 
   const handleRenameConsultation = async (id: string | number, newTitle: string) => {
@@ -567,6 +557,17 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     if (loggedIn) fetchBookmarks();
   }, [loggedIn, fetchBookmarks]);
 
+  const sendDocumentToChat = useCallback(async (name: string, summary: string, conversationId?: string | number) => {
+    // Include ILM_META with isAnalysis: true
+    const prompt = `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed a document called "${name}". Here is the AI-generated summary:
+    
+${summary}
+
+Please help me understand this document or answer questions based on it.`;
+    
+    return await handleSendMessage(prompt, conversationId);
+  }, [handleSendMessage]);
+
   return (
     <ConversationContext.Provider
       value={{
@@ -604,6 +605,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         addBookmark: handleAddBookmark,
         removeBookmark: handleRemoveBookmark,
         isBookmarked,
+        sendDocumentToChat,
       }}
     >
       {children}

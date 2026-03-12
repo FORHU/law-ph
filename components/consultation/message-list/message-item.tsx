@@ -1,4 +1,4 @@
-import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy } from 'lucide-react';
+import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import { 
   DropdownMenu, 
@@ -103,6 +103,13 @@ export function MessageItem({
             ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
             : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
         }`}>
+          {message.isAnalysis && (
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <span className="bg-[#8B4564]/20 text-[#E0A7C2] text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded border border-[#8B4564]/30 flex items-center gap-1">
+                <FileText size={10} /> Document Analysis
+              </span>
+            </div>
+          )}
           {/* AI Menu Icon at Top Right */}
           {!isUser && isAI && !message.isEditing && (
             <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5">
