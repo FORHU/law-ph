@@ -19,6 +19,7 @@ export interface Message {
   editedAt?: string;
   editedBy?: string;
   highlights?: { id: string, snippet: string, note: string }[];
+  isAnalysis?: boolean;
 }
 
 export type ConversationContextType = {
@@ -35,7 +36,7 @@ export type ConversationContextType = {
   chatSessionId: string;
   
   // Handlers
-  handleSendMessage: (text: string) => Promise<void>;
+  handleSendMessage: (text: string, targetConversationId?: string | number) => Promise<string | number | undefined>;
   updateMessage: (id: string | number, updates: Partial<Message>) => void;
   handleLoadConsultation: (consultation: ConsultationSession) => void;
   handleNewConsultation: () => void;
@@ -66,6 +67,7 @@ export type ConversationContextType = {
   addBookmark: (bookmark: NewBookmark) => Promise<Bookmark | null>;
   removeBookmark: (id: string) => Promise<void>;
   isBookmarked: (itemId: string) => string | null; // returns bookmark id or null
+  sendDocumentToChat: (name: string, summary: string, conversationId?: string | number) => Promise<string | number | undefined>;
 };
 
 export const ConversationContext = createContext<ConversationContextType | null>(null);

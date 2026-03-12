@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+  const backendUrl = process.env.CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
   
   // Await the params object in Next.js 15
   const resolvedParams = await params;

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, FileText, X, Briefcase, Scale, ExternalLink,
-  Menu, ArrowLeft, ChevronDown, Loader2, CheckCircle, Bot, Search, FileMinus, Download, Printer, Share2, PanelRightClose, AlertCircle
+  Menu, ArrowLeft, ChevronDown, Loader2, CheckCircle, Bot, Search, FileMinus, Download, Printer, Share2, PanelRightClose, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { PageLayout } from '@/components/ui/page-layout';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
@@ -15,6 +15,14 @@ import remarkGfm from 'remark-gfm';
 import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase/client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 
 interface StoredDocument {
   id: string;
@@ -33,7 +41,7 @@ export default function Documents() {
   const { loggedIn, session } = useAuth();
   const userId = session?.user?.id;
   const supabase = createClient();
-  const { isSidebarOpen, setIsSidebarOpen, cases } = useConversations();
+  const { isSidebarOpen, setIsSidebarOpen, cases, sendDocumentToChat, recentConsultations } = useConversations();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
@@ -115,7 +123,7 @@ export default function Documents() {
       await Promise.all(selectedFiles.map(async (file) => {
         const data = await uploadAndAnalyzeDocument(
           file, 
-          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+          process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
         );
 
         const attachedCase = cases.find(c => c.id === selectedCaseId);
@@ -224,6 +232,16 @@ export default function Documents() {
     setIsAnalyzing(false);
     setAnalysisComplete(true);
   };
+  
+  const handleSendToChat = async (doc: StoredDocument, conversationId?: string | number) => {
+    if (!doc.aiSummary) return;
+    const resultId = await sendDocumentToChat(doc.name, doc.aiSummary, conversationId);
+    if (resultId) {
+      router.push(`/consultation/${resultId}`);
+    } else {
+      router.push('/consultation');
+    }
+  };
 
   const formatTimeAgo = (ts: number) => {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -288,7 +306,7 @@ export default function Documents() {
                   </div>
                   {selectedFiles.length > 0 ? (
                     <div className="flex flex-col items-center gap-2 w-full">
-                      <div className="flex flex-wrap gap-2 justify-center max-h-[120px] overflow-y-auto [scrollbar-width:thin]">
+                      <div className="flex flex-wrap gap-2 justify-center max-h-[120px] overflow-y-auto">
                         {selectedFiles.map((file, idx) => (
                           <div key={idx} className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
                             <FileText size={14} className="text-[#E0A7C2]" />
@@ -358,10 +376,14 @@ export default function Documents() {
             {rightPanelDoc && (
               <motion.div
                 initial={{ x: '100%', opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
+                animate={{ 
+                  x: 0, 
+                  opacity: 1,
+                  width: isSidebarOpen ? '480px' : '640px'
+                }}
                 exit={{ x: '100%', opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="w-full md:w-[480px] flex-shrink-0 bg-[#111111] border-l border-white/10 flex flex-col overflow-hidden absolute md:relative inset-y-0 right-0 z-20"
+                className="w-full flex-shrink-0 bg-[#111111] border-l border-white/10 flex flex-col overflow-hidden absolute lg:relative inset-y-0 right-0 z-20 max-w-full lg:max-w-none shadow-2xl"
               >
                 {/* Panel Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/5 flex-shrink-0">
@@ -375,15 +397,52 @@ export default function Documents() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="p-4 border-b border-white/5 flex gap-2 flex-shrink-0">
+                <div className="p-4 border-b border-white/5 flex flex-wrap gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleAiAnalyze(rightPanelDoc)}
                     disabled={isAnalyzing}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+                    className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
                   >
                     {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}
                     {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
                   </button>
+                  {(analysisComplete || rightPanelDoc.aiSummary) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="flex-1 min-w-[140px] flex items-center justify-center gap-2 border border-[#8B4564]/30 hover:bg-[#8B4564]/10 text-[#E0A7C2] font-bold py-2.5 px-4 rounded-xl text-sm transition-all"
+                        >
+                          <MessageSquare size={15} /> Send to Chat <ChevronDown size={14} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 bg-[#1A1A1A] border-[#8B4564]/30 text-white">
+                        <DropdownMenuLabel className="text-gray-400 text-xs uppercase">Target Consultation</DropdownMenuLabel>
+                        <DropdownMenuItem 
+                          className="hover:bg-[#8B4564]/20 cursor-pointer"
+                          onClick={() => handleSendToChat(rightPanelDoc)}
+                        >
+                          <MessageSquare size={14} className="mr-2 text-[#E0A7C2]" />
+                          <span>New Consultation</span>
+                        </DropdownMenuItem>
+                        
+                        {recentConsultations.length > 0 && (
+                          <>
+                            <DropdownMenuSeparator className="bg-white/5" />
+                            <DropdownMenuLabel className="text-gray-400 text-xs uppercase">Recent</DropdownMenuLabel>
+                            {recentConsultations.slice(0, 5).map((session) => (
+                              <DropdownMenuItem 
+                                key={session.id}
+                                className="hover:bg-[#8B4564]/20 cursor-pointer truncate"
+                                onClick={() => handleSendToChat(rightPanelDoc, session.id)}
+                              >
+                                <span className="truncate">{session.title || `Chat ${session.id}`}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   {rightPanelDoc.file_url && (
                     <button
                       onClick={() => {
@@ -393,7 +452,7 @@ export default function Documents() {
                         
                         window.open(`/documents/viewer?${searchParams.toString()}`, '_blank');
                       }}
-                      className="flex items-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
+                      className="flex-1 md:flex-none min-w-[140px] flex items-center justify-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
                     >
                       <ExternalLink size={14} /> View Original
                     </button>

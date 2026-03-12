@@ -321,7 +321,6 @@ export function isGenericTitle(title: string): boolean {
     'philippine legal document',
     'supreme court case',
     'no content available',
-    'loading...'
   ];
   
   const lowerTitle = title.toLowerCase();
