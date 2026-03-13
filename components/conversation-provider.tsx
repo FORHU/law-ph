@@ -32,6 +32,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
+  // One-time cleanup: remove stale localStorage consultation cache from old app versions
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ilovelawyer_consultations');
+    }
+  }, []);
+
   const updateMessage = useCallback(async (id: string | number, updates: Partial<Message> & { __appendVoiceNote?: { id: string; url: string } }) => {
     // 1. Update state immediately for UI responsiveness
     setMessages((prev) => 
@@ -287,6 +294,18 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     }
   }, [loggedIn, userId, supabase])
 
+  const loadedHistoryIdRef = useRef<string | null>(null);
+
+  // Wrapper to keep loaded history in sync when we jump to an active / new chat
+  const setCurrentConsultationIdWrapper = useCallback((id: string | number | null) => {
+    setCurrentConsultationId(id);
+    if (id) {
+      loadedHistoryIdRef.current = id.toString();
+    } else {
+      loadedHistoryIdRef.current = null;
+    }
+  }, []);
+
   // Message sending hook
   const { handleSendMessage, abortMessage, abortControllerRef } = useSendMessage({
     messages,
@@ -294,7 +313,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     isLoading,
     setIsLoading,
     currentConsultationId,
-    setCurrentConsultationId,
+    setCurrentConsultationId: setCurrentConsultationIdWrapper,
     syncedConversationId,
     chatSessionId,
     setChatSessionId,
@@ -304,13 +323,12 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     supabase
   });
 
-  const loadedHistoryIdRef = useRef<string | null>(null);
-
   const handleNewConsultation = useCallback(() => {
     abortMessage()
     setMessages(prev => prev.length > 0 ? [] : prev)
     setCurrentConsultationId(prev => prev !== null ? null : prev)
     setIsLoading(prev => prev ? false : prev)
+    loadedHistoryIdRef.current = null
   }, [abortMessage])
 
   // Background Cleanup: Retry deleting shadow-items that previously failed (e.g. network error)
@@ -424,8 +442,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
     setMessages(consultation.messages)
-    setCurrentConsultationId(consultation.id)
-    loadedHistoryIdRef.current = consultation.id.toString()
+    setCurrentConsultationIdWrapper(consultation.id)
   }
 
   const handleRenameConsultation = async (id: string | number, newTitle: string) => {

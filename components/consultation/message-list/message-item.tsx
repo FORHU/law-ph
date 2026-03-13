@@ -1,4 +1,4 @@
-import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText } from 'lucide-react';
+import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import { 
   DropdownMenu, 
@@ -15,6 +15,7 @@ import { AIResponseTabs } from '@/components/consultation/message-list/ai-respon
 import { VoiceNoteSection } from '@/components/consultation/message-list/voice-note-section';
 import { TAB_CONFIG } from '@/components/consultation/message-list/constants';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 interface MessageItemProps {
   message: Message;
@@ -69,19 +70,42 @@ export function MessageItem({
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
+  const { addBookmark, removeBookmark, isBookmarked } = useConversations();
+  
+  const bookmarkId = isBookmarked(message.id.toString());
+  const bookmarked = !!bookmarkId;
+
+  const handleBookmarkToggle = async () => {
+    if (bookmarked && bookmarkId) {
+      await removeBookmark(bookmarkId);
+    } else {
+      // Create a title from the first line or first few words
+      const textForTitle = message.text.split('\n')[0].replace(/[#*]/g, '').trim();
+      const title = textForTitle.length > 60 ? textForTitle.substring(0, 57) + "..." : textForTitle || "AI Response";
+      
+      await addBookmark({
+        item_id: message.id.toString(),
+        title: title,
+        reference: "AI_RESPONSE", // Special reference for identification
+        type: 'source',
+        url: `/consultation/${message.conversation_id}`,
+        ai_summary: message.text,
+      });
+    }
+  };
 
   return (
     <div
       id={`message-bubble-${message.id}`}
-      className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''} scroll-mt-24`}
+      className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''} scroll-mt-32`}
     >
       {isAI && (
-        <div className={`p-1.5 md:p-2 bg-[${COLORS.PRIMARY}]/20 rounded-lg mt-1 flex-shrink-0`}>
+        <div className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-[${COLORS.PRIMARY}]/20 rounded-lg mt-1 flex-shrink-0`}>
           <Scale size={16} className={`text-[${COLORS.PRIMARY}] md:w-[18px] md:h-[18px]`} />
         </div>
       )}
       {isUser && (
-        <div className={`p-1.5 md:p-2 bg-[${COLORS.PRIMARY}]/20 rounded-full mt-1 flex-shrink-0`}>
+        <div className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-[${COLORS.PRIMARY}]/20 rounded-full mt-1 flex-shrink-0`}>
           <User size={16} className="text-white md:w-[18px] md:h-[18px]" />
         </div>
       )}
@@ -98,7 +122,7 @@ export function MessageItem({
           </div>
         )}
 
-        <div className={`backdrop-blur border rounded-2xl p-3.5 md:p-6 pt-8 pb-6 relative group/inner break-words ${
+        <div className={`backdrop-blur border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${
           isUser 
             ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
             : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
@@ -112,7 +136,7 @@ export function MessageItem({
           )}
           {/* AI Menu Icon at Top Right */}
           {!isUser && isAI && !message.isEditing && (
-            <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5">
+            <div className="absolute top-2 right-2 z-20 flex items-center gap-1 md:gap-0.5">
               {message.highlights && message.highlights.length > 0 && (
                 <button
                   onClick={() => onOpenNote?.(message.id, message.text)}
@@ -125,7 +149,14 @@ export function MessageItem({
                   </span>
                 </button>
               )}
-              <DropdownMenu>
+                <button
+                  onClick={handleBookmarkToggle}
+                  className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none"
+                  title={bookmarked ? "Remove Bookmark" : "Bookmark Response"}
+                >
+                  <Bookmark size={14} className={bookmarked ? "fill-[#E0A7C2] text-[#E0A7C2]" : ""} />
+                </button>
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-1.5 text-gray-400 hover:text-white rounded-md transition-colors focus:outline-none">
                     <MoreHorizontal size={14} />

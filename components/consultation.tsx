@@ -25,7 +25,6 @@ import { MindMap } from './consultation/mind-map';
 import { DocumentAnalyzer } from './consultation/document-analyzer';
 
 export default function Consultation() {
-  const [inputMessage, setInputMessage] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const params = useParams();
@@ -80,6 +79,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
   const handleViewCaseDetails = () => {
     if (activeCase) {
+      setIsSidebarOpen(false);
       openCaseDetail({
         caseNumber: activeCase.id.toString(),
         title: activeCase.case_name,
@@ -97,17 +97,71 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
   const prevMessagesLengthRef = useRef(messages.length);
 
-  // Auto-scroll to bottom only when new messages arrive or AI is streaming
+  // Auto-scroll logic: scroll to top of new AI messages, bottom for user messages
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      if (messages.length > prevMessagesLengthRef.current || isLoading) {
-        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    if (scrollContainerRef.current && messages.length > prevMessagesLengthRef.current) {
+      const latestMessage = messages[messages.length - 1];
+      if (latestMessage.sender === CHAT_SENDER.AI) {
+        setTimeout(() => {
+          const el = document.getElementById(`message-bubble-${latestMessage.id}`);
+          if (el && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const topPos = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+            container.scrollTo({
+              top: topPos - 24,
+              behavior: 'smooth'
+            });
+          }
+        }, 150);
+      } else {
+        setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+              top: scrollContainerRef.current.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        }, 50);
       }
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages, isLoading]);
 
+
+
+
   const lastIdRef = useRef<string | null>(null);
+
+  // Handle URL hash scrolling (e.g., from bookmarks)
+  useEffect(() => {
+    const handleHashScroll = () => {
+      if (messages.length === 0) return;
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#message-')) {
+        const messageId = hash.replace('#message-', '');
+        setTimeout(() => {
+          const el = document.getElementById(`message-bubble-${messageId}`);
+          if (el && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const topPos = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+            container.scrollTo({
+              top: topPos - 100, // Extra padding for the header
+              behavior: 'smooth'
+            });
+            // Clear hash after scrolling to allow re-triggering
+            router.replace(window.location.pathname, { scroll: false });
+          }
+        }, 300); // Wait for potential rendering/loading
+      }
+    };
+
+    // Attempt to scroll when messages array changes
+    handleHashScroll();
+
+    // Listen to hashchange event if already on the page
+    window.addEventListener('hashchange', handleHashScroll);
+    return () => window.removeEventListener('hashchange', handleHashScroll);
+  }, [messages.length, router]);
 
   // Sync state to URL for new consultations
   useEffect(() => {
@@ -165,10 +219,9 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
-  const onSendMessage = () => {
-    if (inputMessage.trim()) {
-      handleSendMessage(inputMessage);
-      setInputMessage('');
+  const onSendMessage = (msg: string) => {
+    if (msg.trim()) {
+      handleSendMessage(msg);
       setGlobalTab('chat'); // Switch back to chat on new message
     }
   };
@@ -191,6 +244,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     onClick: () => {
       setGlobalTab('chat');
       router.push(`/consultation/${c.id}`);
+      setIsSidebarOpen(false); // Close sidebar on selection (mobile friendly)
     },
     onRemove: async () => {
       console.log("[Consultation] Removing item in sidebar:", c.id);
@@ -213,6 +267,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     lastIdRef.current = null;
     coreHandleNewConsultation();
     setGlobalTab('chat');
+    setIsSidebarOpen(false); // Close sidebar for new chat
     // Navigating to /consultation will trigger the sync logic, and the Provider will clear state safely
     router.push('/consultation', { scroll: false });
   };
@@ -257,7 +312,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-8 scroll-smooth landscape:py-2"
+          className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2 scroll-smooth landscape:py-2"
         >
           <div className={`max-w-4xl mx-auto ${messages.length === 0 ? 'h-full flex flex-col justify-start pt-4 md:pt-8' : ''}`}>
             <AnimatePresence mode="wait">
@@ -312,14 +367,25 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                   return m;
                 })}
                 onDelete={handleDeleteMessage}
-                onSourceClick={openSourceDetail}
-                onCaseClick={openCaseDetail}
-                onSourceLinkClick={openSourceByItemId}
+                onSourceClick={(s, c) => {
+                  openSourceDetail(s, c);
+                  setIsSidebarOpen(false);
+                }}
+                onCaseClick={(cs, c) => {
+                  openCaseDetail(cs, c);
+                  setIsSidebarOpen(false);
+                }}
+                onSourceLinkClick={(id) => {
+                  if (id && id !== '__NAVIGATE__') {
+                    openSourceByItemId(id);
+                  }
+                  setIsSidebarOpen(false);
+                }}
                 onUpdateMessage={updateMessage}
                 onOpenNote={(msgId, msgText) => {
                   setSelectedNoteMessage({ id: msgId, text: msgText });
                   setIsNoteSidebarOpen(true);
-                  setIsSidebarOpen(false); // Close left panel
+                  setIsSidebarOpen(false); // Already present, but good to keep
                 }}
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
@@ -569,8 +635,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
         </div>
 
         <ChatInput
-          value={inputMessage}
-          onChange={setInputMessage}
           onSend={onSendMessage}
           disabled={isLoading}
           activeTab={globalTab}

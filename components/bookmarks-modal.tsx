@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Bookmark, Trash2, ChevronDown, ChevronUp, BookOpen, Gavel, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { X, Bookmark, Trash2, ChevronDown, ChevronUp, BookOpen, Gavel, ExternalLink, CheckCircle2, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
 import type { Bookmark as BookmarkType } from '@/lib/bookmarks-service';
@@ -17,19 +18,60 @@ function BookmarkCard({
   bookmark,
   onRemove,
   onOpen,
+  conversations = [],
+  currentConsultationId,
 }: {
   bookmark: BookmarkType;
   onRemove: (id: string) => void;
   onOpen: (itemId: string) => void;
+  conversations?: any[];
+  currentConsultationId?: string | number | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const router = useRouter();
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setRemoving(true);
     await onRemove(bookmark.id);
     setRemoving(false);
+  };
+
+  const isAIResponse = bookmark.reference === 'AI_RESPONSE';
+  
+  // Check if consultation exists for AI response bookmarks
+  const getConsultationStatus = () => {
+    if (!isAIResponse || !bookmark.url) return { exists: true, id: null };
+    
+    // Extract conversation ID from URL: /consultation/uuid
+    const parts = bookmark.url.split('/');
+    const id = parts[parts.length - 1];
+    
+    // Ensure id is a valid UUID-like string before checking
+    const exists = conversations.some(c => c.id.toString() === id) || (currentConsultationId && currentConsultationId.toString() === id);
+    return { exists, id };
+  };
+
+  const { exists: consultationExists, id: consultationId } = getConsultationStatus();
+
+  const handleOpenLink = () => {
+    if (isAIResponse) {
+      if (consultationExists && bookmark.url) {
+        const targetUrl = `${bookmark.url}#message-${bookmark.item_id}`;
+        
+        if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
+            // If already on the page, natively set the hash to trigger the hashchange event reliably
+            window.location.hash = `message-${bookmark.item_id}`;
+        } else {
+            router.push(targetUrl);
+        }
+        
+        onOpen('__NAVIGATE__'); // Signal navigation to close sidebar
+      }
+      return;
+    }
+    onOpen(bookmark.item_id);
   };
 
   return (
@@ -44,11 +86,18 @@ function BookmarkCard({
       {/* Header Info */}
       <div className="p-4">
         <div className="flex items-start justify-between mb-1.5">
-          {bookmark.reference && bookmark.reference !== 'No Reference' ? (
-            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
-              {bookmark.reference}
-            </span>
-          ) : <div />}
+          <div className="flex flex-col gap-0.5">
+            {bookmark.reference && bookmark.reference !== 'No Reference' ? (
+              <span className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
+                {bookmark.reference}
+              </span>
+            ) : <div />}
+            {isAIResponse && !consultationExists && (
+              <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest flex items-center gap-1">
+                Consultation Deleted
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Bookmark size={16} className="text-[#8B4564] fill-[#8B4564]" />
             <button 
@@ -62,8 +111,14 @@ function BookmarkCard({
         </div>
 
         <h3 
-          onClick={() => onOpen(bookmark.item_id)}
-          className="text-[15px] font-bold text-white mb-3 cursor-pointer hover:text-[#E0A7C2] transition-colors leading-snug"
+          onClick={handleOpenLink}
+          className={`text-[15px] font-bold mb-3 leading-snug transition-colors ${
+            isAIResponse 
+              ? consultationExists 
+                ? "text-white cursor-pointer hover:text-[#E0A7C2]" 
+                : "text-gray-500 cursor-default"
+              : "text-white cursor-pointer hover:text-[#E0A7C2]"
+          }`}
         >
           {bookmark.title}
         </h3>
@@ -71,15 +126,44 @@ function BookmarkCard({
         {/* AI Summary Section */}
         <div className="flex gap-3 mb-3">
           <div className="mt-0.5 flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-              <CheckCircle2 size={14} className="text-white" />
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center border ${
+               isAIResponse && !consultationExists ? 'bg-white/[0.02] border-white/5' : 'bg-white/5 border border-white/10'
+            }`}>
+              {isAIResponse ? (
+                <MessageSquare size={14} className={consultationExists ? "text-[#E0A7C2]" : "text-gray-600"} />
+              ) : (
+                <CheckCircle2 size={14} className="text-white" />
+              )}
             </div>
           </div>
           <div className="flex-1">
-            <h4 className="text-[12px] font-bold text-white mb-0.5">AI Summary</h4>
-            <p className="text-[13px] text-gray-300 leading-relaxed font-medium">
-              {bookmark.ai_summary || "Bookmark saved. Click the title to view the full legal details and capture an AI summary."}
-            </p>
+            <h4 className={`text-[12px] font-bold mb-0.5 ${
+              isAIResponse && !consultationExists ? "text-gray-500" : "text-white"
+            }`}>
+              {isAIResponse ? 'Response Content' : 'AI Summary'}
+            </h4>
+            <div className="relative">
+              <p className={`text-[13px] leading-relaxed font-medium ${
+                isAIResponse && !isExpanded ? 'line-clamp-4' : ''
+              } ${isAIResponse && !consultationExists ? "text-gray-400" : "text-gray-300"}`}>
+                {bookmark.ai_summary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
+              </p>
+              
+              {isAIResponse && bookmark.ai_summary && bookmark.ai_summary.length > 200 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className={`flex items-center gap-1.5 text-[12px] font-semibold transition-colors mt-2 ${
+                    consultationExists ? "text-[#E0A7C2] hover:text-white" : "text-[#8B4564] hover:text-[#E0A7C2]"
+                  }`}
+                >
+                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {isExpanded ? 'Read less' : 'Read more'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -129,7 +213,7 @@ function BookmarkCard({
 }
 
 export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModalProps) {
-  const { bookmarks, removeBookmark, refreshBookmarks } = useConversations();
+  const { bookmarks, removeBookmark, refreshBookmarks, conversations, currentConsultationId, setIsSidebarOpen } = useConversations();
 
   useEffect(() => {
     if (isOpen) {
@@ -138,8 +222,12 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
   }, [isOpen]);
 
   const handleOpen = (itemId: string) => {
-    if (onOpenSource) {
-      onOpenSource(itemId);
+    if (itemId === '__NAVIGATE__') {
+      setIsSidebarOpen(false);
+    } else if (itemId) {
+      if (onOpenSource) {
+        onOpenSource(itemId);
+      }
     }
     onClose();
   };
@@ -206,6 +294,8 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
                           bookmark={bm}
                           onRemove={removeBookmark}
                           onOpen={handleOpen}
+                          conversations={conversations}
+                          currentConsultationId={currentConsultationId}
                         />
                       ))
                     )}

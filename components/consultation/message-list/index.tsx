@@ -168,7 +168,7 @@ export function MessageList({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {messages.map((message) => (
         <MessageItem
           key={message.id}
