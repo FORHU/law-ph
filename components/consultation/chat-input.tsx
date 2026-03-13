@@ -5,9 +5,7 @@ import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, C
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (message: string) => void;
   placeholder?: string;
   disabled?: boolean;
   activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document';
@@ -17,8 +15,6 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ 
-  value, 
-  onChange, 
   onSend, 
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
@@ -27,6 +23,7 @@ export function ChatInput({
   hasMessages = false,
   isCaseMode = false
 }: ChatInputProps) {
+  const [value, setValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -44,7 +41,14 @@ export function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
+    }
+  };
+
+  const handleSend = () => {
+    if (value.trim() && !disabled) {
+      onSend(value);
+      setValue('');
     }
   };
 
@@ -187,7 +191,7 @@ export function ChatInput({
                 id="chat-message-input"
                 name="message"
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => setValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 rows={1}
@@ -209,7 +213,7 @@ export function ChatInput({
               </button>
               <button 
                 className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
-                onClick={onSend}
+                onClick={handleSend}
                 disabled={disabled || !value.trim()}
               >
                 {disabled ? (

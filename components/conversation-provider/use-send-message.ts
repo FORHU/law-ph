@@ -121,86 +121,118 @@ export function useSendMessage({
             });
           };
 
-          if (!currentChatSessionId) {
-            currentChatSessionId = await refreshSession() || "";
-          }
-
-          let response = await doFetch(currentChatSessionId);
-          if (response.status === 404 || response.status === 400) {
-            const newId = await refreshSession();
-            if (newId) response = await doFetch(newId);
-          }
-
-          if (!response.ok) throw new Error("Failed to connect to AI");
-          if (!response.body) throw new Error("No response body");
-
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
           let accumulatedText = "";
           let sources: any[] | undefined;
           let relatedCases: any[] | undefined;
           let timeline: any[] | undefined;
+          let savedAiMsgId: string | null = null;
+          let aiResponseSuccessful = false;
+          
+          let retryCount = 0;
+          const MAX_RETRIES = 3;
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          while (retryCount < MAX_RETRIES && !aiResponseSuccessful) {
+            try {
+              if (!currentChatSessionId) {
+                currentChatSessionId = await refreshSession() || "";
+              }
 
-            let chunk = decoder.decode(value, { stream: true });
-            chunk = chunk.replace(/^(?:\[Tool\][^\n]*\n?)+/, "");
+              let response = await doFetch(currentChatSessionId);
+              if (response.status === 404 || response.status === 400 || response.status === 403) {
+                currentChatSessionId = await refreshSession() || "";
+                if (currentChatSessionId) response = await doFetch(currentChatSessionId);
+              }
 
-            if (chunk.startsWith("[Error]")) {
-              accumulatedText = "Error: " + chunk.replace("[Error]", "");
-              break;
-            }
+              if (!response.ok) throw new Error("Failed to connect to AI");
+              if (!response.body) throw new Error("No response body");
 
-            if (chunk.startsWith("[Sources]")) {
-              const prefix = "[Sources] ";
-              const rest = chunk.slice(prefix.length);
-              const firstBrace = rest.indexOf("{");
-              if (firstBrace === 0) {
-                let depth = 0;
-                let end = -1;
-                for (let i = 0; i < rest.length; i++) {
-                  if (rest[i] === "{") depth++;
-                  else if (rest[i] === "}") {
-                    depth--;
-                    if (depth === 0) {
-                      end = i + 1;
-                      break;
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              
+              // Reset accumulated text for each retry
+              accumulatedText = "";
+
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                let chunk = decoder.decode(value, { stream: true });
+                chunk = chunk.replace(/^(?:\[Tool\][^\n]*\n?)+/, "");
+
+                if (chunk.includes("Unknown session")) {
+                   throw new Error("UNKNOWN_SESSION");
+                }
+
+                if (chunk.startsWith("[Error]")) {
+                  accumulatedText = "Error: " + chunk.replace("[Error]", "");
+                  aiResponseSuccessful = true; // Not an unknown session, a deliberate backend error to display
+                  break;
+                }
+
+                if (chunk.startsWith("[Sources]")) {
+                  const prefix = "[Sources] ";
+                  const rest = chunk.slice(prefix.length);
+                  const firstBrace = rest.indexOf("{");
+                  if (firstBrace === 0) {
+                    let depth = 0;
+                    let end = -1;
+                    for (let i = 0; i < rest.length; i++) {
+                      if (rest[i] === "{") depth++;
+                      else if (rest[i] === "}") {
+                        depth--;
+                        if (depth === 0) {
+                          end = i + 1;
+                          break;
+                        }
+                      }
+                    }
+                    if (end !== -1) {
+                      chunk = rest.slice(end).replace(/^\s*\n?/, "").trimStart();
                     }
                   }
                 }
-                if (end !== -1) {
-                  chunk = rest.slice(end).replace(/^\s*\n?/, "").trimStart();
+
+                accumulatedText += chunk;
+
+                sources = extractLegalSources(accumulatedText);
+                relatedCases = extractRelatedCases(accumulatedText);
+                timeline = extractTimeline(accumulatedText);
+                
+                let cleanText = accumulatedText.trim();
+                cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
+                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
+                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
+
+                setMessages(prev => {
+                  const updated = [...prev];
+                  const lastIdx = updated.length - 1;
+                  if (updated[lastIdx]?.id === aiMessageId) {
+                    updated[lastIdx] = { 
+                      ...updated[lastIdx], 
+                      text: cleanText,
+                      sources,
+                      relatedCases,
+                      timeline
+                    };
+                  }
+                  return updated;
+                });
+              }
+              
+              aiResponseSuccessful = true; // Stream finished successfully
+
+            } catch (err: any) {
+              if (err.message === "UNKNOWN_SESSION") {
+                console.log(`[Retry ${retryCount + 1}/${MAX_RETRIES}] Backend reported 'Unknown session', fetching a new one...`);
+                retryCount++;
+                currentChatSessionId = await refreshSession() || "";
+                if (retryCount >= MAX_RETRIES) {
+                  throw new Error("Max retries exceeded for Unknown session");
                 }
+              } else {
+                 throw err; // Not an unknown session, abort retries
               }
             }
-
-            accumulatedText += chunk;
-
-            sources = extractLegalSources(accumulatedText);
-            relatedCases = extractRelatedCases(accumulatedText);
-            timeline = extractTimeline(accumulatedText);
-            
-            let cleanText = accumulatedText.trim();
-            cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
-            cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
-            cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
-
-            setMessages(prev => {
-              const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              if (updated[lastIdx]?.id === aiMessageId) {
-                updated[lastIdx] = { 
-                  ...updated[lastIdx], 
-                  text: cleanText,
-                  sources,
-                  relatedCases,
-                  timeline
-                };
-              }
-              return updated;
-            });
           }
 
           // 3. Final cleanup and save AI message
@@ -225,6 +257,8 @@ export function useSendMessage({
         } catch (error: any) {
           if (error.name === 'AbortError') return;
           console.error("AI Stream Error:", error);
+          
+          // Fallback UI message so the chat isn't stuck empty
           setMessages(prev => {
             const updated = [...prev];
             const lastIdx = updated.length - 1;

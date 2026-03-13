@@ -55,12 +55,13 @@ export function ConsultationHeader({
 
   return (
     <header className="relative z-10 border-b border-[#8B4564]/10 bg-[#1A1A1A]/60 backdrop-blur-md">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-4 min-w-0 flex-1">
+      <div className="flex items-center px-2 md:px-4 py-2 md:py-4 gap-2">
+        {/* Left: Action Group (Menu + Back) */}
+        <div className="flex items-center gap-1 md:gap-4 shrink-0">
           {showMenuButton && onMenuClick && (
             <button 
               onClick={onMenuClick}
-              className="p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group flex-shrink-0"
+              className="p-1.5 md:p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group"
               title="Open Sidebar"
             >
               <Menu size={20} className="text-gray-400 group-hover:text-[#E0A7C2]" />
@@ -68,13 +69,16 @@ export function ConsultationHeader({
           )}
           <button 
             onClick={() => router.back()}
-            className="p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group flex-shrink-0"
+            className="p-1.5 md:p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group"
             title="Go Home"
           >
             <ArrowLeft size={20} className="text-gray-400 group-hover:text-[#E0A7C2]" />
           </button>
-          
-          <div className="flex-1 min-w-0">
+        </div>
+
+        {/* Center: Title Region */}
+        <div className="flex-1 min-w-0">
+          <div className="max-w-full">
             {isEditing ? (
               <input
                 ref={inputRef}
@@ -99,14 +103,16 @@ export function ConsultationHeader({
             )}
             
             {showSubtitle && (
-              <p className="hidden md:block text-[10px] text-gray-500 uppercase tracking-widest font-medium mt-0.5">
+              <p className="hidden md:block text-[10px] text-gray-400 uppercase tracking-widest font-medium mt-0.5">
                 {subtitle}
               </p>
             )}
           </div>
         </div>
+
+        {/* Right: Actions */}
         {actions && (
-          <div className="flex-shrink-0 ml-3">
+          <div className="shrink-0">
             {actions}
           </div>
         )}
