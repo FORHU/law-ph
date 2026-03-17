@@ -24,6 +24,12 @@ export interface TimelineItem {
   status: 'completed' | 'pending' | 'active';
 }
 
+export interface MindMapItem {
+  id: string;
+  label: string;
+  children: MindMapItem[];
+}
+
 /**
  * Extracts legal sources from AI response text
  * Looks for patterns like:
@@ -299,6 +305,56 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
       }
     }
     if (items.length > 0) return items;
+  }
+
+  return undefined;
+}
+
+/**
+ * Extracts a mind map structure from AI responses.
+ * Supports [MINDMAP]...[/MINDMAP] wrapper and bare JSON objects.
+ */
+export function extractMindMap(text: string): MindMapItem | undefined {
+  const mindMapRegex = /\[MINDMAP\]([\s\S]*?)\[\/MINDMAP\]/i;
+  const match = text.match(mindMapRegex);
+  
+  let jsonStr = "";
+  if (match) {
+    jsonStr = match[1].trim();
+  } else {
+    // Look for a JSON object that looks like a mind map root
+    // This regex looks for the last complete { "id": "root" ... } pattern in the text
+    const blocks = text.split(/[\r\n]{2,}/);
+    for (const block of blocks.reverse()) {
+      if (block.includes('"id"') && block.includes('"root"')) {
+        const fallbackMatch = block.match(/(\{[\s\S]*\})/);
+        if (fallbackMatch) {
+          jsonStr = fallbackMatch[1].trim();
+          break;
+        }
+      }
+    }
+  }
+
+  if (jsonStr) {
+    // Basic cleanup
+    jsonStr = jsonStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    try {
+      // Find the first '{' and last '}' to prune extra text
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      }
+
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes)) {
+        return parsed as MindMapItem;
+      }
+    } catch (e) {
+      // Don't log expected partial JSON errors during streaming
+    }
   }
 
   return undefined;

@@ -1,3 +1,5 @@
+import { MindMapThemeType } from './constants';
+
 export interface MapNode {
   id: string;
   text: string;
@@ -7,4 +9,6 @@ export interface MapNode {
 
 export interface MindMapProps {
   rootTitle?: string;
+  data?: any;
+  initialTheme?: MindMapThemeType;
 }

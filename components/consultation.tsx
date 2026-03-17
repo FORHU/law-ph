@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase, PenTool } from 'lucide-react';
+import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase, PenTool, Layout } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
 import { Session } from '@supabase/supabase-js';
@@ -219,6 +219,9 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
+  const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
+  const activeMindMap = latestMindMapMessage?.mindMap;
+
   const onSendMessage = (msg: string) => {
     if (msg.trim()) {
       handleSendMessage(msg);
@@ -312,9 +315,9 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2 scroll-smooth landscape:py-2"
+          className={`flex-1 ${globalTab === 'mindmap' ? 'overflow-hidden' : 'overflow-y-auto'} ${globalTab === 'mindmap' ? 'px-2 md:px-4 py-2' : 'px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2'} scroll-smooth landscape:py-2`}
         >
-          <div className={`max-w-4xl mx-auto ${messages.length === 0 ? 'h-full flex flex-col justify-start pt-4 md:pt-8' : ''}`}>
+          <div className={`${globalTab === 'mindmap' ? 'max-w-7xl' : 'max-w-4xl'} mx-auto ${messages.length === 0 ? 'h-full flex flex-col justify-start pt-4 md:pt-8' : ''}`}>
             <AnimatePresence mode="wait">
               {messages.length === 0 && (
                 <motion.div
@@ -608,8 +611,23 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 />
               </div>
             ) : (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mt-4">
-                 <MindMap rootTitle={activeCase ? activeCase.case_name : "Case Analysis"} />
+              <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 w-full ${globalTab === 'mindmap' ? 'mt-2' : 'mt-4'}`}>
+                 <MindMap 
+                   rootTitle={activeCase ? activeCase.case_name : "Case Analysis"} 
+                   data={activeMindMap}
+                 />
+                 
+                 {!activeMindMap && messages.length > 0 && (
+                   <div className="mt-4 flex justify-center">
+                     <button 
+                       onClick={() => handleSendMessage("Please generate a visual strategy map for this case.")}
+                       className="bg-[#8B4564]/20 hover:bg-[#8B4564]/40 border border-[#8B4564]/50 text-[#E0A7C2] px-6 py-3 rounded-xl flex items-center gap-2 transition-all group"
+                     >
+                       <Layout className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                       <span className="font-semibold text-sm">Generate Strategy Map</span>
+                     </button>
+                   </div>
+                 )}
               </div>
             )}
           </div>

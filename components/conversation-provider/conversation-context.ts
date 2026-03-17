@@ -20,6 +20,7 @@ export interface Message {
   editedBy?: string;
   highlights?: { id: string, snippet: string, note: string }[];
   isAnalysis?: boolean;
+  mindMap?: any;
 }
 
 export type ConversationContextType = {

@@ -6,7 +6,7 @@ import { Conversation, ConsultationSession, CaseData } from "@/types"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER } from "@/lib/constants"
-import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser'
+import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser'
 import { 
   ConversationContext, 
   Message,
@@ -227,8 +227,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     const sources = sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
     const relatedCases = sender === CHAT_SENDER.AI ? extractRelatedCases(text) : undefined;
     const timeline = sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
+    const mindMap = sender === CHAT_SENDER.AI ? extractMindMap(text) : undefined;
 
-    const cleanText = sender === CHAT_SENDER.AI ? text.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim() : text;
+    const cleanText = sender === CHAT_SENDER.AI ? text.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, '').trim() : text;
 
     return {
       ...msg,
@@ -237,6 +238,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       sources,
       relatedCases,
       timeline,
+      mindMap,
       originalText: meta.originalText,
       editedAt: meta.editedAt,
       editedBy: meta.editedBy,
