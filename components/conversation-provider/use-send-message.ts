@@ -119,7 +119,7 @@ export function useSendMessage({
    - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
    - "Evidence & Facts": Extract key facts and pieces of evidence.
    - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
-5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction/Venue, (b) Mandatory Attachments (Verification), and (c) Relief Sought (The Prayer).
+5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
 
 The tags MUST be at the very bottom and look like this:
 
