@@ -16,7 +16,8 @@ export const STRINGS = {
   caseNameLabel: "Case Name",
   caseNamePlaceholder: "e.g., Smith vs. Jones Property Dispute",
   partyLabel: "Party Involved",
-  partyPlaceholder: "e.g., John Smith, Jane Doe",
+  partyPlaceholder: "e.g., John Smith",
+  partyHint: "Press Enter to add another party",
   notesLabel: "Transcript / Notes",
   notesPlaceholder: "Type notes or use the microphone button to record a conversation...",
   summarizeBtn: "Summarize with AI",
@@ -29,5 +30,6 @@ export const STRINGS = {
   voiceActive: "Stop Voice",
   voiceInactive: "Record Voice",
   recordingLabel: "Voice Recording",
-  recordingStatus: "Ready to listen"
+  recordingStatus: "Ready to listen",
+  recordingMultiple: "Recordings"
 };

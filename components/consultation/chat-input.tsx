@@ -162,18 +162,6 @@ export function ChatInput({
                   <Calendar size={14} />
                   Schedule
                 </button>
-
-                <button 
-                  onClick={() => onTabChange?.('document')}
-                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                    activeTab === 'document' 
-                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                  }`}
-                >
-                  <FileText size={14} />
-                  Analyze Doc
-                </button>
               </div>
             </div>
           )}

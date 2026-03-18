@@ -53,21 +53,23 @@ export function useSendMessage({
       setMessages(prev => [...prev, newMessage]);
 
       // Define internal async function to process the rest of the flow in the background
-      const processMessage = async (activeSessionId: string | number) => {
+      const processMessage = async (activeSessionId: string | number, userMsgSaved: boolean) => {
         try {
-          // 1. Save user message to cloud
-          const { data: savedUserMsg, error: userMsgError } = await supabase
-            .from("messages")
-            .insert({
-              conversation_id: activeSessionId,
-              role: 'user',
-              content: currentInput
-            })
-            .select()
-            .single();
+          if (!userMsgSaved) {
+            // 1. Save user message to cloud if not already saved
+            const { data: savedUserMsg, error: userMsgError } = await supabase
+              .from("messages")
+              .insert({
+                conversation_id: activeSessionId,
+                role: 'user',
+                content: currentInput
+              })
+              .select()
+              .single();
 
-          if (!userMsgError && savedUserMsg) {
-            setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
+            if (!userMsgError && savedUserMsg) {
+              setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
+            }
           }
 
           // 2. Prepare AI message
@@ -80,6 +82,8 @@ export function useSendMessage({
           };
 
           setMessages(prev => [...prev, initialAiMessage]);
+          
+
 
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -305,9 +309,33 @@ export function useSendMessage({
         await fetchConversations(); 
       }
 
-      // Kick off background task
+      // Step 2: Save the USER message to the database immediately (Awaited)
+      // This ensures that even if we redirect, the message is persisted.
+      let userMsgSaved = false;
+      try {
+        const { data: savedUserMsg, error: userMsgError } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: sessionId,
+            role: 'user',
+            content: currentInput
+          })
+          .select()
+          .single();
+
+        if (!userMsgError && savedUserMsg) {
+          setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
+          userMsgSaved = true;
+        }
+      } catch (err) {
+        console.error("Failed to persist user message before redirect:", err);
+      }
+
+      // Step 3: Trigger the AI stream (Concurrent - do NOT await if we are redirecting)
+      // Actually, if we ARE redirecting, the AI stream on this client will die.
+      // But that's okay because the new page will load the consultation and see the user message.
       if (sessionId) {
-        processMessage(sessionId);
+        processMessage(sessionId, userMsgSaved);
       }
       
       return sessionId ?? undefined;

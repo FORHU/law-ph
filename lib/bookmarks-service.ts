@@ -26,7 +26,7 @@ export async function getBookmarks(userId: string): Promise<Bookmark[]> {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) {
-      if (!error.message.includes('schema cache')) {
+      if (!error.message.includes('schema cache') && !error.message.includes('Failed to fetch')) {
         console.error('[bookmarks-service] getBookmarks error:', error.message);
       }
       return [];
@@ -47,7 +47,7 @@ export async function addBookmark(userId: string, bookmark: NewBookmark): Promis
       .select()
       .single();
     if (error) {
-      if (!error.message.includes('schema cache')) {
+      if (!error.message.includes('schema cache') && !error.message.includes('Failed to fetch')) {
         console.error('[bookmarks-service] addBookmark error:', error.message);
       }
       return null;
@@ -64,7 +64,7 @@ export async function removeBookmark(id: string): Promise<boolean> {
   try {
     const { error } = await supabase.from('bookmarks').delete().eq('id', id);
     if (error) {
-      if (!error.message.includes('schema cache')) {
+      if (!error.message.includes('schema cache') && !error.message.includes('Failed to fetch')) {
         console.error('[bookmarks-service] removeBookmark error:', error.message);
       }
       return false;
@@ -86,7 +86,7 @@ export async function checkIsBookmarked(userId: string, itemId: string): Promise
       .eq('item_id', itemId)
       .maybeSingle();
     if (error || !data) {
-      if (error && !error.message.includes('schema cache')) {
+      if (error && !error.message.includes('schema cache') && !error.message.includes('Failed to fetch')) {
         console.error('[bookmarks-service] checkIsBookmarked error:', error.message);
       }
       return null;

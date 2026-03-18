@@ -1,28 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  Upload, FileText, X, Briefcase, Scale, ExternalLink,
-  Menu, ArrowLeft, ChevronDown, Loader2, CheckCircle, Bot, Search, FileMinus, Download, Printer, Share2, PanelRightClose, AlertCircle, MessageSquare
+  Upload, FileText, X, Briefcase, Scale, ChevronDown, Loader2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { PageLayout } from '@/components/ui/page-layout';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { ASSETS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase/client';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 
 interface StoredDocument {
   id: string;
@@ -41,17 +30,13 @@ export default function Documents() {
   const { loggedIn, session } = useAuth();
   const userId = session?.user?.id;
   const supabase = createClient();
-  const { isSidebarOpen, setIsSidebarOpen, cases, sendDocumentToChat, recentConsultations } = useConversations();
+  const { isSidebarOpen, setIsSidebarOpen, cases, sendDocumentToChat, recentConsultations, analyzeDocuments } = useConversations();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
-  const [rightPanelDoc, setRightPanelDoc] = useState<StoredDocument | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisComplete, setAnalysisComplete] = useState(false);
-  const [analysisText, setAnalysisText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents from Supabase (authenticated) or localStorage (guest)
@@ -85,7 +70,7 @@ export default function Documents() {
     };
     loadDocuments();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn, userId]);
+  }, [loggedIn, userId, cases]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -101,138 +86,6 @@ export default function Documents() {
     }
   };
 
-  const handleAnalyze = async () => {
-    if (selectedFiles.length === 0) return;
-    
-    // Check file sizes
-    const overLimit = selectedFiles.find(f => f.size > 20 * 1024 * 1024);
-    if (overLimit) {
-      alert(`File ${overLimit.name} is too large. Maximum size is 20MB.`);
-      return;
-    }
-    
-    setIsSidebarOpen(false); // Close left sidebar
-    setIsUploading(true);
-    setUploadStatus(`Processing ${selectedFiles.length} document(s)...`);
-
-    try {
-      const newDocs: StoredDocument[] = [];
-      const summaries: string[] = [];
-
-      // Process all files in parallel
-      await Promise.all(selectedFiles.map(async (file) => {
-        const data = await uploadAndAnalyzeDocument(
-          file, 
-          process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
-        );
-
-        const attachedCase = cases.find(c => c.id === selectedCaseId);
-        const newDoc: StoredDocument = {
-          id: crypto.randomUUID(),
-          name: data.filename,
-          timestamp: Date.now(),
-          caseId: selectedCaseId || undefined,
-          caseName: attachedCase?.case_name,
-          aiSummary: data.ai_summary,
-          file_url: data.file_url,
-          s3_key: data.s3_key,
-        };
-        
-        newDocs.push(newDoc);
-        if (data.ai_summary) summaries.push(data.ai_summary);
-      }));
-
-      // Update recent documents list
-      const updated = [...newDocs, ...recentDocuments];
-      setRecentDocuments(updated);
-
-      // Persist to Supabase (authenticated) or localStorage (guest)
-      if (loggedIn && userId) {
-        await supabase.from('documents').insert(
-          newDocs.map(doc => ({
-            id: doc.id,
-            user_id: userId,
-            name: doc.name,
-            case_id: doc.caseId || null,
-            file_url: doc.file_url || null,
-            s3_key: doc.s3_key || null,
-            ai_summary: doc.aiSummary || null,
-          }))
-        );
-      } else {
-        localStorage.setItem('lawph_documents', JSON.stringify(updated));
-      }
-
-      // Level 2: Cross-Document Synthesis if multiple files
-      if (summaries.length > 1) {
-        setUploadStatus('Synthesizing cross-document analysis...');
-        const synthesisResponse = await fetch('/api/proxy/api/legal/synthesize-documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ summaries }),
-        });
-        
-        const synthesisData = await synthesisResponse.json();
-        if (synthesisResponse.ok && synthesisData.success) {
-          // Create a synthetic document to hold the combined analysis
-          const batchDoc: StoredDocument = {
-            id: crypto.randomUUID(),
-            name: `Batch Synthesis (${summaries.length} files)`,
-            timestamp: Date.now(),
-            caseId: selectedCaseId || undefined,
-            caseName: cases.find(c => c.id === selectedCaseId)?.case_name,
-            aiSummary: synthesisData.synthesis
-          };
-          setRightPanelDoc(batchDoc);
-          setAnalysisComplete(true);
-          setAnalysisText(synthesisData.synthesis);
-        } else {
-           // Fallback to showing the first document if synthesis fails
-           setRightPanelDoc(newDocs[0]);
-           setAnalysisComplete(!!newDocs[0].aiSummary);
-           setAnalysisText(newDocs[0].aiSummary || '');
-        }
-      } else {
-        // Single document flow
-        setRightPanelDoc(newDocs[0]);
-        setAnalysisComplete(!!newDocs[0].aiSummary);
-        setAnalysisText(newDocs[0].aiSummary || '');
-      }
-
-      setSelectedFiles([]);
-      setSelectedCaseId('');
-
-    } catch (err: any) {
-      alert('Upload failed: ' + err.message);
-    } finally {
-      setIsUploading(false);
-      setUploadStatus('');
-    }
-  };
-
-  const handleAiAnalyze = async (doc: StoredDocument) => {
-    if (!doc.aiSummary) {
-      alert('AI Summary is not available for this document.');
-      return;
-    }
-    setAnalysisText('');
-    setAnalysisComplete(false);
-    setIsAnalyzing(true);
-
-    // Simulate typed streaming for effect, since we already have the text
-    const words = doc.aiSummary.split(' ');
-    let currentText = '';
-    
-    for (let i = 0; i < words.length; i += 3) {
-      currentText += words.slice(i, i + 3).join(' ') + ' ';
-      setAnalysisText(currentText);
-      await new Promise(r => setTimeout(r, 10)); // extremely fast pseudo-streaming
-    }
-    setAnalysisText(doc.aiSummary);
-    setIsAnalyzing(false);
-    setAnalysisComplete(true);
-  };
-  
   const handleSendToChat = async (doc: StoredDocument, conversationId?: string | number) => {
     if (!doc.aiSummary) return;
     const resultId = await sendDocumentToChat(doc.name, doc.aiSummary, conversationId);
@@ -242,6 +95,22 @@ export default function Documents() {
       router.push('/consultation');
     }
   };
+
+  const handleAnalyze = async () => {
+    if (selectedFiles.length === 0 || !selectedCaseId) return;
+
+    // Redirect immediately to the consultation
+    router.push(`/consultation/${selectedCaseId}`);
+    
+    // Trigger background analysis via global context
+    analyzeDocuments(selectedFiles, selectedCaseId);
+    
+    // Clear local selection
+    setSelectedFiles([]);
+    setSelectedCaseId('');
+  };
+
+  
 
   const formatTimeAgo = (ts: number) => {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -262,9 +131,11 @@ export default function Documents() {
         title: doc.name,
         subtitle: `${doc.caseName ? `📁 ${doc.caseName} · ` : ''}${formatTimeAgo(doc.timestamp)}`,
         onClick: () => {
-          setRightPanelDoc(doc);
-          setAnalysisText('');
-          setAnalysisComplete(false);
+          if (doc.caseId) {
+            router.push(`/consultation/${doc.caseId}`);
+          } else {
+            handleSendToChat(doc, doc.caseId);
+          }
         },
         onRemove: () => {
           const updated = recentDocuments.filter(d => d.id !== doc.id);
@@ -274,16 +145,13 @@ export default function Documents() {
           } else {
             localStorage.setItem('lawph_documents', JSON.stringify(updated));
           }
-          if (rightPanelDoc?.id === doc.id) setRightPanelDoc(null);
         },
       }))}
       maxWidth="max-w-7xl"
     >
       <div className="relative z-10 flex-1 flex overflow-hidden h-full">
-        {/* Left: Upload Panel */}
-        <div className={`flex-1 overflow-y-auto p-6 transition-all duration-300 ${rightPanelDoc ? 'md:w-1/2 md:flex-none md:border-r md:border-white/5' : 'w-full'}`}>
+        <div className="flex-1 overflow-y-auto p-6 transition-all duration-300 w-full">
           <div className="max-w-xl mx-auto space-y-6">
-            {/* Drop Zone */}
             <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl p-6">
               <h2 className="text-lg font-bold mb-4">Upload Document</h2>
               <div
@@ -334,10 +202,9 @@ export default function Documents() {
                 </div>
               </div>
 
-              {/* Attach to Case */}
               <div className="mt-4">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                  Attach to Case (Optional)
+                  Attach to Case <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -346,7 +213,7 @@ export default function Documents() {
                     onChange={(e) => setSelectedCaseId(e.target.value)}
                     className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 appearance-none cursor-pointer"
                   >
-                    <option value="">— No case selected —</option>
+                    <option value="" disabled>Select a case...</option>
                     {cases.map(c => (
                       <option key={c.id} value={c.id}>{c.case_name}</option>
                     ))}
@@ -357,156 +224,20 @@ export default function Documents() {
 
               <button
                 onClick={handleAnalyze}
-                disabled={selectedFiles.length === 0 || isUploading}
+                disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
                 className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                  selectedFiles.length > 0 && !isUploading
+                  selectedFiles.length > 0 && !isUploading && selectedCaseId
                     ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
                     : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed'
                 }`}
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Scale size={18} />} 
                 {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Analyze & Synthesize Batch (${selectedFiles.length})` : 'Analyze Document'}
-              </button>
-            </div>
+            </button>
           </div>
         </div>
-
-        {/* Right: Document Preview & Analysis Panel */}
-          <AnimatePresence>
-            {rightPanelDoc && (
-              <motion.div
-                initial={{ x: '100%', opacity: 0 }}
-                animate={{ 
-                  x: 0, 
-                  opacity: 1,
-                  width: isSidebarOpen ? '480px' : '640px'
-                }}
-                exit={{ x: '100%', opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="w-full flex-shrink-0 bg-[#111111] border-l border-white/10 flex flex-col overflow-hidden absolute lg:relative inset-y-0 right-0 z-20 max-w-full lg:max-w-none shadow-2xl"
-              >
-                {/* Panel Header */}
-                <div className="flex items-center justify-between p-4 border-b border-white/5 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <FileText size={16} className="text-[#E0A7C2]" />
-                    <span className="font-semibold text-sm text-white truncate max-w-[200px]">{rightPanelDoc.name}</span>
-                  </div>
-                  <button onClick={() => setRightPanelDoc(null)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-all">
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="p-4 border-b border-white/5 flex flex-wrap gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => handleAiAnalyze(rightPanelDoc)}
-                    disabled={isAnalyzing}
-                    className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
-                  >
-                    {isAnalyzing ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}
-                    {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
-                  </button>
-                  {(analysisComplete || rightPanelDoc.aiSummary) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className="flex-1 min-w-[140px] flex items-center justify-center gap-2 border border-[#8B4564]/30 hover:bg-[#8B4564]/10 text-[#E0A7C2] font-bold py-2.5 px-4 rounded-xl text-sm transition-all"
-                        >
-                          <MessageSquare size={15} /> Send to Chat <ChevronDown size={14} />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56 bg-[#1A1A1A] border-[#8B4564]/30 text-white">
-                        <DropdownMenuLabel className="text-gray-400 text-xs uppercase">Target Consultation</DropdownMenuLabel>
-                        <DropdownMenuItem 
-                          className="hover:bg-[#8B4564]/20 cursor-pointer"
-                          onClick={() => handleSendToChat(rightPanelDoc)}
-                        >
-                          <MessageSquare size={14} className="mr-2 text-[#E0A7C2]" />
-                          <span>New Consultation</span>
-                        </DropdownMenuItem>
-                        
-                        {recentConsultations.length > 0 && (
-                          <>
-                            <DropdownMenuSeparator className="bg-white/5" />
-                            <DropdownMenuLabel className="text-gray-400 text-xs uppercase">Recent</DropdownMenuLabel>
-                            {recentConsultations.slice(0, 5).map((session) => (
-                              <DropdownMenuItem 
-                                key={session.id}
-                                className="hover:bg-[#8B4564]/20 cursor-pointer truncate"
-                                onClick={() => handleSendToChat(rightPanelDoc, session.id)}
-                              >
-                                <span className="truncate">{session.title || `Chat ${session.id}`}</span>
-                              </DropdownMenuItem>
-                            ))}
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  {rightPanelDoc.file_url && (
-                    <button
-                      onClick={() => {
-                        const searchParams = new URLSearchParams();
-                        searchParams.set('url', rightPanelDoc.file_url!);
-                        searchParams.set('name', rightPanelDoc.name);
-                        
-                        window.open(`/documents/viewer?${searchParams.toString()}`, '_blank');
-                      }}
-                      className="flex-1 md:flex-none min-w-[140px] flex items-center justify-center gap-1.5 border border-white/10 hover:bg-white/5 text-gray-300 font-medium py-2.5 px-4 rounded-xl text-sm transition-all"
-                    >
-                      <ExternalLink size={14} /> View Original
-                    </button>
-                  )}
-                </div>
-
-                {/* AI Analysis */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  {analysisComplete || analysisText ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        {analysisComplete
-                          ? <><CheckCircle size={14} className="text-emerald-400" /><span className="text-xs font-semibold text-emerald-400">Analysis Complete</span></>
-                          : <><Loader2 size={14} className="animate-spin text-[#E0A7C2]" /><span className="text-xs text-gray-400">Analyzing document...</span></>
-                        }
-                      </div>
-                      <div className="bg-black/40 rounded-xl p-4 text-sm text-gray-200 leading-relaxed [scrollbar-width:thin] overflow-y-auto">
-                        {analysisComplete ? (
-                          <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {analysisText}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap font-mono">
-                            {analysisText}
-                            <span className="animate-pulse">▌</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : rightPanelDoc.aiSummary ? (
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle size={14} className="text-emerald-400" />
-                        <span className="text-xs font-semibold text-emerald-400">AI Summary</span>
-                      </div>
-                      <div className="prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-p:my-1.5 prose-headings:mb-1.5 prose-headings:mt-3 first:prose-headings:mt-0 prose-headings:text-sm prose-li:my-0">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {rightPanelDoc.aiSummary}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-500">
-                      <Bot size={36} className="opacity-30" />
-                      <p className="text-sm text-center">No analysis yet.<br /><span className="text-xs text-gray-600">Click "Analyze with AI" to generate one.</span></p>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-    </PageLayout>
-  );
+      </div>
+    </div>
+  </PageLayout>
+);
 }

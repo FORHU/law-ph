@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER } from "@/lib/constants"
 import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser'
+import { uploadAndAnalyzeDocument } from '@/lib/s3-utils'
 import { 
   ConversationContext, 
   Message,
@@ -39,15 +40,27 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  const updateMessage = useCallback(async (id: string | number, updates: Partial<Message> & { __appendVoiceNote?: { id: string; url: string } }) => {
+  const updateMessage = useCallback(async (id: string | number, updates: Partial<Message> & { __appendVoiceNote?: { id: string; url: string; label?: string } }) => {
     // 1. Update state immediately for UI responsiveness
     setMessages((prev) => 
       prev.map((msg) => {
         if (msg.id.toString() !== id.toString()) return msg;
-        // Handle special __appendVoiceNote: append to voiceNotes array
+        
+        // Handle special __appendVoiceNote: append OR update existing by ID
         if (updates.__appendVoiceNote) {
           const currentNotes = msg.voiceNotes || (msg.recordingUrl ? [{ id: 'legacy', url: msg.recordingUrl }] : []);
-          const newNotes = [...currentNotes, updates.__appendVoiceNote];
+          const existingIdx = currentNotes.findIndex(n => n.id === updates.__appendVoiceNote!.id);
+          
+          let newNotes;
+          if (existingIdx >= 0) {
+            // Update existing (e.g. from blob: to s3://)
+            newNotes = [...currentNotes];
+            newNotes[existingIdx] = { ...newNotes[existingIdx], ...updates.__appendVoiceNote };
+          } else {
+            // Append new
+            newNotes = [...currentNotes, updates.__appendVoiceNote];
+          }
+          
           return { ...msg, voiceNotes: newNotes, recordingUrl: newNotes[0]?.url };
         }
         return { ...msg, ...updates };
@@ -68,7 +81,15 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
           let mergedMsg: any;
           if (updates.__appendVoiceNote) {
             const currentNotes = targetMsg.voiceNotes || (targetMsg.recordingUrl ? [{ id: 'legacy', url: targetMsg.recordingUrl }] : []);
-            const newNotes = [...currentNotes, updates.__appendVoiceNote];
+            const existingIdx = currentNotes.findIndex(n => n.id === updates.__appendVoiceNote!.id);
+            
+            let newNotes;
+            if (existingIdx >= 0) {
+              newNotes = [...currentNotes];
+              newNotes[existingIdx] = { ...newNotes[existingIdx], ...updates.__appendVoiceNote };
+            } else {
+              newNotes = [...currentNotes, updates.__appendVoiceNote];
+            }
             mergedMsg = { ...targetMsg, voiceNotes: newNotes, recordingUrl: newNotes[0]?.url };
           } else {
             mergedMsg = { ...targetMsg, ...updates };
@@ -408,14 +429,20 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         
         if (isLoading) {
           setMessages(prev => {
-            const tempMessages = prev.filter(m => m.id.toString().startsWith('temp-'));
-            
-            // Deduplicate: If any cloud message has the exact same content as a temp message,
-            // it means the message has been saved to DB. Favor the cloud version.
+            const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
             const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
-            const uniqueTempMessages = tempMessages.filter(m => !cloudContents.has(m.text.trim()));
+
+            // Keep any local message that:
+            // (a) has a temp ID (still being saved), OR
+            // (b) has a real ID but isn't reflected in the cloud snapshot yet
+            // BUT skip it if its text content already appears in the cloud (already saved + returned)
+            const localOnlyMessages = prev.filter(m => {
+              if (cloudIds.has(m.id.toString())) return false; // already in cloud, no need to duplicate
+              if (cloudContents.has(m.text.trim())) return false; // content already saved, cloud has it
+              return true; // keep — it's a local-only message not yet visible in cloud
+            });
             
-            return [...cloudMessages, ...uniqueTempMessages];
+            return [...cloudMessages, ...localOnlyMessages];
           });
         } else {
           setMessages(cloudMessages);
@@ -585,6 +612,101 @@ Please help me understand this document or answer questions based on it.`;
     return await handleSendMessage(prompt, conversationId);
   }, [handleSendMessage]);
 
+  const analyzeDocuments = useCallback(async (files: File[], caseId: string) => {
+    if (files.length === 0) return;
+
+    // 1. Create an optimistic processing message
+    const tempId = `analysis-${Date.now()}`;
+    const processingMsg: Message = {
+      id: tempId,
+      text: files.length > 1 ? `Analyzing ${files.length} documents...` : `Analyzing ${files[0].name}...`,
+      sender: CHAT_SENDER.USER,
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      status: 'processing',
+      isAnalysis: true
+    };
+
+    setMessages(prev => [...prev, processingMsg]);
+    setIsLoading(true);
+
+    try {
+      const summaries: string[] = [];
+      const newDocs: any[] = [];
+
+      for (const file of files) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, text: `Analyzing ${file.name}...` } : m));
+        
+        const data = await uploadAndAnalyzeDocument(
+          file,
+          process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+        );
+
+        summaries.push(data.ai_summary || "");
+        newDocs.push({
+          id: crypto.randomUUID(),
+          name: data.filename,
+          timestamp: Date.now(),
+          caseId: caseId,
+          aiSummary: data.ai_summary,
+          file_url: data.file_url,
+          s3_key: data.s3_key
+        });
+      }
+
+      // Save documents to DB
+      if (loggedIn && userId) {
+        await supabase.from('documents').insert(
+          newDocs.map(doc => ({
+            id: doc.id,
+            user_id: userId,
+            name: doc.name,
+            case_id: doc.caseId || null,
+            file_url: doc.file_url || null,
+            s3_key: doc.s3_key || null,
+            ai_summary: doc.aiSummary || null,
+          }))
+        ).select();
+      }
+
+      let finalSummary = summaries[0];
+      let finalName = newDocs[0].name;
+
+      if (summaries.length > 1) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, text: `Synthesizing ${summaries.length} documents...` } : m));
+        const synthesisResponse = await fetch('/api/proxy/api/legal/synthesize-documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ summaries }),
+        });
+        
+        const synthesisData = await synthesisResponse.json();
+        if (synthesisResponse.ok && synthesisData.success) {
+          finalSummary = synthesisData.synthesis;
+          finalName = `Batch Synthesis (${summaries.length} files)`;
+        }
+      }
+
+      const finalPrompt = `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed the following document(s): ${newDocs.map(d => d.name).join(', ')}.
+
+${summaries.length > 1 ? `**Combined Synthesis:**\n${finalSummary}` : `**Analysis for ${finalName}:**\n${finalSummary}`}
+
+Please help me understand these document(s) or answer questions based on them.`;
+
+      // 3. Update message to 'done' and send to AI
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsLoading(false); // handleSendMessage will set it back to true
+      await handleSendMessage(finalPrompt, caseId);
+
+    } catch (err: any) {
+      setMessages(prev => prev.map(m => m.id === tempId ? { 
+        ...m, 
+        text: `Error during analysis: ${err.message}`,
+        status: 'error' 
+      } : m));
+      setIsLoading(false);
+    }
+  }, [loggedIn, userId, supabase, handleSendMessage, setIsLoading, setMessages]);
+
   return (
     <ConversationContext.Provider
       value={{
@@ -623,6 +745,7 @@ Please help me understand this document or answer questions based on it.`;
         removeBookmark: handleRemoveBookmark,
         isBookmarked,
         sendDocumentToChat,
+        analyzeDocuments,
       }}
     >
       {children}

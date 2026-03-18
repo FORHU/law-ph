@@ -1,4 +1,4 @@
-import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark } from 'lucide-react';
+import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2 } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import { 
   DropdownMenu, 
@@ -214,7 +214,12 @@ export function MessageItem({
           )}
           
           <div className="text-sm md:text-base text-gray-100 leading-relaxed prose prose-invert max-w-none">
-            {message.text === "" && isAI ? (
+            {message.status === 'processing' ? (
+              <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                <Loader2 size={24} className="text-[#E0A7C2] animate-spin" />
+                <p className="text-sm font-medium text-[#E0A7C2] animate-pulse">{message.text}</p>
+              </div>
+            ) : message.text === "" && isAI ? (
               <div className="flex gap-1 py-1">
                 <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                 <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
