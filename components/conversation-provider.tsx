@@ -6,12 +6,8 @@ import { Conversation, ConsultationSession, CaseData } from "@/types"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useParams } from "next/navigation"
 import { CHAT_SENDER } from "@/lib/constants"
-<<<<<<< HEAD
 import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser'
-=======
-import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser'
 import { uploadAndAnalyzeDocument } from '@/lib/s3-utils'
->>>>>>> 5641d987f6dd1df6e37c5c7fa7958fe52e84211d
 import { 
   ConversationContext, 
   Message,

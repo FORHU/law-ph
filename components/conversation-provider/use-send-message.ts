@@ -1,5 +1,4 @@
-// Message Sending Logic Hook
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
 import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser';
@@ -55,17 +54,18 @@ export function useSendMessage({
       // Define internal async function to process the rest of the flow in the background
       const processMessage = async (activeSessionId: string | number, userMsgSaved: boolean) => {
         try {
-          // 1. Save user message to cloud
-          const { data: savedUserMsg, error: userMsgError } = await supabase
-            .from("messages")
-            .insert({
-              conversation_id: activeSessionId,
-              role: 'user',
-              content: currentInput
-            })
-            .select()
-            .single();
-
+          // 1. Save user message to cloud if not already saved
+          if (!userMsgSaved && supabase) {
+            const { data: savedUserMsg, error: userMsgError } = await supabase
+              .from("messages")
+              .insert({
+                conversation_id: activeSessionId,
+                role: 'user',
+                content: currentInput
+              })
+              .select()
+              .single();
+  
             if (!userMsgError && savedUserMsg) {
               setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
             }
@@ -82,8 +82,6 @@ export function useSendMessage({
 
           setMessages(prev => [...prev, initialAiMessage]);
           
-
-
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
           }
@@ -178,7 +176,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                 currentChatSessionId = await refreshSession() || "";
               }
 
-              let response = await doFetch(currentChatSessionId);
+              let response = await doFetch(currentChatSessionId || "");
               if (response.status === 404 || response.status === 400 || response.status === 403) {
                 currentChatSessionId = await refreshSession() || "";
                 if (currentChatSessionId) response = await doFetch(currentChatSessionId);

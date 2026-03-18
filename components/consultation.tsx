@@ -248,7 +248,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
-<<<<<<< HEAD
   const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
   let activeMindMap = latestMindMapMessage?.mindMap;
 
@@ -314,7 +313,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       ]
     };
   }
-=======
+
   const handleTabChange = (tab: typeof globalTab) => {
     if (tab !== 'chat' && globalTab === 'chat') {
       // Save scroll position before leaving chat
@@ -330,7 +329,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       }, 0);
     }
   };
->>>>>>> 5641d987f6dd1df6e37c5c7fa7958fe52e84211d
 
   const onSendMessage = (msg: string) => {
     if (msg.trim()) {
