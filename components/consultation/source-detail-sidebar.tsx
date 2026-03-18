@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark } from 'lucide-react';
+import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark, Mic } from 'lucide-react';
 import { LegalSource, RelatedCase, isGenericTitle, extractTitleFromContent, cleanLegalTitle } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
 import { COLORS } from '@/lib/constants';
@@ -21,6 +21,7 @@ interface SourceDetailSidebarProps {
 export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context }: SourceDetailSidebarProps) {
   const [content, setContent] = useState<LegalContentDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [localVoiceNotes, setLocalVoiceNotes] = useState<{ id: string; url: string; label?: string }[]>([]);
   const { addBookmark, removeBookmark, isBookmarked } = useConversations();
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
@@ -57,8 +58,11 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
             reference: '',
             fullText: caseItem.description,
           };
+          // Capture voice notes passed along with the local case
+          setLocalVoiceNotes((caseItem as any).voiceNotes || []);
         } else {
           detail = await fetchCaseContent(caseItem, context);
+          setLocalVoiceNotes([]);
         }
       } else {
         return;
@@ -319,6 +323,32 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                       </ReactMarkdown>
                     )}
                   </div>
+
+                  {/* Voice Recordings — shown only for local cases */}
+                  {(caseItem as any)?.isLocalCase && localVoiceNotes.length > 0 && (
+                    <div className="pt-4 border-t border-white/10">
+                      <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <Mic size={14} className="text-[#E0A7C2]" />
+                        Voice Recordings ({localVoiceNotes.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {localVoiceNotes.map((note, idx) => (
+                          <div key={note.id || idx} className="p-3 bg-black/30 rounded-xl border border-white/5">
+                            <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
+                              <Mic size={10} className="text-[#8B4564]" />
+                              {note.label || `Voice Note #${idx + 1}`}
+                            </p>
+                            <audio
+                              controls
+                              src={note.url}
+                              controlsList="nodownload"
+                              className="h-9 w-full"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* External Link */}
                   {content.url && (

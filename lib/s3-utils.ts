@@ -65,3 +65,42 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Pro
     truncated: data.truncated,
   };
 }
+
+/**
+ * Uploads a voice recording blob to S3.
+ * 
+ * @param blob The audio blob to upload
+ * @param filename Optional filename
+ * @returns Promise resolving to the permanent file URL
+ */
+export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<string> {
+  const name = filename || `recording-${Date.now()}.webm`;
+  
+  // Step 1: Get S3 presigned URL
+  const urlResponse = await fetch(`/api/proxy/api/legal/document-upload-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: name,
+      content_type: blob.type || 'audio/webm',
+    }),
+  });
+
+  const urlData = await urlResponse.json();
+  if (!urlResponse.ok || !urlData.success) {
+    throw new Error(urlData.detail || urlData.error || `Failed to get upload URL for voice note`);
+  }
+
+  // Step 2: Upload blob directly to S3
+  const s3Response = await fetch(urlData.url, {
+    method: 'PUT',
+    headers: { 'Content-Type': urlData.content_type },
+    body: blob,
+  });
+
+  if (!s3Response.ok && s3Response.status !== 204) {
+    throw new Error(`Failed to upload voice note to S3.`);
+  }
+
+  return urlData.file_url;
+}
