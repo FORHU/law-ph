@@ -21,6 +21,7 @@ interface PageLayoutProps {
   onTitleChange?: (title: string) => void;
   maxWidth?: string;
   showSidebar?: boolean;
+  onBack?: () => void;
 }
 
 export function PageLayout({
@@ -36,7 +37,8 @@ export function PageLayout({
   isEditable = false,
   onTitleChange,
   maxWidth = "max-w-4xl",
-  showSidebar = true
+  showSidebar = true,
+  onBack
 }: PageLayoutProps) {
   const { isSidebarOpen, setIsSidebarOpen } = useConversations();
 
@@ -77,6 +79,7 @@ export function PageLayout({
           onTitleChange={onTitleChange}
           showSubtitle={!!subtitle}
           actions={headerActions}
+          onBack={onBack}
         />
 
         <div className="flex-1 relative z-10 flex flex-col overflow-hidden">

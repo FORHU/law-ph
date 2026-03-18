@@ -13,6 +13,7 @@ interface ConsultationHeaderProps {
   onTitleChange?: (newTitle: string) => void;
   showSubtitle?: boolean;
   actions?: React.ReactNode;
+  onBack?: () => void;
 }
 
 export function ConsultationHeader({ 
@@ -24,6 +25,7 @@ export function ConsultationHeader({
   onTitleChange,
   showSubtitle = true,
   actions,
+  onBack,
 }: ConsultationHeaderProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -68,9 +70,8 @@ export function ConsultationHeader({
             </button>
           )}
           <button 
-            onClick={() => router.back()}
+            onClick={onBack || (() => router.push('/consultation'))}
             className="p-1.5 md:p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group"
-            title="Go Home"
           >
             <ArrowLeft size={20} className="text-gray-400 group-hover:text-[#E0A7C2]" />
           </button>

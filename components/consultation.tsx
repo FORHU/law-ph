@@ -80,11 +80,39 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const handleViewCaseDetails = () => {
     if (activeCase) {
       setIsSidebarOpen(false);
+
+      // Collect all voice notes from every message in this case
+      const allVoiceNotes: { id: string; url: string; label?: string; messageTime?: string }[] = [];
+      messages.forEach((msg) => {
+        const notes = msg.voiceNotes || (msg.recordingUrl ? [{ id: 'legacy', url: msg.recordingUrl }] : []);
+        notes.forEach((note: any, idx: number) => {
+          allVoiceNotes.push({
+            id: note.id,
+            url: note.url,
+            label: note.label || `Recording from ${msg.time || 'unknown time'}${notes.length > 1 ? ` (#${idx + 1})` : ''}`,
+            messageTime: msg.time,
+          });
+        });
+      });
+
+      // Collect all transcribed text (text from user messages that were sent via voice/transcription)
+      const transcribedTexts = messages
+        .filter(m => m.sender === 'user' && m.voiceNotes && m.voiceNotes.length > 0 && m.text && !m.text.startsWith('[Case Analysis Request]'))
+        .map(m => m.text.trim())
+        .filter(Boolean);
+
+      let description = `**Party Involved:** ${activeCase.party_involved || 'N/A'}\n\n**Notes:**\n${activeCase.notes || 'None provided'}`;
+
+      if (transcribedTexts.length > 0) {
+        description += `\n\n---\n\n**Transcribed Audio Notes:**\n${transcribedTexts.map((t, i) => `${i + 1}. ${t}`).join('\n\n')}`;
+      }
+
       openCaseDetail({
         caseNumber: activeCase.id.toString(),
         title: activeCase.case_name,
-        description: `Party Involved: ${activeCase.party_involved || 'N/A'}\n\nNotes:\n${activeCase.notes || 'None provided'}`,
-        isLocalCase: true
+        description,
+        isLocalCase: true,
+        voiceNotes: allVoiceNotes,
       } as any);
     }
   };
@@ -96,6 +124,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
 
   const prevMessagesLengthRef = useRef(messages.length);
+  const chatScrollPositionRef = useRef<number>(0);
 
   // Auto-scroll logic: scroll to top of new AI messages, bottom for user messages
   useEffect(() => {
@@ -219,6 +248,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
+<<<<<<< HEAD
   const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
   let activeMindMap = latestMindMapMessage?.mindMap;
 
@@ -284,16 +314,33 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       ]
     };
   }
+=======
+  const handleTabChange = (tab: typeof globalTab) => {
+    if (tab !== 'chat' && globalTab === 'chat') {
+      // Save scroll position before leaving chat
+      chatScrollPositionRef.current = scrollContainerRef.current?.scrollTop ?? 0;
+    }
+    setGlobalTab(tab);
+    if (tab === 'chat') {
+      // Restore scroll position when returning to chat
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = chatScrollPositionRef.current;
+        }
+      }, 0);
+    }
+  };
+>>>>>>> 5641d987f6dd1df6e37c5c7fa7958fe52e84211d
 
   const onSendMessage = (msg: string) => {
     if (msg.trim()) {
       handleSendMessage(msg);
-      setGlobalTab('chat'); // Switch back to chat on new message
+      handleTabChange('chat'); // Switch back to chat on new message
     }
   };
 
   const handleDocumentAnalyzed = (content: string, filename: string) => {
-    setGlobalTab('chat');
+    handleTabChange('chat');
     // If the content already looks like an AI analysis (has markdown headers), ask for follow-up discussion
     // Otherwise, ask for a full analysis of the raw document text
     const isPreAnalyzed = content.includes('## ');
@@ -362,6 +409,13 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
           handleRenameConsultation(currentConsultationId, newTitle);
         }
       }}
+      onBack={() => {
+        if (!currentConsultationId && !isCaseMode) {
+          router.push('/');
+        } else {
+          handleNewConsultation();
+        }
+      }}
       headerActions={(
         <div className="flex items-center gap-2">
           {isCaseMode && activeCase && messages.length > 0 && (
@@ -428,7 +482,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
               <MessageList
                 messages={messages.map(m => {
                   if (m.sender === CHAT_SENDER.USER && m.text.startsWith('[Case Analysis Request]')) {
-                    return { ...m, text: 'Requesting AI Case Analysis...' };
+                    return { ...m, text: activeCase ? `Requesting AI analysis for "${activeCase.case_name}"...` : 'Requesting AI Case Analysis...' };
                   }
                   return m;
                 })}
@@ -719,7 +773,7 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
           onSend={onSendMessage}
           disabled={isLoading}
           activeTab={globalTab}
-          onTabChange={setGlobalTab}
+          onTabChange={handleTabChange}
           hasMessages={messages.length > 0}
           isCaseMode={isCaseMode}
         />

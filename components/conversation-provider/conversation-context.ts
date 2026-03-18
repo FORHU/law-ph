@@ -20,10 +20,16 @@ export interface Message {
   editedBy?: string;
   highlights?: { id: string, snippet: string, note: string }[];
   isAnalysis?: boolean;
+<<<<<<< HEAD
   mindMap?: any;
+=======
+  status?: 'pending' | 'processing' | 'done' | 'error';
+>>>>>>> 5641d987f6dd1df6e37c5c7fa7958fe52e84211d
 }
 
 export type ConversationContextType = {
+  // ... (keeping existing)
+  analyzeDocuments: (files: File[], caseId: string) => Promise<void>;
   // Supabase/Cloud state
   conversations: Conversation[];
   refreshConversations: () => Promise<void>;
