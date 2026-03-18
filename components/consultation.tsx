@@ -220,7 +220,70 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
   const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
-  const activeMindMap = latestMindMapMessage?.mindMap;
+  let activeMindMap = latestMindMapMessage?.mindMap;
+
+  // Pre-define map if none exists and we have an active case
+  if (!activeMindMap && activeCase) {
+    const partyLabels = (activeCase.party_involved || "").split(/[,\/]/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0)
+      .map((p, i) => ({
+        id: `party-role-${i}`,
+        label: `Principal Party`,
+        children: [{
+          id: `party-name-${i}`,
+          label: p,
+          children: []
+        }]
+      }));
+
+    const noteLines = (activeCase.notes || "").split(/[.\n]/)
+      .map(l => l.trim())
+      .filter(l => l.length > 15)
+      .slice(0, 6);
+
+    const factNodes = noteLines.map((l, i) => ({
+      id: `fact-${i}`,
+      label: l.length > 55 ? l.substring(0, 55) + "..." : l,
+      children: []
+    }));
+
+    activeMindMap = {
+      id: 'root',
+      label: activeCase.case_name || 'Case Analysis',
+      children: [
+        {
+          id: 'c1',
+          label: 'Key Parties',
+          children: partyLabels
+        },
+        {
+          id: 'c3',
+          label: 'Evidence & Facts',
+          children: factNodes.length > 0 ? factNodes : [
+            { id: 'e-empty', label: 'Extracting key evidence...', children: [] },
+            { id: 'f-empty', label: 'Identifying material facts...', children: [] }
+          ]
+        },
+        {
+          id: 'c2',
+          label: 'Legal Strategy',
+          children: [
+            { id: 's1', label: 'Theoretical Basis', children: [] },
+            { id: 's2', label: 'Actionable Steps', children: [] }
+          ]
+        },
+        {
+          id: 'c4',
+          label: 'Laws & Jurisprudence',
+          children: [
+            { id: 'l1', label: 'Relevant Statutes', children: [] },
+            { id: 'l2', label: 'Case Jurisprudence', children: [] }
+          ]
+        }
+      ]
+    };
+  }
 
   const onSendMessage = (msg: string) => {
     if (msg.trim()) {

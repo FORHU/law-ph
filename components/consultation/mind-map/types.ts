@@ -2,7 +2,8 @@ import { MindMapThemeType } from './constants';
 
 export interface MapNode {
   id: string;
-  text: string;
+  text?: string;
+  label?: string;
   color?: string;
   children: MapNode[];
 }

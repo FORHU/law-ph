@@ -115,12 +115,12 @@ export function useSendMessage({
 
 ---
 [SYSTEM INSTRUCTION - RESPONSE FORMAT]:
-1. Provide a professional prose answer first.
-2. If relevant to the case, you MUST append a structured LEGAL STRATEGY MAP (Mind Map) using the [MINDMAP] tag.
-3. If relevant, append an ACTION TIMELINE using the [TIMELINE] tag.
-4. IMPORTANT: Always include a dedicated branch for "Key Parties" in the mind map. If an attorney's name or any key legal personnel is identified, you MUST nest them logically: "Key Parties" -> "Attorneys/Legal Team" -> "[Full Name]".
-5. Under the Attorney's name, you MUST branch further to include their "Law Firm" and "Contact Number" if they are provided in the conversation.
-6. If the user's inquiry relates to filing a case, you MUST include a "Filing Requirements" branch. This should cover: (a) Jurisdiction/Venue, (b) Necessary Documents (Verification, Certification Against Forum Shopping), and (c) Specific Case Relief (The Prayer).
+4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
+   - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
+   - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
+   - "Evidence & Facts": Extract key facts and pieces of evidence.
+   - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
+5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction/Venue, (b) Mandatory Attachments (Verification), and (c) Relief Sought (The Prayer).
 
 The tags MUST be at the very bottom and look like this:
 
@@ -133,55 +133,13 @@ The tags MUST be at the very bottom and look like this:
       "id": "c1",
       "label": "Key Parties",
       "children": [
-        { "id": "p1", "label": "Plaintiff/Complainant", "children": [] },
-        { "id": "p2", "label": "Defendant/Respondent", "children": [] },
-        { 
-          "id": "atty_root", 
-          "label": "Attorneys", 
-          "children": [
-            {
-              "id": "a1",
-              "label": "Atty. [Name]",
-              "children": [
-                { "id": "a1_firm", "label": "[Law Firm Name]", "children": [] },
-                { "id": "a1_contact", "label": "[Phone/Email]", "children": [] }
-              ]
-            }
-          ] 
-        }
+        { "id": "p1_role", "label": "Plaintiff/Complainant", "children": [{ "id": "p1_name", "label": "[Name]", "children": [] }] },
+        { "id": "atty_root", "label": "Legal Team", "children": [{ "id": "a1", "label": "Counsel", "children": [{"id": "a1_name", "label": "Atty. [Name]", "children": []}] }] }
       ]
     },
-    {
-      "id": "c2",
-      "label": "Legal Strategy",
-      "children": [{"id": "s1", "label": "Defense Strategy", "children": []}]
-    },
-    {
-      "id": "c3",
-      "label": "Filing Requirements",
-      "children": [
-        { "id": "f1", "label": "Jurisdiction & Venue", "children": [] },
-        { "id": "f2", "label": "Relief Sought (Prayer)", "children": [] },
-        { 
-          "id": "f3", 
-          "label": "Mandatory Attachments", 
-          "children": [
-            { "id": "f3_1", "label": "Verification", "children": [] },
-            { "id": "f3_2", "label": "Certification vs Forum Shopping", "children": [] }
-          ] 
-        }
-      ]
-    },
-    {
-      "id": "c4",
-      "label": "Laws & Jurisprudence",
-      "children": []
-    },
-    { 
-      "id": "c5", 
-      "label": "Key Evidence", 
-      "children": [] 
-    }
+    { "id": "c2", "label": "Legal Strategy", "children": [{ "id": "s1", "label": "Defense Strategy", "children": [] }] },
+    { "id": "c3", "label": "Evidence & Facts", "children": [{ "id": "e1", "label": "Key Evidence", "children": [] }] },
+    { "id": "c4", "label": "Laws & Jurisprudence", "children": [] }
   ]
 }
 [/MINDMAP]
@@ -190,7 +148,7 @@ The tags MUST be at the very bottom and look like this:
 [{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]
 [/TIMELINE]
 
-CRITICAL: Do not just return the root for the Mind Map. Include at least 3 main category branches to visualize the strategy properly.`;
+CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
 
              return fetch('/api/chat/stream', {
               method: 'POST',
