@@ -1,8 +1,7 @@
-// Message Sending Logic Hook
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases, extractTimeline } from '@/lib/citation-parser';
+import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
 
 interface UseSendMessageParams {
@@ -18,7 +17,7 @@ interface UseSendMessageParams {
   userId: string | undefined;
   fetchConversations: () => Promise<void>;
   mapCloudMessage: (msg: any) => Message;
-  supabase: ReturnType<typeof createClient>;
+  supabase: ReturnType<typeof createClient> | null;
 }
 
 export function useSendMessage({
@@ -39,7 +38,7 @@ export function useSendMessage({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = useCallback(async (text: string, targetConversationId?: string | number): Promise<string | number | undefined> => {
-    if (text.trim() && !isLoading) {
+    if (text.trim() && !isLoading && supabase) {
       setIsLoading(true); 
       const currentInput = text.trim();
       const newMessage = {
@@ -55,8 +54,8 @@ export function useSendMessage({
       // Define internal async function to process the rest of the flow in the background
       const processMessage = async (activeSessionId: string | number, userMsgSaved: boolean) => {
         try {
-          if (!userMsgSaved) {
-            // 1. Save user message to cloud if not already saved
+          // 1. Save user message to cloud if not already saved
+          if (!userMsgSaved && supabase) {
             const { data: savedUserMsg, error: userMsgError } = await supabase
               .from("messages")
               .insert({
@@ -66,7 +65,7 @@ export function useSendMessage({
               })
               .select()
               .single();
-
+  
             if (!userMsgError && savedUserMsg) {
               setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
             }
@@ -83,8 +82,6 @@ export function useSendMessage({
 
           setMessages(prev => [...prev, initialAiMessage]);
           
-
-
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
           }
@@ -113,7 +110,45 @@ export function useSendMessage({
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
-             const payloadUserInput = `[Legal AI] ${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. Do NOT write it as a numbered list, bullet points, or any other Markdown format. The ONLY accepted format is:\n[TIMELINE]\n[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]\n[/TIMELINE]\nThe first item MUST always be {"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}. Do not include any timeline text in the conversation prose itself.`;
+             const payloadUserInput = `${currentInput}
+
+---
+[SYSTEM INSTRUCTION - RESPONSE FORMAT]:
+4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
+   - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
+   - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
+   - "Evidence & Facts": Extract key facts and pieces of evidence.
+   - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
+5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction/Venue, (b) Mandatory Attachments (Verification), and (c) Relief Sought (The Prayer).
+
+The tags MUST be at the very bottom and look like this:
+
+[MINDMAP]
+{
+  "id": "root",
+  "label": "Case Analysis",
+  "children": [
+    {
+      "id": "c1",
+      "label": "Key Parties",
+      "children": [
+        { "id": "p1_role", "label": "Plaintiff/Complainant", "children": [{ "id": "p1_name", "label": "[Name]", "children": [] }] },
+        { "id": "atty_root", "label": "Legal Team", "children": [{ "id": "a1", "label": "Counsel", "children": [{"id": "a1_name", "label": "Atty. [Name]", "children": []}] }] }
+      ]
+    },
+    { "id": "c2", "label": "Legal Strategy", "children": [{ "id": "s1", "label": "Defense Strategy", "children": [] }] },
+    { "id": "c3", "label": "Evidence & Facts", "children": [{ "id": "e1", "label": "Key Evidence", "children": [] }] },
+    { "id": "c4", "label": "Laws & Jurisprudence", "children": [] }
+  ]
+}
+[/MINDMAP]
+
+[TIMELINE]
+[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]
+[/TIMELINE]
+
+CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
+
              return fetch('/api/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -129,7 +164,7 @@ export function useSendMessage({
           let sources: any[] | undefined;
           let relatedCases: any[] | undefined;
           let timeline: any[] | undefined;
-          let savedAiMsgId: string | null = null;
+          let mindMap: any | undefined;
           let aiResponseSuccessful = false;
           
           let retryCount = 0;
@@ -141,7 +176,7 @@ export function useSendMessage({
                 currentChatSessionId = await refreshSession() || "";
               }
 
-              let response = await doFetch(currentChatSessionId);
+              let response = await doFetch(currentChatSessionId || "");
               if (response.status === 404 || response.status === 400 || response.status === 403) {
                 currentChatSessionId = await refreshSession() || "";
                 if (currentChatSessionId) response = await doFetch(currentChatSessionId);
@@ -201,9 +236,11 @@ export function useSendMessage({
                 sources = extractLegalSources(accumulatedText);
                 relatedCases = extractRelatedCases(accumulatedText);
                 timeline = extractTimeline(accumulatedText);
+                mindMap = extractMindMap(accumulatedText);
                 
                 let cleanText = accumulatedText.trim();
                 cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
+                cleanText = cleanText.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, '').trim();
                 cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
                 cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
 
@@ -216,7 +253,8 @@ export function useSendMessage({
                       text: cleanText,
                       sources,
                       relatedCases,
-                      timeline
+                      timeline,
+                      mindMap
                     };
                   }
                   return updated;
@@ -240,17 +278,16 @@ export function useSendMessage({
           }
 
           // 3. Final cleanup and save AI message
-          let finalCleanText = accumulatedText.trim();
-          finalCleanText = finalCleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
-          finalCleanText = finalCleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
-          finalCleanText = finalCleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
+          const rawAiText = accumulatedText.trim();
+
+          if (!supabase) return;
 
           const { data: savedAiMsg, error: aiMsgError } = await supabase
             .from("messages")
             .insert({
               conversation_id: activeSessionId,
               role: 'assistant',
-              content: finalCleanText
+              content: rawAiText
             })
             .select()
             .single();
@@ -292,6 +329,11 @@ export function useSendMessage({
           }
         } catch (e) {}
         
+        if (!supabase) {
+          setIsLoading(false);
+          return;
+        }
+
         const { data: convData, error: convError } = await supabase
           .from("conversations")
           .insert({ user_id: userId, title: conversationTitle })

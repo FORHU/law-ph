@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase, PenTool } from 'lucide-react';
+import { MessageSquare, History, GitGraph, Mail, Calendar, Sparkles, Briefcase, PenTool, Layout } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from '@/lib/constants';
 import { Session } from '@supabase/supabase-js';
@@ -248,6 +248,72 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
 
+  const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
+  let activeMindMap = latestMindMapMessage?.mindMap;
+
+  // Pre-define map if none exists and we have an active case
+  if (!activeMindMap && activeCase) {
+    const partyLabels = (activeCase.party_involved || "").split(/[,\/]/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0)
+      .map((p, i) => ({
+        id: `party-role-${i}`,
+        label: `Principal Party`,
+        children: [{
+          id: `party-name-${i}`,
+          label: p,
+          children: []
+        }]
+      }));
+
+    const noteLines = (activeCase.notes || "").split(/[.\n]/)
+      .map(l => l.trim())
+      .filter(l => l.length > 15)
+      .slice(0, 6);
+
+    const factNodes = noteLines.map((l, i) => ({
+      id: `fact-${i}`,
+      label: l.length > 55 ? l.substring(0, 55) + "..." : l,
+      children: []
+    }));
+
+    activeMindMap = {
+      id: 'root',
+      label: activeCase.case_name || 'Case Analysis',
+      children: [
+        {
+          id: 'c1',
+          label: 'Key Parties',
+          children: partyLabels
+        },
+        {
+          id: 'c3',
+          label: 'Evidence & Facts',
+          children: factNodes.length > 0 ? factNodes : [
+            { id: 'e-empty', label: 'Extracting key evidence...', children: [] },
+            { id: 'f-empty', label: 'Identifying material facts...', children: [] }
+          ]
+        },
+        {
+          id: 'c2',
+          label: 'Legal Strategy',
+          children: [
+            { id: 's1', label: 'Theoretical Basis', children: [] },
+            { id: 's2', label: 'Actionable Steps', children: [] }
+          ]
+        },
+        {
+          id: 'c4',
+          label: 'Laws & Jurisprudence',
+          children: [
+            { id: 'l1', label: 'Relevant Statutes', children: [] },
+            { id: 'l2', label: 'Case Jurisprudence', children: [] }
+          ]
+        }
+      ]
+    };
+  }
+
   const handleTabChange = (tab: typeof globalTab) => {
     if (tab !== 'chat' && globalTab === 'chat') {
       // Save scroll position before leaving chat
@@ -364,9 +430,9 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
       <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2 scroll-smooth landscape:py-2"
+          className={`flex-1 ${globalTab === 'mindmap' ? 'overflow-hidden' : 'overflow-y-auto'} ${globalTab === 'mindmap' ? 'px-2 md:px-4 py-2' : 'px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2'} scroll-smooth landscape:py-2`}
         >
-          <div className={`max-w-4xl mx-auto ${messages.length === 0 ? 'h-full flex flex-col justify-start pt-4 md:pt-8' : ''}`}>
+          <div className={`${globalTab === 'mindmap' ? 'max-w-7xl' : 'max-w-4xl'} mx-auto ${messages.length === 0 ? 'h-full flex flex-col justify-start pt-4 md:pt-8' : ''}`}>
             <AnimatePresence mode="wait">
               {messages.length === 0 && (
                 <motion.div
@@ -660,8 +726,23 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 />
               </div>
             ) : (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mt-4">
-                 <MindMap rootTitle={activeCase ? activeCase.case_name : "Case Analysis"} />
+              <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 w-full ${globalTab === 'mindmap' ? 'mt-2' : 'mt-4'}`}>
+                 <MindMap 
+                   rootTitle={activeCase ? activeCase.case_name : "Case Analysis"} 
+                   data={activeMindMap}
+                 />
+                 
+                 {!activeMindMap && messages.length > 0 && (
+                   <div className="mt-4 flex justify-center">
+                     <button 
+                       onClick={() => handleSendMessage("Please generate a visual strategy map for this case.")}
+                       className="bg-[#8B4564]/20 hover:bg-[#8B4564]/40 border border-[#8B4564]/50 text-[#E0A7C2] px-6 py-3 rounded-xl flex items-center gap-2 transition-all group"
+                     >
+                       <Layout className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                       <span className="font-semibold text-sm">Generate Strategy Map</span>
+                     </button>
+                   </div>
+                 )}
               </div>
             )}
           </div>

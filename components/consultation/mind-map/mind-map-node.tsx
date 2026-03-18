@@ -24,12 +24,12 @@ export function MindMapNode({
   editingId
 }: MindMapNodeProps) {
   const isEditing = editingId === node.id;
-  const [editText, setEditText] = useState(node.text);
+  const [editText, setEditText] = useState(node.label || node.text || "");
   
   // Keep local input state synced when edit mode begins
   React.useEffect(() => {
-    if (isEditing) setEditText(node.text);
-  }, [isEditing, node.text]);
+    if (isEditing) setEditText(node.label || node.text || "");
+  }, [isEditing, node.label, node.text]);
 
   const handleSave = () => {
     onSave(node.id, editText);
@@ -48,7 +48,7 @@ export function MindMapNode({
     >
       {/* The Node Box */}
       <div 
-        className={`relative group flex items-center gap-2 p-3 rounded-xl border-2 backdrop-blur-md min-w-[140px] max-w-[220px] transition-all hover:z-20 cursor-grab active:cursor-grabbing \${node.color || MIND_MAP_COLORS[0]}`}
+        className={`relative group flex items-center gap-3 p-4 rounded-2xl border-2 backdrop-blur-xl min-w-[160px] max-w-[280px] transition-all duration-300 hover:scale-105 hover:z-20 cursor-grab active:cursor-grabbing ${isRoot ? 'ring-4 ring-[#8B4564]/30' : ''} ${node.color || MIND_MAP_COLORS[0]}`}
       >
         {isEditing ? (
           <div className="flex items-center gap-1 w-full" onPointerDownCapture={(e) => e.stopPropagation()}>
@@ -65,21 +65,20 @@ export function MindMapNode({
           </div>
         ) : (
           <div className="flex justify-between items-center w-full gap-2">
-            <span className="text-sm font-medium leading-tight break-words flex-1 cursor-text" onDoubleClick={() => onEdit(node.id, node.text)}>
-              {node.text}
+            <span className="text-sm font-bold tracking-tight leading-tight break-words flex-1 cursor-text text-white drop-shadow-sm" onDoubleClick={() => onEdit(node.id, node.label || node.text || "")}>
+              {node.label || node.text || "Untitled Node"}
             </span>
             
-            {/* Action Buttons (Visible on Hover) */}
-            <div className="flex opacity-0 group-hover:opacity-100 transition-opacity gap-1 bg-black/60 p-1 rounded-lg absolute -top-8 right-0 shadow-lg" onPointerDownCapture={(e) => e.stopPropagation()}>
-              <button onClick={() => onEdit(node.id, node.text)} className="p-1 hover:bg-white/20 rounded text-gray-300 transition-colors" title="Edit">
-                <Edit2 size={12} />
+            <div className="flex opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 gap-1.5 bg-black/80 p-1.5 rounded-xl absolute -top-10 right-0 shadow-2xl border border-white/10 backdrop-blur-md" onPointerDownCapture={(e) => e.stopPropagation()}>
+              <button onClick={() => onEdit(node.id, node.label || node.text || "")} className="p-1.5 hover:bg-white/20 rounded-lg text-gray-300 transition-colors" title="Edit">
+                <Edit2 size={14} />
               </button>
-              <button onClick={() => onAdd(node.id)} className="p-1 hover:bg-white/20 rounded text-blue-300 transition-colors" title="Add Child">
-                <Plus size={12} />
+              <button onClick={() => onAdd(node.id)} className="p-1.5 hover:bg-white/20 rounded-lg text-blue-300 transition-colors" title="Add Child">
+                <Plus size={14} />
               </button>
               {!isRoot && (
-                <button onClick={() => onDelete(node.id)} className="p-1 hover:bg-white/20 rounded text-red-400 transition-colors" title="Delete">
-                  <X size={12} />
+                <button onClick={() => onDelete(node.id)} className="p-1.5 hover:bg-white/20 rounded-lg text-red-400 transition-colors" title="Delete">
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -88,15 +87,15 @@ export function MindMapNode({
 
         {/* Connection line dot for children output */}
         {node.children.length > 0 && (
-          <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#1A1A1A] border-2 border-[inherit] z-10 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-[inherit]" />
+          <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#0A0A0A] border-2 border-[inherit] z-10 flex items-center justify-center shadow-lg">
+            <div className="w-2 h-2 rounded-full bg-white opacity-80 animate-pulse" />
           </div>
         )}
         
         {/* Connection line dot for parent input */}
         {!isRoot && (
-          <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#1A1A1A] border-2 border-[inherit] z-10 flex items-center justify-center">
-             <div className="w-1.5 h-1.5 rounded-full bg-[inherit]" />
+          <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#0A0A0A] border-2 border-[inherit] z-10 flex items-center justify-center shadow-lg">
+             <div className="w-2 h-2 rounded-full bg-white opacity-80" />
           </div>
         )}
       </div>
