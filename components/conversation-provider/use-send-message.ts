@@ -114,6 +114,8 @@ export function useSendMessage({
 
 ---
 [SYSTEM INSTRUCTION - RESPONSE FORMAT]:
+Current System Date: ${new Date().toISOString().split('T')[0]}
+
 4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
    - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
    - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
@@ -143,10 +145,15 @@ The tags MUST be at the very bottom and look like this:
 }
 [/MINDMAP]
 
-[TIMELINE]
-[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]
-[/TIMELINE]
+6. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". If a pending step strictly requires the previous step to be finished first, add "requires_previous": true to that object. Otherwise, set it to false.
 
+[TIMELINE]
+[
+  {"title":"Case Assessment","date":"2023-01-01","description":"Initial review of notes and basic legal mapping.","status":"completed", "requires_previous": false},
+  {"title":"Sending Demand Letter","date":"","description":"Drafting and serving formal demand to the opposing party.","status":"pending", "requires_previous": true},
+  {"title":"Filing of Complaint","date":"","description":"Filing the civil case in court if no settlement is reached.","status":"pending", "requires_previous": true}
+]
+[/TIMELINE]
 CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
 
              return fetch('/api/chat/stream', {

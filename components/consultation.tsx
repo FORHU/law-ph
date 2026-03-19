@@ -23,6 +23,7 @@ import { SourceDetailSidebar } from './consultation/source-detail-sidebar';
 import { NoteSidebar } from './consultation/note-sidebar';
 import { MindMap } from './consultation/mind-map';
 import { DocumentAnalyzer } from './consultation/document-analyzer';
+import { Timeline } from '@/components/ui/timeline';
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -246,7 +247,41 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
   const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
 
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
-  const activeTimeline = latestTimelineMessage?.timeline || [];
+  let activeTimeline = latestTimelineMessage?.timeline || [];
+
+  // Pre-define timeline if none exists (or if it's just the default 1-item placeholder) and we have an active case
+  const isBasicPlaceholder = activeTimeline.length === 1 && (activeTimeline[0].title === "Created Case" || activeTimeline[0].title === "Case Created");
+  if ((activeTimeline.length === 0 || isBasicPlaceholder) && activeCase) {
+    const caseDate = activeCase.created_at 
+      ? new Date(activeCase.created_at).toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0];
+    
+    activeTimeline = [
+      {
+        date: caseDate,
+        title: "Case Created",
+        description: `Case "${activeCase.case_name || 'Untitled'}" was opened. Parties involved: ${activeCase.party_involved || 'Not specified'}.`,
+        status: "completed",
+        requires_previous: false
+      },
+      {
+        date: "",
+        title: "Initial Analysis",
+        description: activeCase.notes && activeCase.notes.length > 10 
+          ? `Reviewing initial notes: "${activeCase.notes.substring(0, 120)}${activeCase.notes.length > 120 ? '...' : ''}"`
+          : "Analyzing case details and identifying material facts.",
+        status: "pending",
+        requires_previous: false
+      },
+      {
+        date: "",
+        title: "Strategic Planning",
+        description: "Awaiting AI to establish theoretical basis and actionable steps.",
+        status: "pending",
+        requires_previous: true
+      }
+    ];
+  }
 
   const latestMindMapMessage = [...messages].reverse().find(m => m.mindMap && Object.keys(m.mindMap).length > 0);
   let activeMindMap = latestMindMapMessage?.mindMap;
@@ -509,53 +544,9 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 onSendMessage={handleSendMessage}
               />
             ) : globalTab === 'timeline' ? (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
                 {activeTimeline.length > 0 ? (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                      <GitGraph className="text-[#E0A7C2]" /> Case Timeline
-                    </h2>
-                    <div className="relative border-l-2 border-[#8B4564]/30 ml-[4.5rem] md:ml-[6rem] space-y-8 pb-8">
-                      {(() => {
-                        let lastDate = "";
-                        return activeTimeline.map((item: any, i: number) => {
-                          const showDate = item.date && item.date !== lastDate;
-                          if (item.date) lastDate = item.date;
-                          
-                          return (
-                            <div key={i} className="relative pl-6 md:pl-8">
-                              {showDate && (
-                                <div className="absolute -left-[4.5rem] md:-left-[6rem] top-1.5 w-[3.5rem] md:w-[5rem] text-right pr-2 md:pr-4">
-                                  <span className="text-[10px] md:text-[11px] font-bold text-[#E0A7C2] block leading-tight">
-                                    {item.date}
-                                  </span>
-                                </div>
-                              )}
-                              
-                              <div className={`absolute -left-[9px] top-1.5 w-4 h-4 rounded-full border-2 border-[#1A1A1A] ${
-                                item.status === 'completed' ? 'bg-[#10B981]' : 
-                                item.status === 'active' ? 'bg-[#F59E0B]' : 'bg-[#8B4564]/50'
-                              }`} />
-                              <div className={`bg-[#2A2A2A] p-5 rounded-xl border border-white/5 shadow-md ${
-                                item.status === 'active' ? 'ring-1 ring-[#F59E0B]/50' : ''
-                              }`}>
-                                <div className="flex justify-between items-start mb-2">
-                                  <h3 className="font-semibold text-base md:text-lg text-white">{item.title}</h3>
-                                  <span className={`text-[10px] md:text-xs px-2 py-1 flex-shrink-0 ml-2 rounded-full uppercase tracking-wider font-semibold ${
-                                    item.status === 'completed' ? 'bg-[#10B981]/10 text-[#10B981]' : 
-                                    item.status === 'active' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-gray-800 text-gray-400'
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-gray-300 leading-relaxed mt-2">{item.description}</p>
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
+                  <Timeline data={activeTimeline} />
                 ) : (
                   <div className="py-20 text-center">
                     <div className="inline-flex p-5 bg-[#8B4564]/10 rounded-full mb-4">
