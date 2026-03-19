@@ -145,13 +145,16 @@ The tags MUST be at the very bottom and look like this:
 }
 [/MINDMAP]
 
-6. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". If a pending step strictly requires the previous step to be finished first, add "requires_previous": true to that object. Otherwise, set it to false.
+6. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". If a pending step strictly requires the previous step to be finished first, add "requires_previous": true. 
+CRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories (e.g. do not just say "Gather Evidence", say "Get Police Report" and "Get Medical Cert"). If multiple steps can be done simultaneously, set "requires_previous": false.
+CRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above (e.g. if today is 2026-03-19 and the user says '5 days ago', the date is 2026-03-14). NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.
 
 [TIMELINE]
 [
-  {"title":"Case Assessment","date":"2023-01-01","description":"Initial review of notes and basic legal mapping.","status":"completed", "requires_previous": false},
-  {"title":"Sending Demand Letter","date":"","description":"Drafting and serving formal demand to the opposing party.","status":"pending", "requires_previous": true},
-  {"title":"Filing of Complaint","date":"","description":"Filing the civil case in court if no settlement is reached.","status":"pending", "requires_previous": true}
+  {"title":"Case Assessment","date":"[YYYY-MM-DD calculated from context]","description":"Initial review of notes.","status":"completed", "requires_previous": false},
+  {"title":"Secure Medical Certificate","date":"","description":"Obtain official injury records from the hospital.","status":"pending", "requires_previous": false},
+  {"title":"Obtain Barangay Incident Report","date":"","description":"Request the blotter from the barangay desk.","status":"pending", "requires_previous": false},
+  {"title":"Draft Demand Letter","date":"","description":"Write the formal demand requiring the completion of the previous steps.","status":"pending", "requires_previous": true}
 ]
 [/TIMELINE]
 CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
