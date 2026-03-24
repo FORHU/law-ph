@@ -163,9 +163,6 @@ export function ChatInput({
                 >
                   <Mail size={14} />
                   Send Email
-                  <span className="flex h-3.5 w-3.5 ml-0.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
-                    1
-                  </span>
                 </button>
 
                 <button 
@@ -183,12 +180,14 @@ export function ChatInput({
             </div>
           )}
 
-          <div className="relative group">
-            {/* Compact Note above input */}
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
-              <AlertTriangle size={10} />
-              <span>IMAGE ANALYSIS LIMITED</span>
-            </div>
+          {/* Input Box - Hidden for forms that have their own inputs */}
+          {activeTab !== 'mindmap' && activeTab !== 'timeline' && activeTab !== 'email' && activeTab !== 'schedule' && (
+            <div className="relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Compact Note above input */}
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
+                <AlertTriangle size={10} />
+                <span>IMAGE ANALYSIS LIMITED</span>
+              </div>
 
             {/* Attached File Preview */}
             <AnimatePresence>
@@ -270,8 +269,10 @@ export function ChatInput({
                   <Send size={18} className="text-white" />
                 )}
               </button>
+
             </div>
           </div>
+        )}
           
           {/* Disclaimer */}
           <div className="mt-0.5 text-center hidden md:block landscape:hidden">
