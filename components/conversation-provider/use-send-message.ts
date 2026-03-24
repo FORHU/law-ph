@@ -18,6 +18,7 @@ interface UseSendMessageParams {
   fetchConversations: () => Promise<void>;
   mapCloudMessage: (msg: any) => Message;
   supabase: ReturnType<typeof createClient> | null;
+  documentContext: string | null;
 }
 
 export function useSendMessage({
@@ -33,11 +34,12 @@ export function useSendMessage({
   userId,
   fetchConversations,
   mapCloudMessage,
-  supabase
+  supabase,
+  documentContext
 }: UseSendMessageParams) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSendMessage = useCallback(async (text: string, targetConversationId?: string | number): Promise<string | number | undefined> => {
+  const handleSendMessage = useCallback(async (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null): Promise<string | number | undefined> => {
     if (text.trim() && !isLoading && supabase) {
       setIsLoading(true); 
       const currentInput = text.trim();
@@ -164,7 +166,8 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 user_input: payloadUserInput, 
-                session_id: sId 
+                session_id: sId,
+                document_context: explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext
               }),
               signal: controller.signal
             });
@@ -405,7 +408,8 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
     userId,
     fetchConversations,
     mapCloudMessage,
-    supabase
+    supabase,
+    documentContext
   ]);
 
   const abortMessage = useCallback(() => {

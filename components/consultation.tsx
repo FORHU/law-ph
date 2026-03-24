@@ -37,6 +37,8 @@ import { Timeline } from "@/components/ui/timeline";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const emailTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const scheduleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const params = useParams();
   const activeConversationId = (params?.conversationId || params?.id) as
@@ -72,7 +74,7 @@ export default function Consultation() {
     openSourceByItemId,
     closeDetailSidebar,
     updateMessage,
-    cases,
+    cases
   } = useConversations();
 
   const activeCase = activeConversationId
@@ -204,6 +206,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     prevMessagesLengthRef.current = messages.length;
   }, [messages, isLoading]);
 
+
+
+
   const lastIdRef = useRef<string | null>(null);
 
   // Handle URL hash scrolling (e.g., from bookmarks)
@@ -305,9 +310,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
-  const [globalTab, setGlobalTab] = useState<
-    "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
-  >("chat");
+  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
 
   const latestTimelineMessage = [...messages]
     .reverse()
@@ -404,17 +407,17 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             factNodes.length > 0
               ? factNodes
               : [
-                  {
-                    id: "e-empty",
-                    label: "Extracting key evidence...",
-                    children: [],
-                  },
-                  {
-                    id: "f-empty",
-                    label: "Identifying material facts...",
-                    children: [],
-                  },
-                ],
+                {
+                  id: "e-empty",
+                  label: "Extracting key evidence...",
+                  children: [],
+                },
+                {
+                  id: "f-empty",
+                  label: "Identifying material facts...",
+                  children: [],
+                },
+              ],
         },
         {
           id: "c2",
@@ -453,8 +456,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   };
 
-  const onSendMessage = (msg: string) => {
-    if (msg.trim()) {
+  const onSendMessage = (msg: string, file?: File | null) => {
+    if (file) {
+      handleTabChange('chat');
+      analyzeDocuments([file], activeConversationId || currentConsultationId as string || '', msg);
+    } else if (msg.trim()) {
       handleSendMessage(msg);
       handleTabChange("chat"); // Switch back to chat on new message
     }
@@ -674,21 +680,17 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   </div>
                 )}
               </div>
-            ) : globalTab === "email" ? (
+            ) : globalTab === 'email' ? (
               <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden w-full">
                   <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-[#E0A7C2]/10 text-[#E0A7C2] rounded-xl flex-shrink-0">
-                        <Mail size={24} />
+                      <div className="p-2.5 bg-[#E0A7C2]/10 text-[#E0A7C2] rounded-xl flex-shrink-0">
+                        <Mail size={20} />
                       </div>
                       <div>
-                        <h2 className="text-xl md:text-2xl font-bold text-white">
-                          Draft Email
-                        </h2>
-                        <p className="text-xs md:text-sm text-gray-400">
-                          Share findings and case summaries.
-                        </p>
+                        <h2 className="text-xl md:text-2xl font-bold text-white">Draft Email</h2>
+                        <p className="text-xs md:text-sm text-gray-400">Share findings and case summaries.</p>
                       </div>
                     </div>
 
@@ -696,74 +698,39 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       <span className="flex h-4 w-4 absolute -top-1.5 -right-1.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#111111]">
                         1
                       </span>
-                      <Mail size={16} />{" "}
-                      <span className="hidden sm:inline">View</span> Inbox
+                      <Mail size={16} /> <span className="hidden sm:inline">View</span> Inbox
                     </button>
                   </div>
-
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                        Auto-fill from AI Findings (Optional)
-                      </label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Auto-fill from AI Findings (Optional)</label>
                       <div className="relative">
                         <select
                           className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all appearance-none cursor-pointer"
                           onChange={(e) => {
-                            const ta = document.getElementById(
-                              "email-message-body",
-                            ) as HTMLTextAreaElement;
+                            const ta = document.getElementById('email-message-body') as HTMLTextAreaElement;
                             if (ta) ta.value = e.target.value;
                           }}
                         >
-                          <option value="">
-                            -- Select an AI finding to insert --
-                          </option>
-                          {messages
-                            .filter(
-                              (m) => m.sender === "ai" && m.text.length > 20,
-                            )
-                            .map((m, idx) => (
-                              <option key={idx} value={m.text}>
-                                {m.text.substring(0, 60)}...
-                              </option>
-                            ))}
+                          <option value="">-- Select an AI finding to insert --</option>
+                          {messages.filter(m => m.sender === 'ai' && m.text.length > 20).map((m, idx) => (
+                            <option key={idx} value={m.text}>{m.text.substring(0, 60)}...</option>
+                          ))}
                         </select>
                         <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center px-1 text-gray-500">
-                          <svg
-                            className="fill-current h-4 w-4"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                          </svg>
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                        To
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="client@example.com"
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
-                      />
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">To</label>
+                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                        Subject
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Update on Case Findings"
-                        defaultValue={
-                          activeCase ? `Update on: ${activeCase.case_name}` : ""
-                        }
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
-                      />
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Subject</label>
+                      <input type="text" placeholder="Update on Case Findings" defaultValue={activeCase ? `Update on: ${activeCase.case_name}` : ""} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
                     </div>
 
                     <div>
@@ -806,7 +773,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   </div>
                 </div>
               </div>
-            ) : globalTab === "schedule" ? (
+            ) : globalTab === 'schedule' ? (
               <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative w-full">
                   <div className="flex items-center gap-3 mb-6">
@@ -814,21 +781,14 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       <Calendar size={24} />
                     </div>
                     <div>
-                      <h2 className="text-xl md:text-2xl font-bold text-white">
-                        Schedule Event
-                      </h2>
-                      <p className="text-xs md:text-sm text-gray-400">
-                        Book meetings, appointments, or hearings.
-                      </p>
+                      <h2 className="text-xl md:text-2xl font-bold text-white">Schedule Event</h2>
+                      <p className="text-xs md:text-sm text-gray-400">Book meetings, appointments, or hearings.</p>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                          Event Type
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Event Type</label>
                         <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all appearance-none cursor-pointer">
                           <option>Meeting</option>
                           <option>Appointment</option>
@@ -837,31 +797,18 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                          Date & Time
-                        </label>
-                        <input
-                          type="datetime-local"
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]"
-                        />
+                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
+                        <input type="datetime-local" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                        Client Email
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="client@example.com"
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600"
-                      />
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email</label>
+                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600" />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                        Description / Notes
-                      </label>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Description / Notes</label>
                       <textarea
                         rows={3}
                         placeholder="Discuss evidence strategy and finalize documentation..."

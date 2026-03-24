@@ -48,6 +48,7 @@ export function ConversationProvider({
   const userId = session?.user?.id;
 
   // Local/UI state
+<<<<<<< HEAD
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentConsultationId, setCurrentConsultationId] = useState<
     string | number | null
@@ -55,6 +56,12 @@ export function ConversationProvider({
   const [recentConsultations, setRecentConsultations] = useState<
     ConsultationSession[]
   >([]);
+=======
+  const [messages, setMessages] = useState<Message[]>([])
+  const [currentConsultationId, setCurrentConsultationId] = useState<string | number | null>(null)
+  const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([])
+  const [documentContext, setDocumentContext] = useState<string | null>(null)
+>>>>>>> 1801221c942fe9422ad3de9c1683b0c7b9bd5614
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -466,6 +473,7 @@ export function ConversationProvider({
   );
 
   // Message sending hook
+<<<<<<< HEAD
   const { handleSendMessage, abortMessage, abortControllerRef } =
     useSendMessage({
       messages,
@@ -482,6 +490,24 @@ export function ConversationProvider({
       mapCloudMessage,
       supabase,
     });
+=======
+  const { handleSendMessage, abortMessage, abortControllerRef } = useSendMessage({
+    messages,
+    setMessages,
+    isLoading,
+    setIsLoading,
+    currentConsultationId,
+    setCurrentConsultationId: setCurrentConsultationIdWrapper,
+    syncedConversationId,
+    chatSessionId,
+    setChatSessionId,
+    userId,
+    fetchConversations,
+    mapCloudMessage,
+    supabase,
+    documentContext
+  });
+>>>>>>> 1801221c942fe9422ad3de9c1683b0c7b9bd5614
 
   const handleNewConsultation = useCallback(() => {
     abortMessage();
@@ -834,10 +860,15 @@ ${summary}
 
 Please help me understand this document or answer questions based on it.`;
 
+<<<<<<< HEAD
       return await handleSendMessage(prompt, conversationId);
     },
     [handleSendMessage],
   );
+=======
+  const analyzeDocuments = useCallback(async (files: File[], caseId: string, customPrompt?: string) => {
+    if (files.length === 0) return;
+>>>>>>> 1801221c942fe9422ad3de9c1683b0c7b9bd5614
 
   const analyzeDocuments = useCallback(
     async (files: File[], caseId: string) => {
@@ -893,6 +924,7 @@ Please help me understand this document or answer questions based on it.`;
           });
         }
 
+<<<<<<< HEAD
         // Save documents to DB
         if (loggedIn && userId) {
           await supabase
@@ -968,6 +1000,27 @@ Please help me understand these document(s) or answer questions based on them.`;
     },
     [loggedIn, userId, supabase, handleSendMessage, setIsLoading, setMessages],
   );
+=======
+      const finalPrompt = customPrompt
+        ? `[ILM_META]{"isAnalysis":true}[/ILM_META]I have attached a document titled "${files[0].name}".\n\n${customPrompt}`
+        : `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed the following document(s): ${newDocs.map(d => d.name).join(', ')}.\n\n${summaries.length > 1 ? `**Combined Synthesis:**\n${finalSummary}` : `**Analysis for ${finalName}:**\n${finalSummary}`}\n\nPlease help me understand these document(s) or answer questions based on them.`;
+
+      // 3. Update message to 'done' and send to AI
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setDocumentContext(finalSummary); // <-- Active Document Context injected for all future queries in this session
+      setIsLoading(false); // handleSendMessage will set it back to true
+      await handleSendMessage(finalPrompt, caseId, finalSummary);
+
+    } catch (err: any) {
+      setMessages(prev => prev.map(m => m.id === tempId ? { 
+        ...m, 
+        text: `Error during analysis: ${err.message}`,
+        status: 'error' 
+      } : m));
+      setIsLoading(false);
+    }
+  }, [loggedIn, userId, supabase, handleSendMessage, setIsLoading, setMessages]);
+>>>>>>> 1801221c942fe9422ad3de9c1683b0c7b9bd5614
 
   return (
     <ConversationContext.Provider
@@ -1008,6 +1061,8 @@ Please help me understand these document(s) or answer questions based on them.`;
         isBookmarked,
         sendDocumentToChat,
         analyzeDocuments,
+        documentContext,
+        setDocumentContext,
       }}
     >
       {children}

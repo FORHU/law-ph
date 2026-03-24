@@ -26,7 +26,9 @@ export interface Message {
 
 export type ConversationContextType = {
   // ... (keeping existing)
-  analyzeDocuments: (files: File[], caseId: string) => Promise<void>;
+  documentContext: string | null;
+  setDocumentContext: React.Dispatch<React.SetStateAction<string | null>>;
+  analyzeDocuments: (files: File[], caseId: string, customPrompt?: string) => Promise<void>;
   // Supabase/Cloud state
   conversations: Conversation[];
   refreshConversations: () => Promise<void>;
@@ -40,7 +42,7 @@ export type ConversationContextType = {
   chatSessionId: string;
   
   // Handlers
-  handleSendMessage: (text: string, targetConversationId?: string | number) => Promise<string | number | undefined>;
+  handleSendMessage: (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null) => Promise<string | number | undefined>;
   updateMessage: (id: string | number, updates: Partial<Message>) => void;
   handleLoadConsultation: (consultation: ConsultationSession) => void;
   handleNewConsultation: () => void;

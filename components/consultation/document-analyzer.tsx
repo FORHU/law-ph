@@ -14,12 +14,20 @@ interface DocumentAnalyzerProps {
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
-const ACCEPTED_TYPES = ['.pdf', '.docx', '.doc', '.txt'];
+const ACCEPTED_TYPES = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.mp3', '.wav', '.m4a'];
 const ACCEPTED_MIME = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
   'text/plain',
+  'image/png',
+  'image/jpeg',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/wave',
+  'audio/mp4',
+  'audio/x-m4a',
 ];
 
 function formatBytes(bytes: number): string {
@@ -57,7 +65,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
     }
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!ACCEPTED_TYPES.includes(ext) && !ACCEPTED_MIME.includes(file.type)) {
-      return `Unsupported file type. Please upload a PDF, DOCX, or TXT file.`;
+      return `Unsupported file type. Please upload a PDF, DOCX, TXT, Image, or Audio file.`;
     }
     return null;
   };
@@ -128,7 +136,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Analyze Legal Document</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Upload a PDF, DOCX, or TXT — the AI will review it</p>
+            <p className="text-xs text-gray-400 mt-0.5">Upload a PDF, DOCX, TXT, Image, or Audio file — the AI will review it</p>
           </div>
         </div>
 
@@ -158,11 +166,11 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                   {isDragging ? 'Drop file here' : 'Drag & drop your document'}
                 </p>
                 <p className="text-gray-500 text-xs">or click to browse</p>
-                <p className="text-gray-600 text-[11px] mt-3">PDF, DOC, DOCX, TXT · Max 20MB</p>
+                <p className="text-gray-600 text-[11px] mt-3">PDF, DOC, DOCX, TXT, PNG, JPG, MP3, WAV, M4A · Max 20MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt"
+                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a"
                   onChange={handleFileChange}
                   className="hidden"
                   disabled={disabled}
@@ -183,7 +191,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
 
               {/* Accepted formats info */}
               <div className="mt-5 flex flex-wrap gap-2 justify-center">
-                {['PDF', 'DOC', 'DOCX', 'TXT'].map(fmt => (
+                {['PDF', 'DOC(X)', 'TXT', 'IMAGE', 'AUDIO'].map(fmt => (
                   <span key={fmt} className="px-3 py-1 text-[11px] font-semibold rounded-full bg-[#2A2A2A] text-gray-400 border border-white/5 uppercase tracking-wider">
                     {fmt}
                   </span>

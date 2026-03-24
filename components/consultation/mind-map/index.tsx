@@ -312,6 +312,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           minZoom={0.05}
           maxZoom={1}
           style={{ background: 'transparent' }}
+          proOptions={{ hideAttribution: true }}
         >
           <Background color={themeConfig.gridColor} gap={24} />
           <Controls className="!bg-[#0A0A0A] !border !border-white/20 !rounded-xl !overflow-hidden !shadow-2xl [&_button]:!bg-transparent [&_button]:!border-b [&_button]:!border-white/10 [&_button:last-child]:!border-b-0 [&_svg]:!fill-white hover:[&_button]:!bg-white/10 transition-all" />
@@ -378,9 +379,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-6 text-[8px] uppercase tracking-[0.2em] font-black text-white/30 pointer-events-none">
-        {themeConfig.name} • React Flow
-      </div>
     </div>
   );
 }
