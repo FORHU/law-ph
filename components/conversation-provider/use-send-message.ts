@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser';
+import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
 
 interface UseSendMessageParams {
@@ -251,11 +251,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                 timeline = extractTimeline(accumulatedText);
                 mindMap = extractMindMap(accumulatedText);
                 
-                let cleanText = accumulatedText.trim();
-                cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
-                cleanText = cleanText.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, '').trim();
-                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
-                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
+                const cleanText = cleanAiText(accumulatedText);
 
                 setMessages(prev => {
                   const updated = [...prev];
