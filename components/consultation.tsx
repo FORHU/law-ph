@@ -61,6 +61,7 @@ export default function Consultation() {
     openSourceByItemId,
     closeDetailSidebar,
     updateMessage,
+    analyzeDocuments,
     cases
   } = useConversations();
 
@@ -345,8 +346,11 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     }
   };
 
-  const onSendMessage = (msg: string) => {
-    if (msg.trim()) {
+  const onSendMessage = (msg: string, file?: File | null) => {
+    if (file) {
+      handleTabChange('chat');
+      analyzeDocuments([file], activeConversationId || currentConsultationId as string || '', msg);
+    } else if (msg.trim()) {
       handleSendMessage(msg);
       handleTabChange('chat'); // Switch back to chat on new message
     }

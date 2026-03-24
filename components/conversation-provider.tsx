@@ -29,6 +29,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [messages, setMessages] = useState<Message[]>([])
   const [currentConsultationId, setCurrentConsultationId] = useState<string | number | null>(null)
   const [recentConsultations, setRecentConsultations] = useState<ConsultationSession[]>([])
+  const [documentContext, setDocumentContext] = useState<string | null>(null)
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -343,7 +344,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     userId,
     fetchConversations,
     mapCloudMessage,
-    supabase
+    supabase,
+    documentContext
   });
 
   const handleNewConsultation = useCallback(() => {
@@ -614,7 +616,7 @@ Please help me understand this document or answer questions based on it.`;
     return await handleSendMessage(prompt, conversationId);
   }, [handleSendMessage]);
 
-  const analyzeDocuments = useCallback(async (files: File[], caseId: string) => {
+  const analyzeDocuments = useCallback(async (files: File[], caseId: string, customPrompt?: string) => {
     if (files.length === 0) return;
 
     // 1. Create an optimistic processing message
@@ -688,16 +690,15 @@ Please help me understand this document or answer questions based on it.`;
         }
       }
 
-      const finalPrompt = `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed the following document(s): ${newDocs.map(d => d.name).join(', ')}.
-
-${summaries.length > 1 ? `**Combined Synthesis:**\n${finalSummary}` : `**Analysis for ${finalName}:**\n${finalSummary}`}
-
-Please help me understand these document(s) or answer questions based on them.`;
+      const finalPrompt = customPrompt
+        ? `[ILM_META]{"isAnalysis":true}[/ILM_META]I have attached a document titled "${files[0].name}".\n\n${customPrompt}`
+        : `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed the following document(s): ${newDocs.map(d => d.name).join(', ')}.\n\n${summaries.length > 1 ? `**Combined Synthesis:**\n${finalSummary}` : `**Analysis for ${finalName}:**\n${finalSummary}`}\n\nPlease help me understand these document(s) or answer questions based on them.`;
 
       // 3. Update message to 'done' and send to AI
       setMessages(prev => prev.filter(m => m.id !== tempId));
+      setDocumentContext(finalSummary); // <-- Active Document Context injected for all future queries in this session
       setIsLoading(false); // handleSendMessage will set it back to true
-      await handleSendMessage(finalPrompt, caseId);
+      await handleSendMessage(finalPrompt, caseId, finalSummary);
 
     } catch (err: any) {
       setMessages(prev => prev.map(m => m.id === tempId ? { 
@@ -748,6 +749,8 @@ Please help me understand these document(s) or answer questions based on them.`;
         isBookmarked,
         sendDocumentToChat,
         analyzeDocuments,
+        documentContext,
+        setDocumentContext,
       }}
     >
       {children}

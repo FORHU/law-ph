@@ -2,10 +2,11 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, file?: File | null) => void;
   placeholder?: string;
   disabled?: boolean;
   activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document';
@@ -29,7 +30,9 @@ export function ChatInput({
   const [scrollLeft, setScrollLeft] = useState(0);
   const sliderRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isDragRef = useRef(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -46,10 +49,24 @@ export function ChatInput({
   };
 
   const handleSend = () => {
-    if (value.trim() && !disabled) {
-      onSend(value);
+    if ((value.trim() || selectedFile) && !disabled) {
+      onSend(value, selectedFile);
       setValue('');
+      setSelectedFile(null);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert("File is too large. Maximum size is 20MB.");
+        return;
+      }
+      setSelectedFile(file);
+    }
+    // Reset input so same file can be selected again if removed
+    e.target.value = '';
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -172,46 +189,90 @@ export function ChatInput({
                 <span>IMAGE ANALYSIS LIMITED</span>
               </div>
 
-              <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
-                <textarea
-                  ref={textareaRef}
-                  id="chat-message-input"
-                  name="message"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  rows={1}
-                  className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
-                  disabled={disabled}
-                />
-                {/* Document upload quick-access button */}
-                <button
-                  type="button"
-                  title="Analyze a legal document"
-                  onClick={() => onTabChange?.('document')}
-                  className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
-                    activeTab === 'document'
-                      ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
-                      : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
-                  }`}
+            {/* Attached File Preview */}
+            <AnimatePresence>
+              {selectedFile && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20"
                 >
-                  <FileText size={17} />
-                </button>
-                <button 
-                  className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  onClick={handleSend}
-                  disabled={disabled || !value.trim()}
-                >
-                  {disabled ? (
-                    <Loader2 size={18} className="text-white animate-spin" />
-                  ) : (
-                    <Send size={18} className="text-white" />
-                  )}
-                </button>
-              </div>
+                  <FileText size={16} className="text-[#E0A7C2]" />
+                  <span className="text-xs text-white max-w-[200px] truncate">{selectedFile.name}</span>
+                  <button 
+                    onClick={() => setSelectedFile(null)}
+                    className="ml-2 text-gray-400 hover:text-white bg-black/40 hover:bg-black/60 rounded-full h-5 w-5 flex items-center justify-center transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
+              <textarea
+                ref={textareaRef}
+                id="chat-message-input"
+                name="message"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                rows={1}
+                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
+                disabled={disabled}
+              />
+              
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a"
+                className="hidden"
+                disabled={disabled}
+              />
+              
+              {/* Attachment Paperclip Button */}
+              <button
+                type="button"
+                title="Attach Document or Media"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                disabled={disabled}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+
+              {/* Document upload quick-access button */}
+              <button
+                type="button"
+                title="Analyze a legal document"
+                onClick={() => onTabChange?.('document')}
+                className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+                  activeTab === 'document'
+                    ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
+                    : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
+                }`}
+              >
+                <FileText size={17} />
+              </button>
+              <button 
+                className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                onClick={handleSend}
+                disabled={disabled || (!value.trim() && !selectedFile)}
+              >
+                {disabled ? (
+                  <Loader2 size={18} className="text-white animate-spin" />
+                ) : (
+                  <Send size={18} className="text-white" />
+                )}
+              </button>
+
             </div>
-          )}
+          </div>
+        )}
           
           {/* Disclaimer */}
           <div className="mt-0.5 text-center hidden md:block landscape:hidden">
