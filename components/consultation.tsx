@@ -26,6 +26,8 @@ import { DocumentAnalyzer } from './consultation/document-analyzer';
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const emailTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const scheduleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const params = useParams();
   const activeConversationId = (params?.conversationId || params?.id) as string | undefined;
@@ -156,8 +158,22 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     prevMessagesLengthRef.current = messages.length;
   }, [messages, isLoading]);
 
+  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
 
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  };
 
+  useEffect(() => {
+    if (globalTab === 'email') {
+      setTimeout(() => adjustTextareaHeight(emailTextareaRef.current), 50);
+    } else if (globalTab === 'schedule') {
+      setTimeout(() => adjustTextareaHeight(scheduleTextareaRef.current), 50);
+    }
+  }, [globalTab]);
 
   const lastIdRef = useRef<string | null>(null);
 
@@ -243,7 +259,6 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
     }
   }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
-  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
 
   const latestTimelineMessage = [...messages].reverse().find(m => m.timeline && m.timeline.length > 0);
   const activeTimeline = latestTimelineMessage?.timeline || [];
@@ -567,36 +582,35 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 )}
               </div>
             ) : globalTab === 'email' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
-                <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden w-full">
-                  <div className="flex items-center justify-between gap-3 mb-6">
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-1 md:py-2.5 px-4">
+                <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 md:p-5 shadow-2xl relative overflow-hidden w-full">
+                  <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-[#E0A7C2]/10 text-[#E0A7C2] rounded-xl flex-shrink-0">
-                        <Mail size={24} />
+                      <div className="p-2.5 bg-[#E0A7C2]/10 text-[#E0A7C2] rounded-xl flex-shrink-0">
+                        <Mail size={20} />
                       </div>
                       <div>
-                        <h2 className="text-xl md:text-2xl font-bold text-white">Draft Email</h2>
-                        <p className="text-xs md:text-sm text-gray-400">Share findings and case summaries.</p>
+                        <h2 className="text-lg md:text-xl font-bold text-white">Draft Email</h2>
+                        <p className="text-[10px] md:text-xs text-gray-400">Share findings and case summaries.</p>
                       </div>
                     </div>
                     
                     <button className="flex items-center gap-2 bg-[#2A2A2A]/50 hover:bg-[#2A2A2A] border border-white/5 text-gray-300 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm transition-colors flex-shrink-0 relative group">
-                      <span className="flex h-4 w-4 absolute -top-1.5 -right-1.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#111111]">
-                        1
-                      </span>
-                      <Mail size={16} /> <span className="hidden sm:inline">View</span> Inbox
+                      <Mail size={16} /> <span className="hidden sm:inline">View Inbox</span>
                     </button>
                   </div>
-
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Auto-fill from AI Findings (Optional)</label>
                     <div className="relative">
                       <select 
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all appearance-none cursor-pointer"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all appearance-none cursor-pointer"
                         onChange={(e) => {
-                          const ta = document.getElementById('email-message-body') as HTMLTextAreaElement;
-                          if (ta) ta.value = e.target.value;
+                          const ta = emailTextareaRef.current;
+                          if (ta) {
+                            ta.value = e.target.value;
+                            adjustTextareaHeight(ta);
+                          }
                         }}
                       >
                         <option value="">-- Select an AI finding to insert --</option>
@@ -612,21 +626,23 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">To</label>
-                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
+                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
                     </div>
                     
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Subject</label>
-                      <input type="text" placeholder="Update on Case Findings" defaultValue={activeCase ? `Update on: ${activeCase.case_name}` : ""} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
+                      <input type="text" placeholder="Update on Case Findings" defaultValue={activeCase ? `Update on: ${activeCase.case_name}` : ""} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Message</label>
                       <textarea 
                         id="email-message-body"
-                        rows={5}
+                        ref={emailTextareaRef}
+                        rows={2}
                         placeholder="Hello, I am writing to share the latest AI findings regarding..." 
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600 resize-none"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600 resize-none overflow-hidden"
+                        onChange={(e) => adjustTextareaHeight(e.target)}
                       ></textarea>
                     </div>
 
@@ -653,23 +669,22 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                 </div>
               </div>
             ) : globalTab === 'schedule' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
-                <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative w-full">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-[#10B981]/10 text-[#10B981] rounded-xl flex-shrink-0">
-                      <Calendar size={24} />
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-1 md:py-2.5 px-4">
+                <div className="bg-[#111111] border border-white/10 rounded-2xl p-4 md:p-5 shadow-2xl relative w-full">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 bg-[#10B981]/10 text-[#10B981] rounded-xl flex-shrink-0">
+                      <Calendar size={20} />
                     </div>
                     <div>
-                      <h2 className="text-xl md:text-2xl font-bold text-white">Schedule Event</h2>
-                      <p className="text-xs md:text-sm text-gray-400">Book meetings, appointments, or hearings.</p>
+                      <h2 className="text-lg md:text-xl font-bold text-white">Schedule Event</h2>
+                      <p className="text-[10px] md:text-xs text-gray-400">Book meetings, appointments, or hearings.</p>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Event Type</label>
-                        <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all appearance-none cursor-pointer">
+                        <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-300 outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all appearance-none cursor-pointer">
                           <option>Meeting</option>
                           <option>Appointment</option>
                           <option>Hearing</option>
@@ -678,21 +693,23 @@ Notes/Transcript: ${activeCase.notes || 'None provided'}`;
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
-                        <input type="datetime-local" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]" />
+                        <input type="datetime-local" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]" />
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email</label>
-                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600" />
+                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600" />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Description / Notes</label>
                       <textarea 
-                        rows={3}
+                        ref={scheduleTextareaRef}
+                        rows={2}
                         placeholder="Discuss evidence strategy and finalize documentation..." 
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600 resize-none"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600 resize-none overflow-hidden"
+                        onChange={(e) => adjustTextareaHeight(e.target)}
                       ></textarea>
                     </div>
 

@@ -146,9 +146,6 @@ export function ChatInput({
                 >
                   <Mail size={14} />
                   Send Email
-                  <span className="flex h-3.5 w-3.5 ml-0.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
-                    1
-                  </span>
                 </button>
 
                 <button 
@@ -166,52 +163,55 @@ export function ChatInput({
             </div>
           )}
 
-          <div className="relative group">
-            {/* Compact Note above input */}
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
-              <AlertTriangle size={10} />
-              <span>IMAGE ANALYSIS LIMITED</span>
-            </div>
+          {/* Input Box - Hidden for forms that have their own inputs */}
+          {activeTab !== 'mindmap' && activeTab !== 'timeline' && activeTab !== 'email' && activeTab !== 'schedule' && (
+            <div className="relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Compact Note above input */}
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
+                <AlertTriangle size={10} />
+                <span>IMAGE ANALYSIS LIMITED</span>
+              </div>
 
-            <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
-              <textarea
-                ref={textareaRef}
-                id="chat-message-input"
-                name="message"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                rows={1}
-                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
-                disabled={disabled}
-              />
-              {/* Document upload quick-access button */}
-              <button
-                type="button"
-                title="Analyze a legal document"
-                onClick={() => onTabChange?.('document')}
-                className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
-                  activeTab === 'document'
-                    ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
-                    : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
-                }`}
-              >
-                <FileText size={17} />
-              </button>
-              <button 
-                className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
-                onClick={handleSend}
-                disabled={disabled || !value.trim()}
-              >
-                {disabled ? (
-                  <Loader2 size={18} className="text-white animate-spin" />
-                ) : (
-                  <Send size={18} className="text-white" />
-                )}
-              </button>
+              <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
+                <textarea
+                  ref={textareaRef}
+                  id="chat-message-input"
+                  name="message"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  rows={1}
+                  className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
+                  disabled={disabled}
+                />
+                {/* Document upload quick-access button */}
+                <button
+                  type="button"
+                  title="Analyze a legal document"
+                  onClick={() => onTabChange?.('document')}
+                  className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+                    activeTab === 'document'
+                      ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
+                      : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
+                  }`}
+                >
+                  <FileText size={17} />
+                </button>
+                <button 
+                  className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  onClick={handleSend}
+                  disabled={disabled || !value.trim()}
+                >
+                  {disabled ? (
+                    <Loader2 size={18} className="text-white animate-spin" />
+                  ) : (
+                    <Send size={18} className="text-white" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Disclaimer */}
           <div className="mt-0.5 text-center hidden md:block landscape:hidden">
