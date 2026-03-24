@@ -74,7 +74,8 @@ export default function Consultation() {
     openSourceByItemId,
     closeDetailSidebar,
     updateMessage,
-    cases
+    cases,
+    analyzeDocuments
   } = useConversations();
 
   const activeCase = activeConversationId
