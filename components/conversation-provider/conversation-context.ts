@@ -22,6 +22,22 @@ export interface Message {
   isAnalysis?: boolean;
   mindMap?: any;
   status?: 'pending' | 'processing' | 'done' | 'error';
+    fileAttachment?: {
+      name: string;
+      url?: string;
+      type: string;
+      size?: number;
+      s3_key?: string;
+      ai_summary?: string;
+    };
+    fileAttachments?: {
+      name: string;
+      url?: string;
+      type: string;
+      size?: number;
+      s3_key?: string;
+      ai_summary?: string;
+    }[];
 }
 
 export type ConversationContextType = {
@@ -42,7 +58,7 @@ export type ConversationContextType = {
   chatSessionId: string;
   
   // Handlers
-  handleSendMessage: (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null) => Promise<string | number | undefined>;
+  handleSendMessage: (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null, file?: File | null, skipAIResponse?: boolean) => Promise<string | number | undefined>;
   updateMessage: (id: string | number, updates: Partial<Message>) => void;
   handleLoadConsultation: (consultation: ConsultationSession) => void;
   handleNewConsultation: () => void;

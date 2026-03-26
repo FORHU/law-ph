@@ -5,10 +5,10 @@ import { FileText, Upload, X, CheckCircle, AlertCircle, Loader2, Send, FileWarni
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
+import { uploadAndAnalyzeDocument, UploadedDocumentData } from '@/lib/s3-utils';
 
 interface DocumentAnalyzerProps {
-  onDocumentAnalyzed: (extractedText: string, filename: string) => void;
+  onDocumentAnalyzed: (data: UploadedDocumentData) => void;
   disabled?: boolean;
 }
 
@@ -41,6 +41,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState('');
+  const [uploadData, setUploadData] = useState<UploadedDocumentData | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [filename, setFilename] = useState('');
   const [charCount, setCharCount] = useState(0);
@@ -51,6 +52,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
   const resetState = () => {
     setUploadState('idle');
     setSelectedFile(null);
+    setUploadData(null);
     setExtractedText('');
     setAiSummary(null);
     setFilename('');
@@ -88,6 +90,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
         process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
       );
 
+      setUploadData(data);
       setAiSummary(data.ai_summary ?? null);
       setFilename(data.filename);
       setCharCount(data.char_count ?? 0);
@@ -114,10 +117,8 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
   };
 
   const handleSendToChat = () => {
-    if (filename) {
-      // Use AI summary if available, otherwise fall back to raw extracted text
-      const contentToSend = aiSummary || extractedText;
-      onDocumentAnalyzed(contentToSend, filename);
+    if (uploadData) {
+      onDocumentAnalyzed(uploadData);
     }
   };
 

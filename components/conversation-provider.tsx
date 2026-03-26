@@ -103,12 +103,27 @@ export function ConversationProvider({
               // Append new
               newNotes = [...currentNotes, updates.__appendVoiceNote];
             }
-
-            return {
+            const mergedMsg = {
               ...msg,
               voiceNotes: newNotes,
               recordingUrl: newNotes[0]?.url,
             };
+
+            let newContent = mergedMsg.text;
+            const meta = {
+              originalText: mergedMsg.originalText,
+              editedAt: mergedMsg.editedAt,
+              editedBy: mergedMsg.editedBy,
+              recordingUrl: mergedMsg.recordingUrl,
+              voiceNotes: mergedMsg.voiceNotes,
+              highlights: mergedMsg.highlights,
+              fileAttachment: mergedMsg.fileAttachment,
+            };
+
+            if (Object.values(meta).some((v) => v !== undefined)) {
+              newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+            }
+            return { ...mergedMsg, text: newContent };
           }
           return { ...msg, ...updates };
         }),
@@ -329,16 +344,21 @@ export function ConversationProvider({
 
   // Helper to map Supabase/Cloud messages to UI format
   const mapCloudMessage = useCallback((msg: any): Message => {
-    let text = msg.text || msg.content || "";
+    let text = msg.content || msg.text || "";
     const sender = msg.sender || (msg.role === "assistant" ? "ai" : "user");
 
     // Extract custom ILM metadata
     let meta: any = {};
-    const metaMatch = text.match(/\[ILM_META\](.*?)\[\/ILM_META\]/);
+    const metaMatch = text.match(/\[ILM_META\]([\s\S]*?)\[\/ILM_META\]/i);
     if (metaMatch) {
       try {
         meta = JSON.parse(metaMatch[1]);
         text = text.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, "").trim();
+        // Also strip hidden instructions
+        text = text
+          .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/, "")
+          .trim();
+
       } catch (e) {
         console.error("Failed to parse ILM_META", e);
       }
@@ -374,14 +394,9 @@ export function ConversationProvider({
       voiceNotes: meta.voiceNotes,
       highlights: meta.highlights,
       isAnalysis: meta.isAnalysis,
-      time:
-        msg.time ||
-        (msg.created_at
-          ? new Date(msg.created_at).toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            })
-          : ""),
+      fileAttachment: meta.fileAttachment,
+      fileAttachments: meta.fileAttachments,
+      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
     };
   }, []);
 
@@ -490,6 +505,7 @@ export function ConversationProvider({
     loadedHistoryIdRef.current = null;
   }, [abortMessage]);
 
+
   // Background Cleanup: Retry deleting shadow-items that previously failed (e.g. network error)
   const hasRetriedDeletions = useRef(false);
 
@@ -552,21 +568,28 @@ export function ConversationProvider({
       }
 
       if (!userId || !loggedIn || !loaded) return;
+      
+      // Prevent race condition: if we intentionally cleared the consultation ID but the URL hasn't updated yet,
+      // don't immediately re-fetch the old one.
+      if (!currentConsultationId && syncedConversationId && loadedHistoryIdRef.current === syncedConversationId && messages.length === 0) {
+        console.log("[ConversationProvider] Intentional clear detected for", syncedConversationId, "- skipping re-fetch");
+        return;
+      }
 
       if (loadedHistoryIdRef.current === syncedConversationId && !isLoading)
         return;
 
       const exists =
         conversations.some((c) => c.id.toString() === syncedConversationId) ||
-        cases.some((c) => c.id.toString() === syncedConversationId);
+        cases.some((c) => c.id.toString() === syncedConversationId) ||
+        currentConsultationId?.toString() === syncedConversationId;
 
       if (!exists) {
-        // Only clear if we're not currently streaming.
-        // If we ARE streaming, the conversation might just be missing from the local list temporarily.
         if (
           !isLoading &&
           (currentConsultationId !== null || messages.length > 0)
         ) {
+
           handleNewConsultation();
         }
         return;
@@ -582,28 +605,28 @@ export function ConversationProvider({
 
       if (!error && data) {
         const cloudMessages = data.map(mapCloudMessage);
+        
+        setMessages(prev => {
+          // If we have local messages for the SAME conversation, merge them to avoid wiping live updates (like streaming AI)
+          if (prev.length > 0 && currentConsultationId?.toString() === syncedConversationId) {
+            const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
+            const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
 
-        if (isLoading) {
-          setMessages((prev) => {
-            const cloudIds = new Set(cloudMessages.map((m) => m.id.toString()));
-            const cloudContents = new Set(
-              cloudMessages.map((m) => m.text.trim()),
-            );
-
-            // Keep any local message that:
-            // (a) has a temp ID (still being saved), OR
-            // (b) has a real ID but isn't reflected in the cloud snapshot yet
-            // BUT skip it if its text content already appears in the cloud (already saved + returned)
-            const localOnlyMessages = prev.filter((m) => {
-              if (cloudIds.has(m.id.toString())) return false; // already in cloud, no need to duplicate
-              if (cloudContents.has(m.text.trim())) return false; // content already saved, cloud has it
-              return true; // keep — it's a local-only message not yet visible in cloud
+            // Keep local messages that aren't yet in the cloud (by ID or Content match)
+            const localOnlyMessages = prev.filter(m => {
+              if (cloudIds.has(m.id.toString())) return false;
+              if (m.text.trim() && cloudContents.has(m.text.trim())) return false; 
+              return true; 
             });
 
             return [...cloudMessages, ...localOnlyMessages];
-          });
-        } else {
-          setMessages(cloudMessages);
+          }
+          
+          // If loading a fundamentally different conversation or starting fresh
+          return cloudMessages;
+        });
+
+        if (!isLoading) {
           loadedHistoryIdRef.current = syncedConversationId.toString();
         }
         setCurrentConsultationId(syncedConversationId);
@@ -622,8 +645,10 @@ export function ConversationProvider({
       supabase,
       mapCloudMessage,
       handleNewConsultation,
+      currentConsultationId,
     ],
   );
+
 
   useEffect(() => {
     let ignore = false;
@@ -863,13 +888,11 @@ Please help me understand this document or answer questions based on it.`;
       setIsLoading(true);
 
       try {
-        const summaries: string[] = [];
         const newDocs: any[] = [];
-
         for (const file of files) {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === tempId ? { ...m, text: `Analyzing ${file.name}...` } : m,
+              m.id === tempId ? { ...m, text: `Uploading ${file.name}...` } : m,
             ),
           );
 
@@ -878,9 +901,9 @@ Please help me understand this document or answer questions based on it.`;
             process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL ||
               process.env.NEXT_PUBLIC_API_URL ||
               "http://localhost:8001",
+            false, // Skip analysis
           );
 
-          summaries.push(data.ai_summary || "");
           newDocs.push({
             id: crypto.randomUUID(),
             name: data.filename,
@@ -904,58 +927,43 @@ Please help me understand this document or answer questions based on it.`;
                 case_id: doc.caseId || null,
                 file_url: doc.file_url || null,
                 s3_key: doc.s3_key || null,
-                ai_summary: doc.aiSummary || null,
+                ai_summary: null,
               })),
             )
             .select();
         }
 
-        let finalSummary = summaries[0];
-        let finalName = newDocs[0].name;
+        // 3. Clear processing and send to chat
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setIsLoading(false);
 
-        if (summaries.length > 1) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === tempId
-                ? {
-                    ...m,
-                    text: `Synthesizing ${summaries.length} documents...`,
-                  }
-                : m,
-            ),
-          );
-          const synthesisResponse = await fetch(
-            "/api/proxy/api/legal/synthesize-documents",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ summaries }),
-            },
-          );
+        const fileNames = newDocs.map((d) => d.name).join("”, “");
 
-          const synthesisData = await synthesisResponse.json();
-          if (synthesisResponse.ok && synthesisData.success) {
-            finalSummary = synthesisData.synthesis;
-            finalName = `Batch Synthesis (${summaries.length} files)`;
-          }
-        }
+        const attachments = newDocs.map((d) => ({
+          name: d.name,
+          url: d.file_url,
+          type: d.name.split(".").pop() || "file",
+          s3_key: d.s3_key,
+          ai_summary: d.aiSummary,
+        }));
+
+        const metaStr = JSON.stringify({
+          isAnalysis: true,
+          fileAttachments: attachments,
+        });
 
         const finalPrompt = customPrompt
-          ? `[ILM_META]{"isAnalysis":true}[/ILM_META]I have attached a document titled "${files[0].name}".\n\n${customPrompt}`
-          : `[ILM_META]{"isAnalysis":true}[/ILM_META]I have analyzed the following document(s): ${newDocs.map((d) => d.name).join(", ")}.\n\n${summaries.length > 1 ? `**Combined Synthesis:**\n${finalSummary}` : `**Analysis for ${finalName}:**\n${finalSummary}`}\n\nPlease help me understand these document(s) or answer questions based on them.`;
+          ? `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s): “${fileNames}”.\n\n${customPrompt}[/HIDDEN_INSTRUCTION]`
+          : `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s) for analysis: “${fileNames}”.[/HIDDEN_INSTRUCTION]`;
 
-        // 3. Update message to 'done' and send to AI
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        setDocumentContext(finalSummary); // <-- Active Document Context injected for all future queries in this session
-        setIsLoading(false); // handleSendMessage will set it back to true
-        await handleSendMessage(finalPrompt, caseId, finalSummary);
+        await handleSendMessage(finalPrompt, caseId);
       } catch (err: any) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === tempId
               ? {
                   ...m,
-                  text: `Error during analysis: ${err.message}`,
+                  text: `Error during upload: ${err.message}`,
                   status: "error",
                 }
               : m,
@@ -964,7 +972,14 @@ Please help me understand this document or answer questions based on it.`;
         setIsLoading(false);
       }
     },
-    [loggedIn, userId, supabase, handleSendMessage, setIsLoading, setMessages, setDocumentContext],
+    [
+      loggedIn,
+      userId,
+      supabase,
+      handleSendMessage,
+      setIsLoading,
+      setMessages,
+    ],
   );
 
   return (

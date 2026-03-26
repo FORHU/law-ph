@@ -457,24 +457,33 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   };
 
-  const onSendMessage = (msg: string, file?: File | null) => {
-    if (file) {
-      handleTabChange('chat');
-      analyzeDocuments([file], activeConversationId || currentConsultationId as string || '', msg);
-    } else if (msg.trim()) {
-      handleSendMessage(msg);
-      handleTabChange("chat"); // Switch back to chat on new message
+  const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
+    if (file || msg.trim()) {
+      handleSendMessage(msg, activeConversationId, undefined, file, skipAIResponse);
+      if (globalTab !== 'chat') handleTabChange('chat');
     }
   };
 
-  const handleDocumentAnalyzed = (content: string, filename: string) => {
-    handleTabChange("chat");
-    // If the content already looks like an AI analysis (has markdown headers), ask for follow-up discussion
-    // Otherwise, ask for a full analysis of the raw document text
-    const isPreAnalyzed = content.includes("## ");
+  const handleDocumentAnalyzed = (data: any) => {
+    handleTabChange('chat');
+    const { ai_summary, filename, file_url, s3_key } = data;
+    const content = ai_summary || "";
+
+    const metaStr = JSON.stringify({
+      isAnalysis: true,
+      fileAttachments: [{
+        name: filename,
+        url: file_url,
+        type: filename.split('.').pop() || 'file',
+        s3_key: s3_key,
+        ai_summary: ai_summary
+      }]
+    });
+
+    const isPreAnalyzed = content.includes('## ');
     const prompt = isPreAnalyzed
-      ? `[Document Analysis] I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).`
-      : `[Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}`;
+      ? `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).[/HIDDEN_INSTRUCTION]`
+      : `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION][Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}[/HIDDEN_INSTRUCTION]`;
     handleSendMessage(prompt);
   };
 
@@ -697,10 +706,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </div>
 
                     <button className="flex items-center gap-2 bg-[#2A2A2A]/50 hover:bg-[#2A2A2A] border border-white/5 text-gray-300 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm transition-colors flex-shrink-0 relative group">
-                      <span className="flex h-4 w-4 absolute -top-1.5 -right-1.5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-[#111111]">
-                        1
-                      </span>
-                      <Mail size={16} /> <span className="hidden sm:inline">View</span> Inbox
+                      <Mail size={16} /> <span className="hidden sm:inline">View Inbox</span>
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -886,7 +892,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
         <div className="max-w-4xl mx-auto w-full px-4 md:px-6 relative z-10">
           <div className="h-6 mb-1">
-            {isLoading && (
+            {isLoading && messages.length > 0 && messages[messages.length - 1].sender === CHAT_SENDER.USER && messages[messages.length - 1].status !== 'done' && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}

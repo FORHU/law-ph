@@ -12,9 +12,10 @@ export interface UploadedDocumentData {
  * 
  * @param file The file to upload
  * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001')
+ * @param analyze Whether to trigger backend analysis (default: true)
  * @returns Promise resolving to the uploaded document data
  */
-export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Promise<UploadedDocumentData> {
+export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, analyze: boolean = true): Promise<UploadedDocumentData> {
   // Step 1: Get S3 presigned URL through proxy
   const urlResponse = await fetch(`/api/proxy/api/legal/document-upload-url`, {
     method: 'POST',
@@ -42,27 +43,37 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string): Pro
   }
 
   // Step 3: Trigger backend analysis through proxy
-  const analyzeResponse = await fetch(`/api/proxy/api/legal/analyze-document`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      s3_key: urlData.s3_key,
-      filename: file.name
-    }),
-  });
+  if (analyze) {
+    const analyzeResponse = await fetch(`/api/proxy/api/legal/analyze-document`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        s3_key: urlData.s3_key,
+        filename: file.name
+      }),
+    });
 
-  const data = await analyzeResponse.json();
-  if (!analyzeResponse.ok || !data.success) {
-    throw new Error(data.detail || data.error || `Failed to analyze ${file.name}`);
+    const data = await analyzeResponse.json();
+    if (!analyzeResponse.ok || !data.success) {
+      throw new Error(data.detail || data.error || `Failed to analyze ${file.name}`);
+    }
+
+    return {
+      filename: file.name,
+      ai_summary: data.ai_summary,
+      file_url: data.file_url,
+      s3_key: data.s3_key,
+      char_count: data.char_count,
+      truncated: data.truncated,
+    };
   }
 
+  // If skipping analysis, return basic info with URL
   return {
     filename: file.name,
-    ai_summary: data.ai_summary,
-    file_url: data.file_url,
-    s3_key: data.s3_key,
-    char_count: data.char_count,
-    truncated: data.truncated,
+    ai_summary: "",
+    file_url: urlData.file_url,
+    s3_key: urlData.s3_key
   };
 }
 
