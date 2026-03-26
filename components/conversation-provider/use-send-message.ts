@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap } from '@/lib/citation-parser';
+import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
 
 interface UseSendMessageParams {
@@ -117,12 +117,14 @@ export function useSendMessage({
 
 ---
 [SYSTEM INSTRUCTION - RESPONSE FORMAT]:
+Current System Date: ${new Date().toISOString().split('T')[0]}
+
 4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
    - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
    - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
    - "Evidence & Facts": Extract key facts and pieces of evidence.
    - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
-5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction/Venue, (b) Mandatory Attachments (Verification), and (c) Relief Sought (The Prayer).
+5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
 
 The tags MUST be at the very bottom and look like this:
 
@@ -146,10 +148,18 @@ The tags MUST be at the very bottom and look like this:
 }
 [/MINDMAP]
 
-[TIMELINE]
-[{"title":"Created Case","date":"${new Date().toISOString().split('T')[0]}","description":"Case was opened.","status":"completed"}]
-[/TIMELINE]
+6. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". If a pending step strictly requires the previous step to be finished first, add "requires_previous": true. 
+CRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories (e.g. do not just say "Gather Evidence", say "Get Police Report" and "Get Medical Cert"). If multiple steps can be done simultaneously, set "requires_previous": false.
+CRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above (e.g. if today is 2026-03-19 and the user says '5 days ago', the date is 2026-03-14). NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.
 
+[TIMELINE]
+[
+  {"title":"Case Assessment","date":"[YYYY-MM-DD calculated from context]","description":"Initial review of notes.","status":"completed", "requires_previous": false},
+  {"title":"Secure Medical Certificate","date":"","description":"Obtain official injury records from the hospital.","status":"pending", "requires_previous": false},
+  {"title":"Obtain Barangay Incident Report","date":"","description":"Request the blotter from the barangay desk.","status":"pending", "requires_previous": false},
+  {"title":"Draft Demand Letter","date":"","description":"Write the formal demand requiring the completion of the previous steps.","status":"pending", "requires_previous": true}
+]
+[/TIMELINE]
 CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
 
             return fetch('/api/chat/stream', {

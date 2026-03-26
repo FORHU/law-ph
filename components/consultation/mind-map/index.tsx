@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, { 
-  useNodesState, 
-  useEdgesState, 
-  addEdge, 
-  Background, 
-  Controls, 
-  Connection, 
+import ReactFlow, {
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Background,
+  Controls,
+  Connection,
   Edge,
   Node,
   MarkerType,
@@ -27,8 +27,8 @@ const getInitialNodes = (theme: MindMapThemeType): Node[] => [
   {
     id: 'root',
     type: 'custom',
-    data: { 
-      label: 'Case Analysis', 
+    data: {
+      label: 'Case Analysis',
       isRoot: true,
       theme,
       color: MIND_MAP_THEMES[theme].rootClass
@@ -44,7 +44,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  
+
   const { fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
 
@@ -64,13 +64,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 220 : 120; 
+        return currentLayout === 'vertical' ? 280 : 120;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 30, currentLayout === 'vertical' ? 220 : 120);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 280 : 120);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -90,11 +90,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       nodes.push({
         id,
         type: 'custom',
-        data: { 
-          label, 
-          isRoot, 
-          color, 
-          theme: currentTheme, 
+        data: {
+          label,
+          isRoot,
+          color,
+          theme: currentTheme,
           layout: currentLayout,
           side // Pass the calculated side to the node
         },
@@ -120,29 +120,35 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       const children = getChildren(item);
       if (children.length > 0) {
         if (currentLayout === 'radial') {
-          const radius = isRoot ? 350 : 250;
+          // Calculate a dynamic global radius from the center (0,0) instead of the parent
+          // This creates beautiful concentric circles and prevents messy overlapping
+          let depthRadius = 350;
+          if (depth === 0) depthRadius = 350;
+          else if (depth === 1) depthRadius = 750;
+          else depthRadius = 750 + (depth - 1) * 350;
+
           const [startAngle, endAngle] = angleRange;
           const totalAngle = endAngle - startAngle;
           const anglePerChild = totalAngle / children.length;
 
           children.forEach((child: any, index: number) => {
             const currentAngle = startAngle + (anglePerChild * index) + (anglePerChild / 2);
-            // Normalize angle to 0-360
             const normalizedAngle = ((currentAngle % 360) + 360) % 360;
-            
+
             const rad = (currentAngle * Math.PI) / 180;
-            const cx = x + radius * Math.cos(rad);
-            const cy = y + radius * Math.sin(rad);
-            
+            // Position relative to Root (0,0) not the parent's x,y
+            const cx = depthRadius * Math.cos(rad);
+            const cy = depthRadius * Math.sin(rad);
+
             const childStart = startAngle + (anglePerChild * index);
             const childEnd = childStart + anglePerChild;
-            
-            // Map angle to the best handle on the root
+
+            // Map angle to the best handle on the parent/root
             let childSide: 'left' | 'right' | 'top' | 'bottom' = 'right';
             if (normalizedAngle >= 45 && normalizedAngle < 135) childSide = 'bottom';
             else if (normalizedAngle >= 135 && normalizedAngle < 225) childSide = 'left';
             else if (normalizedAngle >= 225 && normalizedAngle < 315) childSide = 'top';
-            
+
             traverse(child, id, cx, cy, [childStart, childEnd], depth + 1, childSide);
           });
         } else if (currentLayout === 'dual' && isRoot) {
@@ -156,34 +162,34 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x - 400, y + (leftOffset + childSize / 2), [0,0], 1, 'left');
+            traverse(child, id, x - 400, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
             leftOffset += childSize + 30;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x + 400, y + (rightOffset + childSize / 2), [0,0], 1, 'right');
+            traverse(child, id, x + 400, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
             rightOffset += childSize + 30;
           });
         } else {
-          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 220 : 120);
+          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 280 : 120);
           let offset = -(itemSize / 2);
 
           children.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 220 : 120);
+            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 280 : 120);
             const posOffset = offset + (childSize / 2);
-            
+
             if (currentLayout === 'vertical') {
               traverse(child, id, x + posOffset, y + 250);
             } else if (currentLayout === 'dual') {
-              traverse(child, id, x + (side === 'left' ? -400 : 400), y + posOffset, [0,0], depth + 1, side);
+              traverse(child, id, x + (side === 'left' ? -400 : 400), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
               traverse(child, id, x + 300, y + posOffset);
             } else {
               traverse(child, id, x + 450, y + posOffset);
             }
-            
+
             offset += childSize + 40;
           });
         }
@@ -198,9 +204,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
       console.log('--- MIND MAP DATA DEBUG ---');
       console.log('Raw Tree Data:', data);
-      
+
       const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
-      
+
       console.log('Generated Nodes:', newNodes);
       console.log('Generated Edges:', newEdges);
       console.log('---------------------------');
@@ -216,12 +222,30 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    const applyFitView = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 100);
+    };
+
     if (nodesInitialized && nodes.length > 0) {
+      // Initial fit with slightly larger delay to ensure DOM is ready
       setTimeout(() => {
         fitView({ padding: 0.2, duration: 800 });
-      }, 50);
+      }, 150);
+      
+      // Listen to window resizes and any changes to layout wrappers
+      window.addEventListener('resize', applyFitView);
     }
-  }, [nodesInitialized, nodes.length, fitView]);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', applyFitView);
+    };
+  }, [nodesInitialized, nodes.length, layout, fitView]);
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => [...prev.slice(-15), { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) }]);
@@ -229,11 +253,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
   const onConnect = useCallback((params: Connection | Edge) => {
     saveToHistory();
-    setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: true, 
+    setEdges((eds) => addEdge({
+      ...params,
+      animated: true,
       style: { stroke: themeConfig.edgeColor, strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: themeConfig.edgeColor } 
+      markerEnd: { type: MarkerType.ArrowClosed, color: themeConfig.edgeColor }
     }, eds));
   }, [setEdges, saveToHistory, themeConfig]);
 
@@ -292,11 +316,12 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   return (
-    <div className="w-full h-[calc(100vh-420px)] min-h-[450px] max-h-[750px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col" style={{ backgroundColor: themeConfig.bg }}>
+    <div className="w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col" style={{ backgroundColor: themeConfig.bg }}>
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none !important; }
         .scrollbar-hide { -ms-overflow-style: none !important; scrollbar-width: none !important; overflow: hidden !important; }
-        .react-flow__viewport { transition: transform 0.5s ease; }
+        .react-flow__viewport { transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); }
+        .react-flow__node { transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease !important; }
       `}</style>
 
       <div className="flex-1 relative overflow-hidden">
@@ -322,16 +347,15 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       {/* MINIMIZED Structure Selector - Top Left */}
       <div className="absolute top-4 left-4 z-[200] pointer-events-auto">
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsThemeOpen(!isThemeOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${
-              isThemeOpen ? 'bg-white text-black font-bold' : 'bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${isThemeOpen ? 'bg-white text-black font-bold' : 'bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95'
+              }`}
           >
             <Layout size={12} />
             <span className="text-[9px] uppercase tracking-wider">Structure</span>
           </button>
-          
+
           {isThemeOpen && (
             <div className="absolute top-full left-0 mt-2 w-48 bg-[#0A0A0A] border border-white/20 rounded-xl shadow-2xl z-[210] overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
               <div className="p-2 border-b border-white/10 bg-white/5 text-center">

@@ -425,3 +425,35 @@ export function extractTitleFromContent(content: string, currentTitle: string): 
   
   return cleanLegalTitle(currentTitle);
 }
+
+/**
+ * Robustly removes bracketed and fallback MINDMAP/TIMELINE raw JSON blocks from AI text,
+ * so they don't appear in the main conversation UI.
+ */
+export function cleanAiText(text: string): string {
+  if (!text) return text;
+  
+  let cleaned = text;
+
+  // 1. Strip bracketed standard structures
+  cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, "");
+  cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, "");
+
+  // 2. Find fallback structures starting with TIMELINE or MINDMAP
+  const timelineIdx = cleaned.search(/\bTIMELINE\b\s*\[/i);
+  const mindmapIdx = cleaned.search(/\bMINDMAP\b\s*\{/i);
+
+  if (timelineIdx !== -1 && mindmapIdx !== -1) {
+    cleaned = cleaned.substring(0, Math.min(timelineIdx, mindmapIdx));
+  } else if (timelineIdx !== -1) {
+    cleaned = cleaned.substring(0, timelineIdx);
+  } else if (mindmapIdx !== -1) {
+    cleaned = cleaned.substring(0, mindmapIdx);
+  }
+
+  // 3. Strip any weird introductory timeline prose the AI likes to add at the end
+  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, "");
+  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, "");
+
+  return cleaned.trim();
+}
