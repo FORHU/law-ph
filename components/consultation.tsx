@@ -535,6 +535,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       activePage="chat"
       title={headerTitle}
       subtitle={undefined}
+      maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"}
       onNewItem={handleNewConsultation}
       newItemLabel="New Consultation"
       recentItems={sidebarRecentItems}
@@ -570,7 +571,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           className={`flex-1 ${globalTab === "mindmap" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}
         >
           <div
-            className={`${globalTab === "mindmap" ? "max-w-7xl" : "max-w-4xl"} mx-auto ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
+            className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
             <AnimatePresence mode="wait">
               {messages.length === 0 && (
