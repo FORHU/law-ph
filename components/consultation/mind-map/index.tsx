@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import ReactFlow, {
   useNodesState,
   useEdgesState,
@@ -44,9 +44,29 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isInteractive, setIsInteractive] = useState(true);
 
   const { fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const toggleFullScreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err: any) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullScreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   const themeConfig = MIND_MAP_THEMES[theme];
 
@@ -64,13 +84,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 280 : 120;
+        return currentLayout === 'vertical' ? 400 : 200;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 280 : 120);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 80, currentLayout === 'vertical' ? 400 : 200);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -122,10 +142,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         if (currentLayout === 'radial') {
           // Calculate a dynamic global radius from the center (0,0) instead of the parent
           // This creates beautiful concentric circles and prevents messy overlapping
-          let depthRadius = 350;
-          if (depth === 0) depthRadius = 350;
-          else if (depth === 1) depthRadius = 750;
-          else depthRadius = 750 + (depth - 1) * 350;
+          let depthRadius = 500;
+          if (depth === 0) depthRadius = 500;
+          else if (depth === 1) depthRadius = 1100;
+          else depthRadius = 1100 + (depth - 1) * 500;
 
           const [startAngle, endAngle] = angleRange;
           const totalAngle = endAngle - startAngle;
@@ -156,41 +176,41 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           const leftChildren = children.slice(0, midway);
           const rightChildren = children.slice(midway);
 
-          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 120), 0) + (leftChildren.length - 1) * 30;
-          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 120), 0) + (rightChildren.length - 1) * 30;
+          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 80;
+          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 80;
 
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x - 400, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
-            leftOffset += childSize + 30;
+            const childSize = subtreeSizes.get(child) || 200;
+            traverse(child, id, x - 600, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
+            leftOffset += childSize + 80;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x + 400, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
-            rightOffset += childSize + 30;
+            const childSize = subtreeSizes.get(child) || 200;
+            traverse(child, id, x + 600, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
+            rightOffset += childSize + 80;
           });
         } else {
-          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 280 : 120);
+          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 400 : 200);
           let offset = -(itemSize / 2);
 
           children.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 280 : 120);
+            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 400 : 200);
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
-              traverse(child, id, x + posOffset, y + 250);
+              traverse(child, id, x + posOffset, y + 350);
             } else if (currentLayout === 'dual') {
-              traverse(child, id, x + (side === 'left' ? -400 : 400), y + posOffset, [0, 0], depth + 1, side);
+              traverse(child, id, x + (side === 'left' ? -600 : 600), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 300, y + posOffset);
+              traverse(child, id, x + 500, y + posOffset);
             } else {
-              traverse(child, id, x + 450, y + posOffset);
+              traverse(child, id, x + 650, y + posOffset);
             }
 
-            offset += childSize + 40;
+            offset += childSize + 80;
           });
         }
       }
@@ -227,14 +247,14 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const applyFitView = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 800 });
+        fitView({ padding: 0.05, duration: 800 });
       }, 100);
     };
 
     if (nodesInitialized && nodes.length > 0) {
       // Initial fit with slightly larger delay to ensure DOM is ready
       setTimeout(() => {
-        fitView({ padding: 0.2, duration: 800 });
+        fitView({ padding: 0.05, duration: 800 });
       }, 150);
       
       // Listen to window resizes and any changes to layout wrappers
@@ -316,7 +336,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   return (
-    <div className="w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col" style={{ backgroundColor: themeConfig.bg }}>
+    <div 
+      ref={containerRef}
+      className={`w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`} 
+      style={{ backgroundColor: themeConfig.bg }}
+    >
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none !important; }
         .scrollbar-hide { -ms-overflow-style: none !important; scrollbar-width: none !important; overflow: hidden !important; }
@@ -331,16 +355,24 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeClick={(_, node) => fitView({ nodes: [node], duration: 800, padding: 0.4 })}
+          onPaneClick={() => fitView({ padding: 0.05, duration: 800 })}
           nodeTypes={nodeTypes}
+          nodesDraggable={isInteractive}
+          nodesConnectable={isInteractive}
+          elementsSelectable={isInteractive}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{ padding: 0.05 }}
           minZoom={0.05}
           maxZoom={1}
           style={{ background: 'transparent' }}
           proOptions={{ hideAttribution: true }}
         >
           <Background color={themeConfig.gridColor} gap={24} />
-          <Controls className="!bg-[#0A0A0A] !border !border-white/20 !rounded-xl !overflow-hidden !shadow-2xl [&_button]:!bg-transparent [&_button]:!border-b [&_button]:!border-white/10 [&_button:last-child]:!border-b-0 [&_svg]:!fill-white hover:[&_button]:!bg-white/10 transition-all" />
+          <Controls 
+            onInteractiveChange={(interactive) => setIsInteractive(interactive)}
+            className="!bg-[#0A0A0A] !border !border-white/20 !rounded-xl !overflow-hidden !shadow-2xl [&_button]:!bg-transparent [&_button]:!border-b [&_button]:!border-white/10 [&_button:last-child]:!border-b-0 [&_svg]:!fill-white hover:[&_button]:!bg-white/10 transition-all" 
+          />
         </ReactFlow>
       </div>
 
@@ -401,6 +433,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             </div>
           )}
         </div>
+      </div>
+
+      {/* Full Screen Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-[200] pointer-events-auto">
+        <button
+          onClick={toggleFullScreen}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
+        >
+          <Maximize size={12} />
+          <span className="text-[9px] uppercase tracking-wider">{isFullScreen ? 'Exit' : 'Full Screen'}</span>
+        </button>
       </div>
 
     </div>
