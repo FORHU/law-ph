@@ -14,7 +14,7 @@ import ReactFlow, {
   useNodesInitialized
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Undo2, Layout, Maximize, Palette, Check } from 'lucide-react';
+import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp } from 'lucide-react';
 import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import { CustomNode } from './custom-node';
@@ -44,12 +44,15 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const [isInteractive, setIsInteractive] = useState(true);
+  const [isMemoryOpen, setIsMemoryOpen] = useState(false);
 
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [slots, setSlots] = useState<({ nodes: Node[], edges: Edge[] } | null)[]>(Array(3).fill(null));
+
+
 
   const toggleFullScreen = () => {
     if (!containerRef.current) return;
@@ -241,9 +244,46 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     setIsThemeOpen(false);
   };
 
+  const resetLayout = useCallback(() => {
+    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+      const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setTimeout(() => fitView({ padding: 0.05, duration: 800 }), 100);
+    }
+  }, [data, theme, layout, treeToGraph, setNodes, setEdges, fitView]);
+
+  const saveToSlot = (idx: number) => {
+    setSlots(prev => {
+      const next = [...prev];
+      next[idx] = {
+        nodes: JSON.parse(JSON.stringify(nodes)),
+        edges: JSON.parse(JSON.stringify(edges))
+      };
+      return next;
+    });
+  };
+
+  const loadFromSlot = (idx: number) => {
+    const slot = slots[idx];
+    if (slot) {
+      setNodes(slot.nodes);
+      setEdges(slot.edges);
+      setTimeout(() => fitView({ padding: 0.05, duration: 800 }), 100);
+    }
+  };
+
+  const deleteSlot = (idx: number) => {
+    setSlots(prev => {
+      const next = [...prev];
+      next[idx] = null;
+      return next;
+    });
+  };
+
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
+
     const applyFitView = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
@@ -256,11 +296,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       setTimeout(() => {
         fitView({ padding: 0.05, duration: 800 });
       }, 150);
-      
+
       // Listen to window resizes and any changes to layout wrappers
       window.addEventListener('resize', applyFitView);
     }
-    
+
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', applyFitView);
@@ -336,9 +376,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`} 
+      className={`w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`}
       style={{ backgroundColor: themeConfig.bg }}
     >
       <style>{`
@@ -358,9 +398,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           onNodeClick={(_, node) => fitView({ nodes: [node], duration: 800, padding: 0.4 })}
           onPaneClick={() => fitView({ padding: 0.05, duration: 800 })}
           nodeTypes={nodeTypes}
-          nodesDraggable={isInteractive}
-          nodesConnectable={isInteractive}
-          elementsSelectable={isInteractive}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
           fitView
           fitViewOptions={{ padding: 0.05 }}
           minZoom={0.05}
@@ -369,10 +409,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           proOptions={{ hideAttribution: true }}
         >
           <Background color={themeConfig.gridColor} gap={24} />
-          <Controls 
-            onInteractiveChange={(interactive) => setIsInteractive(interactive)}
-            className="!bg-[#0A0A0A] !border !border-white/20 !rounded-xl !overflow-hidden !shadow-2xl [&_button]:!bg-transparent [&_button]:!border-b [&_button]:!border-white/10 [&_button:last-child]:!border-b-0 [&_svg]:!fill-white hover:[&_button]:!bg-white/10 transition-all" 
-          />
+          {/* Custom controls are handled below in the Unified Control Center */}
         </ReactFlow>
       </div>
 
@@ -446,6 +483,103 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </button>
       </div>
 
+      {/* Ultra-Compact Vertical Hub - Snug Corner */}
+      <div className="absolute bottom-6 left-6 z-[200] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20">
+
+        {/* Navigation Group - Minimalist */}
+        <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
+          <button
+            onClick={() => zoomIn()}
+            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Zoom In"
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            onClick={() => zoomOut()}
+            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Zoom Out"
+          >
+            <Minus size={14} />
+          </button>
+          <button
+            onClick={() => fitView({ padding: 0.05, duration: 800 })}
+            className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Recenter"
+          >
+            <Target size={14} />
+          </button>
+        </div>
+
+        {/* Memory Trigger - Ultra Tight */}
+        <div className="relative group/mem">
+          <button
+            onClick={() => setIsMemoryOpen(!isMemoryOpen)}
+            className={`p-1.5 rounded-full transition-all active:scale-95 border ${isMemoryOpen
+                ? 'bg-[#E0A7C2]/20 text-[#E0A7C2] border-[#E0A7C2]/30'
+                : 'text-white/30 hover:bg-white/5 border-transparent'
+              } flex items-center justify-center`}
+            title="Snapshots"
+          >
+            <Save size={14} />
+          </button>
+
+          {/* Pop-out Dropdown - Snug position */}
+          {isMemoryOpen && (
+            <div className="absolute left-[calc(100%+8px)] bottom-0 w-max min-w-[240px] p-2.5 rounded-2xl bg-[#0F0F0F]/99 backdrop-blur-3xl border border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-left-1">
+              <div className="text-[8px] font-black text-[#E0A7C2] uppercase tracking-[0.2em] mb-3 pb-1.5 border-b border-white/5 px-1">Saved Structures</div>
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2].map(idx => (
+                  <div key={idx} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 group/item transition-all">
+                    <div className="w-5 h-5 flex items-center justify-center rounded-md bg-white/5 text-[9px] font-black text-white/20 border border-white/5 group-hover/item:text-[#E0A7C2] transition-colors">
+                      {idx + 1}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-4">
+                      <button
+                        onClick={() => { saveToSlot(idx); setIsMemoryOpen(false); }}
+                        className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#E0A7C2] hover:bg-[#E0A7C2]/10 rounded-lg transition-all"
+                      >
+                        SAVE
+                      </button>
+                      {slots[idx] && (
+                        <>
+                          <div className="w-[1px] h-3 bg-white/10" />
+                          <button
+                            onClick={() => { loadFromSlot(idx); setIsMemoryOpen(false); }}
+                            className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-white hover:bg-white/10 rounded-lg transition-all"
+                          >
+                            LOAD
+                          </button>
+                          <button
+                            onClick={() => deleteSlot(idx)}
+                            className="p-1 px-1.5 text-white/10 hover:text-red-400 rounded-md transition-colors"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="w-3 h-[1px] bg-white/10" />
+
+        {/* Reset - Flush Bottom */}
+        <button
+          onClick={resetLayout}
+          className="p-1.5 text-white/20 hover:text-red-500 transition-all group active:scale-95"
+          title="Reset Map"
+        >
+          <RotateCcw size={14} className="group-hover:rotate-[-45deg] transition-transform" />
+        </button>
+      </div>
+
+      {/* Snapshot Notification / Feedback logic could be added here if needed */}
     </div>
   );
 }
