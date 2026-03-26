@@ -41,7 +41,7 @@ export function useSendMessage({
 
   const handleSendMessage = useCallback(async (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null): Promise<string | number | undefined> => {
     if (text.trim() && !isLoading && supabase) {
-      setIsLoading(true); 
+      setIsLoading(true);
       const currentInput = text.trim();
       const newMessage = {
         id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -49,7 +49,7 @@ export function useSendMessage({
         sender: CHAT_SENDER.USER,
         time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
       };
-      
+
       let sessionId = targetConversationId || syncedConversationId || currentConsultationId;
       setMessages(prev => [...prev, newMessage]);
 
@@ -67,7 +67,7 @@ export function useSendMessage({
               })
               .select()
               .single();
-  
+
             if (!userMsgError && savedUserMsg) {
               setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
             }
@@ -83,7 +83,7 @@ export function useSendMessage({
           };
 
           setMessages(prev => [...prev, initialAiMessage]);
-          
+
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
           }
@@ -91,7 +91,7 @@ export function useSendMessage({
           abortControllerRef.current = controller;
 
           let currentChatSessionId = chatSessionId;
-          
+
           const refreshSession = async (): Promise<string | null> => {
             console.log("[Session] Refreshing chat session...");
             try {
@@ -112,7 +112,8 @@ export function useSendMessage({
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
-             const payloadUserInput = `${currentInput}
+            const payloadUserInput = `[Legal AI] ${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
+             Do NOT write it as a numbered list, bullet points, or any other Markdown format.
 
 ---
 [SYSTEM INSTRUCTION - RESPONSE FORMAT]:
@@ -161,11 +162,11 @@ CRITICAL RULE 2: Calculate past dates mathematically using the Current System Da
 [/TIMELINE]
 CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
 
-             return fetch('/api/chat/stream', {
+            return fetch('/api/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                user_input: payloadUserInput, 
+              body: JSON.stringify({
+                user_input: payloadUserInput,
                 session_id: sId,
                 document_context: explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext
               }),
@@ -179,7 +180,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
           let timeline: any[] | undefined;
           let mindMap: any | undefined;
           let aiResponseSuccessful = false;
-          
+
           let retryCount = 0;
           const MAX_RETRIES = 3;
 
@@ -200,7 +201,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
 
               const reader = response.body.getReader();
               const decoder = new TextDecoder();
-              
+
               // Reset accumulated text for each retry
               accumulatedText = "";
 
@@ -212,7 +213,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                 chunk = chunk.replace(/^(?:\[Tool\][^\n]*\n?)+/, "");
 
                 if (chunk.includes("Unknown session")) {
-                   throw new Error("UNKNOWN_SESSION");
+                  throw new Error("UNKNOWN_SESSION");
                 }
 
                 if (chunk.startsWith("[Error]")) {
@@ -250,15 +251,19 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                 relatedCases = extractRelatedCases(accumulatedText);
                 timeline = extractTimeline(accumulatedText);
                 mindMap = extractMindMap(accumulatedText);
-                
-                const cleanText = cleanAiText(accumulatedText);
+
+                let cleanText = accumulatedText.trim();
+                cleanText = cleanText.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim();
+                cleanText = cleanText.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, '').trim();
+                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, '').trim();
+                cleanText = cleanText.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, '').trim();
 
                 setMessages(prev => {
                   const updated = [...prev];
                   const lastIdx = updated.length - 1;
                   if (updated[lastIdx]?.id === aiMessageId) {
-                    updated[lastIdx] = { 
-                      ...updated[lastIdx], 
+                    updated[lastIdx] = {
+                      ...updated[lastIdx],
                       text: cleanText,
                       sources,
                       relatedCases,
@@ -269,7 +274,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                   return updated;
                 });
               }
-              
+
               aiResponseSuccessful = true; // Stream finished successfully
 
             } catch (err: any) {
@@ -281,7 +286,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                   throw new Error("Max retries exceeded for Unknown session");
                 }
               } else {
-                 throw err; // Not an unknown session, abort retries
+                throw err; // Not an unknown session, abort retries
               }
             }
           }
@@ -307,7 +312,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
         } catch (error: any) {
           if (error.name === 'AbortError') return;
           console.error("AI Stream Error:", error);
-          
+
           // Fallback UI message so the chat isn't stuck empty
           setMessages(prev => {
             const updated = [...prev];
@@ -336,8 +341,8 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
             conversationTitle = parts.join(' - ');
             sessionStorage.removeItem('wizard_title_data');
           }
-        } catch (e) {}
-        
+        } catch (e) { }
+
         if (!supabase) {
           setIsLoading(false);
           return;
@@ -354,10 +359,10 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
           setIsLoading(false);
           return;
         }
-        
+
         sessionId = convData.id;
         setCurrentConsultationId(sessionId);
-        await fetchConversations(); 
+        await fetchConversations();
       }
 
       // Step 2: Save the USER message to the database immediately (Awaited)
@@ -388,15 +393,15 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
       if (sessionId) {
         processMessage(sessionId, userMsgSaved);
       }
-      
+
       return sessionId ?? undefined;
     }
   }, [
-    isLoading, 
-    currentConsultationId, 
-    messages, 
-    setMessages, 
-    setIsLoading, 
+    isLoading,
+    currentConsultationId,
+    messages,
+    setMessages,
+    setIsLoading,
     setCurrentConsultationId,
     syncedConversationId,
     chatSessionId,
