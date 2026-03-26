@@ -96,13 +96,13 @@ export default function Documents() {
     }
   };
 
-  const handleAnalyze = async () => {
+  const handleLinkToChat = async () => {
     if (selectedFiles.length === 0 || !selectedCaseId) return;
 
     // Redirect immediately to the consultation
     router.push(`/consultation/${selectedCaseId}`);
     
-    // Trigger background analysis via global context
+    // Trigger background upload and linking
     analyzeDocuments(selectedFiles, selectedCaseId);
     
     // Clear local selection
@@ -204,7 +204,7 @@ export default function Documents() {
 
               <div className="mt-4">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-                  Attach to Case <span className="text-red-500">*</span>
+                  Apply to Case <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -223,7 +223,7 @@ export default function Documents() {
               </div>
 
               <button
-                onClick={handleAnalyze}
+                onClick={handleLinkToChat}
                 disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
                 className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                   selectedFiles.length > 0 && !isUploading && selectedCaseId
@@ -232,7 +232,7 @@ export default function Documents() {
                 }`}
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Scale size={18} />} 
-                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Analyze & Synthesize Batch (${selectedFiles.length})` : 'Analyze Document'}
+                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case'}
             </button>
           </div>
         </div>

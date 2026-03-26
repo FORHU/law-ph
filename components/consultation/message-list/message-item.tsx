@@ -214,10 +214,36 @@ export function MessageItem({
           )}
           
           <div className="text-sm md:text-base text-gray-100 leading-relaxed prose prose-invert max-w-none">
+            {message.fileAttachment && !message.fileAttachments && (
+              <div className="mb-3 flex items-center gap-3 p-2.5 bg-white border border-black/5 rounded-xl hover:bg-gray-50 transition-colors group/file cursor-pointer max-w-sm shadow-sm">
+                <div className="w-11 h-11 rounded-lg bg-[#F84F44] flex items-center justify-center text-white shadow-sm flex-shrink-0">
+                  <FileText size={22} strokeWidth={2.5} />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[13px] font-bold text-gray-900 truncate tracking-tight">{message.fileAttachment.name}</p>
+                  <p className="text-[10px] text-gray-500 font-bold tracking-wider uppercase">{message.fileAttachment.type.split('/')[1]?.toUpperCase() || 'FILE'}</p>
+                </div>
+              </div>
+            )}
+            {message.fileAttachments && message.fileAttachments.length > 0 && (
+              <div className="flex flex-col gap-2 mb-3">
+                {message.fileAttachments.map((file: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-3 p-2.5 bg-white border border-black/5 rounded-xl hover:bg-gray-50 transition-colors group/file cursor-pointer max-w-sm shadow-sm">
+                    <div className="w-11 h-11 rounded-lg bg-[#F84F44] flex items-center justify-center text-white shadow-sm flex-shrink-0">
+                      <FileText size={22} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[13px] font-bold text-gray-900 truncate tracking-tight">{file.name}</p>
+                      <p className="text-[10px] text-gray-500 font-bold tracking-wider uppercase">{file.type?.toUpperCase() || 'FILE'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {message.status === 'processing' ? (
               <div className="flex flex-col items-center justify-center py-4 space-y-3">
                 <Loader2 size={24} className="text-[#E0A7C2] animate-spin" />
-                <p className="text-sm font-medium text-[#E0A7C2] animate-pulse">{message.text}</p>
+                <p className="text-sm font-medium text-[#E0A7C2] animate-pulse">ANALYZING...</p>
               </div>
             ) : message.text === "" && isAI ? (
               <div className="flex gap-1 py-1">
@@ -358,7 +384,13 @@ export function MessageItem({
               })()
             ) : (
             !message.isEditing ? (
-              message.text
+              message.isAnalysis && message.sender === 'user' && message.text.toUpperCase().includes('ANALYZING') ? (
+                isLoading ? (
+                  <span className="text-xs font-bold text-[#E0A7C2] animate-pulse italic">ANALYZING...</span>
+                ) : null
+              ) : (
+                message.text
+              )
             ) : (
               <div className="w-full min-w-[300px] md:min-w-[500px]">
                 <EditMessageForm

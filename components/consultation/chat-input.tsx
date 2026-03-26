@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
-  onSend: (message: string, file?: File | null) => void;
+  onSend: (message: string, file?: File | null, skipAIResponse?: boolean) => void;
   placeholder?: string;
   disabled?: boolean;
   activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document';
@@ -50,7 +50,9 @@ export function ChatInput({
 
   const handleSend = () => {
     if ((value.trim() || selectedFile) && !disabled) {
-      onSend(value, selectedFile);
+      // For attach-only messages (no text), skip the standard AI response to trigger the receipt flow
+      const skipAI = !!selectedFile && !value.trim();
+      onSend(value, selectedFile, skipAI);
       setValue('');
       setSelectedFile(null);
     }
@@ -64,8 +66,12 @@ export function ChatInput({
         return;
       }
       setSelectedFile(file);
+      
+      // If it's an analyze intent, we might want to send immediately if no text
+      // However, usually ChatGPT allows you to add text even after clicking the "attach" button.
+      // But for "Analyze a legal document", the user said "it should go straight to the chat".
     }
-    // Reset input so same file can be selected again if removed
+    // Reset input so same file can be selected again
     e.target.value = '';
   };
 
@@ -234,29 +240,17 @@ export function ChatInput({
                 disabled={disabled}
               />
               
-              {/* Attachment Paperclip Button */}
+
               <button
                 type="button"
                 title="Attach Document or Media"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                onClick={() => {
+                  fileInputRef.current?.click();
+                }}
+                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10 mr-1"
                 disabled={disabled}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              </button>
-
-              {/* Document upload quick-access button */}
-              <button
-                type="button"
-                title="Analyze a legal document"
-                onClick={() => onTabChange?.('document')}
-                className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
-                  activeTab === 'document'
-                    ? 'bg-[#8B4564]/40 text-[#E0A7C2]'
-                    : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
-                }`}
-              >
-                <FileText size={17} />
               </button>
               <button 
                 className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
