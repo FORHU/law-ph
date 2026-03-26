@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import ReactFlow, {
   useNodesState,
   useEdgesState,
@@ -14,7 +15,8 @@ import ReactFlow, {
   useNodesInitialized
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText } from 'lucide-react';
 import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import { CustomNode } from './custom-node';
@@ -45,8 +47,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -87,13 +90,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 400 : 200;
+        return currentLayout === 'vertical' ? 450 : 280;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 80, currentLayout === 'vertical' ? 400 : 200);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 450 : 280);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -106,6 +109,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       const color = isRoot ? config.rootClass : config.nodeClass(colorIndex++);
 
       let label = item.label || item.text || 'Untitled';
+      let description = item.description || item.details || item.summary || '';
+
       if (isRoot && (label === 'Case Analysis' || label === 'Legal Strategy Map')) {
         label = rootTitle;
       }
@@ -115,6 +120,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         type: 'custom',
         data: {
           label,
+          description,
           isRoot,
           color,
           theme: currentTheme,
@@ -184,36 +190,36 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 200;
-            traverse(child, id, x - 600, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
-            leftOffset += childSize + 80;
+            const childSize = subtreeSizes.get(child) || 280;
+            traverse(child, id, x - 550, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
+            leftOffset += childSize + 40;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 200;
-            traverse(child, id, x + 600, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
-            rightOffset += childSize + 80;
+            const childSize = subtreeSizes.get(child) || 280;
+            traverse(child, id, x + 550, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
+            rightOffset += childSize + 40;
           });
         } else {
-          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 400 : 200);
+          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 450 : 280);
           let offset = -(itemSize / 2);
 
           children.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 400 : 200);
+            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 450 : 280);
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
               traverse(child, id, x + posOffset, y + 350);
             } else if (currentLayout === 'dual') {
-              traverse(child, id, x + (side === 'left' ? -600 : 600), y + posOffset, [0, 0], depth + 1, side);
+              traverse(child, id, x + (side === 'left' ? -550 : 550), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 500, y + posOffset);
+              traverse(child, id, x + 450, y + posOffset);
             } else {
-              traverse(child, id, x + 650, y + posOffset);
+              traverse(child, id, x + 550, y + posOffset);
             }
 
-            offset += childSize + 80;
+            offset += childSize + 40;
           });
         }
       }
@@ -363,9 +369,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const nodesWithCallbacks = useMemo(() => {
     return nodes.map(node => ({
       ...node,
-      data: { ...node.data, id: node.id, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode }
+      data: { ...node.data, id: node.id, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode, isSelected: node.id === selectedNodeId }
     }));
-  }, [nodes, handleEditNode, handleAddNode, handleDeleteNode]);
+  }, [nodes, handleEditNode, handleAddNode, handleDeleteNode, selectedNodeId]);
+
+  const selectedNodeData = useMemo(() => {
+    return getNodes().find(n => n.id === selectedNodeId)?.data;
+  }, [selectedNodeId, getNodes]);
 
   const undo = () => {
     if (history.length === 0) return;
@@ -395,8 +405,14 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={(_, node) => fitView({ nodes: [node], duration: 800, padding: 0.4 })}
-          onPaneClick={() => fitView({ padding: 0.05, duration: 800 })}
+          onNodeClick={(_, node) => {
+            setSelectedNodeId(node.id);
+            fitView({ nodes: [node], duration: 800, padding: 0.6 });
+          }}
+          onPaneClick={() => {
+            setSelectedNodeId(null);
+            fitView({ padding: 0.05, duration: 800 });
+          }}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
           nodesConnectable={true}
@@ -414,7 +430,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       </div>
 
       {/* MINIMIZED Structure Selector - Top Left */}
-      <div className="absolute top-4 left-4 z-[200] pointer-events-auto">
+      <div className="absolute top-4 left-4 z-[100000] pointer-events-auto">
         <div className="relative">
           <button
             onClick={() => setIsThemeOpen(!isThemeOpen)}
@@ -473,7 +489,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       </div>
 
       {/* Full Screen Toggle - Top Right */}
-      <div className="absolute top-4 right-4 z-[200] pointer-events-auto">
+      <div className="absolute top-4 right-4 z-[100000] pointer-events-auto">
         <button
           onClick={toggleFullScreen}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
@@ -484,7 +500,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       </div>
 
       {/* Ultra-Compact Vertical Hub - Snug Corner */}
-      <div className="absolute bottom-6 left-6 z-[200] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20">
+      <div className="absolute bottom-6 left-6 z-[100000] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20">
 
         {/* Navigation Group - Minimalist */}
         <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
@@ -516,8 +532,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           <button
             onClick={() => setIsMemoryOpen(!isMemoryOpen)}
             className={`p-1.5 rounded-full transition-all active:scale-95 border ${isMemoryOpen
-                ? 'bg-[#E0A7C2]/20 text-[#E0A7C2] border-[#E0A7C2]/30'
-                : 'text-white/30 hover:bg-white/5 border-transparent'
+              ? 'bg-[#E0A7C2]/20 text-[#E0A7C2] border-[#E0A7C2]/30'
+              : 'text-white/30 hover:bg-white/5 border-transparent'
               } flex items-center justify-center`}
             title="Snapshots"
           >
@@ -578,6 +594,74 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           <RotateCcw size={14} className="group-hover:rotate-[-45deg] transition-transform" />
         </button>
       </div>
+
+      {/* Sleek Minimalist Detail Card - Portaled to Context Container for Fullscreen visibility */}
+      {containerRef.current && ReactDOM.createPortal(
+        <AnimatePresence mode="wait">
+          {selectedNodeId && selectedNodeData && (
+            <motion.div
+              key={selectedNodeId}
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-28 right-10 w-[320px] z-[99999] bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5"
+            >
+              {/* Elegant Header Accent */}
+              <div 
+                className="h-1 w-full opacity-60" 
+                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }} 
+              />
+
+              <div className="p-7">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white leading-tight pr-4">
+                    {selectedNodeData.label}
+                  </h3>
+                  <button 
+                    onClick={() => setSelectedNodeId(null)}
+                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {(() => {
+                    const desc = selectedNodeData.description || "N/A";
+                    const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
+                    const isShort = desc.length < 50 && !desc.includes('.');
+
+                    if (isList || isShort) {
+                      const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+                      return (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Key Information</span>
+                          <ul className="space-y-2">
+                            {lines.map((line: string, i: number) => (
+                              <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <p className="text-[14px] text-white/70 leading-relaxed font-medium">
+                        {desc}
+                      </p>
+                    );
+                  })()}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        containerRef.current
+      )}
 
       {/* Snapshot Notification / Feedback logic could be added here if needed */}
     </div>

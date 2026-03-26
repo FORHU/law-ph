@@ -42,24 +42,24 @@ export const CustomNode = memo(({ data }: any) => {
   const isMultiPort = data.isRoot && (isDual || isRadial);
 
   return (
-    <div className={`px-9 py-6 ${borderRadius} border-[3px] transition-all duration-300 min-w-[280px] max-w-[420px] group relative cursor-pointer hover:shadow-[0_0_40px_rgba(255,255,255,0.12)] hover:border-white/30 hover:scale-[1.03] ${data.color || 'bg-[#1A1A1A] border-[#333]'}`}>
+    <div className={`px-8 py-5 ${borderRadius} border-[4px] transition-all duration-300 min-w-[280px] max-w-[450px] group relative cursor-pointer hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:border-white/40 hover:scale-[1.05] ${data.color || 'bg-[#1A1A1A] border-[#333]'}`}>
 
       {/* Target Handle - Root doesn't usually have one, others do */}
       {!data.isRoot && (
         <Handle
           type="target"
           position={targetPos}
-          className={`!w-3 !h-3 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
+          className={`!w-4 !h-4 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
         />
       )}
 
       {/* Root Multi-Ports for Dual/Radial */}
       {isMultiPort && (
         <>
-          <Handle type="source" position={Position.Left} id="left" className="!w-2.5 !h-2.5 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Right} id="right" className="!w-2.5 !h-2.5 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Top} id="top" className="!w-2.5 !h-2.5 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2.5 !h-2.5 !bg-[#8B4564] !z-20" />
+          <Handle type="source" position={Position.Left} id="left" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
+          <Handle type="source" position={Position.Right} id="right" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
+          <Handle type="source" position={Position.Top} id="top" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
+          <Handle type="source" position={Position.Bottom} id="bottom" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
         </>
       )}
 
@@ -68,12 +68,12 @@ export const CustomNode = memo(({ data }: any) => {
         <Handle
           type="source"
           position={sourcePos}
-          className={`!w-3 !h-3 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
+          className={`!w-4 !h-4 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
         />
       )}
 
       <div className="flex flex-col gap-1">
-        <div className={`font-bold text-[19px] leading-snug text-center ${isLight ? 'text-black' : 'text-white/90'}`}>
+        <div className={`font-black leading-tight text-center ${isLight ? 'text-black' : 'text-white'} ${data.isRoot ? 'text-[42px]' : 'text-[32px]'}`}>
           {data.label}
         </div>
       </div>
