@@ -16,11 +16,12 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText } from 'lucide-react';
+import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText, Box, Monitor } from 'lucide-react';
 import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
+import { MindMap3D, MindMap3DHandle } from './mind-map-3d';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -46,6 +47,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialNodes(theme));
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
+  const [is3D, setIs3D] = useState(false);
+  const mindMap3DRef = useRef<MindMap3DHandle>(null);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -252,13 +255,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   const resetLayout = useCallback(() => {
+    if (is3D) {
+      mindMap3DRef.current?.recenter();
+      return;
+    }
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
       const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
       setNodes(newNodes);
       setEdges(newEdges);
       setTimeout(() => fitView({ padding: 0.05, duration: 800 }), 100);
     }
-  }, [data, theme, layout, treeToGraph, setNodes, setEdges, fitView]);
+  }, [data, theme, layout, treeToGraph, setNodes, setEdges, fitView, is3D]);
 
   const saveToSlot = (idx: number) => {
     setSlots(prev => {
@@ -400,38 +407,63 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       `}</style>
 
       <div className="flex-1 relative overflow-hidden">
-        <ReactFlow
-          nodes={nodesWithCallbacks}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={(_, node) => {
-            setSelectedNodeId(node.id);
-            fitView({ nodes: [node], duration: 800, padding: 0.6 });
-          }}
-          onPaneClick={() => {
-            setSelectedNodeId(null);
-            fitView({ padding: 0.05, duration: 800 });
-          }}
-          nodeTypes={nodeTypes}
-          nodesDraggable={true}
-          nodesConnectable={true}
-          elementsSelectable={true}
-          fitView
-          fitViewOptions={{ padding: 0.05 }}
-          minZoom={0.05}
-          maxZoom={1}
-          style={{ background: 'transparent' }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color={themeConfig.gridColor} gap={24} />
-          {/* Custom controls are handled below in the Unified Control Center */}
-        </ReactFlow>
+        {/* 3D Model Layer */}
+        {is3D && data && (
+          <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden z-10">
+            <MindMap3D 
+              ref={mindMap3DRef}
+              root={data} 
+              onNodeClick={(node) => {
+                setSelectedNodeId(node.id);
+              }} 
+            />
+          </div>
+        )}
+
+        <div className={`absolute inset-0 transition-opacity duration-700 ${is3D ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <ReactFlow
+            nodes={nodesWithCallbacks}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, node) => {
+              setSelectedNodeId(node.id);
+              fitView({ nodes: [node], duration: 800, padding: 0.6 });
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+              fitView({ padding: 0.05, duration: 800 });
+            }}
+            nodeTypes={nodeTypes}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
+            fitView
+            fitViewOptions={{ padding: 0.05 }}
+            minZoom={0.05}
+            maxZoom={1}
+            style={{ background: 'transparent' }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color={themeConfig.gridColor} gap={24} />
+            {/* Custom controls are handled below in the Unified Control Center */}
+          </ReactFlow>
+        </div>
       </div>
 
-      {/* MINIMIZED Structure Selector - Top Left */}
-      <div className="absolute top-4 left-4 z-[100000] pointer-events-auto">
+      {/* Perspective Toggle - Top Left (2D/3D Switch) */}
+      <div className="absolute top-4 left-4 z-[100000] flex items-center gap-2">
+        <button
+          onClick={() => setIs3D(!is3D)}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#1A1A1A]/80 text-[#E0A7C2] font-black border-[#E0A7C2]/30'
+            }`}
+        >
+          {is3D ? <Monitor size={14} /> : <Box size={14} />}
+          <span className="text-[9px] uppercase tracking-widest leading-none">{is3D ? '2D View' : '3D Model'}</span>
+        </button>
+
+        {/* MINIMIZED Structure Selector */}
         <div className="relative">
           <button
             onClick={() => setIsThemeOpen(!isThemeOpen)}
@@ -439,7 +471,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               }`}
           >
             <Layout size={12} />
-            <span className="text-[9px] uppercase tracking-wider">Structure</span>
+            <span className="text-[9px] uppercase tracking-wider leading-none">Structure</span>
           </button>
 
           {isThemeOpen && (
@@ -506,21 +538,21 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         {/* Navigation Group - Minimalist */}
         <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
           <button
-            onClick={() => zoomIn()}
+            onClick={() => is3D ? mindMap3DRef.current?.zoomIn() : zoomIn()}
             className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
             title="Zoom In"
           >
             <Plus size={14} />
           </button>
           <button
-            onClick={() => zoomOut()}
+            onClick={() => is3D ? mindMap3DRef.current?.zoomOut() : zoomOut()}
             className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
             title="Zoom Out"
           >
             <Minus size={14} />
           </button>
           <button
-            onClick={() => fitView({ padding: 0.05, duration: 800 })}
+            onClick={() => is3D ? mindMap3DRef.current?.recenter() : fitView({ padding: 0.05, duration: 800 })}
             className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95"
             title="Recenter"
           >

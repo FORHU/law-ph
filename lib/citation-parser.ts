@@ -27,6 +27,8 @@ export interface TimelineItem {
 export interface MindMapItem {
   id: string;
   label: string;
+  description?: string;
+  isRoot?: boolean;
   children: MindMapItem[];
 }
 
