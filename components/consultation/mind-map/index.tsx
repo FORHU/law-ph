@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import ReactFlow, {
   useNodesState,
   useEdgesState,
@@ -14,10 +15,13 @@ import ReactFlow, {
   useNodesInitialized
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Undo2, Layout, Maximize, Palette, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText, Box, Monitor } from 'lucide-react';
 import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
+import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
+import { MindMap3D, MindMap3DHandle } from './mind-map-3d';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -43,10 +47,36 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialNodes(theme));
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
+  const [is3D, setIs3D] = useState(true);
+  const mindMap3DRef = useRef<MindMap3DHandle>(null);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isMemoryOpen, setIsMemoryOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [slots, setSlots] = useState<({ nodes: Node[], edges: Edge[] } | null)[]>(Array(3).fill(null));
+
+
+
+  const toggleFullScreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err: any) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullScreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   const themeConfig = MIND_MAP_THEMES[theme];
 
@@ -64,13 +94,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 280 : 120;
+        return currentLayout === 'vertical' ? 450 : 280;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 280 : 120);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 450 : 280);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -83,6 +113,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       const color = isRoot ? config.rootClass : config.nodeClass(colorIndex++);
 
       let label = item.label || item.text || 'Untitled';
+      let description = item.description || item.details || item.summary || '';
+
       if (isRoot && (label === 'Case Analysis' || label === 'Legal Strategy Map')) {
         label = rootTitle;
       }
@@ -92,6 +124,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         type: 'custom',
         data: {
           label,
+          description,
           isRoot,
           color,
           theme: currentTheme,
@@ -122,10 +155,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         if (currentLayout === 'radial') {
           // Calculate a dynamic global radius from the center (0,0) instead of the parent
           // This creates beautiful concentric circles and prevents messy overlapping
-          let depthRadius = 350;
-          if (depth === 0) depthRadius = 350;
-          else if (depth === 1) depthRadius = 750;
-          else depthRadius = 750 + (depth - 1) * 350;
+          let depthRadius = 500;
+          if (depth === 0) depthRadius = 500;
+          else if (depth === 1) depthRadius = 1100;
+          else depthRadius = 1100 + (depth - 1) * 500;
 
           const [startAngle, endAngle] = angleRange;
           const totalAngle = endAngle - startAngle;
@@ -156,38 +189,38 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           const leftChildren = children.slice(0, midway);
           const rightChildren = children.slice(midway);
 
-          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 120), 0) + (leftChildren.length - 1) * 30;
-          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 120), 0) + (rightChildren.length - 1) * 30;
+          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 80;
+          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 80;
 
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x - 400, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
-            leftOffset += childSize + 30;
+            const childSize = subtreeSizes.get(child) || 280;
+            traverse(child, id, x - 550, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
+            leftOffset += childSize + 40;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || 120;
-            traverse(child, id, x + 400, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
-            rightOffset += childSize + 30;
+            const childSize = subtreeSizes.get(child) || 280;
+            traverse(child, id, x + 550, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
+            rightOffset += childSize + 40;
           });
         } else {
-          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 280 : 120);
+          const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 450 : 280);
           let offset = -(itemSize / 2);
 
           children.forEach((child: any) => {
-            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 280 : 120);
+            const childSize = subtreeSizes.get(child) || (currentLayout === 'vertical' ? 450 : 280);
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
-              traverse(child, id, x + posOffset, y + 250);
+              traverse(child, id, x + posOffset, y + 350);
             } else if (currentLayout === 'dual') {
-              traverse(child, id, x + (side === 'left' ? -400 : 400), y + posOffset, [0, 0], depth + 1, side);
+              traverse(child, id, x + (side === 'left' ? -550 : 550), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 300, y + posOffset);
-            } else {
               traverse(child, id, x + 450, y + posOffset);
+            } else {
+              traverse(child, id, x + 550, y + posOffset);
             }
 
             offset += childSize + 40;
@@ -221,26 +254,67 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     setIsThemeOpen(false);
   };
 
+  const resetLayout = useCallback(() => {
+    if (is3D) {
+      mindMap3DRef.current?.recenter();
+      return;
+    }
+    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+      const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setTimeout(() => fitView({ padding: 0.05, duration: 800 }), 100);
+    }
+  }, [data, theme, layout, treeToGraph, setNodes, setEdges, fitView, is3D]);
+
+  const saveToSlot = (idx: number) => {
+    setSlots(prev => {
+      const next = [...prev];
+      next[idx] = {
+        nodes: JSON.parse(JSON.stringify(nodes)),
+        edges: JSON.parse(JSON.stringify(edges))
+      };
+      return next;
+    });
+  };
+
+  const loadFromSlot = (idx: number) => {
+    const slot = slots[idx];
+    if (slot) {
+      setNodes(slot.nodes);
+      setEdges(slot.edges);
+      setTimeout(() => fitView({ padding: 0.05, duration: 800 }), 100);
+    }
+  };
+
+  const deleteSlot = (idx: number) => {
+    setSlots(prev => {
+      const next = [...prev];
+      next[idx] = null;
+      return next;
+    });
+  };
+
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
+
     const applyFitView = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 800 });
+        fitView({ padding: 0.05, duration: 800 });
       }, 100);
     };
 
     if (nodesInitialized && nodes.length > 0) {
       // Initial fit with slightly larger delay to ensure DOM is ready
       setTimeout(() => {
-        fitView({ padding: 0.2, duration: 800 });
+        fitView({ padding: 0.05, duration: 800 });
       }, 150);
-      
+
       // Listen to window resizes and any changes to layout wrappers
       window.addEventListener('resize', applyFitView);
     }
-    
+
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', applyFitView);
@@ -303,9 +377,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const nodesWithCallbacks = useMemo(() => {
     return nodes.map(node => ({
       ...node,
-      data: { ...node.data, id: node.id, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode }
+      data: { ...node.data, id: node.id, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode, isSelected: node.id === selectedNodeId }
     }));
-  }, [nodes, handleEditNode, handleAddNode, handleDeleteNode]);
+  }, [nodes, handleEditNode, handleAddNode, handleDeleteNode, selectedNodeId]);
+
+  const selectedNodeData = useMemo(() => {
+    return getNodes().find(n => n.id === selectedNodeId)?.data;
+  }, [selectedNodeId, getNodes]);
 
   const undo = () => {
     if (history.length === 0) return;
@@ -316,7 +394,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   return (
-    <div className="w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col" style={{ backgroundColor: themeConfig.bg }}>
+    <div
+      ref={containerRef}
+      className={`w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`}
+      style={{ backgroundColor: themeConfig.bg }}
+    >
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none !important; }
         .scrollbar-hide { -ms-overflow-style: none !important; scrollbar-width: none !important; overflow: hidden !important; }
@@ -325,27 +407,63 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       `}</style>
 
       <div className="flex-1 relative overflow-hidden">
-        <ReactFlow
-          nodes={nodesWithCallbacks}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.15 }}
-          minZoom={0.05}
-          maxZoom={1}
-          style={{ background: 'transparent' }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color={themeConfig.gridColor} gap={24} />
-          <Controls className="!bg-[#0A0A0A] !border !border-white/20 !rounded-xl !overflow-hidden !shadow-2xl [&_button]:!bg-transparent [&_button]:!border-b [&_button]:!border-white/10 [&_button:last-child]:!border-b-0 [&_svg]:!fill-white hover:[&_button]:!bg-white/10 transition-all" />
-        </ReactFlow>
+        {/* 3D Model Layer */}
+        {is3D && data && (
+          <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden z-10">
+            <MindMap3D 
+              ref={mindMap3DRef}
+              root={data} 
+              onNodeClick={(node) => {
+                setSelectedNodeId(node.id);
+              }} 
+            />
+          </div>
+        )}
+
+        <div className={`absolute inset-0 transition-opacity duration-700 ${is3D ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <ReactFlow
+            nodes={nodesWithCallbacks}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, node) => {
+              setSelectedNodeId(node.id);
+              fitView({ nodes: [node], duration: 800, padding: 0.6 });
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+              fitView({ padding: 0.05, duration: 800 });
+            }}
+            nodeTypes={nodeTypes}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
+            fitView
+            fitViewOptions={{ padding: 0.05 }}
+            minZoom={0.05}
+            maxZoom={1}
+            style={{ background: 'transparent' }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color={themeConfig.gridColor} gap={24} />
+            {/* Custom controls are handled below in the Unified Control Center */}
+          </ReactFlow>
+        </div>
       </div>
 
-      {/* MINIMIZED Structure Selector - Top Left */}
-      <div className="absolute top-4 left-4 z-[200] pointer-events-auto">
+      {/* Perspective Toggle - Top Left (2D/3D Switch) */}
+      <div className="absolute top-4 left-4 z-[100000] flex items-center gap-2">
+        <button
+          onClick={() => setIs3D(!is3D)}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#1A1A1A]/80 text-[#E0A7C2] font-black border-[#E0A7C2]/30'
+            }`}
+        >
+          {is3D ? <Monitor size={14} /> : <Box size={14} />}
+          <span className="text-[9px] uppercase tracking-widest leading-none">{is3D ? '2D View' : '3D Model'}</span>
+        </button>
+
+        {/* MINIMIZED Structure Selector */}
         <div className="relative">
           <button
             onClick={() => setIsThemeOpen(!isThemeOpen)}
@@ -353,7 +471,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               }`}
           >
             <Layout size={12} />
-            <span className="text-[9px] uppercase tracking-wider">Structure</span>
+            <span className="text-[9px] uppercase tracking-wider leading-none">Structure</span>
           </button>
 
           {isThemeOpen && (
@@ -403,6 +521,196 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </div>
       </div>
 
+      {/* Full Screen Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-[100000] pointer-events-auto">
+        <button
+          onClick={toggleFullScreen}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
+        >
+          <Maximize size={12} />
+          <span className="text-[9px] uppercase tracking-wider">{isFullScreen ? 'Exit' : 'Full Screen'}</span>
+        </button>
+      </div>
+
+      {/* Ultra-Compact Vertical Hub - Snug Corner */}
+      <div className="absolute bottom-6 left-6 z-[100000] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20">
+
+        {/* Navigation Group - Minimalist */}
+        <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
+          <button
+            onClick={() => is3D ? mindMap3DRef.current?.zoomIn() : zoomIn()}
+            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Zoom In"
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            onClick={() => is3D ? mindMap3DRef.current?.zoomOut() : zoomOut()}
+            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Zoom Out"
+          >
+            <Minus size={14} />
+          </button>
+          <button
+            onClick={() => is3D ? mindMap3DRef.current?.recenter() : fitView({ padding: 0.05, duration: 800 })}
+            className="p-1.5 text-white/30 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95"
+            title="Recenter"
+          >
+            <Target size={14} />
+          </button>
+        </div>
+
+        {/* Memory Trigger - Ultra Tight */}
+        <div className="relative group/mem">
+          <button
+            onClick={() => setIsMemoryOpen(!isMemoryOpen)}
+            className={`p-1.5 rounded-full transition-all active:scale-95 border ${isMemoryOpen
+              ? 'bg-[#E0A7C2]/20 text-[#E0A7C2] border-[#E0A7C2]/30'
+              : 'text-white/30 hover:bg-white/5 border-transparent'
+              } flex items-center justify-center`}
+            title="Snapshots"
+          >
+            <Save size={14} />
+          </button>
+
+          {/* Pop-out Dropdown - Snug position */}
+          {isMemoryOpen && (
+            <div className="absolute left-[calc(100%+8px)] bottom-0 w-max min-w-[240px] p-2.5 rounded-2xl bg-[#0F0F0F]/99 backdrop-blur-3xl border border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-left-1">
+              <div className="text-[8px] font-black text-[#E0A7C2] uppercase tracking-[0.2em] mb-3 pb-1.5 border-b border-white/5 px-1">Saved Structures</div>
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2].map(idx => (
+                  <div key={idx} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 group/item transition-all">
+                    <div className="w-5 h-5 flex items-center justify-center rounded-md bg-white/5 text-[9px] font-black text-white/20 border border-white/5 group-hover/item:text-[#E0A7C2] transition-colors">
+                      {idx + 1}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-4">
+                      <button
+                        onClick={() => { saveToSlot(idx); setIsMemoryOpen(false); }}
+                        className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#E0A7C2] hover:bg-[#E0A7C2]/10 rounded-lg transition-all"
+                      >
+                        SAVE
+                      </button>
+                      {slots[idx] && (
+                        <>
+                          <div className="w-[1px] h-3 bg-white/10" />
+                          <button
+                            onClick={() => { loadFromSlot(idx); setIsMemoryOpen(false); }}
+                            className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-white hover:bg-white/10 rounded-lg transition-all"
+                          >
+                            LOAD
+                          </button>
+                          <button
+                            onClick={() => deleteSlot(idx)}
+                            className="p-1 px-1.5 text-white/10 hover:text-red-400 rounded-md transition-colors"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="w-3 h-[1px] bg-white/10" />
+
+        {/* Reset - Flush Bottom */}
+        <button
+          onClick={resetLayout}
+          className="p-1.5 text-white/20 hover:text-red-500 transition-all group active:scale-95"
+          title="Reset Map"
+        >
+          <RotateCcw size={14} className="group-hover:rotate-[-45deg] transition-transform" />
+        </button>
+      </div>
+
+      {/* Sleek Minimalist Detail Card - Portaled to Context Container for Fullscreen visibility */}
+      {containerRef.current && ReactDOM.createPortal(
+        <AnimatePresence mode="wait">
+          {selectedNodeId && selectedNodeData && (
+            <motion.div
+              key={selectedNodeId}
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-28 right-10 w-[320px] z-[99999] bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5"
+            >
+              {/* Elegant Header Accent */}
+              <div 
+                className="h-1 w-full opacity-60" 
+                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }} 
+              />
+
+              <div className="p-7">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white leading-tight pr-4">
+                    {selectedNodeData.label}
+                  </h3>
+                  <button 
+                    onClick={() => setSelectedNodeId(null)}
+                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {(() => {
+                    const desc = selectedNodeData.description || "N/A";
+                    const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
+                    const isShort = desc.length < 50 && !desc.includes('.');
+
+                    if (isList || isShort) {
+                      const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+                      return (
+                        <div className="flex flex-col gap-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Key Information</span>
+                          <ul className="space-y-2">
+                            {lines.map((line: string, i: number) => (
+                              <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
+                                <ReactMarkdown
+                                  components={{
+                                    p: ({ children }) => <span className="inline-block">{children}</span>,
+                                    strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                                  }}
+                                >
+                                  {line}
+                                </ReactMarkdown>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="text-[14px] text-white/70 leading-relaxed font-medium">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                          }}
+                        >
+                          {desc}
+                        </ReactMarkdown>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        containerRef.current
+      )}
+
+      {/* Snapshot Notification / Feedback logic could be added here if needed */}
     </div>
   );
 }

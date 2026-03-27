@@ -110,7 +110,7 @@ export function NoteSidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:bg-black/40"
+            className="fixed inset-0 z-[199999] bg-black/60 backdrop-blur-sm md:bg-black/40"
           />
 
           {/* Right Sidebar */}
@@ -119,7 +119,7 @@ export function NoteSidebar({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 z-50 w-full sm:w-[520px] bg-[#1A1A1A] border-l border-[#8B4564]/30 shadow-2xl flex flex-col"
+            className="fixed inset-y-0 right-0 z-[200000] w-full sm:w-[520px] bg-[#1A1A1A] border-l border-[#8B4564]/30 shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[#8B4564]/20 bg-[#252525]/80 backdrop-blur-md">
