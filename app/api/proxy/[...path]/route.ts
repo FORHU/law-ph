@@ -25,6 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Authorization': req.headers.get('Authorization') || '',
+        'Cookie': req.headers.get('Cookie') || '',
       },
       body: JSON.stringify(body),
     });

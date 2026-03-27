@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER } from '@/lib/constants';
 import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
+import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 
 interface UseSendMessageParams {
   messages: Message[];
@@ -39,41 +40,147 @@ export function useSendMessage({
 }: UseSendMessageParams) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSendMessage = useCallback(async (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null): Promise<string | number | undefined> => {
-    if (text.trim() && !isLoading && supabase) {
+  const handleSendMessage = useCallback(async (
+    text: string, 
+    targetConversationId?: string | number, 
+    explicitDocumentContext?: string | null,
+    file?: File | null,
+    skipAIResponse?: boolean
+  ): Promise<string | number | undefined> => {
+    if ((text.trim() || file) && !isLoading && supabase) {
       setIsLoading(true);
       const currentInput = text.trim();
-      const newMessage = {
-        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      const newMessageId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newMessage: Message = {
+        id: newMessageId,
         text: currentInput,
         sender: CHAT_SENDER.USER,
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        fileAttachment: file ? {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        } : undefined,
+        status: skipAIResponse ? 'done' : undefined
       };
+
+      // Extract ILM_META if present in the text (e.g. from Document Analysis)
+      let displayInput = currentInput;
+      const metaMatch = currentInput.match(/\[ILM_META\]([\s\S]*?)\[\/ILM_META\]/);
+      if (metaMatch) {
+        try {
+          const meta = JSON.parse(metaMatch[1]);
+          newMessage.isAnalysis = meta.isAnalysis;
+          newMessage.fileAttachments = meta.fileAttachments;
+          if (meta.fileAttachment) newMessage.fileAttachment = meta.fileAttachment;
+          displayInput = currentInput.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, '').trim();
+          // Also strip hidden instructions for local display
+          displayInput = displayInput.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/, '').trim();
+          newMessage.text = displayInput;
+        } catch (e) {
+          console.error("Failed to parse ILM_META in outgoing message", e);
+        }
+      }
 
       let sessionId = targetConversationId || syncedConversationId || currentConsultationId;
       setMessages(prev => [...prev, newMessage]);
 
       // Define internal async function to process the rest of the flow in the background
-      const processMessage = async (activeSessionId: string | number, userMsgSaved: boolean) => {
+      const processMessage = async (activeSessionId: string | number) => {
         try {
-          // 1. Save user message to cloud if not already saved
-          if (!userMsgSaved && supabase) {
-            const { data: savedUserMsg, error: userMsgError } = await supabase
-              .from("messages")
-              .insert({
-                conversation_id: activeSessionId,
-                role: 'user',
-                content: currentInput
-              })
-              .select()
-              .single();
+          let currentFileAttachment = newMessage.fileAttachment;
+          let currentDocumentContext = explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext;
 
-            if (!userMsgError && savedUserMsg) {
-              setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
+          // 1. If there's a file, upload and analyze it first
+          if (file) {
+            try {
+              const uploadData = await uploadAndAnalyzeDocument(
+                file,
+                process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001',
+                !skipAIResponse
+              );
+              
+              currentFileAttachment = {
+                ...currentFileAttachment!,
+                url: uploadData.file_url,
+                s3_key: uploadData.s3_key,
+                ai_summary: uploadData.ai_summary
+              };
+              
+              currentDocumentContext = uploadData.ai_summary;
+
+              // Update the local message with the final file data
+              setMessages(prev => prev.map(m => m.id === newMessageId ? { ...m, fileAttachment: currentFileAttachment } : m));
+            } catch (uploadErr) {
+              console.error("File upload/analysis failed:", uploadErr);
+              // We'll continue without the file context if it failed
             }
           }
 
-          // 2. Prepare AI message
+          // 2. Save user message to cloud
+          const meta = {
+            fileAttachment: currentFileAttachment
+          };
+          const contentWithMeta = currentInput + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
+
+          const { data: savedUserMsg, error: userMsgError } = await supabase
+            .from("messages")
+            .insert({
+              conversation_id: activeSessionId,
+              role: 'user',
+              content: contentWithMeta
+            })
+            .select()
+            .single();
+
+          if (!userMsgError && savedUserMsg) {
+            setMessages(prev => prev.map(m => m.id === newMessageId ? mapCloudMessage(savedUserMsg) : m));
+          }
+
+          if (skipAIResponse) {
+            // Send the "receipt" response with more professional phrases
+            const receiptText = `I’ve received your file “${currentFileAttachment?.name || 'document'}.” What would you like me to do with it?
+
+Here are a few things I can help you with:
+
+- **Comprehensive Document Analysis**: Perform a deep-dive analysis of the file's legal implications and core findings.
+- **Key Data Extraction**: Identify and extract critical dates, parties, and legal obligations from the document.
+- **Synthesize Case Facts**: Extract a clear, plain-language summary of the core facts and legal issues.
+- **Generate Professional Brief**: Produce a structured case brief including the issue, ruling, and legal reasoning.
+- **Deconstruct Legal Reasoning**: Provide a step-by-step breakdown of the court's logic and the specific laws applied.
+
+Just tell me 👍`;
+
+            const aiMessageId = `receipt-${Date.now()}`;
+            const receiptMsg: Message = {
+              id: aiMessageId,
+              text: receiptText,
+              sender: CHAT_SENDER.AI,
+              time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            };
+
+            setMessages(prev => [...prev, receiptMsg]);
+            setIsLoading(false);
+
+            // Save the receipt response to Supabase
+            try {
+              const { data: savedAiMsg } = await supabase.from("messages").insert({
+                conversation_id: activeSessionId,
+                role: 'assistant',
+                content: receiptText
+              }).select().single();
+              
+              if (savedAiMsg) {
+                setMessages(prev => prev.map(m => m.id === aiMessageId ? mapCloudMessage(savedAiMsg) : m));
+              }
+            } catch (saveErr) {
+              console.error("Failed to save receipt message:", saveErr);
+            }
+
+            return;
+          }
+
+          // 3. Prepare AI message
           const aiMessageId = `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const initialAiMessage = {
             id: aiMessageId,
@@ -93,7 +200,6 @@ export function useSendMessage({
           let currentChatSessionId = chatSessionId;
 
           const refreshSession = async (): Promise<string | null> => {
-            console.log("[Session] Refreshing chat session...");
             try {
               const res = await fetch('/api/chat/session');
               if (res.ok) {
@@ -112,7 +218,7 @@ export function useSendMessage({
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
-            const payloadUserInput = `[Legal AI] ${currentInput}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
+            const payloadUserInput = `[Legal AI] ${currentInput || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
              Do NOT write it as a numbered list, bullet points, or any other Markdown format.
 
 ---
@@ -173,7 +279,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
               body: JSON.stringify({
                 user_input: payloadUserInput,
                 session_id: sId,
-                document_context: explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext
+                document_context: currentDocumentContext
               }),
               signal: controller.signal
             });
@@ -206,8 +312,6 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
 
               const reader = response.body.getReader();
               const decoder = new TextDecoder();
-
-              // Reset accumulated text for each retry
               accumulatedText = "";
 
               while (true) {
@@ -223,7 +327,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
 
                 if (chunk.startsWith("[Error]")) {
                   accumulatedText = "Error: " + chunk.replace("[Error]", "");
-                  aiResponseSuccessful = true; // Not an unknown session, a deliberate backend error to display
+                  aiResponseSuccessful = true;
                   break;
                 }
 
@@ -251,7 +355,6 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                 }
 
                 accumulatedText += chunk;
-
                 sources = extractLegalSources(accumulatedText);
                 relatedCases = extractRelatedCases(accumulatedText);
                 timeline = extractTimeline(accumulatedText);
@@ -279,28 +382,19 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                   return updated;
                 });
               }
-
-              aiResponseSuccessful = true; // Stream finished successfully
-
+              aiResponseSuccessful = true;
             } catch (err: any) {
               if (err.message === "UNKNOWN_SESSION") {
-                console.log(`[Retry ${retryCount + 1}/${MAX_RETRIES}] Backend reported 'Unknown session', fetching a new one...`);
                 retryCount++;
                 currentChatSessionId = await refreshSession() || "";
-                if (retryCount >= MAX_RETRIES) {
-                  throw new Error("Max retries exceeded for Unknown session");
-                }
+                if (retryCount >= MAX_RETRIES) throw new Error("Max retries exceeded");
               } else {
-                throw err; // Not an unknown session, abort retries
+                throw err;
               }
             }
           }
 
-          // 3. Final cleanup and save AI message
           const rawAiText = accumulatedText.trim();
-
-          if (!supabase) return;
-
           const { data: savedAiMsg, error: aiMsgError } = await supabase
             .from("messages")
             .insert({
@@ -317,13 +411,11 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
         } catch (error: any) {
           if (error.name === 'AbortError') return;
           console.error("AI Stream Error:", error);
-
-          // Fallback UI message so the chat isn't stuck empty
           setMessages(prev => {
             const updated = [...prev];
             const lastIdx = updated.length - 1;
             if (updated[lastIdx]) {
-              updated[lastIdx] = { ...updated[lastIdx], text: "I'm sorry, I'm having trouble connecting right now. Please try again later." };
+              updated[lastIdx] = { ...updated[lastIdx], text: "I'm sorry, I'm having trouble connecting right now." };
             }
             return updated;
           });
@@ -336,23 +428,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
       };
 
       if (!sessionId || typeof sessionId === 'number') {
-        let conversationTitle = currentInput.substring(0, 50);
-        try {
-          const wizardTitleData = sessionStorage.getItem('wizard_title_data');
-          if (wizardTitleData) {
-            const data = JSON.parse(wizardTitleData);
-            const parts = [data.userType, data.legalArea];
-            if (data.specificIssue) parts.push(data.specificIssue);
-            conversationTitle = parts.join(' - ');
-            sessionStorage.removeItem('wizard_title_data');
-          }
-        } catch (e) { }
-
-        if (!supabase) {
-          setIsLoading(false);
-          return;
-        }
-
+        let conversationTitle = currentInput.substring(0, 50) || (file ? `Document: ${file.name}` : "New Consultation");
         const { data: convData, error: convError } = await supabase
           .from("conversations")
           .insert({ user_id: userId, title: conversationTitle })
@@ -360,7 +436,6 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
           .single();
 
         if (convError) {
-          console.error("Failed to create conversation:", convError);
           setIsLoading(false);
           return;
         }
@@ -370,33 +445,8 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
         await fetchConversations();
       }
 
-      // Step 2: Save the USER message to the database immediately (Awaited)
-      // This ensures that even if we redirect, the message is persisted.
-      let userMsgSaved = false;
-      try {
-        const { data: savedUserMsg, error: userMsgError } = await supabase
-          .from("messages")
-          .insert({
-            conversation_id: sessionId,
-            role: 'user',
-            content: currentInput
-          })
-          .select()
-          .single();
-
-        if (!userMsgError && savedUserMsg) {
-          setMessages(prev => prev.map(m => m.id === newMessage.id ? mapCloudMessage(savedUserMsg) : m));
-          userMsgSaved = true;
-        }
-      } catch (err) {
-        console.error("Failed to persist user message before redirect:", err);
-      }
-
-      // Step 3: Trigger the AI stream (Concurrent - do NOT await if we are redirecting)
-      // Actually, if we ARE redirecting, the AI stream on this client will die.
-      // But that's okay because the new page will load the consultation and see the user message.
       if (sessionId) {
-        processMessage(sessionId, userMsgSaved);
+        processMessage(sessionId);
       }
 
       return sessionId ?? undefined;
