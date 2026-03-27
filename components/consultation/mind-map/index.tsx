@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText } from 'lucide-react';
 import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
+import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
 
 const nodeTypes = {
@@ -641,7 +642,14 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                             {lines.map((line: string, i: number) => (
                               <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
-                                {line}
+                                <ReactMarkdown
+                                  components={{
+                                    p: ({ children }) => <span className="inline-block">{children}</span>,
+                                    strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                                  }}
+                                >
+                                  {line}
+                                </ReactMarkdown>
                               </li>
                             ))}
                           </ul>
@@ -650,9 +658,16 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     }
 
                     return (
-                      <p className="text-[14px] text-white/70 leading-relaxed font-medium">
-                        {desc}
-                      </p>
+                      <div className="text-[14px] text-white/70 leading-relaxed font-medium">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                          }}
+                        >
+                          {desc}
+                        </ReactMarkdown>
+                      </div>
                     );
                   })()}
                 </div>

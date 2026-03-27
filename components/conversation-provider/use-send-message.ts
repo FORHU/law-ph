@@ -120,10 +120,12 @@ export function useSendMessage({
 Current System Date: ${new Date().toISOString().split('T')[0]}
 
 4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
-   - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
-   - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
-   - "Evidence & Facts": Extract key facts and pieces of evidence.
-   - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
+   - "Key Parties": Separate Names and Roles into distinct nested levels. 
+     Structure: "Key Parties" -> [Role (e.g. "Plaintiff")] -> [Full Name (e.g. "Engr. Marcus T. Torres")]. 
+     CRITICAL: NEVER combine the role and name in a single label (e.g., Do NOT use "Plaintiff: Marcus Torres"). They MUST be separate nodes.
+     Include Attorneys, Witnesses, and specific experts.
+
+
 5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
 
 The tags MUST be at the very bottom and look like this:
@@ -162,7 +164,8 @@ CRITICAL RULE 2: Calculate past dates mathematically using the Current System Da
   {"title":"Technical Survey Verification","date":"","description":"- Conduct on-site boundary verification.\n- Confirm 50sqm encroachment.","status":"pending", "requires_previous": false}
 ]
 [/TIMELINE]
-CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Geodetic Engineer" -> "Engr. Miguel Gomez" -> "License No. 008922"). Do not include these tags in the prose.`;
+CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are ALWAYS nested UNDER their Titles/Roles as separate child nodes. (e.g. "Geodetic Engineer" (parent) -> "Engr. Miguel Gomez" (child) -> "License No. 008922" (grandchild)). NEVER use a colon ":" to join a role and a name in one label. Do not include these tags in the prose.`;
+
 
             return fetch('/api/chat/stream', {
               method: 'POST',
