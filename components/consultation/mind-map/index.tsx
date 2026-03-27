@@ -47,7 +47,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialNodes(theme));
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [history, setHistory] = useState<{ nodes: Node[], edges: Edge[] }[]>([]);
-  const [is3D, setIs3D] = useState(false);
+  const [is3D, setIs3D] = useState(true);
   const mindMap3DRef = useRef<MindMap3DHandle>(null);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);

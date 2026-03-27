@@ -28,21 +28,21 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
 
   useEffect(() => {
     if (containerRef.current) {
-        setDims({
-            width: containerRef.current.offsetWidth,
-            height: containerRef.current.offsetHeight
-        });
+      setDims({
+        width: containerRef.current.offsetWidth,
+        height: containerRef.current.offsetHeight
+      });
 
-        const observer = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                setDims({
-                    width: entry.contentRect.width,
-                    height: entry.contentRect.height
-                });
-            }
-        });
-        observer.observe(containerRef.current);
-        return () => observer.disconnect();
+      const observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          setDims({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
+          });
+        }
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
     }
   }, []);
 
@@ -120,7 +120,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
       // Configuration
       fgRef.current.d3Force('link').distance(180);
       fgRef.current.d3Force('charge').strength(-800); // Stronger repulsion to prevent clustering
-      
+
       // Settle and fit
       const timer = setTimeout(() => {
         if (fgRef.current) {
@@ -137,11 +137,11 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     const group = new THREE.Group();
 
     const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(node.isRoot ? 8 : 5, 24, 24),
+      new THREE.SphereGeometry(node.isRoot ? 10 : 6, 32, 32),
       new THREE.MeshStandardMaterial({
         color: node.isRoot ? '#8B4564' : '#E0A7C2',
         emissive: node.isRoot ? '#8B4564' : '#E0A7C2',
-        emissiveIntensity: 0.8,
+        emissiveIntensity: 1.2,
         metalness: 0.9,
         roughness: 0.1,
         transparent: true,
@@ -153,36 +153,36 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     if (context) {
-        const text = node.label;
-        const fontSize = 48;
-        context.font = `bold ${fontSize}px Inter, -apple-system, sans-serif`;
-        const textWidth = context.measureText(text).width;
-        
-        canvas.width = textWidth + 80;
-        canvas.height = fontSize + 40;
-        
-        context.fillStyle = 'rgba(10, 10, 10, 0.85)';
-        context.roundRect?.(0, 0, canvas.width, canvas.height, 12);
-        context.fill();
-        
-        context.strokeStyle = node.isRoot ? '#8B4564' : 'rgba(255,255,255,0.3)';
-        context.lineWidth = 4;
-        context.stroke();
+      const text = node.label;
+      const fontSize = 48;
+      context.font = `bold ${fontSize}px Inter, -apple-system, sans-serif`;
+      const textWidth = context.measureText(text).width;
 
-        context.fillStyle = '#ffffff';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.font = `bold ${fontSize}px Inter, -apple-system, sans-serif`;
-        context.fillText(text, canvas.width / 2, canvas.height / 2);
+      canvas.width = textWidth + 80;
+      canvas.height = fontSize + 40;
 
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(spriteMaterial);
-        
-        const aspectRatio = canvas.width / canvas.height;
-        sprite.scale.set(7 * aspectRatio, 7, 1);
-        sprite.position.y = 14;
-        group.add(sprite);
+      context.fillStyle = 'rgba(10, 10, 10, 0.85)';
+      context.roundRect?.(0, 0, canvas.width, canvas.height, 12);
+      context.fill();
+
+      context.strokeStyle = node.isRoot ? '#8B4564' : 'rgba(255,255,255,0.3)';
+      context.lineWidth = 4;
+      context.stroke();
+
+      context.fillStyle = '#ffffff';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.font = `bold ${fontSize}px Inter, -apple-system, sans-serif`;
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(spriteMaterial);
+
+      const aspectRatio = canvas.width / canvas.height;
+      sprite.scale.set(7 * aspectRatio, 7, 1);
+      sprite.position.y = 14;
+      group.add(sprite);
     }
 
     return group;
