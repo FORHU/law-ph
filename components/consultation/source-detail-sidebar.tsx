@@ -150,7 +150,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
         <>
           {/* Overlay */}
           <motion.div
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[199999]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -159,7 +159,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
 
           {/* Sidebar - slides in from the right (uniform with Related Cases) */}
           <motion.div
-            className="fixed right-0 top-0 h-full w-full md:w-[600px] lg:w-[700px] bg-[#1a1a1a] border-l border-white/10 z-50 overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 h-full w-full md:w-[600px] lg:w-[700px] bg-[#1a1a1a] border-l border-white/10 z-[200000] overflow-hidden flex flex-col"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

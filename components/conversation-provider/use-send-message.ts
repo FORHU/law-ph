@@ -258,10 +258,12 @@ Just tell me 👍`;
 Current System Date: ${new Date().toISOString().split('T')[0]}
 
 4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
-   - "Key Parties": Separate Names and Roles into distinct nodes (e.g., "Plaintiff" -> "[Name]"). Include Attorneys and Witnesses.
-   - "Legal Strategy": Provide specific legal theories, defense strategies, or claim preparations.
-   - "Evidence & Facts": Extract key facts and pieces of evidence.
-   - "Laws & Jurisprudence": List relevant Articles, Sections, or Case Laws mentioned.
+   - "Key Parties": Separate Names and Roles into distinct nested levels. 
+     Structure: "Key Parties" -> [Role (e.g. "Plaintiff")] -> [Full Name (e.g. "Engr. Marcus T. Torres")]. 
+     CRITICAL: NEVER combine the role and name in a single label (e.g., Do NOT use "Plaintiff: Marcus Torres"). They MUST be separate nodes.
+     Include Attorneys, Witnesses, and specific experts.
+
+
 5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
 
 The tags MUST be at the very bottom and look like this:
@@ -270,35 +272,38 @@ The tags MUST be at the very bottom and look like this:
 {
   "id": "root",
   "label": "Case Analysis",
+  "description": "Comprehensive mapping of legal elements for the specific dispute regarding [Case Subject].",
   "children": [
     {
       "id": "c1",
       "label": "Key Parties",
+      "description": "Inventory of case-specific stakeholders, featuring their unique identifiers and precise legal standing.",
       "children": [
-        { "id": "p1_role", "label": "Plaintiff/Complainant", "children": [{ "id": "p1_name", "label": "[Name]", "children": [] }] },
-        { "id": "atty_root", "label": "Legal Team", "children": [{ "id": "a1", "label": "Counsel", "children": [{"id": "a1_name", "label": "Atty. [Name]", "children": []}] }] }
+        { "id": "p1_role", "label": "Plaintiff", "description": "The primary initiator [Name] who is seeking recovery of [Specific Property/Amount].", "children": [{ "id": "p1_name", "label": "Sofia Santos", "description": " Sofia Santos, owner of OCT No. 12345, claiming a 50sqm encroachment in Brgy. San Jose.", "children": [] }] },
+        { "id": "atty_root", "label": "Legal Team", "description": "The specific attorneys managing the procedural strategy for this case.", "children": [{ "id": "a1", "label": "Counsel", "description": "Lead legal representation focused on the Accion Reivindicatoria strategy.", "children": [{"id": "a1_name", "label": "Atty. Gabriel Cruz", "description": "Atty. Cruz, specializing in land disputes, currently preparing the complaint for the Pasig RTC.", "children": []}] }] }
       ]
-    },
-    { "id": "c2", "label": "Legal Strategy", "children": [{ "id": "s1", "label": "Defense Strategy", "children": [] }] },
-    { "id": "c3", "label": "Evidence & Facts", "children": [{ "id": "e1", "label": "Key Evidence", "children": [] }] },
-    { "id": "c4", "label": "Laws & Jurisprudence", "children": [] }
+    }
   ]
 }
 [/MINDMAP]
 
-6. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". If a pending step strictly requires the previous step to be finished first, add "requires_previous": true. 
-CRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories (e.g. do not just say "Gather Evidence", say "Get Police Report" and "Get Medical Cert"). If multiple steps can be done simultaneously, set "requires_previous": false.
-CRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above (e.g. if today is 2026-03-19 and the user says '5 days ago', the date is 2026-03-14). NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.
+7. CRITICAL: Every node in the [MINDMAP] MUST have a unique "description" and you MUST deconstruct technical details into subnodes. 
+   - DESCRIPTION FORMATTING: If the information is a narrative role or strategy, use a concise sentence. If the information is a short technical fact (e.g., license, measurements, serial numbers, specific dates), use bulleted form (e.g. "- License: 008922").
+   - QUANTITIES & IDENTIFIERS: If a measurement (e.g., "38.5sqm"), license number, or serial number is mentioned, it MUST be its own distinct node.
+   - For example: "Evidence" -> "Relocation Survey" -> "38.5sqm Encroachment (North-West)".
+
+8. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". 
+CRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories.
+CRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above. NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.
 
 [TIMELINE]
 [
-  {"title":"Case Assessment","date":"[YYYY-MM-DD calculated from context]","description":"Initial review of notes.","status":"completed", "requires_previous": false},
-  {"title":"Secure Medical Certificate","date":"","description":"Obtain official injury records from the hospital.","status":"pending", "requires_previous": false},
-  {"title":"Obtain Barangay Incident Report","date":"","description":"Request the blotter from the barangay desk.","status":"pending", "requires_previous": false},
-  {"title":"Draft Demand Letter","date":"","description":"Write the formal demand requiring the completion of the previous steps.","status":"pending", "requires_previous": true}
+  {"title":"Case Assessment","date":"[YYYY-MM-DD]","description":"- Initial review of [Party's Name] documentation.\n- Document inventory.","status":"completed", "requires_previous": false},
+  {"title":"Technical Survey Verification","date":"","description":"- Conduct on-site boundary verification.\n- Confirm 50sqm encroachment.","status":"pending", "requires_previous": false}
 ]
 [/TIMELINE]
-CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are nested under their Positions as separate nodes. (e.g. "Respondent" -> "John Doe"). Do not include these tags in the prose.`;
+CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are ALWAYS nested UNDER their Titles/Roles as separate child nodes. (e.g. "Geodetic Engineer" (parent) -> "Engr. Miguel Gomez" (child) -> "License No. 008922" (grandchild)). NEVER use a colon ":" to join a role and a name in one label. Do not include these tags in the prose.`;
+
 
             return fetch('/api/chat/stream', {
               method: 'POST',
