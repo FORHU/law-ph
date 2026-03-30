@@ -76,6 +76,32 @@ export const CustomNode = memo(({ data }: any) => {
         <div className={`font-black leading-tight text-center ${isLight ? 'text-black' : 'text-white'} ${data.isRoot ? 'text-[42px]' : 'text-[32px]'}`}>
           {data.label}
         </div>
+        
+        {/* Rich Media Embedding directly ON the Node for Lawyers */}
+        {data.media && data.media.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+             {data.media.map((item: any, idx: number) => {
+                if (item.type === 'image') return (
+                  <div key={idx} className="relative group/media overflow-hidden rounded-xl border-2 border-white/10 shadow-lg">
+                    <img src={item.url} alt={item.name} className="w-full h-auto max-h-[220px] object-cover transition-transform group-hover/media:scale-105" />
+                  </div>
+                );
+                if (item.type === 'audio') return (
+                   <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
+                      <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">{item.name}</span>
+                      <audio controls className="w-full h-9 rounded-md"><source src={item.url} /></audio>
+                   </div>
+                );
+                if (item.type === 'file') return (
+                   <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
+                      <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg">📄</div>
+                      <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
+                   </a>
+                );
+                return null;
+             })}
+          </div>
+        )}
       </div>
     </div>
   );

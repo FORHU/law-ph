@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import ReactDOM from 'react-dom';
 import ReactFlow, {
   useNodesState,
@@ -21,7 +22,11 @@ import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
-import { MindMap3D, MindMap3DHandle } from './mind-map-3d';
+const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">Initialising 3D Reality...</div>
+});
+import type { MindMap3DHandle } from './mind-map-3d';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -52,6 +57,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // Holds enriched data from 3D click (description, media) since 3D is outside React Flow
+  const [selected3DNodeData, setSelected3DNodeData] = useState<any>(null);
 
   const { fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
@@ -125,6 +132,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         data: {
           label,
           description,
+          media: item.media, // Pass media data forward for 2D/3D
           isRoot,
           color,
           theme: currentTheme,
@@ -255,6 +263,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   const resetLayout = useCallback(() => {
+    setSelectedNodeId(null);
     if (is3D) {
       mindMap3DRef.current?.recenter();
       return;
@@ -381,9 +390,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     }));
   }, [nodes, handleEditNode, handleAddNode, handleDeleteNode, selectedNodeId]);
 
+  // In 3D mode, use the data stored from the 3D click; in 2D use React Flow
   const selectedNodeData = useMemo(() => {
+    if (is3D && selected3DNodeData) return selected3DNodeData;
     return getNodes().find(n => n.id === selectedNodeId)?.data;
-  }, [selectedNodeId, getNodes]);
+  }, [selectedNodeId, getNodes, is3D, selected3DNodeData]);
 
   const undo = () => {
     if (history.length === 0) return;
@@ -410,12 +421,23 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         {/* 3D Model Layer */}
         {is3D && data && (
           <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden z-10">
-            <MindMap3D 
+            <MindMap3D
               ref={mindMap3DRef}
-              root={data} 
+              root={data}
               onNodeClick={(node) => {
                 setSelectedNodeId(node.id);
-              }} 
+                // Store full enriched data so detail panel works in 3D mode
+                setSelected3DNodeData({
+                  label: node.label,
+                  description: node.description,
+                  media: node.media,
+                  color: '#00E5FF'
+                });
+              }}
+              onBackgroundClick={() => {
+                setSelectedNodeId(null);
+                setSelected3DNodeData(null);
+              }}
             />
           </div>
         )}
@@ -641,9 +663,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               className="absolute top-28 right-10 w-[320px] z-[99999] bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5"
             >
               {/* Elegant Header Accent */}
-              <div 
-                className="h-1 w-full opacity-60" 
-                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }} 
+              <div
+                className="h-1 w-full opacity-60"
+                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }}
               />
 
               <div className="p-7">
@@ -651,14 +673,14 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   <h3 className="text-xl font-bold text-white leading-tight pr-4">
                     {selectedNodeData.label}
                   </h3>
-                  <button 
+                  <button
                     onClick={() => setSelectedNodeId(null)}
                     className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0"
                   >
                     <X size={18} />
                   </button>
                 </div>
-                
+
                 <div className="space-y-4">
                   {(() => {
                     const desc = selectedNodeData.description || "N/A";
@@ -702,6 +724,41 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                       </div>
                     );
                   })()}
+
+                  {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
+                  {selectedNodeData.media && selectedNodeData.media.length > 0 && (
+                    <div className="mt-8 border-t border-white/5 pt-6 space-y-4">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>
+                      <div className="flex flex-col gap-3">
+                        {selectedNodeData.media.map((item: any, idx: number) => {
+                          if (item.type === 'image') return (
+                            <div key={idx} className="relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg">
+                              <img src={item.url} alt={item.name} className="w-full h-auto max-h-[160px] object-cover transition-transform group-hover/media:scale-105" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
+                                <a href={item.url} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-white text-black text-[10px] font-bold rounded-lg uppercase tracking-wider">Expand File</a>
+                              </div>
+                            </div>
+                          );
+                          if (item.type === 'audio') return (
+                            <div key={idx} className="bg-[#050505]/60 p-3 rounded-xl border border-white/10 flex flex-col gap-2">
+                              <span className="text-[10px] font-bold text-white/40 truncate">{item.name}</span>
+                              <audio controls className="w-full h-8"><source src={item.url} /></audio>
+                            </div>
+                          );
+                          if (item.type === 'file') return (
+                            <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:border-[#E0A7C2]/40 transition-all">
+                              <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
+                              <div className="flex flex-col">
+                                <span className="text-[12px] font-bold text-white/90 truncate max-w-[200px]">{item.name}</span>
+                                <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
+                              </div>
+                            </a>
+                          );
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
