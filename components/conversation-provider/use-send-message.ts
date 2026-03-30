@@ -59,7 +59,8 @@ export function useSendMessage({
         fileAttachment: file ? {
           name: file.name,
           type: file.type,
-          size: file.size
+          size: file.size,
+          url: URL.createObjectURL(file) // Instantly assign a local blob URL so it renders offline!
         } : undefined,
         status: skipAIResponse ? 'done' : undefined
       };
@@ -102,7 +103,7 @@ export function useSendMessage({
               
               currentFileAttachment = {
                 ...currentFileAttachment!,
-                url: uploadData.file_url,
+                url: uploadData.file_url || currentFileAttachment!.url,
                 s3_key: uploadData.s3_key,
                 ai_summary: uploadData.ai_summary
               };

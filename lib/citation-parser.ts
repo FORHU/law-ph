@@ -270,7 +270,7 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
         return parsed as TimelineItem[];
       }
     } catch (e) {
-      console.error("Failed to parse timeline JSON:", e);
+      // Don't log expected partial JSON errors during streaming
     }
   }
 

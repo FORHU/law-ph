@@ -440,6 +440,57 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     };
   }
 
+  // Inject all user uploaded file attachments into the Mind Map as evidence nodes
+  const allAttachments: { name: string; url?: string; type: string; ai_summary?: string }[] = [];
+  messages.forEach(m => {
+    if (m.fileAttachment) allAttachments.push(m.fileAttachment);
+    if (m.fileAttachments) allAttachments.push(...m.fileAttachments);
+  });
+
+  if (activeMindMap && allAttachments.length > 0) {
+    // Clone to prevent mutating original state directly
+    activeMindMap = JSON.parse(JSON.stringify(activeMindMap));
+    
+    const attachmentNodes = allAttachments.map((att, i) => {
+      const isImage = att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      const isAudio = att.name.match(/\.(mp3|wav|ogg|m4a)$/i);
+      const mediaType = isImage ? 'image' : isAudio ? 'audio' : 'file';
+      
+      return {
+        id: `attachment-${i}`,
+        label: att.name.length > 30 ? att.name.substring(0, 30) + "..." : att.name,
+        description: (att.ai_summary || 'User uploaded file.') + `\n\n**Filename:** ${att.name}`,
+        media: [{ type: mediaType, url: att.url || '#', name: att.name }],
+        children: []
+      };
+    });
+
+    activeMindMap.children = activeMindMap.children || [];
+    
+    // Try to attach to existing Evidence node, otherwise create a new dedicated branch
+    const evidenceNode = activeMindMap.children.find((c: any) => 
+      c.label && (c.label.toLowerCase().includes('evidence') || c.label.toLowerCase().includes('attachment'))
+    );
+
+    if (evidenceNode) {
+      // Remove placeholder empty nodes if replacing with real files
+      evidenceNode.children = evidenceNode.children.filter((c: any) => !c.id?.includes('-empty'));
+      
+      // Prevent duplicates by name
+      const existingNames = evidenceNode.children.map((c: any) => c.label);
+      const newUniqueNodes = attachmentNodes.filter(n => !existingNames.includes(n.label));
+      
+      evidenceNode.children = [...evidenceNode.children, ...newUniqueNodes];
+    } else {
+      activeMindMap.children.push({
+        id: 'attachments-branch',
+        label: 'Attached Evidence',
+        children: attachmentNodes
+      });
+    }
+  }
+
+
   const handleTabChange = (tab: typeof globalTab) => {
     if (tab !== "chat" && globalTab === "chat") {
       // Save scroll position before leaving chat

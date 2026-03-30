@@ -304,31 +304,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     });
   };
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
 
-    const applyFitView = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        fitView({ padding: 0.05, duration: 800 });
-      }, 100);
-    };
-
-    if (nodesInitialized && nodes.length > 0) {
-      // Initial fit with slightly larger delay to ensure DOM is ready
-      setTimeout(() => {
-        fitView({ padding: 0.05, duration: 800 });
-      }, 150);
-
-      // Listen to window resizes and any changes to layout wrappers
-      window.addEventListener('resize', applyFitView);
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', applyFitView);
-    };
-  }, [nodesInitialized, nodes.length, layout, fitView]);
 
   const saveToHistory = useCallback(() => {
     setHistory(prev => [...prev.slice(-15), { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) }]);
@@ -403,6 +379,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     setNodes(previousState.nodes);
     setEdges(previousState.edges);
   };
+  const isAttachment = selectedNodeId && selectedNodeData?.id ? selectedNodeData.id.startsWith('attachment-') : false;
 
   return (
     <div
@@ -424,14 +401,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             <MindMap3D
               ref={mindMap3DRef}
               root={data}
+              rootTitle={rootTitle}
+              themeColor={themeConfig.edgeColor}
               onNodeClick={(node) => {
                 setSelectedNodeId(node.id);
                 // Store full enriched data so detail panel works in 3D mode
                 setSelected3DNodeData({
+                  id: node.id,
                   label: node.label,
                   description: node.description,
                   media: node.media,
-                  color: '#00E5FF'
+                  color: node.color || themeConfig.edgeColor
                 });
               }}
               onBackgroundClick={() => {
@@ -461,8 +441,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
-            fitView
-            fitViewOptions={{ padding: 0.05 }}
             minZoom={0.05}
             maxZoom={1}
             style={{ background: 'transparent' }}
@@ -660,7 +638,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.98, x: 20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-28 right-10 w-[320px] z-[99999] bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5"
+              className={`absolute ${isAttachment ? 'top-10 bottom-10 right-10 w-[75vw] max-w-[900px]' : 'top-28 right-10 w-[320px]'} z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
             >
               {/* Elegant Header Accent */}
               <div
@@ -668,21 +646,27 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                 style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }}
               />
 
-              <div className="p-7">
+              <div className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-bold text-white leading-tight pr-4">
                     {selectedNodeData.label}
                   </h3>
                   <button
-                    onClick={() => setSelectedNodeId(null)}
-                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0"
+                    onClick={() => {
+                      setSelectedNodeId(null);
+                      if (is3D) {
+                        mindMap3DRef.current?.recenter();
+                      } else {
+                        fitView({ padding: 0.05, duration: 800 });
+                      }
+                    }}
+                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0 bg-white/5 rounded-full hover:bg-white/10"
                   >
                     <X size={18} />
                   </button>
                 </div>
-
-                <div className="space-y-4">
-                  {(() => {
+                <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
+                  {!isAttachment && (() => {
                     const desc = selectedNodeData.description || "N/A";
                     const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
                     const isShort = desc.length < 50 && !desc.includes('.');
@@ -727,15 +711,21 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
                   {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
                   {selectedNodeData.media && selectedNodeData.media.length > 0 && (
-                    <div className="mt-8 border-t border-white/5 pt-6 space-y-4">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>
-                      <div className="flex flex-col gap-3">
+                    <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4"}>
+                      {!isAttachment && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>}
+                      <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "flex flex-col gap-3"}>
                         {selectedNodeData.media.map((item: any, idx: number) => {
                           if (item.type === 'image') return (
-                            <div key={idx} className="relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg">
-                              <img src={item.url} alt={item.name} className="w-full h-auto max-h-[160px] object-cover transition-transform group-hover/media:scale-105" />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-white text-black text-[10px] font-bold rounded-lg uppercase tracking-wider">Expand File</a>
+                            <div key={idx} className={`relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg ${isAttachment ? 'flex-1 flex min-h-0' : ''}`}>
+                              <img 
+                                src={item.url} 
+                                alt={item.name} 
+                                className={`w-full transition-transform group-hover/media:scale-[1.02] ${isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'}`} 
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                <a href={item.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
+                                  {isAttachment ? 'Open Original Image' : 'Expand File'}
+                                </a>
                               </div>
                             </div>
                           );
@@ -745,15 +735,81 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                               <audio controls className="w-full h-8"><source src={item.url} /></audio>
                             </div>
                           );
-                          if (item.type === 'file') return (
-                            <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:border-[#E0A7C2]/40 transition-all">
-                              <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
-                              <div className="flex flex-col">
-                                <span className="text-[12px] font-bold text-white/90 truncate max-w-[200px]">{item.name}</span>
-                                <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
-                              </div>
-                            </a>
-                          );
+                          if (item.type === 'file') {
+                            const isWordDoc = /\.(doc|docx)$/i.test(item.name);
+                            const isMissingUrl = !item.url || item.url === '#';
+                            const viewerUrl = isMissingUrl ? '' : (isWordDoc 
+                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}` 
+                              : item.url);
+                            
+                            if (isAttachment) {
+                              return (
+                                <div key={idx} className="w-full flex-1 flex flex-col gap-2 min-h-0">
+                                  {isMissingUrl ? (
+                                    <div className="flex-1 min-h-[300px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-6">
+                                      <span className="text-4xl mb-4 grayscale opacity-50">📄</span>
+                                      <span className="text-white/80 text-sm font-semibold mb-1">Preview Not Available</span>
+                                      <span className="text-white/40 text-xs text-balance">This document was uploaded offline or its URL has expired. Upload a new file to see the live preview.</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <iframe 
+                                        src={viewerUrl} 
+                                        className="w-full flex-1 rounded-lg bg-white shadow-inner min-h-0" 
+                                        title={item.name} 
+                                      />
+                                      <div className="flex justify-between items-center px-2 mt-1">
+                                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                          Open Original ↗
+                                        </a>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            // Standard accordion view for regular nodes with attached files
+                            return (
+                              <details key={idx} className="group bg-[#0A0A0A] rounded-xl border border-white/10 overflow-hidden outline-none">
+                                <summary className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-white/5 transition-all list-none [&::-webkit-details-marker]:hidden">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
+                                    <div className="flex flex-col">
+                                      <span className="text-[12px] font-bold text-white/90 truncate max-w-[160px]">{item.name}</span>
+                                      <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-[#E0A7C2] text-[10px] font-bold px-2.5 py-1 bg-[#E0A7C2]/10 rounded-md group-open:hidden uppercase tracking-wider">Expand</div>
+                                  <div className="text-white/50 text-[10px] font-bold px-2.5 py-1 bg-white/5 rounded-md hidden group-open:block uppercase tracking-wider">Close</div>
+                                </summary>
+                                <div className="p-2 border-t border-white/5 bg-[#050505] flex flex-col gap-2">
+                                  {isMissingUrl ? (
+                                    <div className="w-full h-[120px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4">
+                                      <span className="text-2xl mb-2 grayscale opacity-50">📄</span>
+                                      <span className="text-white/60 text-xs font-semibold">Preview Not Available</span>
+                                      <span className="text-white/40 text-[10px] mt-1">This document was uploaded offline or its URL has expired.</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <iframe 
+                                        src={viewerUrl} 
+                                        className="w-full h-[320px] rounded-lg bg-white" 
+                                        title={item.name} 
+                                      />
+                                      <div className="flex justify-between items-center px-1">
+                                        <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                          Open Original ↗
+                                        </a>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </details>
+                            );
+                          }
                           return null;
                         })}
                       </div>
