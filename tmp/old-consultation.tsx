@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -14,26 +14,26 @@ import {
   PenTool,
   Layout,
 } from "lucide-react";
-import { AppSidebar } from "./app-sidebar";
-import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
+import { AppSidebar } from "../components/app-sidebar";
+import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "../lib/constants";
 import { Session } from "@supabase/supabase-js";
-import { Conversation } from "@/types";
+import { Conversation } from "../types";
 
-import { useAuth } from "@/components/auth/auth-provider";
-import { useConversations } from "@/components/conversation-provider/conversation-context";
+import { useAuth } from "../components/auth/auth-provider";
+import { useConversations } from "../components/conversation-provider/conversation-context";
 
-import { PageLayout } from "@/components/ui/page-layout";
+import { PageLayout } from "../components/ui/page-layout";
 
 // Sub-components
-import { ConsultationHeader } from "./consultation/consultation-header";
-import { QuickQuestions } from "./consultation/quick-questions";
-import { MessageList } from "./consultation/message-list";
-import { ChatInput } from "./consultation/chat-input";
-import { SourceDetailSidebar } from "./consultation/source-detail-sidebar";
-import { NoteSidebar } from "./consultation/note-sidebar";
-import { MindMap } from "./consultation/mind-map";
-import { DocumentAnalyzer } from "./consultation/document-analyzer";
-import { Timeline } from "@/components/ui/timeline";
+import { ConsultationHeader } from "../components/consultation/consultation-header";
+import { QuickQuestions } from "../components/consultation/quick-questions";
+import { MessageList } from "../components/consultation/message-list";
+import { ChatInput } from "../components/consultation/chat-input";
+import { SourceDetailSidebar } from "../components/consultation/source-detail-sidebar";
+import { NoteSidebar } from "../components/consultation/note-sidebar";
+import { MindMap } from "../components/consultation/mind-map";
+import { DocumentAnalyzer } from "../components/consultation/document-analyzer";
+import { Timeline } from "../components/ui/timeline";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -366,9 +366,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   if (!activeMindMap && activeCase) {
     const partyLabels = (activeCase.party_involved || "")
       .split(/[,\/]/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-      .map((p, i) => ({
+      .map((p: string) => p.trim())
+      .filter((p: string) => p.length > 0)
+      .map((p: string, i: number) => ({
         id: `party-role-${i}`,
         label: `Principal Party`,
         children: [
@@ -382,11 +382,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
     const noteLines = (activeCase.notes || "")
       .split(/[.\n]/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 15)
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 15)
       .slice(0, 6);
 
-    const factNodes = noteLines.map((l, i) => ({
+    const factNodes = noteLines.map((l: string, i: number) => ({
       id: `fact-${i}`,
       label: l.length > 55 ? l.substring(0, 55) + "..." : l,
       children: [],
