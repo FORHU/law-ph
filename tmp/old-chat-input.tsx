@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '@/lib/constants';
 
@@ -13,23 +13,16 @@ interface ChatInputProps {
   onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document') => void;
   hasMessages?: boolean;
   isCaseMode?: boolean;
-  onAnalyzeFile?: (file: File) => Promise<void>;
-  onAnalyzeClick?: () => void;
-  isAnalyzing?: boolean;
 }
 
 export function ChatInput({ 
-  
   onSend, 
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
   activeTab = 'chat',
   onTabChange,
   hasMessages = false,
-  isCaseMode = false,
-  onAnalyzeFile,
-  onAnalyzeClick,
-  isAnalyzing = false
+  isCaseMode = false
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -73,11 +66,14 @@ export function ChatInput({
         return;
       }
       setSelectedFile(file);
+      
+      // If it's an analyze intent, we might want to send immediately if no text
+      // However, usually ChatGPT allows you to add text even after clicking the "attach" button.
+      // But for "Analyze a legal document", the user said "it should go straight to the chat".
     }
     // Reset input so same file can be selected again
     e.target.value = '';
   };
-
 
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragRef.current = false;
@@ -186,13 +182,12 @@ export function ChatInput({
                   <Calendar size={14} />
                   Schedule
                 </button>
-
               </div>
             </div>
           )}
 
           {/* Input Box - Hidden for forms that have their own inputs */}
-          {activeTab !== 'mindmap' && activeTab !== 'timeline' && activeTab !== 'email' && activeTab !== 'schedule' && activeTab !== 'document' && (
+          {activeTab !== 'mindmap' && activeTab !== 'timeline' && activeTab !== 'email' && activeTab !== 'schedule' && (
             <div className="relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Compact Note above input */}
               <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#8B4564] opacity-50 px-4 mb-1 landscape:hidden">
@@ -235,7 +230,7 @@ export function ChatInput({
                 disabled={disabled}
               />
               
-              {/* Hidden File Input (attach) */}
+              {/* Hidden File Input */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -244,43 +239,19 @@ export function ChatInput({
                 className="hidden"
                 disabled={disabled}
               />
+              
 
-              {/* Paperclip / Attach button */}
               <button
                 type="button"
                 title="Attach Document or Media"
                 onClick={() => {
                   fileInputRef.current?.click();
                 }}
-                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10 mr-1"
                 disabled={disabled}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
               </button>
-
-              {/* Analyze Document button */}
-              {onAnalyzeFile && (
-                <button
-                  type="button"
-                  title={isAnalyzing ? 'Analyzing document...' : 'Analyze Document with AI'}
-                  onClick={() => {
-                    if (!isAnalyzing) onAnalyzeClick?.();
-                  }}
-                  className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
-                    isAnalyzing
-                      ? 'text-[#E0A7C2] bg-[#8B4564]/20 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
-                  }`}
-                  disabled={disabled || isAnalyzing}
-                >
-                  {isAnalyzing ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={18} />
-                  )}
-                </button>
-              )}
-
               <button 
                 className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
                 onClick={handleSend}

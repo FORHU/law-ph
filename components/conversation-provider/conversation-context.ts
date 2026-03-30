@@ -20,6 +20,7 @@ export interface Message {
   editedBy?: string;
   highlights?: { id: string, snippet: string, note: string }[];
   isAnalysis?: boolean;
+  hidden?: boolean;
   mindMap?: any;
   status?: 'pending' | 'processing' | 'done' | 'error';
     fileAttachment?: {
@@ -58,7 +59,14 @@ export type ConversationContextType = {
   chatSessionId: string;
   
   // Handlers
-  handleSendMessage: (text: string, targetConversationId?: string | number, explicitDocumentContext?: string | null, file?: File | null, skipAIResponse?: boolean) => Promise<string | number | undefined>;
+  handleSendMessage: (
+    text: string,
+    targetConversationId?: string | number,
+    explicitDocumentContext?: string | null,
+    file?: File | null,
+    skipAIResponse?: boolean,
+    isAnalysisTrigger?: boolean
+  ) => Promise<string | number | undefined>;
   updateMessage: (id: string | number, updates: Partial<Message>) => void;
   handleLoadConsultation: (consultation: ConsultationSession) => void;
   handleNewConsultation: () => void;

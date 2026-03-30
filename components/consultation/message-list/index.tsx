@@ -213,7 +213,7 @@ export function MessageList({
 
   return (
     <div className="space-y-8">
-      {messages.map((message) => (
+      {messages.filter(m => !m.hidden).map((message) => (
         <MessageItem
           key={message.id}
           message={message}

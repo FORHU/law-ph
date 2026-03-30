@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   useState,
@@ -393,8 +393,7 @@ export function ConversationProvider({
       recordingUrl: meta.recordingUrl,
       voiceNotes: meta.voiceNotes,
       highlights: meta.highlights,
-      isAnalysis: meta.isAnalysis || !!meta.isAnalysis,
-      hidden: meta.hidden || !!meta.hidden,
+      isAnalysis: meta.isAnalysis,
       fileAttachment: meta.fileAttachment,
       fileAttachments: meta.fileAttachments,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
@@ -580,20 +579,17 @@ export function ConversationProvider({
       if (loadedHistoryIdRef.current === syncedConversationId && !isLoading)
         return;
 
-      const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);
-      const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
-      const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
-      
-      // If we're on a case route, we might not have `cases` loaded from Supabase yet.
-      // Easiest is to just allow the fetch to proceed and fail gracefully if not found,
-      // or at least not clear the screen if cases are empty but we specifically routed to a case.
-      const isCaseRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
-      
-      if (!existsInConversations && !existsInCases && !matchesCurrent && !isCaseRoute) {
+      const exists =
+        conversations.some((c) => c.id.toString() === syncedConversationId) ||
+        cases.some((c) => c.id.toString() === syncedConversationId) ||
+        currentConsultationId?.toString() === syncedConversationId;
+
+      if (!exists) {
         if (
           !isLoading &&
           (currentConsultationId !== null || messages.length > 0)
         ) {
+
           handleNewConsultation();
         }
         return;
@@ -941,7 +937,7 @@ Please help me understand this document or answer questions based on it.`;
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
         setIsLoading(false);
 
-        const fileNames = newDocs.map((d) => d.name).join("”, “");
+        const fileNames = newDocs.map((d) => d.name).join("ΓÇ¥, ΓÇ£");
 
         const attachments = newDocs.map((d) => ({
           name: d.name,
@@ -957,8 +953,8 @@ Please help me understand this document or answer questions based on it.`;
         });
 
         const finalPrompt = customPrompt
-          ? `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s): “${fileNames}”.\n\n${customPrompt}[/HIDDEN_INSTRUCTION]`
-          : `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s) for analysis: “${fileNames}”.[/HIDDEN_INSTRUCTION]`;
+          ? `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s): ΓÇ£${fileNames}ΓÇ¥.\n\n${customPrompt}[/HIDDEN_INSTRUCTION]`
+          : `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have attached the following document(s) for analysis: ΓÇ£${fileNames}ΓÇ¥.[/HIDDEN_INSTRUCTION]`;
 
         await handleSendMessage(finalPrompt, caseId);
       } catch (err: any) {
