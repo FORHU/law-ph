@@ -6,12 +6,16 @@ interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
+  supabase: any;
+  userId?: string;
 }
 
 export function useConsultationState({
   messages,
   activeCase,
   scrollContainerRef,
+  supabase,
+  userId,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
     "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
@@ -71,6 +75,10 @@ export function useConsultationState({
 
       if (response.ok) {
         setEmailSentStatus("success");
+        // Clear inputs on success
+        setEmailTo("");
+        setEmailSubject("");
+        setEmailBody("");
         setTimeout(() => setEmailSentStatus("idle"), 3000);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -103,6 +111,7 @@ export function useConsultationState({
     setScheduleStatus("idle");
 
     try {
+      // 1. Send Notification Email
       const response = await fetch("/api/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,8 +127,33 @@ export function useConsultationState({
       });
 
       if (response.ok) {
+        // 2. Persist to Database if logged in
+        if (supabase && userId) {
+          const { error: dbError } = await supabase
+            .from("events")
+            .insert({
+              user_id: userId,
+              title: `${scheduleType}: Consultation`,
+              type: scheduleType.toLowerCase(),
+              date_time: scheduleDateTime,
+              client_email: scheduleEmail,
+              notes: scheduleNotes,
+            });
+
+          if (dbError) {
+            console.error("Failed to save event to database:", dbError.message);
+          }
+        }
+
         setScheduleStatus("success");
-        setTimeout(() => setScheduleStatus("idle"), 3000);
+        // Clear inputs after a delay so the 'Add to Calendar' link remains valid while the success message is shown
+        setTimeout(() => {
+          setScheduleStatus("idle");
+          setScheduleType("Meeting");
+          setScheduleDateTime("");
+          setScheduleEmail("");
+          setScheduleNotes("");
+        }, 3000);
       } else {
         setScheduleStatus("error");
       }
@@ -228,17 +262,17 @@ export function useConsultationState({
             factNodes.length > 0
               ? factNodes
               : [
-                  {
-                    id: "e-empty",
-                    label: "Extracting key evidence...",
-                    children: [],
-                  },
-                  {
-                    id: "f-empty",
-                    label: "Identifying material facts...",
-                    children: [],
-                  },
-                ],
+                {
+                  id: "e-empty",
+                  label: "Extracting key evidence...",
+                  children: [],
+                },
+                {
+                  id: "f-empty",
+                  label: "Identifying material facts...",
+                  children: [],
+                },
+              ],
         },
         {
           id: "c2",

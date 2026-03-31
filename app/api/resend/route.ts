@@ -14,9 +14,44 @@ export async function POST(req: Request) {
 
     let emailContent = body;
     let emailSubject = subject;
+    let attachments: any[] = [];
 
     if (type === 'schedule' && eventDetails) {
       emailSubject = `Event Scheduled: ${eventDetails.eventType}`;
+
+      const startDate = new Date(eventDetails.dateTime);
+      // Assume a 1 hour default duration
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+      const formatGoogleDate = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
+      const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventDetails.eventType)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(eventDetails.notes || '')}`;
+
+      // Create an ICS file string
+      const icsString = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'CALSCALE:GREGORIAN',
+        'PRODID:-//ilovelawyer//EN',
+        'METHOD:REQUEST',
+        'BEGIN:VEVENT',
+        `UID:${Date.now()}@ilovelawyer.com`,
+        `DTSTAMP:${formatGoogleDate(new Date())}`,
+        `DTSTART:${formatGoogleDate(startDate)}`,
+        `DTEND:${formatGoogleDate(endDate)}`,
+        `SUMMARY:${eventDetails.eventType}`,
+        `DESCRIPTION:${(eventDetails.notes || '').replace(/\n/g, '\\n')}`,
+        'ORGANIZER;CN=ilovelawyer:mailto:updates@ilovelawyer.com',
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+
+      attachments = [{
+        filename: 'invite.ics',
+        content: Buffer.from(icsString),
+      }];
+
       emailContent = `
         <h2>Event Confirmation</h2>
         <p>A new event has been scheduled with the following details:</p>
@@ -25,12 +60,17 @@ export async function POST(req: Request) {
           <li><strong>Date & Time:</strong> ${eventDetails.dateTime}</li>
           <li><strong>Notes:</strong> ${eventDetails.notes || 'None'}</li>
         </ul>
+        <div style="margin-top: 24px; margin-bottom: 24px;">
+          <a href="${googleCalendarUrl}" target="_blank" style="display: inline-block; background-color: #10B981; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold;">
+            📅 Add to Google Calendar
+          </a>
+        </div>
         <p>Thank you for using our legal consultation service.</p>
       `;
     }
 
     const cleanTo = to.replace(/\s+/g, '.').toLowerCase(); // Fix accidental spaces like "s ubaguio edu" to "s.ubaguio.edu"
-    
+
     // Simple robust Markdown to Email HTML
     const markdownToHtml = (md: string) => {
       let html = md
@@ -68,6 +108,7 @@ export async function POST(req: Request) {
       to: [cleanTo],
       subject: emailSubject || 'Update from Legal Consultation',
       html: formattedContent,
+      ...(attachments.length > 0 && { attachments }),
     });
 
     if (error) {
