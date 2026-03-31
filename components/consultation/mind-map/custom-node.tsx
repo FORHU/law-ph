@@ -89,26 +89,86 @@ export const CustomNode = memo(({ data }: any) => {
         {data.media && data.media.length > 0 && (
           <div className="mt-2 flex flex-col gap-2 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             {data.media.map((item: any, idx: number) => {
-              if (item.type === 'image') return (
-                <div key={idx} className="relative group/media overflow-hidden rounded-xl border-2 border-white/10 shadow-lg">
-                  <img src={item.url} alt={item.name} className="w-full h-auto max-h-[220px] object-cover transition-transform group-hover/media:scale-105" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1">
-                    <span className="text-[10px] text-white/70 truncate block">{item.name}</span>
+              const url = item?.url;
+              const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+              const isMissingUrl = !url || url === '#' || isBlobUrl;
+
+              if (item.type === 'image') {
+                if (isMissingUrl) {
+                  return (
+                    <div
+                      key={idx}
+                      className="relative overflow-hidden rounded-xl border-2 border-dashed border-white/20 bg-white/5 shadow-lg flex items-center justify-center p-3 min-h-[90px]"
+                    >
+                      <span className="text-[10px] text-white/60 font-semibold text-center">
+                        {item.name || 'Image'} Preview Not Available
+                      </span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={idx} className="relative group/media overflow-hidden rounded-xl border-2 border-white/10 shadow-lg">
+                    <img
+                      src={url}
+                      alt={item.name}
+                      className="w-full h-auto max-h-[220px] object-cover transition-transform group-hover/media:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1">
+                      <span className="text-[10px] text-white/70 truncate block">{item.name}</span>
+                    </div>
                   </div>
-                </div>
-              );
-              if (item.type === 'audio') return (
-                <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
-                  <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">{item.name}</span>
-                  <audio controls className="w-full h-9 rounded-md"><source src={item.url} /></audio>
-                </div>
-              );
-              if (item.type === 'file') return (
-                <a key={idx} href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
-                  <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
-                  <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
-                </a>
-              );
+                );
+              }
+
+              if (item.type === 'audio') {
+                if (isMissingUrl) {
+                  return (
+                    <div
+                      key={idx}
+                      className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg"
+                    >
+                      <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">
+                        {item.name}
+                      </span>
+                      <div className="w-full h-8 rounded-md bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-[10px] text-white/50">
+                        Preview Not Available
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
+                    <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">{item.name}</span>
+                    <audio controls className="w-full h-9 rounded-md">
+                      <source src={url} />
+                    </audio>
+                  </div>
+                );
+              }
+
+              if (item.type === 'file') {
+                if (isMissingUrl) {
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 shadow-lg"
+                    >
+                      <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
+                      <span className="text-sm font-medium truncate text-white/60">{item.name} (URL expired)</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
+                    <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
+                    <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
+                  </a>
+                );
+              }
+
               return null;
             })}
           </div>

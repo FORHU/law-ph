@@ -24,10 +24,14 @@ import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
 import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
 
-const MindMap3D = dynamic<MindMap3DProps>(() => import('./mind-map-3d').then(m => m.MindMap3D), {
+const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
   ssr: false,
-  loading: () => <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">Initialising 3D Reality...</div>
-});
+  loading: () => (
+    <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">
+      Initialising 3D Reality...
+    </div>
+  ),
+}) as React.ForwardRefExoticComponent<MindMap3DProps & React.RefAttributes<MindMap3DHandle>>;
 
 const nodeTypes = {
   custom: CustomNode,
@@ -677,7 +681,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.98, x: 20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className={`absolute ${isAttachment ? 'top-10 bottom-10 right-10 w-[75vw] max-w-[900px]' : 'top-28 right-10 w-[320px]'} z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
+              className={`absolute ${
+                isAttachment
+                  ? 'top-10 bottom-10 right-10 w-[55vw] max-w-[720px]'
+                  : 'top-28 right-10 w-[320px]'
+              } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
             >
               {/* Elegant Header Accent */}
               <div
@@ -756,27 +764,69 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                         {selectedNodeData.media.map((item: any, idx: number) => {
                           if (item.type === 'image') return (
                             <div key={idx} className={`relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg ${isAttachment ? 'flex-1 flex min-h-0' : ''}`}>
-                              <img
-                                src={item.url}
-                                alt={item.name}
-                                className={`w-full transition-transform group-hover/media:scale-[1.02] ${isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'}`}
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
-                                  {isAttachment ? 'Open Original Image' : 'Expand File'}
-                                </a>
-                              </div>
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) {
+                                  return (
+                                    <div className="w-full h-full min-h-[140px] bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4">
+                                      <span className="text-4xl mb-2 grayscale opacity-50">🖼️</span>
+                                      <span className="text-white/70 text-xs font-semibold">{item.name || 'Image'} Preview Not Available</span>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <img
+                                    src={url}
+                                    alt={item.name}
+                                    className={`w-full transition-transform group-hover/media:scale-[1.02] ${
+                                      isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'
+                                    }`}
+                                  />
+                                );
+                              })()}
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) return null;
+                                return (
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                    <a href={url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
+                                      {isAttachment ? 'Open Original Image' : 'Expand File'}
+                                    </a>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                           if (item.type === 'audio') return (
                             <div key={idx} className="bg-[#050505]/60 p-3 rounded-xl border border-white/10 flex flex-col gap-2">
                               <span className="text-[10px] font-bold text-white/40 truncate">{item.name}</span>
-                              <audio controls className="w-full h-8"><source src={item.url} /></audio>
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) {
+                                  return (
+                                    <div className="w-full h-[32px] rounded-md bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-[10px] text-white/50">
+                                      Preview Not Available
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <audio controls className="w-full h-8">
+                                    <source src={url} />
+                                  </audio>
+                                );
+                              })()}
                             </div>
                           );
                           if (item.type === 'file') {
                             const isWordDoc = /\.(doc|docx)$/i.test(item.name);
-                            const isMissingUrl = !item.url || item.url === '#';
+                            const isBlobUrl = typeof item.url === 'string' && item.url.startsWith('blob:');
+                            const isMissingUrl = !item.url || item.url === '#' || isBlobUrl;
                             const viewerUrl = isMissingUrl ? '' : (isWordDoc
                               ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}`
                               : item.url);

@@ -325,6 +325,18 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     if (briefcaseAttachments.length > 0) {
       activeMindMap = JSON.parse(JSON.stringify(activeMindMap));
 
+      const normalizeName = (value: any) => {
+        const s = typeof value === "string" ? value : "";
+        // Strip directories and normalise case for more reliable matching.
+        return s.toLowerCase().trim().replace(/^.*[\\/]/, "");
+      };
+
+      const getExt = (filename: any) => {
+        const name = normalizeName(filename);
+        const m = name.match(/\.([a-z0-9]{1,10})$/i);
+        return m ? m[1].toLowerCase() : "";
+      };
+
       // 2. RECIPROCAL SYNC: Bridge AI Nodes with Briefcase Reality
       const syncEvidenceToTree = (node: any) => {
         const nodeLabel = (node.label || "").toLowerCase();
@@ -334,13 +346,32 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         // If the AI generated media links, make sure they use the most 'Live' URL from our briefcase
         if (node.media) {
           node.media = node.media.map((m: any) => {
-            const matches = briefcaseAttachments.filter((att: any) => 
-              att.name?.toLowerCase() === m.name?.toLowerCase() || 
-              att.url === m.url
-            );
-            // Prioritize permanent S3 URLs over temporary blobs if we have choice
-            const bestAtt = matches.find((a: any) => !a.url.startsWith('blob:')) || matches[0];
-            return bestAtt ? { ...m, url: bestAtt.url } : m;
+            const mNameNorm = normalizeName(m?.name);
+            const mUrl = m?.url;
+            const mExt = getExt(m?.name);
+            const isBlobStale = typeof mUrl === "string" && mUrl.startsWith("blob:");
+
+            const matches = briefcaseAttachments.filter((att: any) => {
+              const attUrl = att?.url;
+              const attNameNorm = normalizeName(att?.name);
+              if (attUrl && attUrl === mUrl) return true;
+              if (mNameNorm && attNameNorm && attNameNorm === mNameNorm) return true;
+              // If URL is stale (blob), allow extension-based matching as a fallback.
+              if (isBlobStale && mExt && attNameNorm && getExt(att?.name) === mExt) return true;
+              return false;
+            });
+
+            if (!matches.length) return m;
+
+            // Prioritize permanent S3 URLs over temporary blobs if we have choice.
+            const bestAtt = matches.find((a: any) => a?.url && !a.url.startsWith("blob:")) || matches[0];
+            if (!bestAtt?.url) return m;
+
+            return {
+              ...m,
+              url: bestAtt.url,
+              name: bestAtt.name || m.name,
+            };
           });
         }
 
@@ -358,13 +389,30 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
         if (matchedAtt) {
           node.media = node.media || [];
-          if (!node.media.some((m: any) => m.name === matchedAtt.name || m.url === matchedAtt.url)) {
-            const isImage = matchedAtt.name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            const isAudio = matchedAtt.name.match(/\.(mp3|wav|ogg|m4a)$/i);
-            node.media.push({ 
-              type: isImage ? 'image' : (isAudio ? 'audio' : 'file'), 
-              name: matchedAtt.name, 
-              url: matchedAtt.url 
+          const matchedType = matchedAtt.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+            ? "image"
+            : matchedAtt.name?.match(/\.(mp3|wav|ogg|m4a)$/i)
+              ? "audio"
+              : "file";
+
+          const matchedNameNorm = normalizeName(matchedAtt.name);
+          const existingIdx = node.media.findIndex((m: any) => {
+            const mNameNorm = normalizeName(m?.name);
+            return (matchedNameNorm && mNameNorm === matchedNameNorm) || m?.url === matchedAtt.url;
+          });
+
+          if (existingIdx >= 0) {
+            node.media[existingIdx] = {
+              ...node.media[existingIdx],
+              type: matchedType,
+              name: matchedAtt.name,
+              url: matchedAtt.url,
+            };
+          } else {
+            node.media.push({
+              type: matchedType,
+              name: matchedAtt.name,
+              url: matchedAtt.url,
             });
           }
         }
@@ -398,7 +446,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           if (!seen.has(n.label.toLowerCase())) vault.children.push(n);
         });
       } else {
-        activeMindMap.children.push({ id: 'legal-vault', label: '⚖️ Legal Evidence Vault', children: vaultNodes });
+        activeMindMap.children.push({ id: 'legal-vault', label: 'Legal Evidence Vault', children: vaultNodes });
       }
     }
   }

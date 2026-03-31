@@ -23,6 +23,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const hasFittedInitial = useRef(false);
+  const lastNodeClickAt = useRef<number>(0);
 
   // Track dimensions for perfect centering
   const [dims, setDims] = React.useState({ width: 800, height: 600 });
@@ -48,19 +49,12 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
 
   const applyTightZoom = useCallback((duration = 1000) => {
     if (!fgRef.current) return;
-    // First calculate standard zooming boundaries
-    fgRef.current.zoomToFit(duration, 0);
-    // Let the animation finish, then aggressively drive the camera in by 45%
-    setTimeout(() => {
-      if (fgRef.current) {
-        const cam = fgRef.current.camera();
-        fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: cam.position.z * 0.55 },
-          { x: 0, y: 0, z: 0 },
-          400
-        );
-      }
-    }, duration + 50);
+    // Only zoom out to fit the whole structure.
+    // The previous implementation also "drove" the camera inward towards (0,0,0),
+    // which caused the visible zoom-in-to-core-node flicker after clicking sub-nodes.
+    // Negative padding makes the fit "tighter"/closer while still fitting all nodes.
+    // This avoids the "too far away" look without a second camera move.
+    fgRef.current.zoomToFit(duration, -30);
   }, []);
 
   // Public API for the parent component
@@ -246,8 +240,9 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
   }, []);
 
   const handleNodeClick = useCallback((node: any) => {
+    lastNodeClickAt.current = Date.now();
     if (fgRef.current) {
-      const distance = 350; // Comfortable reading distance
+      const distance = 240; // Closer focus distance
       const hypot = Math.hypot(node.x || 0, node.y || 0, node.z || 0);
 
       let camPos;
@@ -284,6 +279,11 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         linkDirectionalParticles={0}
         onNodeClick={handleNodeClick}
         onBackgroundClick={() => {
+          // ForceGraph3D can sometimes emit background click right after a node click.
+          // If a node click just happened, ignore this to prevent the "zoomToFit" reset flicker.
+          const elapsed = Date.now() - lastNodeClickAt.current;
+          if (elapsed < 700) return;
+
           if (fgRef.current && selectedNodeId) {
             applyTightZoom(1000);
             setSelectedNodeId(null);
