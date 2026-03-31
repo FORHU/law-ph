@@ -6,12 +6,16 @@ interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
+  handleSendMessage?: (msg: string, ...args: any[]) => void;
+  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
 }
 
 export function useConsultationState({
   messages,
   activeCase,
   scrollContainerRef,
+  handleSendMessage,
+  onTabChange,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
     "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
@@ -96,39 +100,45 @@ export function useConsultationState({
     "idle" | "success" | "error"
   >("idle");
 
-  const handleScheduleEvent = async () => {
-    if (!scheduleEmail || !scheduleDateTime) return;
+  const handleScheduleEvent = () => {
+    if (!scheduleDateTime || !scheduleType) return;
 
-    setIsScheduling(true);
-    setScheduleStatus("idle");
+    // Parse date/time into a readable format for the AI
+    const dt = new Date(scheduleDateTime);
+    const dateStr = dt.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const timeStr = dt.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
 
-    try {
-      const response = await fetch("/api/resend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: scheduleEmail,
-          type: "schedule",
-          eventDetails: {
-            eventType: scheduleType,
-            dateTime: scheduleDateTime,
-            notes: scheduleNotes,
-          },
-        }),
-      });
+    const prompt = [
+      `[Legal AI] I would like to schedule an event. Here are the details:`,
+      ``,
+      `• Type: ${scheduleType}`,
+      `• Date: ${dateStr}`,
+      `• Time: ${timeStr}`,
+      scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
+      scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
+      ``,
+      `Please confirm these details are correct, and if so, go ahead and schedule this event on my Google Calendar.`,
+    ]
+      .filter((line) => line !== null)
+      .join('\n');
 
-      if (response.ok) {
-        setScheduleStatus("success");
-        setTimeout(() => setScheduleStatus("idle"), 3000);
-      } else {
-        setScheduleStatus("error");
-      }
-    } catch (error) {
-      console.error("Failed to schedule event:", error);
-      setScheduleStatus("error");
-    } finally {
-      setIsScheduling(false);
+    // Send the prompt into chat and switch to chat tab
+    if (handleSendMessage) {
+      handleSendMessage(prompt);
     }
+    if (onTabChange) {
+      onTabChange('chat');
+    }
+
+    // Reset form
+    setScheduleType('Meeting');
+    setScheduleDateTime('');
+    setScheduleEmail('');
+    setScheduleNotes('');
   };
 
   // Derived Data: Timeline
@@ -251,17 +261,17 @@ export function useConsultationState({
             factNodes.length > 0
               ? factNodes
               : [
-                  {
-                    id: "e-empty",
-                    label: "Extracting key evidence...",
-                    children: [],
-                  },
-                  {
-                    id: "f-empty",
-                    label: "Identifying material facts...",
-                    children: [],
-                  },
-                ],
+                {
+                  id: "e-empty",
+                  label: "Extracting key evidence...",
+                  children: [],
+                },
+                {
+                  id: "f-empty",
+                  label: "Identifying material facts...",
+                  children: [],
+                },
+              ],
         },
         {
           id: "c2",
