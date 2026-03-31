@@ -47,6 +47,8 @@ export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const emailTextareaRef = useRef<HTMLTextAreaElement>(null);
   const scheduleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Stable ref so the schedule form can trigger a tab switch without a circular dep
+  const switchToTabRef = useRef<((tab: any) => void) | null>(null);
   const router = useRouter();
   const params = useParams();
   const activeConversationId = (params?.conversationId || params?.id) as
@@ -179,8 +181,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   // Separated Logic
   const { globalTab, setGlobalTab, handleTabChange, emailState, scheduleState, derivedData } = useConsultationState({
-    messages, activeCase, scrollContainerRef
+    messages, activeCase, scrollContainerRef,
+    handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
+    onTabChange: (tab) => switchToTabRef.current?.(tab),
   });
+  // Sync handleTabChange into the stable ref after each render
+  switchToTabRef.current = handleTabChange;
 
   useConsultationEffects({
     messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
@@ -211,7 +217,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   const handleAnalyzeFile = async (file: File): Promise<void> => {
     setIsAnalysisModalOpen(false); // Close modal as soon as file is accepted
-    
+
     // Unified Flow: Start the message process immediately
     // filename as text satisfies the (text.trim() || file) check
     handleSendMessage(file.name, activeConversationId, undefined, file, false, true);
@@ -238,7 +244,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     const prompt = isPreAnalyzed
       ? `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION]I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).[/HIDDEN_INSTRUCTION]`
       : `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION][Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}[/HIDDEN_INSTRUCTION]`;
-    
+
     handleSendMessage(prompt);
   };
 
@@ -281,7 +287,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 <Sparkles className="w-5 h-5 text-[#E0A7C2]" />
                 Upload Document
               </h2>
-              <button 
+              <button
                 onClick={() => setIsAnalysisModalOpen(false)}
                 className="p-2 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
               >
@@ -295,16 +301,15 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onClick={() => modalFileInputRef.current?.click()}
-              className={`relative border-2 border-dashed rounded-xl p-12 transition-all cursor-pointer group ${
-                dragActive 
-                  ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]' 
+              className={`relative border-2 border-dashed rounded-xl p-12 transition-all cursor-pointer group ${dragActive
+                  ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]'
                   : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#2A2A2A]/40'
-              }`}
+                }`}
             >
-              <input 
-                ref={modalFileInputRef} 
-                type="file" 
-                className="hidden" 
+              <input
+                ref={modalFileInputRef}
+                type="file"
+                className="hidden"
                 accept=".pdf,.doc,.docx,.txt"
                 onChange={(e) => {
                   if (e.target.files?.length) {
@@ -366,7 +371,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     coreHandleNewConsultation();
     setGlobalTab("chat");
     setIsSidebarOpen(false); // Close sidebar for new chat
-    
+
     // Forcefully push and clear history logic
     if (window.location.pathname !== "/consultation") {
       router.push("/consultation");
@@ -616,11 +621,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
                     <div className="pt-2 flex flex-col items-end gap-2">
                       <button
-                        className={`bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-                          emailSentStatus === 'success' ? '!bg-green-500 !text-white' : 
-                          emailSentStatus === 'error' ? '!bg-red-500 !text-white' : 
-                          'hover:bg-white'
-                        }`}
+                        className={`bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${emailSentStatus === 'success' ? '!bg-green-500 !text-white' :
+                            emailSentStatus === 'error' ? '!bg-red-500 !text-white' :
+                              'hover:bg-white'
+                          }`}
                         onClick={handleSendEmail}
                         disabled={isSendingEmail}
                       >
@@ -718,20 +722,19 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
                     <div className="pt-4 flex justify-end">
                       <button
-                        className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-                          scheduleStatus === 'success' ? '!bg-white !text-[#10B981]' : 
-                          scheduleStatus === 'error' ? '!bg-red-500 !text-white' : 
-                          'hover:bg-white'
-                        }`}
+                        className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${scheduleStatus === 'success' ? '!bg-white !text-[#10B981]' :
+                            scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
+                              'hover:bg-white'
+                          }`}
                         onClick={handleScheduleEvent}
                         disabled={isScheduling}
                       >
-                        {isScheduling ? "Scheduling..." : 
-                         scheduleStatus === 'success' ? "✓ Scheduled" : 
-                         scheduleStatus === 'error' ? "Failed to Schedule" : 
-                         <>
-                           <Calendar size={16} /> Schedule Event
-                         </>
+                        {isScheduling ? "Scheduling..." :
+                          scheduleStatus === 'success' ? "✓ Scheduled" :
+                            scheduleStatus === 'error' ? "Failed to Schedule" :
+                              <>
+                                <Calendar size={16} /> Schedule Event
+                              </>
                         }
                       </button>
                     </div>
