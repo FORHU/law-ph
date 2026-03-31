@@ -42,6 +42,9 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
     throw new Error(`Failed to upload ${file.name} to S3.`);
   }
 
+  // Determine final file URL: prefer backend analysis URL, fallback to signed URL metadata
+  const defaultFileUrl = urlData.file_url || `https://law-ph.s3.amazonaws.com/${urlData.s3_key}`;
+
   // Step 3: Trigger backend analysis through proxy
   if (analyze) {
     const analyzeResponse = await fetch(`/api/proxy/api/legal/analyze-document`, {
@@ -55,14 +58,20 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
 
     const data = await analyzeResponse.json();
     if (!analyzeResponse.ok || !data.success) {
-      throw new Error(data.detail || data.error || `Failed to analyze ${file.name}`);
+      console.warn(`Document analysis failed for ${file.name}, using default file URL and empty ai_summary.`, data);
+      return {
+        filename: file.name,
+        ai_summary: "",
+        file_url: defaultFileUrl,
+        s3_key: urlData.s3_key,
+      };
     }
 
     return {
       filename: file.name,
-      ai_summary: data.ai_summary,
-      file_url: data.file_url,
-      s3_key: data.s3_key,
+      ai_summary: data.ai_summary || "",
+      file_url: data.file_url || defaultFileUrl,
+      s3_key: data.s3_key || urlData.s3_key,
       char_count: data.char_count,
       truncated: data.truncated,
     };
@@ -72,8 +81,8 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   return {
     filename: file.name,
     ai_summary: "",
-    file_url: urlData.file_url,
-    s3_key: urlData.s3_key
+    file_url: defaultFileUrl,
+    s3_key: urlData.s3_key,
   };
 }
 

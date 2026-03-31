@@ -264,6 +264,9 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
       jsonStr = jsonStr.replace(/^```/i, '').replace(/```$/i, '').trim();
     }
     
+    // Sanitize: remove or escape control characters that might break JSON parsing
+    jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // Remove control characters
+    
     try {
       // IMPORTANT: Do NOT globally escape newlines/tabs/etc.
       // Doing so can turn structural whitespace (between JSON tokens) into `\n`,
@@ -315,7 +318,8 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
         return parsed as TimelineItem[];
       }
     } catch (e) {
-      console.error("Failed to parse timeline JSON:", e, jsonStr);
+      console.error("Failed to parse timeline JSON:", e);
+      console.error("JSON string was:", jsonStr.substring(0, 200) + (jsonStr.length > 200 ? '...' : ''));
     }
   }
 
