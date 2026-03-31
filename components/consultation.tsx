@@ -440,53 +440,95 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     };
   }
 
-  // Inject all user uploaded file attachments into the Mind Map as evidence nodes
-  const allAttachments: { name: string; url?: string; type: string; ai_summary?: string }[] = [];
-  messages.forEach(m => {
-    if (m.fileAttachment) allAttachments.push(m.fileAttachment);
-    if (m.fileAttachments) allAttachments.push(...m.fileAttachments);
-  });
-
-  if (activeMindMap && allAttachments.length > 0) {
-    // Clone to prevent mutating original state directly
-    activeMindMap = JSON.parse(JSON.stringify(activeMindMap));
-    
-    const attachmentNodes = allAttachments.map((att, i) => {
-      const isImage = att.name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const isAudio = att.name.match(/\.(mp3|wav|ogg|m4a)$/i);
-      const mediaType = isImage ? 'image' : isAudio ? 'audio' : 'file';
-      
-      return {
-        id: `attachment-${i}`,
-        label: att.name.length > 30 ? att.name.substring(0, 30) + "..." : att.name,
-        description: (att.ai_summary || 'User uploaded file.') + `\n\n**Filename:** ${att.name}`,
-        media: [{ type: mediaType, url: att.url || '#', name: att.name }],
-        children: []
-      };
+  // --- PROFESSIONAL EVIDENCE BRIDGE: Link Bucket Data to AI Strategy ---
+  if (activeMindMap && messages.length > 0) {
+    // 1. Audit the Briefcase: Collect all bucket evidence (both fresh blobs and permanent S3 links)
+    const briefcaseAttachments: any[] = [];
+    messages.forEach(m => {
+      const docs = m.fileAttachments || (m.fileAttachment ? [m.fileAttachment] : []);
+      docs.forEach((doc: any) => {
+        if (doc.url) briefcaseAttachments.push({ ...doc, messageId: m.id });
+      });
     });
 
-    activeMindMap.children = activeMindMap.children || [];
-    
-    // Try to attach to existing Evidence node, otherwise create a new dedicated branch
-    const evidenceNode = activeMindMap.children.find((c: any) => 
-      c.label && (c.label.toLowerCase().includes('evidence') || c.label.toLowerCase().includes('attachment'))
-    );
+    if (briefcaseAttachments.length > 0) {
+      activeMindMap = JSON.parse(JSON.stringify(activeMindMap));
 
-    if (evidenceNode) {
-      // Remove placeholder empty nodes if replacing with real files
-      evidenceNode.children = evidenceNode.children.filter((c: any) => !c.id?.includes('-empty'));
-      
-      // Prevent duplicates by name
-      const existingNames = evidenceNode.children.map((c: any) => c.label);
-      const newUniqueNodes = attachmentNodes.filter(n => !existingNames.includes(n.label));
-      
-      evidenceNode.children = [...evidenceNode.children, ...newUniqueNodes];
-    } else {
-      activeMindMap.children.push({
-        id: 'attachments-branch',
-        label: 'Attached Evidence',
-        children: attachmentNodes
+      // 2. RECIPROCAL SYNC: Bridge AI Nodes with Briefcase Reality
+      const syncEvidenceToTree = (node: any) => {
+        const nodeLabel = (node.label || "").toLowerCase();
+        const nodeDesc = (node.description || "").toLowerCase();
+
+        // --- STEP A: HEAL EXISTING MEDIA ---
+        // If the AI generated media links, make sure they use the most 'Live' URL from our briefcase
+        if (node.media) {
+          node.media = node.media.map((m: any) => {
+            const matches = briefcaseAttachments.filter(att =>
+              att.name?.toLowerCase() === m.name?.toLowerCase() ||
+              att.url === m.url
+            );
+            // Prioritize permanent S3 URLs over temporary blobs if we have choice
+            const bestAtt = matches.find(a => !a.url.startsWith('blob:')) || matches[0];
+            return bestAtt ? { ...m, url: bestAtt.url } : m;
+          });
+        }
+
+        // --- STEP B: DISCOVER NEW EVIDENCE ---
+        // Find matching files by name or AI summary context
+        const matchedAtt = briefcaseAttachments.find(att => {
+          const name = (att.name || "").toLowerCase();
+          const summary = (att.ai_summary || "").toLowerCase();
+          const words = name.split(/[._\s-]/).filter((w: string) => w.length > 3);
+
+          return words.some((word: string) => nodeLabel.includes(word)) ||
+            summary.split(' ').slice(0, 10).some(word => word.length > 4 && nodeLabel.includes(word)) ||
+            nodeLabel.includes(name);
+        });
+
+        if (matchedAtt) {
+          node.media = node.media || [];
+          if (!node.media.some((m: any) => m.name === matchedAtt.name || m.url === matchedAtt.url)) {
+            const isImage = matchedAtt.name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            const isAudio = matchedAtt.name.match(/\.(mp3|wav|ogg|m4a)$/i);
+            node.media.push({
+              type: isImage ? 'image' : (isAudio ? 'audio' : 'file'),
+              name: matchedAtt.name,
+              url: matchedAtt.url
+            });
+          }
+        }
+        if (node.children) node.children.forEach(syncEvidenceToTree);
+      };
+
+      syncEvidenceToTree(activeMindMap);
+
+      // 3. SECURE EVIDENCE ANCHOR: The Case Vault
+      const vaultNodes = briefcaseAttachments.map((att, i) => {
+        const isImage = att.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        const isAudio = att.name?.match(/\.(mp3|wav|ogg|m4a)$/i);
+        return {
+          id: `vault-briefcase-${i}`,
+          label: att.name || 'Document',
+          description: att.ai_summary || `Legal Evidence: ${att.name}`,
+          media: [{ type: isImage ? 'image' : (isAudio ? 'audio' : 'file'), url: att.url, name: att.name }],
+          children: []
+        };
       });
+
+      activeMindMap.children = activeMindMap.children || [];
+      let vault = activeMindMap.children.find((c: any) =>
+        c.label && (c.label.toLowerCase().includes('vault') || c.label.toLowerCase().includes('evidence'))
+      );
+
+      if (vault) {
+        vault.children = vault.children.filter((c: any) => !c.id?.includes('-empty'));
+        const seen = new Set(vault.children.map((c: any) => (c.label || "").toLowerCase()));
+        vaultNodes.forEach(n => {
+          if (!seen.has(n.label.toLowerCase())) vault.children.push(n);
+        });
+      } else {
+        activeMindMap.children.push({ id: 'legal-vault', label: '⚖️ Legal Evidence Vault', children: vaultNodes });
+      }
     }
   }
 

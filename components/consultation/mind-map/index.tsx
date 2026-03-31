@@ -22,7 +22,7 @@ import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
-const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), { 
+const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">Initialising 3D Reality...</div>
 });
@@ -243,17 +243,30 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
   useEffect(() => {
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-      console.log('--- MIND MAP DATA DEBUG ---');
-      console.log('Raw Tree Data:', data);
-
       const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
-
-      console.log('Generated Nodes:', newNodes);
-      console.log('Generated Edges:', newEdges);
-      console.log('---------------------------');
-
       setNodes(newNodes);
       setEdges(newEdges);
+
+      // Persist the state to survive refreshes
+      try {
+        localStorage.setItem('law_ph_last_mind_map', JSON.stringify({ nodes: newNodes, edges: newEdges, data }));
+      } catch (e) {
+        console.error('Failed to persist map data:', e);
+      }
+    } else {
+      // Re-access data from persistence if prop is missing on refresh
+      try {
+        const cached = localStorage.getItem('law_ph_last_mind_map');
+        if (cached) {
+          const { nodes: oldNodes, edges: oldEdges } = JSON.parse(cached);
+          if (oldNodes?.length > 0) {
+            setNodes(oldNodes);
+            setEdges(oldEdges);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to recover map data:', e);
+      }
     }
   }, [data, theme, layout, treeToGraph, setNodes, setEdges]);
 
@@ -628,197 +641,199 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </button>
       </div>
 
-      {/* Sleek Minimalist Detail Card - Portaled to Context Container for Fullscreen visibility */}
       {containerRef.current && ReactDOM.createPortal(
         <AnimatePresence mode="wait">
-          {selectedNodeId && selectedNodeData && (
-            <motion.div
-              key={selectedNodeId}
-              initial={{ opacity: 0, scale: 0.98, x: 20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.98, x: 20 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className={`absolute ${isAttachment ? 'top-10 bottom-10 right-10 w-[75vw] max-w-[900px]' : 'top-28 right-10 w-[320px]'} z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
-            >
-              {/* Elegant Header Accent */}
-              <div
-                className="h-1 w-full opacity-60"
-                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }}
-              />
+          {selectedNodeId && selectedNodeData && (() => {
+            const hasMediaOnly = (selectedNodeData.media?.length > 0) && (!selectedNodeData.description || selectedNodeData.description === 'N/A' || selectedNodeData.description.length < 5);
 
-              <div className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white leading-tight pr-4">
-                    {selectedNodeData.label}
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setSelectedNodeId(null);
-                      if (is3D) {
-                        mindMap3DRef.current?.recenter();
-                      } else {
-                        fitView({ padding: 0.05, duration: 800 });
+            return (
+              <motion.div
+                key={selectedNodeId}
+                initial={{ opacity: 0, scale: 0.98, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.98, x: 20 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className={`absolute top-28 right-10 ${hasMediaOnly ? 'w-[260px]' : 'w-[310px]'} min-h-[500px] z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5 transition-all duration-500`}
+              >
+                {/* Elegant Header Accent */}
+                <div
+                  className="h-1 w-full opacity-60"
+                  style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }}
+                />
+
+                <div className={`p-4 ${hasMediaOnly ? 'space-y-2' : 'p-7'}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className={`font-bold text-white leading-tight pr-4 truncate ${hasMediaOnly ? 'text-base' : 'text-xl'}`}>
+                      {selectedNodeData.label}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setSelectedNodeId(null);
+                        if (is3D) {
+                          mindMap3DRef.current?.recenter();
+                        } else {
+                          fitView({ padding: 0.05, duration: 800 });
+                        }
+                      }}
+                      className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0 bg-white/5 rounded-full hover:bg-white/10"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
+                    {!isAttachment && (() => {
+                      const desc = selectedNodeData.description || "N/A";
+                      const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
+                      const isShort = desc.length < 50 && !desc.includes('.');
+
+                      if (isList || isShort) {
+                        const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+                        return (
+                          <div className="flex flex-col gap-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Key Information</span>
+                            <ul className="space-y-2">
+                              {lines.map((line: string, i: number) => (
+                                <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
+                                  <ReactMarkdown
+                                    components={{
+                                      p: ({ children }) => <span className="inline-block">{children}</span>,
+                                      strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                                    }}
+                                  >
+                                    {line}
+                                  </ReactMarkdown>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
                       }
-                    }}
-                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0 bg-white/5 rounded-full hover:bg-white/10"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
-                  {!isAttachment && (() => {
-                    const desc = selectedNodeData.description || "N/A";
-                    const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
-                    const isShort = desc.length < 50 && !desc.includes('.');
 
-                    if (isList || isShort) {
-                      const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
                       return (
-                        <div className="flex flex-col gap-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Key Information</span>
-                          <ul className="space-y-2">
-                            {lines.map((line: string, i: number) => (
-                              <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
-                                <ReactMarkdown
-                                  components={{
-                                    p: ({ children }) => <span className="inline-block">{children}</span>,
-                                    strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
-                                  }}
-                                >
-                                  {line}
-                                </ReactMarkdown>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="text-[14px] text-white/70 leading-relaxed font-medium">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
+                            }}
+                          >
+                            {desc}
+                          </ReactMarkdown>
                         </div>
                       );
-                    }
+                    })()}
 
-                    return (
-                      <div className="text-[14px] text-white/70 leading-relaxed font-medium">
-                        <ReactMarkdown
-                          components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>
-                          }}
-                        >
-                          {desc}
-                        </ReactMarkdown>
-                      </div>
-                    );
-                  })()}
-
-                  {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
-                  {selectedNodeData.media && selectedNodeData.media.length > 0 && (
-                    <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4"}>
-                      {!isAttachment && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>}
-                      <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "flex flex-col gap-3"}>
-                        {selectedNodeData.media.map((item: any, idx: number) => {
-                          if (item.type === 'image') return (
-                            <div key={idx} className={`relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg ${isAttachment ? 'flex-1 flex min-h-0' : ''}`}>
-                              <img 
-                                src={item.url} 
-                                alt={item.name} 
-                                className={`w-full transition-transform group-hover/media:scale-[1.02] ${isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'}`} 
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
-                                  {isAttachment ? 'Open Original Image' : 'Expand File'}
+                    {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) — Flex to fill the tall container */}
+                    {selectedNodeData.media && selectedNodeData.media.length > 0 && (
+                      <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4 flex-1 flex flex-col min-h-0"}>
+                        {!isAttachment && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>}
+                        <div className={isAttachment || hasMediaOnly ? "flex-1 min-h-0 flex flex-col gap-3" : "flex flex-col gap-3"}>
+                          {selectedNodeData.media.map((item: any, idx: number) => {
+                            if (item.type === 'image') return (
+                              <div key={idx} className={`relative group/media overflow-hidden rounded-lg border border-white/10 shadow-md bg-black/20 ${hasMediaOnly ? 'flex-1' : 'aspect-video max-h-[120px]'}`}>
+                                <img
+                                  src={item.url}
+                                  alt={item.name}
+                                  className={`w-full transition-transform duration-500 group-hover/media:scale-105 ${hasMediaOnly ? 'h-full object-contain' : 'h-full object-cover'}`}
+                                />
+                                <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-md p-1.5 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                                  <span className="text-[9px] text-white/90 truncate block text-center font-bold">{item.name}</span>
+                                </div>
+                                <a href={item.url} target="_blank" rel="noreferrer" className="absolute inset-0 z-10 opacity-0 group-hover/media:opacity-100 transition-opacity flex items-center justify-center bg-black/20">
+                                  <span className="px-2 py-1 bg-white text-black text-[9px] font-black rounded-md shadow-lg scale-90 group-hover/media:scale-100 transition-transform uppercase">View</span>
                                 </a>
                               </div>
-                            </div>
-                          );
-                          if (item.type === 'audio') return (
-                            <div key={idx} className="bg-[#050505]/60 p-3 rounded-xl border border-white/10 flex flex-col gap-2">
-                              <span className="text-[10px] font-bold text-white/40 truncate">{item.name}</span>
-                              <audio controls className="w-full h-8"><source src={item.url} /></audio>
-                            </div>
-                          );
-                          if (item.type === 'file') {
-                            const isWordDoc = /\.(doc|docx)$/i.test(item.name);
-                            const isMissingUrl = !item.url || item.url === '#';
-                            const viewerUrl = isMissingUrl ? '' : (isWordDoc 
-                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}` 
-                              : item.url);
-                            
-                            if (isAttachment) {
-                              return (
-                                <div key={idx} className="w-full flex-1 flex flex-col gap-2 min-h-0">
-                                  {isMissingUrl ? (
-                                    <div className="flex-1 min-h-[300px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-6">
-                                      <span className="text-4xl mb-4 grayscale opacity-50">📄</span>
-                                      <span className="text-white/80 text-sm font-semibold mb-1">Preview Not Available</span>
-                                      <span className="text-white/40 text-xs text-balance">This document was uploaded offline or its URL has expired. Upload a new file to see the live preview.</span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <iframe 
-                                        src={viewerUrl} 
-                                        className="w-full flex-1 rounded-lg bg-white shadow-inner min-h-0" 
-                                        title={item.name} 
-                                      />
-                                      <div className="flex justify-between items-center px-2 mt-1">
-                                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
-                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
-                                          Open Original ↗
-                                        </a>
-                                      </div>
-                                    </>
-                                  )}
+                            );
+                            if (item.type === 'audio') return (
+                              <div key={idx} className="bg-[#050505]/60 px-3 py-2 rounded-lg border border-white/5 flex items-center gap-3 shadow-inner">
+                                <div className="w-8 h-8 rounded-full bg-[#E0A7C2]/20 flex items-center justify-center text-[#E0A7C2] text-xs">🎵</div>
+                                <div className="flex-1 min-w-0 flex flex-col">
+                                  <span className="text-[10px] font-bold text-white/80 truncate mb-1">{item.name}</span>
+                                  <audio controls className="w-full h-6 opacity-80 brightness-90 saturate-50 contrast-125 rounded-sm"><source src={item.url} /></audio>
                                 </div>
+                              </div>
+                            );
+                            if (item.type === 'file') {
+                              const isWordDoc = /\.(doc|docx)$/i.test(item.name);
+                              const isPDF = /\.pdf$/i.test(item.name);
+                              
+                              // STRATEGIC SAFETY: Never attempt to iframe a dead blob; it causes a "Black Hole"
+                              const isDeadBlob = item.url?.startsWith('blob:');
+                              const isMissingUrl = !item.url || item.url === '#' || isDeadBlob;
+                              
+                              const viewerUrl = isMissingUrl ? '' : (isWordDoc
+                                ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}`
+                                : item.url);
+
+                              if (isAttachment) {
+                                return (
+                                  <div key={idx} className="w-full flex-1 flex flex-col gap-4 min-h-0 pb-4">
+                                    {isMissingUrl ? (
+                                      <div className="flex-1 min-h-[400px] rounded-2xl bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-8">
+                                        <div className="w-20 h-20 bg-[#E0A7C2]/10 rounded-full flex items-center justify-center mb-6 text-4xl">📄</div>
+                                        <span className="text-white text-lg font-bold mb-2 uppercase tracking-widest">Hydrating Evidence...</span>
+                                        <p className="text-white/40 text-sm max-w-[280px]">Browser security is blocking the temporary preview. Please wait for sync or click below to view.</p>
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="mt-6 px-6 py-3 bg-[#E0A7C2] text-black font-black rounded-xl hover:scale-105 transition-transform shadow-lg uppercase text-xs">Open Original Document</a>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="flex-1 min-h-[600px] relative rounded-2xl bg-white overflow-hidden shadow-2xl border-4 border-[#333]">
+                                          <iframe
+                                            src={viewerUrl}
+                                            className="w-full h-full absolute inset-0"
+                                            title={item.name}
+                                          />
+                                        </div>
+                                        <div className="flex justify-between items-center px-2">
+                                          <div className="flex flex-col">
+                                            <span className="text-[10px] text-[#E0A7C2] font-black uppercase tracking-widest">{item.name}</span>
+                                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em]">{isPDF ? 'Secured PDF Viewer' : 'Strategic Document Bridge'}</span>
+                                          </div>
+                                          <a href={item.url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white/5 hover:bg-white/10 text-[11px] text-white uppercase tracking-widest font-black rounded-lg transition-all border border-white/10">
+                                            Open External ↗
+                                          </a>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              // Standard View
+                              return (
+                                <details key={idx} className="group bg-[#0A0A0A] rounded-xl border border-white/10 overflow-hidden outline-none">
+                                  <summary className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/5 transition-all list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-[#E0A7C2] text-black flex items-center justify-center rounded-xl font-bold shadow-lg">📄</div>
+                                      <div className="flex flex-col">
+                                        <span className="text-[13px] font-bold text-white/90 truncate max-w-[180px]">{item.name}</span>
+                                        <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-[0.2em]">View Brief</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-white/40 text-[10px] font-black uppercase group-open:rotate-180 transition-transform tracking-widest">Expand ↓</div>
+                                  </summary>
+                                  <div className="p-2 border-t border-white/5 bg-[#050505] flex flex-col gap-3">
+                                    <iframe
+                                      src={viewerUrl}
+                                      className="w-full h-[400px] rounded-lg bg-white shadow-2xl"
+                                      title={item.name}
+                                    />
+                                    <a href={item.url} target="_blank" rel="noreferrer" className="w-full py-3 bg-white/5 text-center text-[10px] text-white/60 font-black uppercase tracking-widest rounded-lg hover:bg-[#E0A7C2] hover:text-black transition-all">Open Full Document ↗</a>
+                                  </div>
+                                </details>
                               );
                             }
-
-                            // Standard accordion view for regular nodes with attached files
-                            return (
-                              <details key={idx} className="group bg-[#0A0A0A] rounded-xl border border-white/10 overflow-hidden outline-none">
-                                <summary className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-white/5 transition-all list-none [&::-webkit-details-marker]:hidden">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[12px] font-bold text-white/90 truncate max-w-[160px]">{item.name}</span>
-                                      <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
-                                    </div>
-                                  </div>
-                                  <div className="text-[#E0A7C2] text-[10px] font-bold px-2.5 py-1 bg-[#E0A7C2]/10 rounded-md group-open:hidden uppercase tracking-wider">Expand</div>
-                                  <div className="text-white/50 text-[10px] font-bold px-2.5 py-1 bg-white/5 rounded-md hidden group-open:block uppercase tracking-wider">Close</div>
-                                </summary>
-                                <div className="p-2 border-t border-white/5 bg-[#050505] flex flex-col gap-2">
-                                  {isMissingUrl ? (
-                                    <div className="w-full h-[120px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4">
-                                      <span className="text-2xl mb-2 grayscale opacity-50">📄</span>
-                                      <span className="text-white/60 text-xs font-semibold">Preview Not Available</span>
-                                      <span className="text-white/40 text-[10px] mt-1">This document was uploaded offline or its URL has expired.</span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <iframe 
-                                        src={viewerUrl} 
-                                        className="w-full h-[320px] rounded-lg bg-white" 
-                                        title={item.name} 
-                                      />
-                                      <div className="flex justify-between items-center px-1">
-                                        <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
-                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
-                                          Open Original ↗
-                                        </a>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              </details>
-                            );
-                          }
-                          return null;
-                        })}
+                            return null;
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>,
         containerRef.current
       )}
