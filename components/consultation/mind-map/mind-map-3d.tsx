@@ -89,7 +89,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     const nodes: any[] = [];
     const links: any[] = [];
 
-    // Robust field extraction matching index.tsx to ensure media flows to sidebar
+    // Robust field extraction matching index.tsx
     const getChildren = (item: any) => item.children || item.items || item.subnodes || item.branches || item.subitems || [];
     const getLabel = (item: any) => item.label || item.text || item.title || 'Untitled';
     const getDescription = (item: any) => item.description || item.details || item.summary || item.content || '';
@@ -106,14 +106,13 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     // 1. Calculate Leaf Weights for Perfect Symmetry
     const leafMap = new Map();
     const calculateLeaves = (node: any) => {
-      const children = getChildren(node);
-      const nodeId = getId(node);
+      const children = node.children || [];
       if (children.length === 0) {
-        leafMap.set(nodeId, 1);
+        leafMap.set(node.id, 1);
         return 1;
       }
       let sum = 0;
-      children.forEach((child: any) => sum += calculateLeaves(child));
+      children.forEach((c: any) => sum += calculateLeaves(c));
       leafMap.set(nodeId, sum);
       return sum;
     };
@@ -123,14 +122,22 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     const traverse = (item: any, depth = 0, angleStart = 0, angleEnd = 2 * Math.PI) => {
       const isRoot = depth === 0;
       const nodeId = getId(item);
-      const label = getLabel(item);
+      let label = getLabel(item);
+
+      if (isRoot && (label === 'Case Analysis' || label === 'Legal Strategy Map')) {
+        label = rootTitle;
+      }
 
       const midAngle = (angleStart + angleEnd) / 2;
       const radius = depth * 240;
 
       const x = radius * Math.cos(midAngle);
       const y = radius * Math.sin(midAngle);
-      const z = isRoot ? 0 : (depth % 2 === 0 ? 30 : -30);
+
+      // True 3D Scatter: Create a 'saddle curve' by sweeping the Z-axis up and down 
+      // based on the branch's rotation, resulting in a stunning spherical constellation.
+      const zWave = Math.sin(midAngle * 3) * (radius * 0.85);
+      const z = isRoot ? 0 : zWave + (depth % 2 === 0 ? 40 : -40);
 
       nodes.push({
         id: nodeId,
@@ -138,12 +145,13 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
         description: getDescription(item),
         media: getMedia(item),
         isRoot,
-        fx: x, fy: y, fz: z
+        fx: x, fy: y, fz: z,
+        color: isRoot ? '#8B4564' : themeColor
       });
 
-      const children = getChildren(item);
+      const children = item.children || [];
       if (children.length > 0) {
-        const totalLeaves = leafMap.get(nodeId);
+        const totalLeaves = leafMap.get(item.id);
         let currentAngle = angleStart;
 
         children.forEach((child: any) => {
