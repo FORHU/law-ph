@@ -5,8 +5,9 @@ import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
 import { MindMapItem } from './types';
 
-interface MindMap3DProps {
+export interface MindMap3DProps {
   root: MindMapItem | null;
+  rootTitle: string;
   onNodeClick: (node: any) => void;
   onBackgroundClick?: () => void;
 }
@@ -17,7 +18,7 @@ export interface MindMap3DHandle {
   zoomOut: () => void;
 }
 
-export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, onNodeClick, onBackgroundClick }, ref) => {
+export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, rootTitle, onNodeClick, onBackgroundClick }, ref) => {
   const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
@@ -107,13 +108,14 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
     const leafMap = new Map();
     const calculateLeaves = (node: any) => {
       const children = node.children || [];
+      const nid = getId(node);
       if (children.length === 0) {
-        leafMap.set(node.id, 1);
+        leafMap.set(nid, 1);
         return 1;
       }
       let sum = 0;
       children.forEach((c: any) => sum += calculateLeaves(c));
-      leafMap.set(nodeId, sum);
+      leafMap.set(nid, sum);
       return sum;
     };
     calculateLeaves(root);
@@ -138,6 +140,8 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, on
       // based on the branch's rotation, resulting in a stunning spherical constellation.
       const zWave = Math.sin(midAngle * 3) * (radius * 0.85);
       const z = isRoot ? 0 : zWave + (depth % 2 === 0 ? 40 : -40);
+
+      const themeColor = '#00E5FF';
 
       nodes.push({
         id: nodeId,

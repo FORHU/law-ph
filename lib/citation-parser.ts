@@ -265,12 +265,26 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
     }
     
     try {
-      const parsed = JSON.parse(jsonStr);
+      // STRATEGIC SAFETY: Sanitize the JSON string to escape literal newlines and control characters
+      // which commonly cause the "Bad control character in string literal" error.
+      const sanitized = jsonStr
+        .replace(/[\b\f\n\r\t]/g, (char) => {
+          switch (char) {
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            case '\b': return '\\b';
+            case '\f': return '\\f';
+            default: return char;
+          }
+        });
+
+      const parsed = JSON.parse(sanitized);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed as TimelineItem[];
       }
     } catch (e) {
-      console.error("Failed to parse timeline JSON:", e);
+      console.error("Failed to parse timeline JSON:", e, jsonStr);
     }
   }
 
@@ -350,12 +364,25 @@ export function extractMindMap(text: string): MindMapItem | undefined {
         jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
       }
 
-      const parsed = JSON.parse(jsonStr);
-      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes)) {
+      // STRATEGIC SAFETY: Sanitize the JSON string for MindMap
+      const sanitized = jsonStr
+        .replace(/[\b\f\n\r\t]/g, (char) => {
+          switch (char) {
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            case '\b': return '\\b';
+            case '\f': return '\\f';
+            default: return char;
+          }
+        });
+
+      const parsed = JSON.parse(sanitized);
+      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes || parsed.label)) {
         return parsed as MindMapItem;
       }
     } catch (e) {
-      // Don't log expected partial JSON errors during streaming
+      console.error("Failed to parse mind-map JSON:", e, jsonStr);
     }
   }
 

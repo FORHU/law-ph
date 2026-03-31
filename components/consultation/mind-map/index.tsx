@@ -22,11 +22,12 @@ import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
-const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
+import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
+
+const MindMap3D = dynamic<MindMap3DProps>(() => import('./mind-map-3d').then(m => m.MindMap3D), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">Initialising 3D Reality...</div>
 });
-import type { MindMap3DHandle } from './mind-map-3d';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -409,6 +410,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     return getNodes().find(n => n.id === selectedNodeId)?.data;
   }, [selectedNodeId, getNodes, is3D, selected3DNodeData]);
 
+  // STRATEGIC SAFETY: Define 'isAttachment' for the sidebar portal
+  const isAttachment = selectedNodeId?.includes('attachment-') || selectedNodeId?.includes('vault-') || !!selectedNodeData?.isAttachment;
+
   const undo = () => {
     if (history.length === 0) return;
     const previousState = history[history.length - 1];
@@ -437,7 +441,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             <MindMap3D
               ref={mindMap3DRef}
               root={data}
-              onNodeClick={(node) => {
+              rootTitle={rootTitle}
+              onNodeClick={(node: any) => {
                 setSelectedNodeId(node.id);
                 // Store full enriched data so detail panel works in 3D mode
                 setSelected3DNodeData({
