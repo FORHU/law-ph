@@ -53,24 +53,34 @@ export async function POST(request: NextRequest) {
 
         // Handle incoming WebSocket messages
         ws.onmessage = (event) => {
+          if (isClosed) return;
+          
           const message = event.data;
           
-          // Forward the message to the client
-          controller.enqueue(new TextEncoder().encode(message));
-          
-          // If this is the end signal, close the stream
-          if (message === '__END__') {
-            ws.close();
-            closeStream();
+          try {
+            // Forward the message to the client
+            controller.enqueue(new TextEncoder().encode(message));
+            
+            // If this is the end signal, close the stream
+            if (message === '__END__' && !isClosed) {
+              ws.close();
+              closeStream();
+            }
+          } catch (err) {
+            console.error('Streaming enqueue error:', err);
+            isClosed = true;
           }
         };
 
         // Handle WebSocket errors
         ws.onerror = (error) => {
+          if (isClosed) return;
           console.error('WebSocket error:', error);
           const errorMessage = '[Error] Connection error occurred';
           try {
-            controller.enqueue(new TextEncoder().encode(errorMessage));
+            if (!isClosed) {
+              controller.enqueue(new TextEncoder().encode(errorMessage));
+            }
           } catch (err) {
             // Controller already closed
           }
