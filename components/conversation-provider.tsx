@@ -393,7 +393,8 @@ export function ConversationProvider({
       recordingUrl: meta.recordingUrl,
       voiceNotes: meta.voiceNotes,
       highlights: meta.highlights,
-      isAnalysis: meta.isAnalysis,
+      isAnalysis: meta.isAnalysis || !!meta.isAnalysis,
+      hidden: meta.hidden || !!meta.hidden,
       fileAttachment: meta.fileAttachment,
       fileAttachments: meta.fileAttachments,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
@@ -579,17 +580,20 @@ export function ConversationProvider({
       if (loadedHistoryIdRef.current === syncedConversationId && !isLoading)
         return;
 
-      const exists =
-        conversations.some((c) => c.id.toString() === syncedConversationId) ||
-        cases.some((c) => c.id.toString() === syncedConversationId) ||
-        currentConsultationId?.toString() === syncedConversationId;
-
-      if (!exists) {
+      const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);
+      const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
+      const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
+      
+      // If we're on a case route, we might not have `cases` loaded from Supabase yet.
+      // Easiest is to just allow the fetch to proceed and fail gracefully if not found,
+      // or at least not clear the screen if cases are empty but we specifically routed to a case.
+      const isCaseRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
+      
+      if (!existsInConversations && !existsInCases && !matchesCurrent && !isCaseRoute) {
         if (
           !isLoading &&
           (currentConsultationId !== null || messages.length > 0)
         ) {
-
           handleNewConsultation();
         }
         return;

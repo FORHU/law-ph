@@ -45,7 +45,8 @@ export function useSendMessage({
     targetConversationId?: string | number, 
     explicitDocumentContext?: string | null,
     file?: File | null,
-    skipAIResponse?: boolean
+    skipAIResponse?: boolean,
+    isAnalysisTrigger?: boolean
   ): Promise<string | number | undefined> => {
     if ((text.trim() || file) && !isLoading && supabase) {
       setIsLoading(true);
@@ -53,7 +54,7 @@ export function useSendMessage({
       const newMessageId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newMessage: Message = {
         id: newMessageId,
-        text: currentInput,
+        text: isAnalysisTrigger ? "" : currentInput,
         sender: CHAT_SENDER.USER,
         time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
         fileAttachment: file ? {
@@ -61,7 +62,9 @@ export function useSendMessage({
           type: file.type,
           size: file.size
         } : undefined,
-        status: skipAIResponse ? 'done' : undefined
+        status: skipAIResponse ? 'done' : undefined,
+        isAnalysis: isAnalysisTrigger,
+        hidden: false
       };
 
       // Extract ILM_META if present in the text (e.g. from Document Analysis)
@@ -72,6 +75,7 @@ export function useSendMessage({
           const meta = JSON.parse(metaMatch[1]);
           newMessage.isAnalysis = meta.isAnalysis;
           newMessage.fileAttachments = meta.fileAttachments;
+          newMessage.hidden = !!meta.hidden;
           if (meta.fileAttachment) newMessage.fileAttachment = meta.fileAttachment;
           displayInput = currentInput.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, '').trim();
           // Also strip hidden instructions for local display
@@ -90,6 +94,18 @@ export function useSendMessage({
         try {
           let currentFileAttachment = newMessage.fileAttachment;
           let currentDocumentContext = explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext;
+          let finalPromptToAI = currentInput;
+
+          // 3. Prepare AI 'Thinking' bubble immediately to provide single loading feedback
+          const aiMessageId = isAnalysisTrigger ? `analysis-ai-${Date.now()}` : `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const initialAiMessage = {
+            id: aiMessageId,
+            text: "",
+            sender: CHAT_SENDER.AI,
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+          };
+
+          setMessages(prev => [...prev, initialAiMessage]);
 
           // 1. If there's a file, upload and analyze it first
           if (file) {
@@ -109,8 +125,36 @@ export function useSendMessage({
               
               currentDocumentContext = uploadData.ai_summary;
 
+              // If this is an analysis trigger, we need to construct the special prompt
+              if (isAnalysisTrigger) {
+                const ai_summary = uploadData.ai_summary || "";
+                const filename = file.name;
+                const file_url = uploadData.file_url;
+                const s3_key = uploadData.s3_key;
+
+                const metaStr = JSON.stringify({
+                  isAnalysis: true,
+                  hidden: false,
+                  fileAttachments: [{
+                    name: filename,
+                    url: file_url,
+                    type: filename.split('.').pop() || 'file',
+                    s3_key: s3_key,
+                    ai_summary: ai_summary
+                  }]
+                });
+
+                const isPreAnalyzed = ai_summary.includes('## ');
+                finalPromptToAI = isPreAnalyzed
+                  ? `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION]Analyze the document "${filename}". Based on the content:\n\n${ai_summary}\n\nProvide a comprehensive legal report including:\n1. **Executive Summary** — core overview.\n2. **Practical Recommendations** — actionable next steps.\n3. **Key Risk Flags** — top critical legal risks.\n4. **Relevant Philippine Law** — statutes or cases that apply.\n5. **Next Steps** — prioritized action plan.[/HIDDEN_INSTRUCTION]`
+                  : `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION][Document Analysis Request] Analyze "${filename}". Provide:\n1. Comprehensive summary.\n2. Key legal points.\n3. Relevant Philippine laws.\n4. Notable clauses.\n5. Recommendations.[/HIDDEN_INSTRUCTION]`;
+              }
+
               // Update the local message with the final file data
-              setMessages(prev => prev.map(m => m.id === newMessageId ? { ...m, fileAttachment: currentFileAttachment } : m));
+              setMessages(prev => prev.map(m => m.id === newMessageId ? { ...m, fileAttachment: currentFileAttachment, text: isAnalysisTrigger ? "" : m.text } : m));
+              
+              // If this is an analysis trigger, we can speed things up by showing the summary directly 
+              // but we'll stick to the stream for the premium formatting
             } catch (uploadErr) {
               console.error("File upload/analysis failed:", uploadErr);
               // We'll continue without the file context if it failed
@@ -119,9 +163,16 @@ export function useSendMessage({
 
           // 2. Save user message to cloud
           const meta = {
-            fileAttachment: currentFileAttachment
+            fileAttachment: currentFileAttachment,
+            isAnalysis: isAnalysisTrigger,
+            hidden: false
           };
-          const contentWithMeta = currentInput + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
+          
+          // For analysis triggers, we use the finalPromptToAI which already has [ILM_META]
+          // Otherwise build it from currentInput
+          const contentWithMeta = isAnalysisTrigger 
+            ? finalPromptToAI 
+            : currentInput + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
 
           const { data: savedUserMsg, error: userMsgError } = await supabase
             .from("messages")
@@ -151,16 +202,6 @@ Here are a few things I can help you with:
 
 Just tell me 👍`;
 
-            const aiMessageId = `receipt-${Date.now()}`;
-            const receiptMsg: Message = {
-              id: aiMessageId,
-              text: receiptText,
-              sender: CHAT_SENDER.AI,
-              time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-            };
-
-            setMessages(prev => [...prev, receiptMsg]);
-            setIsLoading(false);
 
             // Save the receipt response to Supabase
             try {
@@ -181,15 +222,6 @@ Just tell me 👍`;
           }
 
           // 3. Prepare AI message
-          const aiMessageId = `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          const initialAiMessage = {
-            id: aiMessageId,
-            text: "",
-            sender: CHAT_SENDER.AI,
-            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-          };
-
-          setMessages(prev => [...prev, initialAiMessage]);
 
           if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -218,7 +250,7 @@ Just tell me 👍`;
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
-            const payloadUserInput = `[Legal AI] ${currentInput || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
+            const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
              Do NOT write it as a numbered list, bullet points, or any other Markdown format.
 
 ---

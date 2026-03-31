@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,14 +13,19 @@ import {
   Briefcase,
   PenTool,
   Layout,
+  Upload,
+  FileText as FileIcon,
+  X,
+  Loader2
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
+import { uploadAndAnalyzeDocument } from "@/lib/s3-utils";
 import { Session } from "@supabase/supabase-js";
 import { Conversation } from "@/types";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { useConversations } from "@/components/conversation-provider/conversation-context";
+import { useConversations, Message } from "@/components/conversation-provider/conversation-context";
 
 import { PageLayout } from "@/components/ui/page-layout";
 
@@ -34,6 +39,9 @@ import { NoteSidebar } from "./consultation/note-sidebar";
 import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
+
+import { useConsultationState } from "./consultation/use-consultation-state";
+import { useConsultationEffects } from "./consultation/use-consultation-effects";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +62,7 @@ export default function Consultation() {
 
   const {
     messages,
+    setMessages,
     isLoading,
     recentConsultations,
     currentConsultationId,
@@ -152,6 +161,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   };
 
   const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [selectedNoteMessage, setSelectedNoteMessage] = useState<{
     id: string | number;
     text: string;
@@ -166,48 +176,31 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     activeConversationId,
   );
 
-  const prevMessagesLengthRef = useRef(messages.length);
-  const chatScrollPositionRef = useRef<number>(0);
 
-  // Auto-scroll logic: scroll to top of new AI messages, bottom for user messages
-  useEffect(() => {
-    if (
-      scrollContainerRef.current &&
-      messages.length > prevMessagesLengthRef.current
-    ) {
-      const latestMessage = messages[messages.length - 1];
-      if (latestMessage.sender === CHAT_SENDER.AI) {
-        setTimeout(() => {
-          const el = document.getElementById(
-            `message-bubble-${latestMessage.id}`,
-          );
-          if (el && scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const topPos =
-              el.getBoundingClientRect().top -
-              container.getBoundingClientRect().top +
-              container.scrollTop;
-            container.scrollTo({
-              top: topPos - 24,
-              behavior: "smooth",
-            });
-          }
-        }, 150);
-      } else {
-        setTimeout(() => {
-          if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTo({
-              top: scrollContainerRef.current.scrollHeight,
-              behavior: "smooth",
-            });
-          }
-        }, 50);
-      }
-    }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages, isLoading]);
+  // Separated Logic
+  const { globalTab, setGlobalTab, handleTabChange, emailState, scheduleState, derivedData } = useConsultationState({
+    messages, activeCase, scrollContainerRef
+  });
 
+  useConsultationEffects({
+    messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
+  });
 
+  let activeTimeline = derivedData.activeTimeline;
+  let activeMindMap = derivedData.activeMindMap;
+  const {
+    emailTo,
+    setEmailTo,
+    emailSubject,
+    setEmailSubject,
+    emailBody,
+    setEmailBody,
+    isSendingEmail,
+    emailSentStatus,
+    emailErrorMessage,
+    handleSendEmail,
+  } = emailState;
+  const { scheduleType, setScheduleType, scheduleDateTime, setScheduleDateTime, scheduleEmail, setScheduleEmail, scheduleNotes, setScheduleNotes, isScheduling, scheduleStatus, handleScheduleEvent } = scheduleState;
 
 
   const lastIdRef = useRef<string | null>(null);
@@ -311,135 +304,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
-  const [globalTab, setGlobalTab] = useState<'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document'>('chat');
-
-  const latestTimelineMessage = [...messages]
-    .reverse()
-    .find((m) => m.timeline && m.timeline.length > 0);
-  let activeTimeline = latestTimelineMessage?.timeline || [];
-
-  // Pre-define timeline if none exists (or if it's just the default 1-item placeholder) and we have an active case
-  const isBasicPlaceholder =
-    activeTimeline.length === 1 &&
-    (activeTimeline[0].title === "Created Case" ||
-      activeTimeline[0].title === "Case Created");
-  if ((activeTimeline.length === 0 || isBasicPlaceholder) && activeCase) {
-    const caseDate = activeCase.created_at
-      ? new Date(activeCase.created_at).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0];
-
-    activeTimeline = [
-      {
-        date: caseDate,
-        title: "Case Created",
-        description: `Case "${activeCase.case_name || "Untitled"}" was opened. Parties involved: ${activeCase.party_involved || "Not specified"}.`,
-        status: "completed",
-        requires_previous: false,
-      },
-      {
-        date: "",
-        title: "Initial Analysis",
-        description:
-          activeCase.notes && activeCase.notes.length > 10
-            ? `Reviewing initial notes: "${activeCase.notes.substring(0, 120)}${activeCase.notes.length > 120 ? "..." : ""}"`
-            : "Analyzing case details and identifying material facts.",
-        status: "pending",
-        requires_previous: false,
-      },
-      {
-        date: "",
-        title: "Strategic Planning",
-        description:
-          "Awaiting AI to establish theoretical basis and actionable steps.",
-        status: "pending",
-        requires_previous: true,
-      },
-    ];
-  }
-
-  const latestMindMapMessage = [...messages]
-    .reverse()
-    .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0);
-  let activeMindMap = latestMindMapMessage?.mindMap;
-
-  // Pre-define map if none exists and we have an active case
-  if (!activeMindMap && activeCase) {
-    const partyLabels = (activeCase.party_involved || "")
-      .split(/[,\/]/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-      .map((p, i) => ({
-        id: `party-role-${i}`,
-        label: `Principal Party`,
-        children: [
-          {
-            id: `party-name-${i}`,
-            label: p,
-            children: [],
-          },
-        ],
-      }));
-
-    const noteLines = (activeCase.notes || "")
-      .split(/[.\n]/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 15)
-      .slice(0, 6);
-
-    const factNodes = noteLines.map((l, i) => ({
-      id: `fact-${i}`,
-      label: l.length > 55 ? l.substring(0, 55) + "..." : l,
-      children: [],
-    }));
-
-    activeMindMap = {
-      id: "root",
-      label: activeCase.case_name || "Case Analysis",
-      children: [
-        {
-          id: "c1",
-          label: "Key Parties",
-          children: partyLabels,
-        },
-        {
-          id: "c3",
-          label: "Evidence & Facts",
-          children:
-            factNodes.length > 0
-              ? factNodes
-              : [
-                {
-                  id: "e-empty",
-                  label: "Extracting key evidence...",
-                  children: [],
-                },
-                {
-                  id: "f-empty",
-                  label: "Identifying material facts...",
-                  children: [],
-                },
-              ],
-        },
-        {
-          id: "c2",
-          label: "Legal Strategy",
-          children: [
-            { id: "s1", label: "Theoretical Basis", children: [] },
-            { id: "s2", label: "Actionable Steps", children: [] },
-          ],
-        },
-        {
-          id: "c4",
-          label: "Laws & Jurisprudence",
-          children: [
-            { id: "l1", label: "Relevant Statutes", children: [] },
-            { id: "l2", label: "Case Jurisprudence", children: [] },
-          ],
-        },
-      ],
-    };
-  }
-
   // Inject all user uploaded file attachments into the Mind Map as evidence nodes
   const allAttachments: { name: string; url?: string; type: string; ai_summary?: string }[] = [];
   messages.forEach(m => {
@@ -540,28 +404,19 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   }
 
 
-  const handleTabChange = (tab: typeof globalTab) => {
-    if (tab !== "chat" && globalTab === "chat") {
-      // Save scroll position before leaving chat
-      chatScrollPositionRef.current =
-        scrollContainerRef.current?.scrollTop ?? 0;
-    }
-    setGlobalTab(tab);
-    if (tab === "chat") {
-      // Restore scroll position when returning to chat
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = chatScrollPositionRef.current;
-        }
-      }, 0);
-    }
-  };
-
   const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
     if (file || msg.trim()) {
       handleSendMessage(msg, activeConversationId, undefined, file, skipAIResponse);
       if (globalTab !== 'chat') handleTabChange('chat');
     }
+  };
+
+  const handleAnalyzeFile = async (file: File): Promise<void> => {
+    setIsAnalysisModalOpen(false); // Close modal as soon as file is accepted
+    
+    // Unified Flow: Start the message process immediately
+    // filename as text satisfies the (text.trim() || file) check
+    handleSendMessage(file.name, activeConversationId, undefined, file, false, true);
   };
 
   const handleDocumentAnalyzed = (data: any) => {
@@ -571,6 +426,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
     const metaStr = JSON.stringify({
       isAnalysis: true,
+      hidden: false,
       fileAttachments: [{
         name: filename,
         url: file_url,
@@ -582,10 +438,102 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
     const isPreAnalyzed = content.includes('## ');
     const prompt = isPreAnalyzed
-      ? `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION]I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).[/HIDDEN_INSTRUCTION]`
-      : `[ILM_META]${metaStr}[/ILM_META]ANALYZING\n\n[HIDDEN_INSTRUCTION][Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}[/HIDDEN_INSTRUCTION]`;
+      ? `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION]I have uploaded a legal document titled "${filename}". Here is the initial AI analysis:\n\n${content}\n\n---\n\nBased on this analysis, please provide:\n1. **Additional Insights** — anything important the analysis may have missed or should expand on.\n2. **Practical Recommendations** — specific, actionable steps I or my client should take immediately.\n3. **Key Risk Flags** — the top 3 most critical legal risks in this document and how to mitigate them.\n4. **Suggested Follow-up Questions** — questions I should be asking a lawyer or the other party regarding this document.\n5. **Next Steps** — a prioritized action plan (e.g., what to sign, register, negotiate, or dispute).[/HIDDEN_INSTRUCTION]`
+      : `[ILM_META]${metaStr}[/ILM_META][HIDDEN_INSTRUCTION][Document Analysis Request] Please analyze the following legal document titled "${filename}". Provide:\n1. A comprehensive summary of the document.\n2. Key legal issues, obligations, and rights.\n3. Relevant Philippine laws or jurisprudence.\n4. Notable clauses or concerns.\n5. Practical recommendations and next steps.\n\nDocument:\n\n${content}[/HIDDEN_INSTRUCTION]`;
+    
     handleSendMessage(prompt);
   };
+
+  const DocumentAnalysisModal = () => {
+    const [dragActive, setDragActive] = useState(false);
+    const modalFileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleDrag = (e: React.DragEvent) => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+      else if (e.type === 'dragleave') setDragActive(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault(); e.stopPropagation();
+      setDragActive(false);
+      if (e.dataTransfer.files?.length) {
+        handleAnalyzeFile(e.dataTransfer.files[0]);
+      }
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={() => setIsAnalysisModalOpen(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
+          className="bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#E0A7C2]" />
+                Upload Document
+              </h2>
+              <button 
+                onClick={() => setIsAnalysisModalOpen(false)}
+                className="p-2 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => modalFileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-xl p-12 transition-all cursor-pointer group ${
+                dragActive 
+                  ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]' 
+                  : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#2A2A2A]/40'
+              }`}
+            >
+              <input 
+                ref={modalFileInputRef} 
+                type="file" 
+                className="hidden" 
+                accept=".pdf,.doc,.docx,.txt"
+                onChange={(e) => {
+                  if (e.target.files?.length) {
+                    handleAnalyzeFile(e.target.files[0]);
+                  }
+                }}
+              />
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-[#8B4564]/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Upload size={32} className="text-[#E0A7C2]" />
+                </div>
+                <div>
+                  <p className="text-lg font-medium text-white mb-1">
+                    Drop documents here or click to browse
+                  </p>
+                  <p className="text-sm text-gray-500 max-w-[280px] mx-auto">
+                    PDF, DOC, DOCX, TXT (Max 20MB). Your analysis will start automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
 
   /* sidebarRecentItems update to include onRename */
   const sidebarRecentItems = recentConsultations.map((c: any) => ({
@@ -617,13 +565,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   }));
 
   const handleNewConsultation = () => {
-    // Reset redirect ref to allow fresh start
-    lastIdRef.current = null;
     coreHandleNewConsultation();
     setGlobalTab("chat");
     setIsSidebarOpen(false); // Close sidebar for new chat
-    // Navigating to /consultation will trigger the sync logic, and the Provider will clear state safely
-    router.push("/consultation", { scroll: false });
+    
+    // Forcefully push and clear history logic
+    if (window.location.pathname !== "/consultation") {
+      router.push("/consultation");
+    } else {
+      router.replace("/consultation", { scroll: false }); // Ensure URL is clean
+    }
   };
 
   // Find active conversation for title
@@ -816,8 +767,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         <select
                           className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all appearance-none cursor-pointer"
                           onChange={(e) => {
-                            const ta = document.getElementById('email-message-body') as HTMLTextAreaElement;
-                            if (ta) ta.value = e.target.value;
+                            setEmailBody(e.target.value);
                           }}
                         >
                           <option value="">-- Select an AI finding to insert --</option>
@@ -833,12 +783,24 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">To</label>
-                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
+                      <input
+                        type="email"
+                        placeholder="client@example.com"
+                        value={emailTo}
+                        onChange={(e) => setEmailTo(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
+                      />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Subject</label>
-                      <input type="text" placeholder="Update on Case Findings" defaultValue={activeCase ? `Update on: ${activeCase.case_name}` : ""} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600" />
+                      <input
+                        type="text"
+                        placeholder="Update on Case Findings"
+                        value={emailSubject}
+                        onChange={(e) => setEmailSubject(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
+                      />
                     </div>
 
                     <div>
@@ -846,37 +808,52 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         Message
                       </label>
                       <textarea
-                        id="email-message-body"
                         rows={5}
                         placeholder="Hello, I am writing to share the latest AI findings regarding..."
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600 resize-none"
                       ></textarea>
                     </div>
 
-                    <div className="pt-2 flex justify-end">
+                    <div className="pt-2 flex flex-col items-end gap-2">
                       <button
-                        className="bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-all flex items-center gap-2"
-                        onClick={(e) => {
-                          const btn = e.currentTarget;
-                          const original = btn.innerHTML;
-                          btn.innerHTML =
-                            '<span class="flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sending...</span>';
-                          setTimeout(() => {
-                            btn.innerHTML =
-                              '<span class="flex items-center gap-2"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sent Successfully</span>';
-                            btn.classList.add("!bg-green-500", "!text-white");
-                            setTimeout(() => {
-                              btn.innerHTML = original;
-                              btn.classList.remove(
-                                "!bg-green-500",
-                                "!text-white",
-                              );
-                            }, 3000);
-                          }, 1500);
-                        }}
+                        className={`bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+                          emailSentStatus === 'success' ? '!bg-green-500 !text-white' : 
+                          emailSentStatus === 'error' ? '!bg-red-500 !text-white' : 
+                          'hover:bg-white'
+                        }`}
+                        onClick={handleSendEmail}
+                        disabled={isSendingEmail}
                       >
-                        <Mail size={16} /> Send Email
+                        {isSendingEmail ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sending...
+                          </span>
+                        ) : emailSentStatus === 'success' ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Sent Successfully
+                          </span>
+                        ) : emailSentStatus === 'error' ? (
+                          <span>Failed to Send</span>
+                        ) : (
+                          <>
+                            <Mail size={16} /> Send Email
+                          </>
+                        )}
                       </button>
+                      {emailSentStatus === 'error' && emailErrorMessage && (
+                        <p className="text-red-400 text-xs text-right max-w-sm">
+                          {emailErrorMessage}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -897,7 +874,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Event Type</label>
-                        <select className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all appearance-none cursor-pointer">
+                        <select
+                          value={scheduleType}
+                          onChange={(e) => setScheduleType(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all appearance-none cursor-pointer"
+                        >
                           <option>Meeting</option>
                           <option>Appointment</option>
                           <option>Hearing</option>
@@ -906,13 +887,24 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
-                        <input type="datetime-local" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]" />
+                        <input
+                          type="datetime-local"
+                          value={scheduleDateTime}
+                          onChange={(e) => setScheduleDateTime(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]"
+                        />
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email</label>
-                      <input type="email" placeholder="client@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600" />
+                      <input
+                        type="email"
+                        placeholder="client@example.com"
+                        value={scheduleEmail}
+                        onChange={(e) => setScheduleEmail(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600"
+                      />
                     </div>
 
                     <div>
@@ -920,31 +912,29 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       <textarea
                         rows={3}
                         placeholder="Discuss evidence strategy and finalize documentation..."
+                        value={scheduleNotes}
+                        onChange={(e) => setScheduleNotes(e.target.value)}
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600 resize-none"
                       ></textarea>
                     </div>
 
                     <div className="pt-4 flex justify-end">
                       <button
-                        className="bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl hover:bg-white transition-all flex items-center gap-2"
-                        onClick={(e) => {
-                          const btn = e.currentTarget;
-                          const original = btn.innerHTML;
-                          btn.innerHTML = "Scheduling...";
-                          setTimeout(() => {
-                            btn.innerHTML = "✓ Scheduled";
-                            btn.classList.add("!bg-white", "!text-[#10B981]");
-                            setTimeout(() => {
-                              btn.innerHTML = original;
-                              btn.classList.remove(
-                                "!bg-white",
-                                "!text-[#10B981]",
-                              );
-                            }, 3000);
-                          }, 1500);
-                        }}
+                        className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+                          scheduleStatus === 'success' ? '!bg-white !text-[#10B981]' : 
+                          scheduleStatus === 'error' ? '!bg-red-500 !text-white' : 
+                          'hover:bg-white'
+                        }`}
+                        onClick={handleScheduleEvent}
+                        disabled={isScheduling}
                       >
-                        <Calendar size={16} /> Schedule Event
+                        {isScheduling ? "Scheduling..." : 
+                         scheduleStatus === 'success' ? "✓ Scheduled" : 
+                         scheduleStatus === 'error' ? "Failed to Schedule" : 
+                         <>
+                           <Calendar size={16} /> Schedule Event
+                         </>
+                        }
                       </button>
                     </div>
                   </div>
@@ -1025,8 +1015,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           onTabChange={handleTabChange}
           hasMessages={messages.length > 0}
           isCaseMode={isCaseMode}
+          onAnalyzeFile={handleAnalyzeFile}
+          onAnalyzeClick={() => setIsAnalysisModalOpen(true)}
+          isAnalyzing={false}
         />
       </div>
+
+      {/* Document Analysis Modal */}
+      <AnimatePresence>
+        {isAnalysisModalOpen && <DocumentAnalysisModal />}
+      </AnimatePresence>
 
       {/* Source Detail Sidebar */}
       <SourceDetailSidebar

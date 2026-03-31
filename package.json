@@ -29,6 +29,7 @@
     "reactflow": "^11.11.4",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
+    "resend": "^6.9.4",
     "slick-carousel": "^1.8.1",
     "tailwind-merge": "^3.3.0",
     "three": "^0.183.2",
