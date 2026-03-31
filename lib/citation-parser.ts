@@ -265,21 +265,52 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
     }
     
     try {
-      // STRATEGIC SAFETY: Sanitize the JSON string to escape literal newlines and control characters
-      // which commonly cause the "Bad control character in string literal" error.
-      const sanitized = jsonStr
-        .replace(/[\b\f\n\r\t]/g, (char) => {
-          switch (char) {
-            case '\n': return '\\n';
-            case '\r': return '\\r';
-            case '\t': return '\\t';
-            case '\b': return '\\b';
-            case '\f': return '\\f';
-            default: return char;
-          }
-        });
+      // IMPORTANT: Do NOT globally escape newlines/tabs/etc.
+      // Doing so can turn structural whitespace (between JSON tokens) into `\n`,
+      // which inserts a backslash outside a string and breaks JSON.parse.
+      //
+      // Instead, try a few tolerant parsing passes for common AI output shapes:
+      // - Proper JSON
+      // - JSON that contains literal backslash escapes like `\\n`
+      // - A JSON *string* that itself contains JSON (double-encoded)
+      const tryParse = (s: string): unknown => JSON.parse(s);
+      const tryParseTimeline = (s: string): TimelineItem[] | undefined => {
+        const parsed = tryParse(s);
+        return Array.isArray(parsed) && parsed.length > 0
+          ? (parsed as TimelineItem[])
+          : undefined;
+      };
 
-      const parsed = JSON.parse(sanitized);
+      const cleaned = jsonStr.trim().replace(/^\uFEFF/, "");
+      const parsedDirect = tryParseTimeline(cleaned);
+      if (parsedDirect) return parsedDirect;
+
+      // If the model output includes literal escape sequences (e.g. `[\n  {...}]`),
+      // convert them into real whitespace before parsing.
+      const unescapedNewlines = cleaned
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      const parsedUnescaped = tryParseTimeline(unescapedNewlines);
+      if (parsedUnescaped) return parsedUnescaped;
+
+      // If the block is a quoted JSON string, parse once to get inner JSON, then parse again.
+      if (
+        (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))
+      ) {
+        const normalizedQuotes =
+          cleaned.startsWith("'") && cleaned.endsWith("'")
+            ? `"${cleaned.slice(1, -1).replace(/"/g, '\\"')}"`
+            : cleaned;
+        const inner = tryParse(normalizedQuotes);
+        if (typeof inner === "string") {
+          const parsedInner = tryParseTimeline(inner.trim());
+          if (parsedInner) return parsedInner;
+        }
+      }
+
+      const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed as TimelineItem[];
       }
@@ -364,23 +395,76 @@ export function extractMindMap(text: string): MindMapItem | undefined {
         jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
       }
 
-      // STRATEGIC SAFETY: Sanitize the JSON string for MindMap
-      const sanitized = jsonStr
-        .replace(/[\b\f\n\r\t]/g, (char) => {
-          switch (char) {
-            case '\n': return '\\n';
-            case '\r': return '\\r';
-            case '\t': return '\\t';
-            case '\b': return '\\b';
-            case '\f': return '\\f';
-            default: return char;
-          }
-        });
+      // IMPORTANT: Do NOT globally escape newlines/tabs/etc.
+      // That can corrupt structural whitespace into `\n` and make JSON invalid.
+      //
+      // Instead, attempt tolerant parsing for common AI output formats:
+      // - Proper JSON object
+      // - JSON with literal escape sequences like `\\n`
+      // - Single-quoted / JS-like objects (best-effort normalization)
+      // - Double-encoded JSON (string containing JSON)
+      const isMindMapShape = (v: unknown): v is MindMapItem => {
+        if (!v || typeof v !== "object") return false;
+        const anyV: any = v;
+        return Boolean(anyV.id || anyV.nodes || anyV.label || anyV.children);
+      };
 
-      const parsed = JSON.parse(sanitized);
-      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes || parsed.label)) {
-        return parsed as MindMapItem;
+      const tryParse = (s: string): unknown => JSON.parse(s);
+      const tryParseMindMap = (s: string): MindMapItem | undefined => {
+        const parsed = tryParse(s);
+        return isMindMapShape(parsed) ? (parsed as MindMapItem) : undefined;
+      };
+
+      const cleaned = jsonStr.trim().replace(/^\uFEFF/, "");
+
+      const parsedDirect = tryParseMindMap(cleaned);
+      if (parsedDirect) return parsedDirect;
+
+      // If the model output includes literal escape sequences (e.g. `{\n  "id": ...}`),
+      // convert them into real whitespace before parsing.
+      const unescapedNewlines = cleaned
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      const parsedUnescaped = tryParseMindMap(unescapedNewlines);
+      if (parsedUnescaped) return parsedUnescaped;
+
+      // Remove trailing commas before } or ] (common in model output).
+      const withoutTrailingCommas = cleaned.replace(/,\s*([}\]])/g, "$1");
+      const parsedNoTrailing = tryParseMindMap(withoutTrailingCommas);
+      if (parsedNoTrailing) return parsedNoTrailing;
+
+      // Best-effort normalization for single-quoted pseudo-JSON keys/strings.
+      // This is intentionally conservative: only attempt if it "looks" single-quoted.
+      if (cleaned.includes("'{") || cleaned.includes("'}") || /'\s*:\s*'/.test(cleaned) || cleaned.includes("'id'")) {
+        const normalizedSingleQuotes = cleaned
+          // quote unquoted keys: { id: "x" } -> { "id": "x" }
+          .replace(/([{,]\s*)([A-Za-z0-9_]+)\s*:/g, '$1"$2":')
+          // convert 'string' to "string"
+          .replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_m, inner) => `"${String(inner).replace(/"/g, '\\"')}"`);
+
+        const parsedNormalized = tryParseMindMap(normalizedSingleQuotes);
+        if (parsedNormalized) return parsedNormalized;
       }
+
+      // If the block is a quoted JSON string, parse once to get inner JSON, then parse again.
+      if (
+        (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))
+      ) {
+        const normalizedQuotes =
+          cleaned.startsWith("'") && cleaned.endsWith("'")
+            ? `"${cleaned.slice(1, -1).replace(/"/g, '\\"')}"`
+            : cleaned;
+        const inner = tryParse(normalizedQuotes);
+        if (typeof inner === "string") {
+          const parsedInner = tryParseMindMap(inner.trim().replace(/,\s*([}\]])/g, "$1"));
+          if (parsedInner) return parsedInner;
+        }
+      }
+
+      const parsed = JSON.parse(cleaned);
+      if (isMindMapShape(parsed)) return parsed as MindMapItem;
     } catch (e) {
       console.error("Failed to parse mind-map JSON:", e, jsonStr);
     }
