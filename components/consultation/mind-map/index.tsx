@@ -62,7 +62,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [playingAudio, setPlayingAudio] = useState<any>(null);
   // Holds enriched data from 3D click (description, media) since 3D is outside React Flow
   const [selected3DNodeData, setSelected3DNodeData] = useState<any>(null);
 
@@ -418,26 +417,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   // STRATEGIC SAFETY: Define 'isAttachment' for the sidebar portal
   const isAttachment = selectedNodeId?.includes('attachment-') || selectedNodeId?.includes('vault-') || !!selectedNodeData?.isAttachment;
 
-  // Check if selected node has audio media
-  const hasAudioMedia = selectedNodeData?.media && selectedNodeData.media.some((m: any) => m.type === 'audio');
-
-  // Auto-open audio player when node with audio is selected
-  useEffect(() => {
-    if (selectedNodeData?.media && selectedNodeData.media.length > 0) {
-      const audioItem = selectedNodeData.media.find((m: any) => m.type === 'audio');
-      if (audioItem) {
-        setPlayingAudio(audioItem);
-      }
-    }
-  }, [selectedNodeData]);
-
-  // Ensure clicking away closes audio modal as well
-  useEffect(() => {
-    if (!selectedNodeId) {
-      setPlayingAudio(null);
-    }
-  }, [selectedNodeId]);
-
   const undo = () => {
     if (history.length === 0) return;
     const previousState = history[history.length - 1];
@@ -480,7 +459,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               onBackgroundClick={() => {
                 setSelectedNodeId(null);
                 setSelected3DNodeData(null);
-                setPlayingAudio(null);
               }}
             />
           </div>
@@ -499,7 +477,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             }}
             onPaneClick={() => {
               setSelectedNodeId(null);
-              setPlayingAudio(null);
               fitView({ padding: 0.05, duration: 800 });
             }}
             nodeTypes={nodeTypes}
@@ -697,7 +674,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
       {containerRef.current && ReactDOM.createPortal(
         <AnimatePresence mode="wait">
-          {selectedNodeId && selectedNodeData && !hasAudioMedia && (
+          {selectedNodeId && selectedNodeData && (
             <motion.div
               key={selectedNodeId}
               initial={{ opacity: 0, scale: 0.98, x: 20 }}
@@ -706,7 +683,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className={`absolute ${
                 isAttachment
-                  ? 'top-20 bottom-20 right-10 w-[28vw] max-w-[360px]'
+                  ? 'top-10 bottom-10 right-10 w-[55vw] max-w-[720px]'
                   : 'top-28 right-10 w-[320px]'
               } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
             >
@@ -717,8 +694,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               />
 
               <div className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
-                <div className="flex items-start justify-between mb-4 gap-3 min-w-0">
-                  <h3 className="text-xl font-bold text-white leading-tight truncate">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white leading-tight pr-4">
                     {selectedNodeData.label}
                   </h3>
                   <button
@@ -824,7 +801,28 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                               })()}
                             </div>
                           );
-                          if (item.type === 'audio') return null;
+                          if (item.type === 'audio') return (
+                            <div key={idx} className="bg-[#050505]/60 p-3 rounded-xl border border-white/10 flex flex-col gap-2">
+                              <span className="text-[10px] font-bold text-white/40 truncate">{item.name}</span>
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) {
+                                  return (
+                                    <div className="w-full h-[32px] rounded-md bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-[10px] text-white/50">
+                                      Preview Not Available
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <audio controls className="w-full h-8">
+                                    <source src={url} />
+                                  </audio>
+                                );
+                              })()}
+                            </div>
+                          );
                           if (item.type === 'file') {
                             const isWordDoc = /\.(doc|docx)$/i.test(item.name);
                             const isBlobUrl = typeof item.url === 'string' && item.url.startsWith('blob:');
@@ -907,70 +905,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     </div>
                   )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-          {/* Audio Player Bottom Modal */}
-          {playingAudio && (
-            <motion.div
-              key="audio-player"
-              initial={{ opacity: 0, scale: 0.98, x: 20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.98, x: 20 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[85vw] max-w-[760px] z-[99998] bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/95 to-[#0A0A0A]/80 backdrop-blur-xl border-t border-[#00E5FF]/20 px-6 py-6 shadow-2xl rounded-t-2xl"
-              onClick={(e) => {
-                // Close modal when clicking on the background (not on the content)
-                if (e.target === e.currentTarget) {
-                  setPlayingAudio(null);
-                }
-              }}
-            >
-              <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="text-3xl">🎵</div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-bold truncate">{playingAudio.name}</h4>
-                      <p className="text-white/40 text-sm">Now Playing</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setPlayingAudio(null)}
-                    className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                
-                {(() => {
-                  const url = playingAudio.url;
-                  const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
-                  const isMissingUrl = !url || url === '#' || isBlobUrl;
-                  
-                  if (isMissingUrl) {
-                    return (
-                      <div className="w-full py-8 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center">
-                        <span className="text-2xl mb-2 grayscale opacity-50">🔇</span>
-                        <span className="text-white/60 text-sm font-semibold">Preview Not Available</span>
-                        <span className="text-white/40 text-xs mt-1">This audio file was uploaded offline or its URL has expired.</span>
-                      </div>
-                    );
-                  }
-                  
-                  return (
-                    <audio
-                      autoPlay
-                      controls
-                      className="w-full accent-[#00E5FF]"
-                      style={{
-                        filter: 'brightness(1.1)',
-                      }}
-                    >
-                      <source src={url} />
-                    </audio>
-                  );
-                })()}
               </div>
             </motion.div>
           )}
