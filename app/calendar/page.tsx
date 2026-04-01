@@ -207,10 +207,17 @@ export default function CalendarPage() {
     setCreateError(null);
 
     try {
-      // Build start/end (default 1-hour duration)
-      const start = new Date(form.dateTime);
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
-      const toISO = (d: Date) => d.toISOString().slice(0, 19); // strip ms + Z
+      // form.dateTime is in "YYYY-MM-DDTHH:MM" format from datetime-local input.
+      // We must NOT convert through .toISOString() because that shifts to UTC
+      // (which would be 8 hours off for Asia/Manila). Pass the local string directly.
+      const startStr = form.dateTime.length === 16 ? form.dateTime + ':00' : form.dateTime; // ensure seconds
+      // Compute end time by adding 1 hour (3600s) to a parsed Date, then format back as local
+      const startMs = new Date(form.dateTime).getTime();
+      const endDate = new Date(startMs + 60 * 60 * 1000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const toLocalISO = (d: Date) =>
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      const endStr = toLocalISO(endDate);
 
       const description = [
         form.type ? `Type: ${form.type}` : null,
@@ -222,8 +229,8 @@ export default function CalendarPage() {
         // Create in Google Calendar
         const result = await createCalendarEvent(userId, {
           title: form.title,
-          start_datetime: toISO(start),
-          end_datetime: toISO(end),
+          start_datetime: startStr,
+          end_datetime: endStr,
           description,
         });
 
@@ -643,8 +650,8 @@ export default function CalendarPage() {
 
                 <button onClick={handleCreate} disabled={!form.title || !form.dateTime || submitting}
                   className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${submitted ? 'bg-emerald-600 text-white'
-                      : (!form.title || !form.dateTime) ? 'bg-[#10B981]/20 text-gray-500 cursor-not-allowed'
-                        : 'bg-[#10B981] text-black hover:bg-white'
+                    : (!form.title || !form.dateTime) ? 'bg-[#10B981]/20 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#10B981] text-black hover:bg-white'
                     }`}
                 >
                   {submitted ? '✓ Event Created!' : submitting ? <><Loader2 size={15} className="animate-spin" /> Scheduling…</> : <><Calendar size={15} /> Confirm & Schedule</>}
