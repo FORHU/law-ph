@@ -135,7 +135,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       const zWave = Math.sin(midAngle * 3) * (radius * 0.85);
       const z = isRoot ? 0 : zWave + (depth % 2 === 0 ? 40 : -40);
 
-      const themeColor = '#00E5FF';
+      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
 
       nodes.push({
         id: nodeId,
@@ -144,7 +144,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         media: getMedia(item),
         isRoot,
         fx: x, fy: y, fz: z,
-        color: isRoot ? '#8B4564' : themeColor
+        color: isRoot ? '#8B4564' : colors[depth % colors.length]
       });
 
       const children = item.children || [];
@@ -182,21 +182,15 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
   const nodeThreeObject = useCallback((node: any) => {
     const group = new THREE.Group();
 
-    // High-impact neon sphere
-    const geometry = new THREE.SphereGeometry(node.isRoot ? 10 : 6, 32, 32);
-    const sphere = new THREE.Mesh(
-      geometry,
-      new THREE.MeshStandardMaterial({
-        color: '#00E5FF',
-        emissive: '#00E5FF',
-        emissiveIntensity: 3.5,
-        metalness: 0.9,
-        roughness: 0.1,
-        transparent: true,
-        opacity: 0.9
-      })
-    );
-    group.add(sphere);
+    // Helper to convert hex color to RGB
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 255, g: 255, b: 255 };
+    };
 
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -206,18 +200,20 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       context.font = `bold ${fontSize}px Inter, -apple-system, sans-serif`;
       const textWidth = context.measureText(text).width;
 
-      canvas.width = textWidth + 80;
-      canvas.height = fontSize + 40;
+      canvas.width = textWidth + 100;
+      canvas.height = fontSize + 50;
 
-      // Pill Background
-      context.fillStyle = 'rgba(10, 10, 10, 0.85)';
-      context.beginPath();
-      context.roundRect?.(0, 0, canvas.width, canvas.height, 12);
-      context.fill();
+      // Get RGB values from node color
+      const rgb = hexToRgb(node.color);
+      
+      // Semi-transparent colored background (20% opacity like Tailwind's /20)
+      context.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-      context.strokeStyle = node.isRoot ? '#8B4564' : 'rgba(255,255,255,0.3)';
-      context.lineWidth = 4;
-      context.stroke();
+      // Colored border matching node color (50% opacity)
+      context.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
+      context.lineWidth = 3;
+      context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
 
       context.fillStyle = '#ffffff';
       context.textAlign = 'center';
@@ -232,7 +228,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       const aspectRatio = canvas.width / canvas.height;
       // Slightly reduced physical 3D dimension so zoomToFit can push the camera closer
       sprite.scale.set(node.isRoot ? 34 * aspectRatio : 24 * aspectRatio, node.isRoot ? 34 : 24, 1);
-      sprite.position.y = 12;
+      sprite.position.y = node.isRoot ? 5 : 3;
       group.add(sprite);
     }
 
@@ -274,8 +270,8 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         backgroundColor="rgba(0,0,0,0)"
         nodeAutoColorBy="id"
         nodeThreeObject={nodeThreeObject}
-        linkWidth={3.0}
-        linkColor={() => '#00E5FF'}
+        linkWidth={1.8}
+        linkColor={() => '#3a3a3a'}
         linkDirectionalParticles={0}
         onNodeClick={handleNodeClick}
         onBackgroundClick={() => {

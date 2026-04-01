@@ -474,7 +474,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   label: node.label,
                   description: node.description,
                   media: node.media,
-                  color: '#00E5FF'
+                  color: node.color
                 });
               }}
               onBackgroundClick={() => {
@@ -713,7 +713,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               {/* Elegant Header Accent */}
               <div
                 className="h-1 w-full opacity-60"
-                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }}
+                style={{ 
+                  background: selectedNodeData.color?.startsWith('#') 
+                    ? selectedNodeData.color 
+                    : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')
+                }}
               />
 
               <div className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}>

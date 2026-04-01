@@ -43,7 +43,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   }
 
   // Determine final file URL: prefer backend analysis URL, fallback to signed URL metadata
-  const defaultFileUrl = urlData.file_url || `https://law-ph.s3.amazonaws.com/${urlData.s3_key}`;
+  const defaultFileUrl = urlData.file_url || urlData.url || `https://law-ph.s3.amazonaws.com/${urlData.s3_key}`;
 
   // Step 3: Trigger backend analysis through proxy
   if (analyze) {
