@@ -35,19 +35,19 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
   const handleMenuClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Reset confirmation state when opening/closing menu
     setIsConfirmingDelete(false);
 
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      setMenuPosition({ 
-        top: rect.top, 
-        left: rect.right + 8 
+      setMenuPosition({
+        top: rect.top,
+        left: rect.right + 8
       });
       onToggle?.();
     }
-    
+
     // Force blur to remove sticky focus/active styles
     if (buttonRef.current) {
       buttonRef.current.blur();
@@ -85,14 +85,13 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
   }, [isOpen, onToggle]);
 
   return (
-    <div 
-      className={`${SIDEBAR_STYLES.recentItem.base} ${
-        editingId === item.id 
-          ? SIDEBAR_STYLES.recentItem.editing 
+    <div
+      className={`${SIDEBAR_STYLES.recentItem.base} ${editingId === item.id
+          ? SIDEBAR_STYLES.recentItem.editing
           : isActive
-          ? SIDEBAR_STYLES.recentItem.active
-          : SIDEBAR_STYLES.recentItem.hover
-      }`}
+            ? SIDEBAR_STYLES.recentItem.active
+            : SIDEBAR_STYLES.recentItem.hover
+        }`}
       onClick={() => {
         if (editingId !== item.id) {
           item.onClick();
@@ -146,11 +145,11 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.9, x: -10 }}
                   transition={{ duration: 0.1, ease: "easeOut" }}
-                  style={{ 
-                    position: 'fixed', 
-                    top: menuPosition.top, 
+                  style={{
+                    position: 'fixed',
+                    top: menuPosition.top,
                     left: menuPosition.left,
-                    zIndex: 9999 
+                    zIndex: 9999
                   }}
                   className={`${isConfirmingDelete ? 'w-40' : 'w-32'} bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl shadow-2xl p-1.5 portal-menu`}
                   onClick={e => e.stopPropagation()}

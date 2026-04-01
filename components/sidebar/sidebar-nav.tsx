@@ -18,14 +18,13 @@ export function SidebarNav({ activePage }: SidebarNavProps) {
       {showChatTab && NAV_ITEMS.filter(item => item.id === 'chat').map((item) => {
         const Icon = item.icon;
         const isActive = activePage === item.id;
-        
+
         return (
-          <button 
+          <button
             key={item.id}
             onClick={() => router.push(item.href)}
-            className={`w-full px-4 py-3 rounded-xl transition-all flex items-center gap-3 ${
-              isActive ? SIDEBAR_STYLES.activeItem : SIDEBAR_STYLES.inactiveItem
-            }`}
+            className={`w-full px-4 py-3 rounded-xl transition-all flex items-center gap-3 ${isActive ? SIDEBAR_STYLES.activeItem : SIDEBAR_STYLES.inactiveItem
+              }`}
           >
             <Icon size={18} />
             <span className="text-sm font-medium">{item.label}</span>

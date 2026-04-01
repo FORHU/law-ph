@@ -23,22 +23,22 @@ export interface Message {
   hidden?: boolean;
   mindMap?: any;
   status?: 'pending' | 'processing' | 'done' | 'error';
-    fileAttachment?: {
-      name: string;
-      url?: string;
-      type: string;
-      size?: number;
-      s3_key?: string;
-      ai_summary?: string;
-    };
-    fileAttachments?: {
-      name: string;
-      url?: string;
-      type: string;
-      size?: number;
-      s3_key?: string;
-      ai_summary?: string;
-    }[];
+  fileAttachment?: {
+    name: string;
+    url?: string;
+    type: string;
+    size?: number;
+    s3_key?: string;
+    ai_summary?: string;
+  };
+  fileAttachments?: {
+    name: string;
+    url?: string;
+    type: string;
+    size?: number;
+    s3_key?: string;
+    ai_summary?: string;
+  }[];
 }
 
 export type ConversationContextType = {
@@ -49,7 +49,7 @@ export type ConversationContextType = {
   // Supabase/Cloud state
   conversations: Conversation[];
   refreshConversations: () => Promise<void>;
-  
+
   // Local/Consultation state (hoisted from useConsultation)
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -57,7 +57,7 @@ export type ConversationContextType = {
   recentConsultations: ConsultationSession[];
   currentConsultationId: string | number | null;
   chatSessionId: string;
-  
+
   // Handlers
   handleSendMessage: (
     text: string,
@@ -75,7 +75,7 @@ export type ConversationContextType = {
   handleDeleteMessage: (messageId: string | number) => Promise<void>;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
-  
+
   // Detail sidebar state
   isDetailSidebarOpen: boolean;
   selectedSource: LegalSource | null;
