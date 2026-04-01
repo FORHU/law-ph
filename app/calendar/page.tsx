@@ -333,6 +333,28 @@ export default function CalendarPage() {
           }
         }
 
+        // Send confirmation email via Resend
+        if (form.clientEmail) {
+          try {
+            await fetch('/api/resend', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: form.clientEmail,
+                type: 'schedule',
+                eventDetails: {
+                  eventType: form.type,
+                  dateTime: form.dateTime,
+                  notes: form.notes,
+                },
+              }),
+            });
+          } catch (emailErr) {
+            console.error('Failed to send confirmation email:', emailErr);
+            // We don't block the UI for email failures, just log it
+          }
+        }
+
         // Always save to Supabase for persistence
         const { data, error } = await supabase
           .from('events')

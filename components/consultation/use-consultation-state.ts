@@ -1,6 +1,7 @@
 import { useState, useRef, RefObject } from "react";
 import { Message } from "@/components/conversation-provider/conversation-context";
 import { CaseData } from "@/types";
+import { createCalendarEvent } from "@/lib/calendar-api";
 
 interface UseConsultationStateProps {
   messages: Message[];
@@ -8,6 +9,7 @@ interface UseConsultationStateProps {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   supabase?: any;
   userId?: string;
+  isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
 }
@@ -18,6 +20,7 @@ export function useConsultationState({
   scrollContainerRef,
   supabase,
   userId,
+  isGoogleConnected,
   handleSendMessage,
   onTabChange,
 }: UseConsultationStateProps) {
@@ -122,7 +125,29 @@ export function useConsultationState({
     });
 
     try {
-      // 1. Send Notification Email
+      // 1. Create Google Calendar Event (if connected)
+      let googleLink = "";
+      if (isGoogleConnected && userId) {
+        try {
+          const start = new Date(scheduleDateTime);
+          const end = new Date(start.getTime() + 60 * 60 * 1000);
+          const toISO = (d: Date) => d.toISOString().slice(0, 19);
+
+          const result = await createCalendarEvent(userId, {
+            title: `${scheduleType}: Consultation`,
+            start_datetime: toISO(start),
+            end_datetime: toISO(end),
+            description: scheduleNotes,
+          });
+          if (result.success && result.link) {
+            googleLink = result.link;
+          }
+        } catch (calendarErr) {
+          console.error("Failed to sync with Google Calendar:", calendarErr);
+        }
+      }
+
+      // 2. Send Notification Email via Resend
       const response = await fetch("/api/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,6 +190,7 @@ export function useConsultationState({
           `• Time: ${timeStr}`,
           scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
           scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
+          googleLink ? `• Google Calendar Link: ${googleLink}` : null,
           ``,
           `The automation has sent the invitation email and added it to the internal records. Please acknowledge this in our chat.`,
         ]

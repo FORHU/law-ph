@@ -42,6 +42,7 @@ import { Timeline } from "@/components/ui/timeline";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
+import { checkAuthStatus } from "@/lib/calendar-api";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -169,6 +170,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     text: string;
   } | null>(null);
 
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      checkAuthStatus(session.user.id)
+        .then((status) => setIsGoogleConnected(status.authenticated))
+        .catch(() => setIsGoogleConnected(false));
+    }
+  }, [session?.user?.id]);
+
   console.log(
     "[Consultation] Render. Messages:",
     messages.length,
@@ -186,6 +197,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     scrollContainerRef,
     supabase,
     userId: session?.user?.id,
+    isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),
   });
