@@ -14,23 +14,68 @@ export async function POST(req: Request) {
 
     let emailContent = body;
     let emailSubject = subject;
+    let attachments: any[] = [];
 
     if (type === 'schedule' && eventDetails) {
       emailSubject = `Event Scheduled: ${eventDetails.eventType}`;
+
+      const startDate = new Date(eventDetails.dateTime);
+      // Assume a 1 hour default duration
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+      const formatGoogleDate = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
+      const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventDetails.eventType)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(eventDetails.notes || '')}`;
+
+      // Create an ICS file string with more robust fields
+      const uid = `${Date.now()}-${Math.random().toString(36).substring(2)}@ilovelawyer.com`;
+      const icsString = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'CALSCALE:GREGORIAN',
+        'PRODID:-//ilovelawyer//EN',
+        'METHOD:REQUEST',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${formatGoogleDate(new Date())}Z`,
+        `DTSTART:${formatGoogleDate(startDate)}Z`,
+        `DTEND:${formatGoogleDate(endDate)}Z`,
+        `SUMMARY:${eventDetails.eventType}`,
+        `DESCRIPTION:${(eventDetails.notes || '').replace(/\n/g, '\\n')}`,
+        'ORGANIZER;CN=ilovelawyer:mailto:updates@ilovelawyer.com',
+        'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=' + to + ':mailto:' + to,
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+
+      attachments = [{
+        filename: 'invite.ics',
+        content: Buffer.from(icsString),
+        contentType: 'text/calendar; method=REQUEST'
+      }];
+
       emailContent = `
-        <h2>Event Confirmation</h2>
-        <p>A new event has been scheduled with the following details:</p>
-        <ul>
-          <li><strong>Event Type:</strong> ${eventDetails.eventType}</li>
-          <li><strong>Date & Time:</strong> ${eventDetails.dateTime}</li>
-          <li><strong>Notes:</strong> ${eventDetails.notes || 'None'}</li>
-        </ul>
-        <p>Thank you for using our legal consultation service.</p>
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #8B4564;">Event Confirmation</h2>
+          <p>A new event has been scheduled with the following details:</p>
+          <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 5px 0;"><strong>Event Type:</strong> ${eventDetails.eventType}</p>
+            <p style="margin: 5px 0;"><strong>Date & Time:</strong> ${new Date(eventDetails.dateTime).toLocaleString()}</p>
+            <p style="margin: 5px 0;"><strong>Notes:</strong> ${eventDetails.notes || 'None'}</p>
+          </div>
+          <div style="margin-top: 24px; margin-bottom: 24px;">
+            <a href="${googleCalendarUrl}" target="_blank" style="display: inline-block; background-color: #10B981; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px;">
+              📅 Add to Google Calendar
+            </a>
+          </div>
+          <p style="color: #666; font-size: 12px;">You can also accept the invitation using the attached calendar file.</p>
+        </div>
       `;
     }
 
     const cleanTo = to.replace(/\s+/g, '.').toLowerCase(); // Fix accidental spaces like "s ubaguio edu" to "s.ubaguio.edu"
-    
+
     // Simple robust Markdown to Email HTML
     const markdownToHtml = (md: string) => {
       let html = md
@@ -68,6 +113,7 @@ export async function POST(req: Request) {
       to: [cleanTo],
       subject: emailSubject || 'Update from Legal Consultation',
       html: formattedContent,
+      ...(attachments.length > 0 && { attachments }),
     });
 
     if (error) {

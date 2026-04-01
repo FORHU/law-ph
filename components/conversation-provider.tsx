@@ -503,7 +503,9 @@ export function ConversationProvider({
     setMessages((prev) => (prev.length > 0 ? [] : prev));
     setCurrentConsultationId((prev) => (prev !== null ? null : prev));
     setIsLoading((prev) => (prev ? false : prev));
-    loadedHistoryIdRef.current = null;
+    // Do NOT clear loadedHistoryIdRef.current here. 
+    // Keeping it allows fetchCloudMessages to detect we intentionally cleared this session
+    // and skip re-fetching it while the URL is still transitioning.
   }, [abortMessage]);
 
 
@@ -569,7 +571,7 @@ export function ConversationProvider({
       }
 
       if (!userId || !loggedIn || !loaded) return;
-      
+
       // Prevent race condition: if we intentionally cleared the consultation ID but the URL hasn't updated yet,
       // don't immediately re-fetch the old one.
       if (!currentConsultationId && syncedConversationId && loadedHistoryIdRef.current === syncedConversationId && messages.length === 0) {
@@ -583,12 +585,12 @@ export function ConversationProvider({
       const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);
       const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
       const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
-      
+
       // If we're on a case route, we might not have `cases` loaded from Supabase yet.
       // Easiest is to just allow the fetch to proceed and fail gracefully if not found,
       // or at least not clear the screen if cases are empty but we specifically routed to a case.
       const isCaseRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
-      
+
       if (!existsInConversations && !existsInCases && !matchesCurrent && !isCaseRoute) {
         if (
           !isLoading &&
@@ -609,7 +611,7 @@ export function ConversationProvider({
 
       if (!error && data) {
         const cloudMessages = data.map(mapCloudMessage);
-        
+
         setMessages(prev => {
           // If we have local messages for the SAME conversation, merge them to avoid wiping live updates (like streaming AI)
           if (prev.length > 0 && currentConsultationId?.toString() === syncedConversationId) {
@@ -619,13 +621,13 @@ export function ConversationProvider({
             // Keep local messages that aren't yet in the cloud (by ID or Content match)
             const localOnlyMessages = prev.filter(m => {
               if (cloudIds.has(m.id.toString())) return false;
-              if (m.text.trim() && cloudContents.has(m.text.trim())) return false; 
-              return true; 
+              if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
+              return true;
             });
 
             return [...cloudMessages, ...localOnlyMessages];
           }
-          
+
           // If loading a fundamentally different conversation or starting fresh
           return cloudMessages;
         });
@@ -903,8 +905,8 @@ Please help me understand this document or answer questions based on it.`;
           const data = await uploadAndAnalyzeDocument(
             file,
             process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL ||
-              process.env.NEXT_PUBLIC_API_URL ||
-              "http://localhost:8001",
+            process.env.NEXT_PUBLIC_API_URL ||
+            "http://localhost:8001",
             false, // Skip analysis
           );
 
@@ -966,10 +968,10 @@ Please help me understand this document or answer questions based on it.`;
           prev.map((m) =>
             m.id === tempId
               ? {
-                  ...m,
-                  text: `Error during upload: ${err.message}`,
-                  status: "error",
-                }
+                ...m,
+                text: `Error during upload: ${err.message}`,
+                status: "error",
+              }
               : m,
           ),
         );
