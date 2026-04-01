@@ -19,7 +19,7 @@ import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText, Box, Monitor } from 'lucide-react';
 import { MindMapProps } from './types';
-import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
+import { MIND_MAP_COLORS, MIND_MAP_HEX_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
 import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
@@ -28,7 +28,7 @@ const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), 
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">
-      Initialising 3D Reality...
+      Initializing 3D Reality...
     </div>
   ),
 }) as React.ForwardRefExoticComponent<MindMap3DProps & React.RefAttributes<MindMap3DHandle>>;
@@ -37,19 +37,29 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-const getInitialNodes = (theme: MindMapThemeType): Node[] => [
-  {
-    id: 'root',
-    type: 'custom',
-    data: {
-      label: 'Case Analysis',
-      isRoot: true,
-      theme,
-      color: MIND_MAP_THEMES[theme].rootClass
+const getInitialNodes = (theme: MindMapThemeType): Node[] => {
+  const config = MIND_MAP_THEMES[theme];
+  let hexColor = '#E0A7C2';
+  const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
+  if (match) hexColor = '#' + match[1];
+  else if (config.rootClass.includes('bg-black')) hexColor = '#00F2FF';
+  else if (config.rootClass.includes('bg-[#FF6B6B]')) hexColor = '#FF6B6B';
+
+  return [
+    {
+      id: 'root',
+      type: 'custom',
+      data: {
+        label: 'Case Analysis',
+        isRoot: true,
+        color: hexColor,
+        className: config.rootClass,
+        theme,
+      },
+      position: { x: 0, y: 0 },
     },
-    position: { x: 0, y: 0 },
-  },
-];
+  ];
+};
 
 function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premium' }: MindMapProps) {
   const [theme, setTheme] = useState<MindMapThemeType>(initialTheme);
@@ -100,20 +110,19 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const treeToGraph = useCallback((root: any, currentTheme: MindMapThemeType, currentLayout: 'horizontal' | 'vertical' | 'compact' | 'radial' | 'dual') => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let colorIndex = 0;
     const config = MIND_MAP_THEMES[currentTheme];
 
     const subtreeSizes = new Map<any, number>();
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 450 : 280;
+        return currentLayout === 'vertical' ? 350 : 200;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 450 : 280);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 60, currentLayout === 'vertical' ? 350 : 200);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -123,7 +132,29 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const traverse = (item: any, parentId: string | null = null, x = 0, y = 0, angleRange: [number, number] = [0, 360], depth = 0, side: 'left' | 'right' | 'top' | 'bottom' = 'right') => {
       const id = item.id || `node-${Math.random().toString(36).substr(2, 9)}`;
       const isRoot = id === 'root' || !parentId;
-      const color = isRoot ? config.rootClass : config.nodeClass(colorIndex++);
+
+      let hexColor = '#E0A7C2';
+      if (isRoot) {
+        const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
+        if (match) hexColor = '#' + match[1];
+        else if (config.rootClass.includes('bg-black')) hexColor = '#00F2FF'; // neon root
+        else if (config.rootClass.includes('bg-[#FF6B6B]')) hexColor = '#FF6B6B'; // vibrant root
+      } else {
+        const index = Math.max(0, depth - 1);
+        if (currentTheme === 'premium') {
+          hexColor = MIND_MAP_HEX_COLORS[index % MIND_MAP_HEX_COLORS.length];
+        } else if (currentTheme === 'classic') {
+          hexColor = '#2C3E50';
+        } else if (currentTheme === 'neon') {
+          const colors = ['#FF00E5', '#7000FF', '#00FF66'];
+          hexColor = colors[index % colors.length];
+        } else if (currentTheme === 'vibrant') {
+          const colors = ['#4D96FF', '#6BCB77', '#FFD93D', '#9772FB'];
+          hexColor = colors[index % colors.length];
+        }
+      }
+
+      const className = isRoot ? config.rootClass : config.nodeClass(Math.max(0, depth - 1));
 
       let label = item.label || item.text || 'Untitled';
       let description = item.description || item.details || item.summary || '';
@@ -140,7 +171,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           description,
           media: item.media, // Pass media data forward for 2D/3D
           isRoot,
-          color,
+          color: hexColor,
+          className,
           theme: currentTheme,
           layout: currentLayout,
           side // Pass the calculated side to the node
@@ -153,14 +185,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         const isFromRoot = parentId === 'root' && (currentLayout === 'dual' || currentLayout === 'radial');
         const sourceHandleId = isFromRoot ? side : undefined;
 
+        const edgeDepth = depth; // child depth relative to root
+        const edgeColor = edgeDepth > 0 ? MIND_MAP_HEX_COLORS[(edgeDepth - 1) % MIND_MAP_HEX_COLORS.length] : config.edgeColor;
+
         edges.push({
           id: `e${parentId}-${id}`,
           source: parentId,
           target: id,
           sourceHandle: sourceHandleId,
           animated: true,
-          style: { stroke: config.edgeColor, strokeWidth: 2.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: config.edgeColor }
+          style: { stroke: edgeColor, strokeWidth: 2.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor }
         });
       }
 
@@ -169,10 +204,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         if (currentLayout === 'radial') {
           // Calculate a dynamic global radius from the center (0,0) instead of the parent
           // This creates beautiful concentric circles and prevents messy overlapping
-          let depthRadius = 500;
-          if (depth === 0) depthRadius = 500;
-          else if (depth === 1) depthRadius = 1100;
-          else depthRadius = 1100 + (depth - 1) * 500;
+          let depthRadius = 600;
+          if (depth === 0) depthRadius = 600;
+          else if (depth === 1) depthRadius = 1200;
+          else depthRadius = 1200 + (depth - 1) * 600;
 
           const [startAngle, endAngle] = angleRange;
           const totalAngle = endAngle - startAngle;
@@ -203,21 +238,21 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           const leftChildren = children.slice(0, midway);
           const rightChildren = children.slice(midway);
 
-          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 80;
-          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 80;
+          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 60;
+          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 60;
 
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 280;
             traverse(child, id, x - 550, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
-            leftOffset += childSize + 40;
+            leftOffset += childSize + 60;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 280;
             traverse(child, id, x + 550, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
-            rightOffset += childSize + 40;
+            rightOffset += childSize + 60;
           });
         } else {
           const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 450 : 280);
@@ -228,16 +263,16 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
-              traverse(child, id, x + posOffset, y + 350);
+              traverse(child, id, x + posOffset, y + 400, [0,0], depth + 1);
             } else if (currentLayout === 'dual') {
               traverse(child, id, x + (side === 'left' ? -550 : 550), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 450, y + posOffset);
+              traverse(child, id, x + 500, y + posOffset, [0,0], depth + 1);
             } else {
-              traverse(child, id, x + 550, y + posOffset);
+              traverse(child, id, x + 550, y + posOffset, [0,0], depth + 1);
             }
 
-            offset += childSize + 40;
+            offset += childSize + 60;
           });
         }
       }
@@ -379,12 +414,26 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     if (!parentNode) return;
     const id = Date.now().toString();
     const childIndex = edges.filter(e => e.source === parentId).length;
-    const color = themeConfig.nodeClass(childIndex);
+
+    let hexColor = '#E0A7C2';
+    if (theme === 'premium') {
+      hexColor = MIND_MAP_HEX_COLORS[childIndex % MIND_MAP_HEX_COLORS.length];
+    } else if (theme === 'classic') {
+      hexColor = '#2C3E50';
+    } else if (theme === 'neon') {
+      const colors = ['#FF00E5', '#7000FF', '#00FF66'];
+      hexColor = colors[childIndex % colors.length];
+    } else if (theme === 'vibrant') {
+      const colors = ['#4D96FF', '#6BCB77', '#FFD93D', '#9772FB'];
+      hexColor = colors[childIndex % colors.length];
+    }
+
+    const className = themeConfig.nodeClass(childIndex);
     const newNode: Node = {
       id,
       type: 'custom',
-      data: { id, label: 'New Node', color, theme, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode },
-      position: { x: parentNode.position.x + 350, y: parentNode.position.y + (childIndex - 1) * 120 },
+      data: { id, label: 'New Node', color: hexColor, className, theme, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode },
+      position: { x: parentNode.position.x + 500, y: parentNode.position.y + (childIndex - 1) * 150 },
     };
     const newEdge: Edge = {
       id: `e${parentId}-${id}`, source: parentId, target: id, animated: true,
@@ -411,9 +460,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
   // In 3D mode, use the data stored from the 3D click; in 2D use React Flow
   const selectedNodeData = useMemo(() => {
-    if (is3D && selected3DNodeData) return selected3DNodeData;
+    if (selected3DNodeData) return selected3DNodeData;
     return getNodes().find(n => n.id === selectedNodeId)?.data;
-  }, [selectedNodeId, getNodes, is3D, selected3DNodeData]);
+  }, [selectedNodeId, getNodes, selected3DNodeData]);
 
   // STRATEGIC SAFETY: Define 'isAttachment' for the sidebar portal
   const isAttachment = selectedNodeId?.includes('attachment-') || selectedNodeId?.includes('vault-') || !!selectedNodeData?.isAttachment;
@@ -495,6 +544,12 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             onConnect={onConnect}
             onNodeClick={(_, node) => {
               setSelectedNodeId(node.id);
+              setSelected3DNodeData({
+                label: node.data.label,
+                description: node.data.description,
+                media: node.data.media,
+                color: node.data.color
+              });
               fitView({ nodes: [node], duration: 800, padding: 0.6 });
             }}
             onPaneClick={() => {
@@ -566,22 +621,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     {layout === item.id && <Check size={10} strokeWidth={4} />}
                   </button>
                 ))}
-                <div className="mt-1 pt-1 border-t border-white/5">
-                  <div className="px-4 py-1.5 text-[8px] uppercase font-bold text-white/20">Themes</div>
-                  {(Object.keys(MIND_MAP_THEMES) as MindMapThemeType[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setTheme(key);
-                        setIsThemeOpen(false);
-                      }}
-                      className={`w-full px-4 py-2 flex items-center gap-3 rounded-md hover:bg-white/5 transition-all text-[10px] font-bold ${theme === key ? 'text-[#E0A7C2]' : 'text-gray-500'}`}
-                    >
-                      <div className="w-2 h-2 rounded-full" style={{ background: MIND_MAP_THEMES[key].edgeColor }} />
-                      {MIND_MAP_THEMES[key].name}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           )}
@@ -712,15 +751,21 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             >
               {/* Elegant Header Accent */}
               <div
-                className="h-1 w-full opacity-60"
-                style={{ 
-                  background: selectedNodeData.color?.startsWith('#') 
-                    ? selectedNodeData.color 
+                className="h-1 w-full opacity-90"
+                style={{
+                  background: selectedNodeData.color?.startsWith('#')
+                    ? selectedNodeData.color
                     : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')
                 }}
               />
 
-              <div className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
+              <div
+                className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+                style={{
+                  borderTop: `2px solid ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}`,
+                  boxShadow: `0 18px 45px ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}40`,
+                }}
+              >
                 <div className="flex items-start justify-between mb-4 gap-3 min-w-0">
                   <h3 className="text-xl font-bold text-white leading-tight truncate">
                     {selectedNodeData.label}
@@ -738,7 +783,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   >
                     <X size={18} />
                   </button>
-                </div>
+                      </div>
                 <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
                   {!isAttachment && (() => {
                     const desc = selectedNodeData.description || "N/A";

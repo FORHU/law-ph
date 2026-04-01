@@ -4,6 +4,7 @@ import React, { useRef, useMemo, useEffect, useCallback, forwardRef, useImperati
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
 import { MindMapItem } from './types';
+import { MIND_MAP_HEX_COLORS } from './constants';
 
 export interface MindMap3DProps {
   root: MindMapItem | null;
@@ -135,7 +136,8 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       const zWave = Math.sin(midAngle * 3) * (radius * 0.85);
       const z = isRoot ? 0 : zWave + (depth % 2 === 0 ? 40 : -40);
 
-      const colors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+      const colors = MIND_MAP_HEX_COLORS;
+      const paletteIndex = Math.max(0, depth - 1);
 
       nodes.push({
         id: nodeId,
@@ -144,7 +146,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         media: getMedia(item),
         isRoot,
         fx: x, fy: y, fz: z,
-        color: isRoot ? '#8B4564' : colors[depth % colors.length]
+        color: isRoot ? '#8B4564' : colors[paletteIndex % colors.length]
       });
 
       const children = item.children || [];

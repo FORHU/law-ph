@@ -44,7 +44,7 @@ export const CustomNode = memo(({ data }: any) => {
   const hasImageOrAudio = data.media?.some((m: any) => m.type === 'image' || m.type === 'audio');
 
   return (
-    <div className={`${hasImageOrAudio ? 'px-3 py-2 max-w-[180px] min-w-[140px]' : 'px-8 py-5 min-w-[280px] max-w-[450px]'} ${borderRadius} border-[4px] transition-all duration-300 group relative cursor-pointer hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:border-white/40 hover:scale-[1.05] ${data.color || 'bg-[#1A1A1A] border-[#333]'}`}>
+    <div className={`${hasImageOrAudio ? 'px-3 py-2 max-w-[180px] min-w-[140px]' : 'px-8 py-5 min-w-[280px] max-w-[450px]'} ${borderRadius} border-[4px] transition-all duration-300 group relative cursor-pointer hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:border-white/40 hover:scale-[1.05] ${data.className || 'bg-[#1A1A1A] border-[#333]'}`}>
 
       {/* Target Handle - Root doesn't usually have one, others do */}
       {!data.isRoot && (
