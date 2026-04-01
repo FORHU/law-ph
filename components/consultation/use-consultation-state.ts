@@ -6,8 +6,10 @@ interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
-  supabase: any;
+  supabase?: any;
   userId?: string;
+  handleSendMessage?: (msg: string, ...args: any[]) => void;
+  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
 }
 
 export function useConsultationState({
@@ -16,6 +18,8 @@ export function useConsultationState({
   scrollContainerRef,
   supabase,
   userId,
+  handleSendMessage,
+  onTabChange,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
     "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
@@ -105,10 +109,17 @@ export function useConsultationState({
   >("idle");
 
   const handleScheduleEvent = async () => {
-    if (!scheduleEmail || !scheduleDateTime) return;
-
+    if (!scheduleDateTime || !scheduleType) return;
     setIsScheduling(true);
-    setScheduleStatus("idle");
+
+    // Parse date/time into a readable format for the AI
+    const dt = new Date(scheduleDateTime);
+    const dateStr = dt.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const timeStr = dt.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
 
     try {
       // 1. Send Notification Email
@@ -145,14 +156,34 @@ export function useConsultationState({
           }
         }
 
+        // 3. Generate AI confirmation prompt (from main)
+        const prompt = [
+          `[Legal AI] I have scheduled an event. Here are the details:`,
+          ``,
+          `• Type: ${scheduleType}`,
+          `• Date: ${dateStr}`,
+          `• Time: ${timeStr}`,
+          scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
+          scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
+          ``,
+          `The automation has sent the invitation email and added it to the internal records. Please acknowledge this in our chat.`,
+        ]
+          .filter((line) => line !== null)
+          .join('\n');
+
+        if (handleSendMessage) {
+          handleSendMessage(prompt);
+        }
+
         setScheduleStatus("success");
-        // Clear inputs after a delay so the 'Add to Calendar' link remains valid while the success message is shown
+        // Clear inputs after a delay
         setTimeout(() => {
           setScheduleStatus("idle");
           setScheduleType("Meeting");
           setScheduleDateTime("");
           setScheduleEmail("");
           setScheduleNotes("");
+          if (onTabChange) onTabChange('chat');
         }, 3000);
       } else {
         setScheduleStatus("error");
@@ -164,6 +195,7 @@ export function useConsultationState({
       setIsScheduling(false);
     }
   };
+
 
   // Derived Data: Timeline
   const latestTimelineMessage = [...messages]

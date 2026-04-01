@@ -47,6 +47,8 @@ export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const emailTextareaRef = useRef<HTMLTextAreaElement>(null);
   const scheduleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Stable ref so the schedule form can trigger a tab switch without a circular dep
+  const switchToTabRef = useRef<((tab: any) => void) | null>(null);
   const router = useRouter();
   const params = useParams();
   const activeConversationId = (params?.conversationId || params?.id) as
@@ -179,12 +181,21 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   // Separated Logic
   const { globalTab, setGlobalTab, handleTabChange, emailState, scheduleState, derivedData } = useConsultationState({
-    messages, activeCase, scrollContainerRef, supabase, userId: session?.user?.id
+    messages,
+    activeCase,
+    scrollContainerRef,
+    supabase,
+    userId: session?.user?.id,
+    handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
+    onTabChange: (tab) => switchToTabRef.current?.(tab),
   });
+  // Sync handleTabChange into the stable ref after each render
+  switchToTabRef.current = handleTabChange;
 
   useConsultationEffects({
     messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
   });
+
 
   const { activeTimeline, activeMindMap } = derivedData;
   const {
@@ -729,7 +740,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       ) : (
                         <button
                           className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
-                              'hover:bg-white'
+                                'hover:bg-white'
                             }`}
                           onClick={handleScheduleEvent}
                           disabled={isScheduling}
@@ -753,36 +764,25 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   disabled={isLoading}
                 />
               </div>
-            ) : (
-              <div
-                className={`animate-in fade-in slide-in-from-bottom-4 duration-500 w-full ${globalTab === "mindmap" ? "mt-2" : "mt-4"}`}
-              >
+            ) : globalTab === "mindmap" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mt-2">
                 <MindMap
-                  rootTitle={
-                    activeCase ? activeCase.case_name : "Case Analysis"
-                  }
+                  rootTitle={activeCase ? activeCase.case_name : "Case Analysis"}
                   data={activeMindMap}
                 />
-
                 {!activeMindMap && messages.length > 0 && (
                   <div className="mt-4 flex justify-center">
                     <button
-                      onClick={() =>
-                        handleSendMessage(
-                          "Please generate a visual strategy map for this case.",
-                        )
-                      }
+                      onClick={() => handleSendMessage("Please generate a visual strategy map for this case.")}
                       className="bg-[#8B4564]/20 hover:bg-[#8B4564]/40 border border-[#8B4564]/50 text-[#E0A7C2] px-6 py-3 rounded-xl flex items-center gap-2 transition-all group"
                     >
                       <Layout className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      <span className="font-semibold text-sm">
-                        Generate Strategy Map
-                      </span>
+                      <span className="font-semibold text-sm">Generate Strategy Map</span>
                     </button>
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -855,3 +855,4 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     </PageLayout>
   );
 }
+
