@@ -550,22 +550,29 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                 media: node.data.media,
                 color: node.data.color
               });
-              fitView({ nodes: [node], duration: 800, padding: 0.6 });
+              fitView({ nodes: [node], duration: 1000, padding: 0.6 });
             }}
             onPaneClick={() => {
               setSelectedNodeId(null);
               setPlayingAudio(null);
-              fitView({ padding: 0.05, duration: 800 });
+              fitView({ padding: 0.05, duration: 1000 });
             }}
             nodeTypes={nodeTypes}
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
+            panOnDrag={true}
+            panOnScroll={false}
+            panOnScrollSpeed={0.8}
+            zoomOnScroll={false}
+            zoomOnPinch={false}
+            zoomOnDoubleClick={false}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
             fitView
-            fitViewOptions={{ padding: 0.05 }}
+            fitViewOptions={{ padding: 0.05, duration: 1000 }}
             minZoom={0.05}
-            maxZoom={1}
-            style={{ background: 'transparent' }}
+            maxZoom={1.5}
+            style={{ background: 'transparent', transition: 'all 0.24s ease' }}
             proOptions={{ hideAttribution: true }}
           >
             <Background color={themeConfig.gridColor} gap={24} />
