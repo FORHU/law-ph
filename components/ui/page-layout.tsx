@@ -46,7 +46,7 @@ export function PageLayout({
     <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0">
-        <motion.img 
+        <motion.img
           src={ASSETS.LADY_JUSTICE_IMAGE}
           alt="Lady Justice"
           className="w-full h-full object-cover opacity-30 grayscale"
@@ -58,7 +58,7 @@ export function PageLayout({
       </div>
 
       {showSidebar && (
-        <AppSidebar 
+        <AppSidebar
           activePage={activePage}
           onNewItem={onNewItem}
           newItemLabel={newItemLabel}
@@ -70,7 +70,7 @@ export function PageLayout({
       )}
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden">
-        <ConsultationHeader 
+        <ConsultationHeader
           title={title}
           subtitle={subtitle}
           onMenuClick={() => setIsSidebarOpen(true)}

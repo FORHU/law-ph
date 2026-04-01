@@ -42,6 +42,7 @@ import { Timeline } from "@/components/ui/timeline";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
+import { checkAuthStatus } from "@/lib/calendar-api";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,7 @@ export default function Consultation() {
   const activeConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
-  const { loggedIn } = useAuth();
+  const { loggedIn, supabase, session } = useAuth();
 
   useEffect(() => {
     if (!loggedIn) {
@@ -169,6 +170,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     text: string;
   } | null>(null);
 
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      checkAuthStatus(session.user.id)
+        .then((status) => setIsGoogleConnected(status.authenticated))
+        .catch(() => setIsGoogleConnected(false));
+    }
+  }, [session?.user?.id]);
+
   console.log(
     "[Consultation] Render. Messages:",
     messages.length,
@@ -181,7 +192,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   // Separated Logic
   const { globalTab, setGlobalTab, handleTabChange, emailState, scheduleState, derivedData } = useConsultationState({
-    messages, activeCase, scrollContainerRef,
+    messages,
+    activeCase,
+    scrollContainerRef,
+    supabase,
+    userId: session?.user?.id,
+    isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),
   });
@@ -191,6 +207,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   useConsultationEffects({
     messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
   });
+
 
   let activeTimeline = derivedData.activeTimeline;
   let activeMindMap = derivedData.activeMindMap;
@@ -661,9 +678,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       </div>
                     </div>
 
-                    <button className="flex items-center gap-2 bg-[#2A2A2A]/50 hover:bg-[#2A2A2A] border border-white/5 text-gray-300 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm transition-colors flex-shrink-0 relative group">
-                      <Mail size={16} /> <span className="hidden sm:inline">View Inbox</span>
-                    </button>
                   </div>
                   <div className="space-y-2">
                     <div>
@@ -823,22 +837,36 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </div>
 
                     <div className="pt-4 flex justify-end">
-                      <button
-                        className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${scheduleStatus === 'success' ? '!bg-white !text-[#10B981]' :
-                            scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
-                              'hover:bg-white'
-                          }`}
-                        onClick={handleScheduleEvent}
-                        disabled={isScheduling}
-                      >
-                        {isScheduling ? "Scheduling..." :
-                          scheduleStatus === 'success' ? "✓ Scheduled" :
+                      {scheduleStatus === 'success' ? (
+                        <div className="flex flex-col items-end gap-3 w-full">
+                          <div className="flex items-center gap-2 text-white bg-white/10 px-4 py-2 rounded-xl border border-[#10B981]/30">
+                            <span className="text-[#10B981] font-bold">✓ Scheduled Successfully</span>
+                          </div>
+                          <a
+                            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(scheduleType)}&dates=${new Date(scheduleDateTime).toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '')}/${new Date(new Date(scheduleDateTime).getTime() + 3600000).toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '')}&details=${encodeURIComponent(scheduleNotes)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-[#10B981] hover:text-white transition-colors flex items-center gap-1.5 underline underline-offset-4"
+                          >
+                            <Calendar size={12} /> Add to your Google Calendar
+                          </a>
+                        </div>
+                      ) : (
+                        <button
+                          className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
+                                'hover:bg-white'
+                            }`}
+                          onClick={handleScheduleEvent}
+                          disabled={isScheduling}
+                        >
+                          {isScheduling ? "Scheduling..." :
                             scheduleStatus === 'error' ? "Failed to Schedule" :
                               <>
                                 <Calendar size={16} /> Schedule Event
                               </>
-                        }
-                      </button>
+                          }
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -850,36 +878,25 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   disabled={isLoading}
                 />
               </div>
-            ) : (
-              <div
-                className={`animate-in fade-in slide-in-from-bottom-4 duration-500 w-full ${globalTab === "mindmap" ? "mt-2" : "mt-4"}`}
-              >
+            ) : globalTab === "mindmap" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full mt-2">
                 <MindMap
-                  rootTitle={
-                    activeCase ? activeCase.case_name : "Case Analysis"
-                  }
+                  rootTitle={activeCase ? activeCase.case_name : "Case Analysis"}
                   data={activeMindMap}
                 />
-
                 {!activeMindMap && messages.length > 0 && (
                   <div className="mt-4 flex justify-center">
                     <button
-                      onClick={() =>
-                        handleSendMessage(
-                          "Please generate a visual strategy map for this case.",
-                        )
-                      }
+                      onClick={() => handleSendMessage("Please generate a visual strategy map for this case.")}
                       className="bg-[#8B4564]/20 hover:bg-[#8B4564]/40 border border-[#8B4564]/50 text-[#E0A7C2] px-6 py-3 rounded-xl flex items-center gap-2 transition-all group"
                     >
                       <Layout className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      <span className="font-semibold text-sm">
-                        Generate Strategy Map
-                      </span>
+                      <span className="font-semibold text-sm">Generate Strategy Map</span>
                     </button>
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -952,3 +969,4 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     </PageLayout>
   );
 }
+

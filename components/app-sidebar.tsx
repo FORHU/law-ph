@@ -63,7 +63,7 @@ export function AppSidebar({
     <div className={SIDEBAR_STYLES.container}>
       {/* Logo */}
       <div className="p-6 border-b border-[#8B4564]/20 flex items-center justify-between flex-shrink-0">
-        <button 
+        <button
           onClick={() => router.push('/')}
           className="text-2xl font-semibold hover:opacity-80 transition-opacity"
         >
@@ -71,7 +71,7 @@ export function AppSidebar({
           <span className="text-[#8B4564]">{BRAND.NAME_PART2}</span>
         </button>
         {onClose && (
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-all"
             title="Close Sidebar"
@@ -82,7 +82,7 @@ export function AppSidebar({
       </div>
 
       {/* Unified Scrollable Container for List and Nav */}
-      <div 
+      <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="flex flex-col flex-1 overflow-y-auto scroll-smooth custom-sidebar-scrollbar relative"
@@ -94,7 +94,7 @@ export function AppSidebar({
           {isDocumentsOrCalendar ? (
             <>
               {/* Chat button (moves to top when in Documents/Calendar) */}
-              <button 
+              <button
                 onClick={() => router.push('/consultation')}
                 className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-200 hover:text-white hover:bg-white/5"
               >
@@ -102,21 +102,19 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">Chat</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => router.push('/documents')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
-                  activePage === 'documents' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
-                }`}
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'documents' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                  }`}
               >
                 <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
                 <span className="text-sm font-medium text-white">Documents</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => router.push('/calendar')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
-                  activePage === 'calendar' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
-                }`}
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'calendar' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                  }`}
               >
                 <CalendarIcon size={16} className={activePage === 'calendar' ? 'text-white' : 'text-gray-300'} />
                 <span className="text-sm font-medium text-white">Calendar</span>
@@ -124,7 +122,7 @@ export function AppSidebar({
             </>
           ) : (
             <>
-              <button 
+              <button
                 onClick={() => onNewItem?.()}
                 className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
               >
@@ -132,7 +130,7 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">New Consultation</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => router.push('/documents')}
                 className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
               >
@@ -140,7 +138,7 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">Documents</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => router.push('/calendar')}
                 className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
               >
@@ -148,7 +146,7 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">Calendar</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsCaseModalOpen(true)}
                 className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
               >
@@ -156,7 +154,7 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">Create Case</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsViewCasesModalOpen(true)}
                 className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
               >
@@ -164,7 +162,7 @@ export function AppSidebar({
                 <span className="text-sm font-medium text-white">View Cases</span>
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsBookmarksModalOpen(true)}
                 className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
               >
@@ -174,7 +172,7 @@ export function AppSidebar({
             </>
           )}
         </div>
-        
+
         {/* Content Area (Recent) */}
         <div className={`${SIDEBAR_STYLES.contentArea} flex-shrink-0`}>
           {/* Recent Section */}
@@ -183,16 +181,16 @@ export function AppSidebar({
               <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-4 px-2">{recentLabel}</h3>
               <div className="space-y-2">
                 {(showAllRecent ? recentItems : recentItems.slice(0, 5)).map((item) => (
-                  <SidebarItem 
-                    key={item.id} 
-                    item={item} 
+                  <SidebarItem
+                    key={item.id}
+                    item={item}
                     isOpen={activeMenuId === item.id}
                     onToggle={() => toggleMenu(item.id)}
                   />
                 ))}
               </div>
               {recentItems.length > 5 && (
-                <button 
+                <button
                   onClick={() => setShowAllRecent(!showAllRecent)}
                   className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all active:scale-[0.98]"
                 >
@@ -219,7 +217,7 @@ export function AppSidebar({
       <SidebarProfile />
 
       {/* Create Case Modal */}
-      <CreateCaseModal 
+      <CreateCaseModal
         isOpen={isCaseModalOpen}
         onClose={() => setIsCaseModalOpen(false)}
       />
@@ -268,7 +266,7 @@ export function AppSidebar({
       {/* Desktop Sidebar */}
       <AnimatePresence>
         {isOpen && (
-          <motion.aside 
+          <motion.aside
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}

@@ -1,11 +1,15 @@
 import { useState, useRef, RefObject } from "react";
 import { Message } from "@/components/conversation-provider/conversation-context";
 import { CaseData } from "@/types";
+import { createCalendarEvent } from "@/lib/calendar-api";
 
 interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
+  supabase?: any;
+  userId?: string;
+  isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
 }
@@ -14,6 +18,9 @@ export function useConsultationState({
   messages,
   activeCase,
   scrollContainerRef,
+  supabase,
+  userId,
+  isGoogleConnected,
   handleSendMessage,
   onTabChange,
 }: UseConsultationStateProps) {
@@ -75,6 +82,10 @@ export function useConsultationState({
 
       if (response.ok) {
         setEmailSentStatus("success");
+        // Clear inputs on success
+        setEmailTo("");
+        setEmailSubject("");
+        setEmailBody("");
         setTimeout(() => setEmailSentStatus("idle"), 3000);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -100,8 +111,9 @@ export function useConsultationState({
     "idle" | "success" | "error"
   >("idle");
 
-  const handleScheduleEvent = () => {
+  const handleScheduleEvent = async () => {
     if (!scheduleDateTime || !scheduleType) return;
+    setIsScheduling(true);
 
     // Parse date/time into a readable format for the AI
     const dt = new Date(scheduleDateTime);
@@ -112,34 +124,104 @@ export function useConsultationState({
       hour: 'numeric', minute: '2-digit', hour12: true
     });
 
-    const prompt = [
-      `[Legal AI] I would like to schedule an event. Here are the details:`,
-      ``,
-      `• Type: ${scheduleType}`,
-      `• Date: ${dateStr}`,
-      `• Time: ${timeStr}`,
-      scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
-      scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
-      ``,
-      `Please confirm these details are correct, and if so, go ahead and schedule this event on my Google Calendar.`,
-    ]
-      .filter((line) => line !== null)
-      .join('\n');
+    try {
+      // 1. Create Google Calendar Event (if connected)
+      let googleLink = "";
+      if (isGoogleConnected && userId) {
+        try {
+          const start = new Date(scheduleDateTime);
+          const end = new Date(start.getTime() + 60 * 60 * 1000);
+          const toISO = (d: Date) => d.toISOString().slice(0, 19);
 
-    // Send the prompt into chat and switch to chat tab
-    if (handleSendMessage) {
-      handleSendMessage(prompt);
-    }
-    if (onTabChange) {
-      onTabChange('chat');
-    }
+          const result = await createCalendarEvent(userId, {
+            title: `${scheduleType}: Consultation`,
+            start_datetime: toISO(start),
+            end_datetime: toISO(end),
+            description: scheduleNotes,
+          });
+          if (result.success && result.link) {
+            googleLink = result.link;
+          }
+        } catch (calendarErr) {
+          console.error("Failed to sync with Google Calendar:", calendarErr);
+        }
+      }
 
-    // Reset form
-    setScheduleType('Meeting');
-    setScheduleDateTime('');
-    setScheduleEmail('');
-    setScheduleNotes('');
+      // 2. Send Notification Email via Resend
+      const response = await fetch("/api/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: scheduleEmail,
+          type: "schedule",
+          eventDetails: {
+            eventType: scheduleType,
+            dateTime: scheduleDateTime,
+            notes: scheduleNotes,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        // 2. Persist to Database if logged in
+        if (supabase && userId) {
+          const { error: dbError } = await supabase
+            .from("events")
+            .insert({
+              user_id: userId,
+              title: `${scheduleType}: Consultation`,
+              type: scheduleType.toLowerCase(),
+              date_time: scheduleDateTime,
+              client_email: scheduleEmail,
+              notes: scheduleNotes,
+            });
+
+          if (dbError) {
+            console.error("Failed to save event to database:", dbError.message);
+          }
+        }
+
+        // 3. Generate AI confirmation prompt (from main)
+        const prompt = [
+          `[Legal AI] I have scheduled an event. Here are the details:`,
+          ``,
+          `• Type: ${scheduleType}`,
+          `• Date: ${dateStr}`,
+          `• Time: ${timeStr}`,
+          scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
+          scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
+          googleLink ? `• Google Calendar Link: ${googleLink}` : null,
+          ``,
+          `The automation has sent the invitation email and added it to the internal records. Please acknowledge this in our chat.`,
+        ]
+          .filter((line) => line !== null)
+          .join('\n');
+
+        if (handleSendMessage) {
+          handleSendMessage(prompt);
+        }
+
+        setScheduleStatus("success");
+        // Clear inputs after a delay
+        setTimeout(() => {
+          setScheduleStatus("idle");
+          setScheduleType("Meeting");
+          setScheduleDateTime("");
+          setScheduleEmail("");
+          setScheduleNotes("");
+          if (onTabChange) onTabChange('chat');
+        }, 3000);
+      } else {
+        setScheduleStatus("error");
+      }
+    } catch (error) {
+      console.error("Failed to schedule event:", error);
+      setScheduleStatus("error");
+    } finally {
+      setIsScheduling(false);
+    }
   };
+
 
   // Derived Data: Timeline
   const latestTimelineMessage = [...messages]
