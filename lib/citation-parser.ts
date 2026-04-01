@@ -264,13 +264,60 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
       jsonStr = jsonStr.replace(/^```/i, '').replace(/```$/i, '').trim();
     }
     
+    // Sanitize: remove or escape control characters that might break JSON parsing
+    jsonStr = jsonStr.replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // Remove control characters
+    
     try {
-      const parsed = safeJsonParse(jsonStr);
+      // Use tolerant parsing passes for common AI output shapes
+      const cleaned = jsonStr.trim().replace(/^\uFEFF/, "");
+      
+      const tryParseTimeline = (s: string): TimelineItem[] | undefined => {
+        try {
+          const parsed = safeJsonParse(s);
+          return Array.isArray(parsed) && parsed.length > 0
+            ? (parsed as TimelineItem[])
+            : undefined;
+        } catch { return undefined; }
+      };
+
+      // Pass 1: Direct parse
+      const parsedDirect = tryParseTimeline(cleaned);
+      if (parsedDirect) return parsedDirect;
+
+      // Pass 2: Unescape literal sequences (e.g. `\n` in a block)
+      const unescapedNewlines = cleaned
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      const parsedUnescaped = tryParseTimeline(unescapedNewlines);
+      if (parsedUnescaped) return parsedUnescaped;
+
+      // Pass 3: Handle double-encoded strings
+      if (
+        (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))
+      ) {
+        const normalizedQuotes =
+          cleaned.startsWith("'") && cleaned.endsWith("'")
+            ? `"${cleaned.slice(1, -1).replace(/"/g, '\\"')}"`
+            : cleaned;
+        try {
+          const inner = JSON.parse(normalizedQuotes);
+          if (typeof inner === "string") {
+            const parsedInner = tryParseTimeline(inner.trim());
+            if (parsedInner) return parsedInner;
+          }
+        } catch {}
+      }
+
+      // Final fallback
+      const parsed = safeJsonParse(cleaned);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed as TimelineItem[];
       }
     } catch (e) {
-      console.error("Failed to parse timeline JSON:", e, "Input was:", jsonStr);
+      console.error("Failed to parse timeline JSON:", e);
+      console.error("JSON string was:", jsonStr.substring(0, 200) + (jsonStr.length > 200 ? '...' : ''));
     }
   }
 
@@ -350,12 +397,60 @@ export function extractMindMap(text: string): MindMapItem | undefined {
         jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
       }
 
-      const parsed = safeJsonParse(jsonStr);
-      if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes)) {
-        return parsed as MindMapItem;
+      const cleaned = jsonStr.trim().replace(/^\uFEFF/, "");
+      
+      const isMindMapShape = (v: unknown): v is MindMapItem => {
+        if (!v || typeof v !== "object") return false;
+        const anyV: any = v;
+        return Boolean(anyV.id || anyV.nodes || anyV.label || anyV.children);
+      };
+
+      const tryParseMindMap = (s: string): MindMapItem | undefined => {
+        try {
+          const parsed = safeJsonParse(s);
+          return isMindMapShape(parsed) ? (parsed as MindMapItem) : undefined;
+        } catch { return undefined; }
+      };
+
+      // Pass 1: Direct
+      const parsedDirect = tryParseMindMap(cleaned);
+      if (parsedDirect) return parsedDirect;
+
+      // Pass 2: Unescape literal sequences
+      const unescapedNewlines = cleaned
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      const parsedUnescaped = tryParseMindMap(unescapedNewlines);
+      if (parsedUnescaped) return parsedUnescaped;
+
+      // Pass 3: Remove trailing commas
+      const withoutTrailingCommas = cleaned.replace(/,\s*([}\]])/g, "$1");
+      const parsedNoTrailing = tryParseMindMap(withoutTrailingCommas);
+      if (parsedNoTrailing) return parsedNoTrailing;
+
+      // Pass 4: Double-encoded strings
+      if (
+        (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))
+      ) {
+        const normalizedQuotes =
+          cleaned.startsWith("'") && cleaned.endsWith("'")
+            ? `"${cleaned.slice(1, -1).replace(/"/g, '\\"')}"`
+            : cleaned;
+        try {
+          const inner = JSON.parse(normalizedQuotes);
+          if (typeof inner === "string") {
+            const parsedInner = tryParseMindMap(inner.trim().replace(/,\s*([}\]])/g, "$1"));
+            if (parsedInner) return parsedInner;
+          }
+        } catch {}
       }
+
+      const parsed = safeJsonParse(cleaned);
+      if (isMindMapShape(parsed)) return parsed as MindMapItem;
     } catch (e) {
-      // Don't log expected partial JSON errors during streaming
+      console.error("Failed to parse mind-map JSON:", e, jsonStr);
     }
   }
 
