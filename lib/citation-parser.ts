@@ -265,12 +265,12 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
     }
     
     try {
-      const parsed = JSON.parse(jsonStr);
+      const parsed = safeJsonParse(jsonStr);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed as TimelineItem[];
       }
     } catch (e) {
-      console.error("Failed to parse timeline JSON:", e);
+      console.error("Failed to parse timeline JSON:", e, "Input was:", jsonStr);
     }
   }
 
@@ -350,7 +350,7 @@ export function extractMindMap(text: string): MindMapItem | undefined {
         jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
       }
 
-      const parsed = JSON.parse(jsonStr);
+      const parsed = safeJsonParse(jsonStr);
       if (parsed && typeof parsed === 'object' && (parsed.id || parsed.nodes)) {
         return parsed as MindMapItem;
       }
@@ -458,4 +458,56 @@ export function cleanAiText(text: string): string {
   cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, "");
 
   return cleaned.trim();
+}
+
+/**
+ * Robustly parses a JSON string that might contain unescaped control characters
+ * from AI-generated content.
+ */
+function safeJsonParse(str: string): any {
+  if (!str) return null;
+  
+  try {
+    return JSON.parse(str);
+  } catch (initialError) {
+    // Strategy: Only escape control characters (newlines/tabs) that are INSIDE double quotes.
+    // This handles literal characters in strings without breaking JSON structural whitespace.
+    let sanitized = "";
+    let inQuote = false;
+    let escaped = false;
+    
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      
+      if (char === '"' && !escaped) {
+        inQuote = !inQuote;
+        sanitized += char;
+      } else if (inQuote && !escaped) {
+        if (char === '\n') sanitized += '\\n';
+        else if (char === '\r') sanitized += '\\r';
+        else if (char === '\t') sanitized += '\\t';
+        else if (char === '\\') {
+          escaped = true;
+          sanitized += char;
+        } else {
+          // Other control characters can just be omitted as they are likely junk
+          const code = char.charCodeAt(0);
+          if (code < 32) {
+             // Skip
+          } else {
+             sanitized += char;
+          }
+        }
+      } else {
+        if (escaped) escaped = false;
+        sanitized += char;
+      }
+    }
+
+    try {
+      return JSON.parse(sanitized);
+    } catch (retryError) {
+      throw initialError;
+    }
+  }
 }

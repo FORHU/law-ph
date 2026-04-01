@@ -16,7 +16,10 @@ import {
   Upload,
   FileText as FileIcon,
   X,
-  Loader2
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Send
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
@@ -222,7 +225,42 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     emailErrorMessage,
     handleSendEmail,
   } = emailState;
-  const { scheduleType, setScheduleType, scheduleDateTime, setScheduleDateTime, scheduleEmail, setScheduleEmail, scheduleNotes, setScheduleNotes, isScheduling, scheduleStatus, handleScheduleEvent } = scheduleState;
+  const { 
+    scheduleType, setScheduleType, 
+    scheduleDateTime, setScheduleDateTime, 
+    scheduleEmails, setScheduleEmails, 
+    scheduleNotes, setScheduleNotes, 
+    isScheduling, scheduleStatus, 
+    handleScheduleEvent, handleFinalizeSchedule,
+    conflictWarning, setConflictWarning,
+    draftedEventId, isSchedulePreviewOpen, setIsSchedulePreviewOpen
+  } = scheduleState;
+
+  // Email Validation Helper
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState(false);
+
+  const handleAddEmail = (val: string) => {
+    const email = val.trim().replace(/,$/, "");
+    if (!email) return;
+    
+    if (validateEmail(email)) {
+      if (!scheduleEmails.includes(email)) {
+        setScheduleEmails([...scheduleEmails, email]);
+      }
+      setEmailInput("");
+      setEmailError(false);
+    } else {
+      setEmailError(true);
+    }
+  };
+
+  const removeEmail = (index: number) => {
+    setScheduleEmails(scheduleEmails.filter((_, i) => i !== index));
+  };
 
 
   const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
@@ -346,6 +384,102 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     PDF, DOC, DOCX, TXT (Max 20MB). Your analysis will start automatically.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
+  const SchedulePreviewModal = () => {
+    if (!isSchedulePreviewOpen) return null;
+
+    const dt = new Date(scheduleDateTime);
+    const dateStr = dt.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const timeStr = dt.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+        onClick={() => setIsSchedulePreviewOpen(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0, y: 30 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 30 }}
+          className="bg-[#141414] border border-[#10B981]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-[#10B981]/20 rounded-lg">
+                  <Calendar className="w-5 h-5 text-[#10B981]" />
+                </div>
+                Review Invitation
+              </h2>
+              <button
+                onClick={() => setIsSchedulePreviewOpen(false)}
+                className="p-2 rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Event Type</p>
+                  <p className="text-white font-semibold">{scheduleType}</p>
+                </div>
+                <div>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Date & Time</p>
+                      <p className="text-white font-medium">{dateStr}</p>
+                      <p className="text-[#10B981] font-bold text-lg">{timeStr}</p>
+                   </div>
+              </div>
+              
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Recipients</p>
+                <div className="flex flex-wrap gap-2">
+                  {scheduleEmails.map((email) => (
+                    <span key={email} className="px-3 py-1 bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] rounded-full text-xs font-medium">
+                      {email}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {scheduleNotes && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Internal Notes</p>
+                  <p className="text-gray-300 text-sm italic">"{scheduleNotes}"</p>
+                </div>
+              )}
+
+              <div className="pt-4 flex flex-col gap-3">
+                <button
+                  onClick={handleFinalizeSchedule}
+                  disabled={isScheduling}
+                  className="w-full py-4 bg-[#10B981] hover:bg-[#0da270] text-black font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#10B981]/20"
+                >
+                  {isScheduling ? <Loader2 className="w-5 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
+                  {isScheduling ? "Sending Invitation..." : "Approve & Send"}
+                </button>
+                <button
+                  onClick={() => setIsSchedulePreviewOpen(false)}
+                  className="w-full py-4 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium rounded-2xl transition-all"
+                >
+                  Back to Editor
+                </button>
               </div>
             </div>
           </div>
@@ -713,14 +847,51 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email</label>
-                      <input
-                        type="email"
-                        placeholder="client@example.com"
-                        value={scheduleEmail}
-                        onChange={(e) => setScheduleEmail(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600"
-                      />
+                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email(s)</label>
+                      <div className={`flex flex-wrap gap-2 p-2 bg-black/40 border ${emailError ? 'border-red-500/50' : 'border-white/10'} rounded-xl min-h-[46px] focus-within:border-[#10B981]/50 transition-all`}>
+                        <AnimatePresence>
+                          {scheduleEmails.map((email, index) => (
+                            <motion.div
+                              key={email}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] px-2 py-1 rounded-lg text-xs font-medium"
+                            >
+                              <span>{email}</span>
+                              <button 
+                                onClick={() => removeEmail(index)}
+                                className="hover:text-white transition-colors"
+                              >
+                                <X size={12} />
+                              </button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                        <input
+                          type="text"
+                          placeholder={scheduleEmails.length === 0 ? "client@example.com" : ""}
+                          value={emailInput}
+                          onChange={(e) => {
+                            setEmailInput(e.target.value);
+                            if (emailError) setEmailError(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+                              if (e.key === 'Enter' || e.key === 'Tab') e.preventDefault();
+                              handleAddEmail(emailInput);
+                            }
+                            if (e.key === 'Backspace' && !emailInput && scheduleEmails.length > 0) {
+                              removeEmail(scheduleEmails.length - 1);
+                            }
+                          }}
+                          onBlur={() => handleAddEmail(emailInput)}
+                          className="flex-1 bg-transparent border-none outline-none text-sm text-white min-w-[120px] py-1"
+                        />
+                      </div>
+                      {emailError && (
+                        <p className="text-[10px] text-red-400 mt-1 ml-1 font-medium animate-in fade-in slide-in-from-top-1">Please enter a valid email address</p>
+                      )}
                     </div>
 
                     <div>
@@ -750,20 +921,38 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           </a>
                         </div>
                       ) : (
-                        <button
-                          className={`bg-[#10B981] text-black font-bold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
-                                'hover:bg-white'
-                            }`}
-                          onClick={handleScheduleEvent}
-                          disabled={isScheduling}
-                        >
-                          {isScheduling ? "Scheduling..." :
-                            scheduleStatus === 'error' ? "Failed to Schedule" :
-                              <>
-                                <Calendar size={16} /> Schedule Event
-                              </>
-                          }
-                        </button>
+                        <div className="w-full space-y-4">
+                          {conflictWarning && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                              <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
+                              <div className="flex-1">
+                                <p className="text-sm text-white font-bold">Scheduling Conflict</p>
+                                <p className="text-xs text-amber-200/70">{conflictWarning}</p>
+                                <button 
+                                  onClick={() => setConflictWarning(null)}
+                                  className="mt-2 text-xs font-bold text-amber-400 hover:underline"
+                                >
+                                  Ignore & Proceed
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          <button
+                            className={`bg-[#10B981] text-black text-sm font-bold w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
+                                  'hover:bg-white'
+                              }`}
+                            onClick={handleScheduleEvent}
+                            disabled={isScheduling}
+                          >
+                            {isScheduling ? "Preparing invitation..." :
+                              scheduleStatus === 'error' ? "Try Again" :
+                                <>
+                                  <Calendar size={16} /> {scheduleStatus === 'drafted' ? 'Update & Review Preview' : 'Prepare Invitation'}
+                                </>
+                            }
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -842,6 +1031,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       {/* Document Analysis Modal */}
       <AnimatePresence>
         {isAnalysisModalOpen && <DocumentAnalysisModal />}
+        {isSchedulePreviewOpen && <SchedulePreviewModal />}
       </AnimatePresence>
 
       {/* Source Detail Sidebar */}

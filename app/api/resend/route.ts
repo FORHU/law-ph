@@ -12,22 +12,65 @@ export async function POST(req: Request) {
       );
     }
 
+    const recipients = Array.isArray(to) ? to : [to];
+    const cleanRecipients = recipients.map(r => r.replace(/\s+/g, '.').toLowerCase());
+
     let emailContent = body;
     let emailSubject = subject;
     let attachments: any[] = [];
 
     if (type === 'schedule' && eventDetails) {
-      emailSubject = `Event Scheduled: ${eventDetails.eventType}`;
+      const { eventId, eventType, dateTime, notes } = eventDetails;
+      emailSubject = `Action Required: Confirm your ${eventType}`;
 
-      const startDate = new Date(eventDetails.dateTime);
-      // Assume a 1 hour default duration
+      const startDate = new Date(dateTime);
       const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+      
+      // Improved Host Detection
+      const host = req.headers.get('host');
+      const protocol = host?.includes('localhost') ? 'http' : 'https';
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (host ? `${protocol}://${host}` : 'http://localhost:3000');
+      
+      const confirmUrl = `${siteUrl}/confirm/${eventId}`;
 
       const formatGoogleDate = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
-      const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventDetails.eventType)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(eventDetails.notes || '')}`;
+      const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventType)}&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}&details=${encodeURIComponent(notes || '')}`;
 
-      // Create an ICS file string with more robust fields
-      const uid = `${Date.now()}-${Math.random().toString(36).substring(2)}@ilovelawyer.com`;
+      // Gmail JSON-LD for "Confirm" action button
+      const jsonLd = {
+        "@context": "http://schema.org",
+        "@type": "EventReservation",
+        "reservationNumber": eventId,
+        "reservationStatus": "http://schema.org/Confirmed",
+        "underName": {
+          "@type": "Person",
+          "name": cleanRecipients[0].split('@')[0] // Use first recipient for primary metadata
+        },
+        "reservationFor": {
+          "@type": "Event",
+          "name": eventType,
+          "startDate": startDate.toISOString(),
+          "location": {
+            "@type": "Place",
+            "name": "Law PH Consultation",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Online / Office",
+              "addressLocality": "Manila",
+              "addressRegion": "NCR",
+              "postalCode": "1000",
+              "addressCountry": "PH"
+            }
+          }
+        }
+      };
+
+      // Create an ICS file string with multiple attendees
+      const uid = `${eventId}@ilovelawyer.com`;
+      const attendeeRows = cleanRecipients.map(email => 
+        `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${email}:mailto:${email}`
+      ).join('\r\n');
+
       const icsString = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
@@ -39,10 +82,10 @@ export async function POST(req: Request) {
         `DTSTAMP:${formatGoogleDate(new Date())}Z`,
         `DTSTART:${formatGoogleDate(startDate)}Z`,
         `DTEND:${formatGoogleDate(endDate)}Z`,
-        `SUMMARY:${eventDetails.eventType}`,
-        `DESCRIPTION:${(eventDetails.notes || '').replace(/\n/g, '\\n')}`,
+        `SUMMARY:${eventType}`,
+        `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`,
         'ORGANIZER;CN=ilovelawyer:mailto:updates@ilovelawyer.com',
-        'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=' + to + ':mailto:' + to,
+        attendeeRows,
         'STATUS:CONFIRMED',
         'SEQUENCE:0',
         'END:VEVENT',
@@ -56,25 +99,69 @@ export async function POST(req: Request) {
       }];
 
       emailContent = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #8B4564;">Event Confirmation</h2>
-          <p>A new event has been scheduled with the following details:</p>
-          <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 5px 0;"><strong>Event Type:</strong> ${eventDetails.eventType}</p>
-            <p style="margin: 5px 0;"><strong>Date & Time:</strong> ${new Date(eventDetails.dateTime).toLocaleString()}</p>
-            <p style="margin: 5px 0;"><strong>Notes:</strong> ${eventDetails.notes || 'None'}</p>
-          </div>
-          <div style="margin-top: 24px; margin-bottom: 24px;">
-            <a href="${googleCalendarUrl}" target="_blank" style="display: inline-block; background-color: #10B981; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px;">
-              📅 Add to Google Calendar
-            </a>
-          </div>
-          <p style="color: #666; font-size: 12px;">You can also accept the invitation using the attached calendar file.</p>
-        </div>
+        <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <tr>
+                  <td style="background-color: #8B4564; padding: 30px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Confirm Your Appointment</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 40px;">
+                    <p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">Hello,</p>
+                    <p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">A new appointment has been scheduled for you. Please confirm your attendance below.</p>
+                    
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                      <tr>
+                        <td style="padding-bottom: 10px;"><strong>Event:</strong></td>
+                        <td style="padding-bottom: 10px; color: #8B4564;">${eventType}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 10px;"><strong>Date & Time:</strong></td>
+                        <td style="padding-bottom: 10px;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 10px;"><strong>Attendees:</strong></td>
+                        <td style="padding-bottom: 10px;">${cleanRecipients.join(', ')}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Notes:</strong></td>
+                        <td>${notes || 'No notes provided.'}</td>
+                      </tr>
+                    </table>
+
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td align="center">
+                          <a href="${confirmUrl}" style="display: inline-block; background-color: #10B981; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; font-size: 16px; margin-bottom: 20px;">
+                            ✅ Confirm Appointment
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center">
+                          <a href="${googleCalendarUrl}" target="_blank" style="color: #8B4564; text-decoration: underline; font-size: 14px;">
+                            Add to My Google Calendar
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #f9f9f9; padding: 20px; text-align: center; color: #999999; font-size: 12px;">
+                    This is an automated message from ILoveLawyer. Please use the buttons above to respond.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       `;
     }
-
-    const cleanTo = to.replace(/\s+/g, '.').toLowerCase(); // Fix accidental spaces like "s ubaguio edu" to "s.ubaguio.edu"
 
     // Simple robust Markdown to Email HTML
     const markdownToHtml = (md: string) => {
@@ -110,7 +197,7 @@ export async function POST(req: Request) {
 
     const { data, error } = await resend.emails.send({
       from: 'ilovelawyer <updates@ilovelawyer.com>', // Verified domain
-      to: [cleanTo],
+      to: cleanRecipients,
       subject: emailSubject || 'Update from Legal Consultation',
       html: formattedContent,
       ...(attachments.length > 0 && { attachments }),

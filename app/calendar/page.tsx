@@ -24,7 +24,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface CalendarEvent {
-  id: string | number;
+  id: string;
   title: string;
   type: 'meeting' | 'appointment' | 'hearing' | 'deposition';
   date_time: string; // Used by Supabase
@@ -34,6 +34,8 @@ interface CalendarEvent {
   notes?: string;
   googleLink?: string;
   isGoogleEvent?: boolean;
+  status: 'draft' | 'pending' | 'confirmed' | 'requested_change';
+  client_feedback?: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -68,6 +70,20 @@ function formatDT(dt: string | undefined) {
   }
 }
 
+const StatusBadge = ({ status }: { status: CalendarEvent['status'] }) => {
+  const configs = {
+    draft: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    confirmed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    requested_change: 'bg-red-500/10 text-red-400 border-red-500/20'
+  };
+  return (
+    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${configs[status || 'draft']}`}>
+      {status === 'requested_change' ? 'Change Requested' : status || 'draft'}
+    </span>
+  );
+};
+
 /** Infer an event type from Google Calendar description text */
 function inferEventType(description?: string, title?: string): CalendarEvent['type'] {
   const text = `${title ?? ''} ${description ?? ''}`.toLowerCase();
@@ -89,6 +105,7 @@ function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
     notes: e.description ?? undefined,
     googleLink: e.link ?? undefined,
     isGoogleEvent: true,
+    status: 'confirmed'
   };
 }
 
@@ -136,6 +153,11 @@ export default function CalendarPage() {
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Workflow states
+  const [showPreview, setShowPreview] = useState(false);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [previewEvent, setPreviewEvent] = useState<CalendarEvent | null>(null);
+
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
   // Fetch events from Supabase
@@ -157,6 +179,7 @@ export default function CalendarPage() {
           ...e,
           dateTime: e.date_time,
           clientEmail: e.client_email,
+          status: e.status || 'draft'
         }));
         setEvents(normalized);
       }
@@ -292,93 +315,64 @@ export default function CalendarPage() {
 
         if (error) throw error;
         setEvents(prev => prev.map(e => e.id === editingEventId ? { ...data, dateTime: data.date_time, clientEmail: data.client_email } : e));
-      } else {
-        // Create new event
-        if (isGoogleConnected) {
-          // Create in Google Calendar
-          const start = new Date(form.dateTime);
-          const end = new Date(start.getTime() + 60 * 60 * 1000);
-          const toISO = (d: Date) => d.toISOString().slice(0, 19);
-
-          const description = [
-            form.type ? `Type: ${form.type}` : null,
-            form.clientEmail ? `Client: ${form.clientEmail}` : null,
-            form.notes ? `Notes: ${form.notes}` : null,
-          ].filter(Boolean).join('\n');
-
-          const result = await createCalendarEvent(userId, {
-            title: form.title,
-            start_datetime: toISO(start),
-            end_datetime: toISO(end),
-            description,
-          });
-
-          if (result.success) {
-            const newEvent: CalendarEvent = {
-              id: result.event_id ?? Date.now().toString(),
-              title: form.title,
-              type: form.type,
-              date_time: form.dateTime,
-              dateTime: form.dateTime,
-              clientEmail: form.clientEmail || undefined,
-              notes: form.notes || undefined,
-              googleLink: result.link ?? undefined,
-              isGoogleEvent: true,
-            };
-            setEvents(prev => [...prev, newEvent]);
-          } else {
-            setCreateError(result.error ?? 'Failed to create Google event.');
-            setSubmitting(false);
-            return;
-          }
-        }
-
-        // Send confirmation email via Resend
-        if (form.clientEmail) {
-          try {
-            await fetch('/api/resend', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                to: form.clientEmail,
-                type: 'schedule',
-                eventDetails: {
-                  eventType: form.type,
-                  dateTime: form.dateTime,
-                  notes: form.notes,
-                },
-              }),
-            });
-          } catch (emailErr) {
-            console.error('Failed to send confirmation email:', emailErr);
-            // We don't block the UI for email failures, just log it
-          }
-        }
-
-        // Always save to Supabase for persistence
-        const { data, error } = await supabase
+        // Check for conflicts before saving
+        const { data: conflicts, error: conflictErr } = await supabase
           .from('events')
-          .insert({
-            user_id: userId,
-            title: form.title,
-            type: form.type,
-            date_time: form.dateTime,
-            client_email: form.clientEmail,
-            notes: form.notes
-          })
-          .select()
-          .single();
+          .select('id, title, date_time')
+          .eq('user_id', userId)
+          .eq('date_time', form.dateTime)
+          .neq('id', editingEventId || 'none');
 
-        if (error) throw error;
-        if (!isGoogleConnected) {
-          setEvents(prev => [...prev, { ...data, dateTime: data.date_time, clientEmail: data.client_email }]);
+        if (conflicts && conflicts.length > 0 && !conflictWarning) {
+          setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" scheduled at this time.`);
+          setSubmitting(false);
+          return;
         }
+
+        // Always save to Supabase as 'draft' first
+        const eventData = {
+          user_id: userId,
+          title: form.title,
+          type: form.type,
+          date_time: form.dateTime,
+          client_email: form.clientEmail,
+          notes: form.notes,
+          status: 'draft'
+        };
+
+        let result;
+        if (editingEventId) {
+          result = await supabase
+            .from('events')
+            .update(eventData)
+            .eq('id', editingEventId)
+            .select()
+            .single();
+        } else {
+          result = await supabase
+            .from('events')
+            .insert(eventData)
+            .select()
+            .single();
+        }
+
+        if (result.error) throw result.error;
+        const newEvent = { ...result.data, dateTime: result.data.date_time, clientEmail: result.data.client_email };
+        
+        if (editingEventId) {
+          setEvents(prev => prev.map(e => e.id === editingEventId ? newEvent : e));
+        } else {
+          setEvents(prev => [...prev, newEvent]);
+        }
+
+        setPreviewEvent(newEvent);
+        setShowPreview(true);
+        setShowCreate(false);
       }
 
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
-        setShowCreate(false);
         setEditingEventId(null);
         setActionReason('');
         setForm({ title: '', type: 'meeting', dateTime: '', clientEmail: '', notes: '' });
@@ -386,6 +380,63 @@ export default function CalendarPage() {
     } catch (err: any) {
       console.error('Error saving event:', err.message || err);
       setCreateError(err.message || 'Unexpected error.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFinalizeAndSend = async () => {
+    if (!previewEvent || !userId) return;
+    setSubmitting(true);
+    try {
+      // 1. Sync with Google Calendar if connected
+      let gLink = '';
+      if (isGoogleConnected) {
+        const start = new Date(previewEvent.date_time);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        const toISO = (d: Date) => d.toISOString().slice(0, 19);
+
+        const result = await createCalendarEvent(userId, {
+          title: previewEvent.title,
+          start_datetime: toISO(start),
+          end_datetime: toISO(end),
+          description: previewEvent.notes,
+        });
+        if (result.success) gLink = result.link || '';
+      }
+
+      // 2. Update status to pending
+      const { data, error } = await supabase
+        .from('events')
+        .update({ status: 'pending', googleLink: gLink || null })
+        .eq('id', previewEvent.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // 3. Trigger Resend API
+      await fetch('/api/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: previewEvent.client_email,
+          type: 'schedule',
+          eventDetails: {
+            eventId: previewEvent.id,
+            eventType: previewEvent.type,
+            dateTime: previewEvent.date_time,
+            notes: previewEvent.notes,
+          },
+        }),
+      });
+
+      setEvents(prev => prev.map(e => e.id === previewEvent.id ? { ...data, dateTime: data.date_time, clientEmail: data.client_email } : e));
+      setShowPreview(false);
+      setPreviewEvent(null);
+    } catch (err) {
+      console.error('Finalization error:', err);
+      alert('Failed to finalize appointment.');
     } finally {
       setSubmitting(false);
     }
@@ -717,12 +768,14 @@ export default function CalendarPage() {
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${EVENT_COLORS[event.type].dot}`} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start gap-2">
-                              <h3 className="font-semibold text-white text-sm flex-1">{event.title}</h3>
-                              {activeTab === 'accomplished' && (
-                                <CheckCircle size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                              )}
-                            </div>
+                              <div className="flex items-start gap-2">
+                                <h3 className="font-semibold text-white text-sm flex-1">{event.title}</h3>
+                                {activeTab === 'accomplished' ? (
+                                  <CheckCircle size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+                                ) : (
+                                  <StatusBadge status={event.status} />
+                                )}
+                              </div>
                             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Clock size={11} /> {formatDT(event.date_time)}</p>
                             {event.client_email && (
                               <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1"><User size={11} /> {event.client_email}</p>
@@ -869,6 +922,22 @@ export default function CalendarPage() {
                   </div>
                 )}
 
+                {conflictWarning && (
+                  <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                    <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold mb-1">Conflict Warning</p>
+                      <p>{conflictWarning}</p>
+                      <button 
+                        onClick={() => { setConflictWarning(null); handleSave(); }} 
+                        className="mt-2 text-[#E0A7C2] hover:underline font-bold"
+                      >
+                        Ignore and proceed anyway
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button onClick={handleSave} disabled={Boolean(!form.title || !form.dateTime || submitting || (editingEventId && !actionReason))}
                   className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                     submitted ? 'bg-emerald-600 text-white'
@@ -876,7 +945,89 @@ export default function CalendarPage() {
                       : 'bg-[#10B981] text-black hover:bg-white'
                   }`}
                 >
-                  {submitted ? '✓ Saved!' : submitting ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : <><Calendar size={15} /> Confirm & Save</>}
+                  {submitted ? '✓ Draft Saved!' : submitting ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : <><Calendar size={15} /> Save as Draft</>}
+                </button>
+                <p className="text-[10px] text-center text-gray-500 mt-2 italic px-4">
+                  Note: Saving as draft will NOT send an email yet. You will preview and approve the email in the next step.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Preview Modal */}
+      <AnimatePresence>
+        {showPreview && previewEvent && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowPreview(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-2xl bg-[#0F0F0F] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-[#1A1A1A]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#8B4564]/20 text-[#E0A7C2] rounded-xl"><Plus size={18} /></div>
+                  <h2 className="font-bold text-white uppercase tracking-widest text-sm">Review & Finalize Appointment</h2>
+                </div>
+                <button onClick={() => setShowPreview(false)} className="p-2 text-gray-500 hover:text-white rounded-lg transition-all"><X size={18} /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-white text-black p-8 font-sans">
+                {/* Mock Phone Body for Preview */}
+                <div className="max-w-md mx-auto border-4 border-gray-200 rounded-[40px] overflow-hidden shadow-xl bg-white p-2">
+                  <div className="h-4 bg-gray-100 rounded-full w-24 mx-auto mb-4" /> {/* Phone Notch */}
+                  <div className="p-4 bg-gray-50 border-b flex items-center gap-2 mb-4">
+                     <div className="w-8 h-8 rounded-full bg-[#8B4564] text-white flex items-center justify-center text-xs font-bold">L</div>
+                     <div>
+                       <p className="text-[10px] font-bold text-gray-500">FROM: ilovelawyer</p>
+                       <p className="text-xs font-bold">Confirm your ${previewEvent.type}</p>
+                     </div>
+                  </div>
+                  
+                  {/* Actual Table Mockup */}
+                  <div className="bg-white border rounded-lg overflow-hidden">
+                    <div className="bg-[#8B4564] p-4 text-center">
+                      <p className="text-white font-bold text-sm">Confirm Your Appointment</p>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <p className="text-xs text-gray-600">A new legal consultation has been drafted for you. Please confirm your availability...</p>
+                      <div className="bg-gray-50 p-3 rounded text-xs space-y-2 border">
+                        <p className="border-b pb-1"><strong>Type:</strong> <span className="text-[#8B4564] font-bold capitalize">{previewEvent.type}</span></p>
+                        <p className="border-b pb-1"><strong>Date:</strong> {formatDT(previewEvent.date_time)}</p>
+                        <p><strong>Notes:</strong> {previewEvent.notes || 'None'}</p>
+                      </div>
+                      <div className="text-center bg-emerald-500 text-white p-3 rounded font-bold text-xs uppercase tracking-widest">
+                        ✅ Review and Confirm
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-1 bg-gray-200 w-16 mx-auto mt-6 rounded-full" /> {/* Bottom Bar */}
+                </div>
+                
+                <div className="mt-8 text-center px-4">
+                    <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 tracking-widest">Gmail Optimized</p>
+                    <p className="text-xs text-gray-500 italic">This email includes Schema.org markup to trigger a "Confirm" button directly in the recipient's Gmail inbox list.</p>
+                </div>
+              </div>
+
+              <div className="p-6 bg-[#1A1A1A] border-t border-white/5 flex items-center gap-4">
+                <button 
+                  onClick={() => setShowPreview(false)}
+                  className="flex-1 py-4 border border-white/10 rounded-2xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  Discard / Edit
+                </button>
+                <button 
+                  onClick={handleFinalizeAndSend}
+                  disabled={submitting}
+                  className="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white rounded-2xl text-sm font-extrabold shadow-xl shadow-emerald-500/10 flex items-center justify-center gap-2 transition-all uppercase tracking-widest"
+                >
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                  {submitting ? 'Sending Invite...' : 'Finalize & Send Automation'}
                 </button>
               </div>
             </motion.div>
