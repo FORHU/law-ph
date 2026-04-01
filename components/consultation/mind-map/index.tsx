@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import ReactDOM from 'react-dom';
 import ReactFlow, {
   useNodesState,
@@ -18,28 +19,47 @@ import 'reactflow/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Undo2, Layout, Maximize, Palette, Check, Save, RotateCcw, Trash2, Plus, Minus, Target, Lock, Unlock, ChevronUp, X, FileText, Box, Monitor } from 'lucide-react';
 import { MindMapProps } from './types';
-import { MIND_MAP_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
+import { MIND_MAP_COLORS, MIND_MAP_HEX_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
-import { MindMap3D, MindMap3DHandle } from './mind-map-3d';
+import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
+
+const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">
+      Initializing 3D Reality...
+    </div>
+  ),
+}) as React.ForwardRefExoticComponent<MindMap3DProps & React.RefAttributes<MindMap3DHandle>>;
 
 const nodeTypes = {
   custom: CustomNode,
 };
 
-const getInitialNodes = (theme: MindMapThemeType): Node[] => [
-  {
-    id: 'root',
-    type: 'custom',
-    data: {
-      label: 'Case Analysis',
-      isRoot: true,
-      theme,
-      color: MIND_MAP_THEMES[theme].rootClass
+const getInitialNodes = (theme: MindMapThemeType): Node[] => {
+  const config = MIND_MAP_THEMES[theme];
+  let hexColor = '#E0A7C2';
+  const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
+  if (match) hexColor = '#' + match[1];
+  else if (config.rootClass.includes('bg-black')) hexColor = '#00F2FF';
+  else if (config.rootClass.includes('bg-[#FF6B6B]')) hexColor = '#FF6B6B';
+
+  return [
+    {
+      id: 'root',
+      type: 'custom',
+      data: {
+        label: 'Case Analysis',
+        isRoot: true,
+        color: hexColor,
+        className: config.rootClass,
+        theme,
+      },
+      position: { x: 0, y: 0 },
     },
-    position: { x: 0, y: 0 },
-  },
-];
+  ];
+};
 
 function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premium' }: MindMapProps) {
   const [theme, setTheme] = useState<MindMapThemeType>(initialTheme);
@@ -52,6 +72,9 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isMemoryOpen, setIsMemoryOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [playingAudio, setPlayingAudio] = useState<any>(null);
+  // Holds enriched data from 3D click (description, media) since 3D is outside React Flow
+  const [selected3DNodeData, setSelected3DNodeData] = useState<any>(null);
 
   const { fitView, zoomIn, zoomOut, getNodes } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
@@ -87,20 +110,19 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   const treeToGraph = useCallback((root: any, currentTheme: MindMapThemeType, currentLayout: 'horizontal' | 'vertical' | 'compact' | 'radial' | 'dual') => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let colorIndex = 0;
     const config = MIND_MAP_THEMES[currentTheme];
 
     const subtreeSizes = new Map<any, number>();
     const calcSize = (item: any): number => {
       const children = getChildren(item);
       if (children.length === 0) {
-        return currentLayout === 'vertical' ? 450 : 280;
+        return currentLayout === 'vertical' ? 350 : 200;
       }
       let total = 0;
       children.forEach((child: any) => {
         total += calcSize(child);
       });
-      const sizeWithPadding = Math.max(total + (children.length - 1) * 40, currentLayout === 'vertical' ? 450 : 280);
+      const sizeWithPadding = Math.max(total + (children.length - 1) * 60, currentLayout === 'vertical' ? 350 : 200);
       subtreeSizes.set(item, sizeWithPadding);
       return sizeWithPadding;
     };
@@ -110,7 +132,29 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const traverse = (item: any, parentId: string | null = null, x = 0, y = 0, angleRange: [number, number] = [0, 360], depth = 0, side: 'left' | 'right' | 'top' | 'bottom' = 'right') => {
       const id = item.id || `node-${Math.random().toString(36).substr(2, 9)}`;
       const isRoot = id === 'root' || !parentId;
-      const color = isRoot ? config.rootClass : config.nodeClass(colorIndex++);
+
+      let hexColor = '#E0A7C2';
+      if (isRoot) {
+        const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
+        if (match) hexColor = '#' + match[1];
+        else if (config.rootClass.includes('bg-black')) hexColor = '#00F2FF'; // neon root
+        else if (config.rootClass.includes('bg-[#FF6B6B]')) hexColor = '#FF6B6B'; // vibrant root
+      } else {
+        const index = Math.max(0, depth - 1);
+        if (currentTheme === 'premium') {
+          hexColor = MIND_MAP_HEX_COLORS[index % MIND_MAP_HEX_COLORS.length];
+        } else if (currentTheme === 'classic') {
+          hexColor = '#2C3E50';
+        } else if (currentTheme === 'neon') {
+          const colors = ['#FF00E5', '#7000FF', '#00FF66'];
+          hexColor = colors[index % colors.length];
+        } else if (currentTheme === 'vibrant') {
+          const colors = ['#4D96FF', '#6BCB77', '#FFD93D', '#9772FB'];
+          hexColor = colors[index % colors.length];
+        }
+      }
+
+      const className = isRoot ? config.rootClass : config.nodeClass(Math.max(0, depth - 1));
 
       let label = item.label || item.text || 'Untitled';
       let description = item.description || item.details || item.summary || '';
@@ -125,8 +169,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         data: {
           label,
           description,
+          media: item.media, // Pass media data forward for 2D/3D
           isRoot,
-          color,
+          color: hexColor,
+          className,
           theme: currentTheme,
           layout: currentLayout,
           side // Pass the calculated side to the node
@@ -139,14 +185,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         const isFromRoot = parentId === 'root' && (currentLayout === 'dual' || currentLayout === 'radial');
         const sourceHandleId = isFromRoot ? side : undefined;
 
+        const edgeDepth = depth; // child depth relative to root
+        const edgeColor = edgeDepth > 0 ? MIND_MAP_HEX_COLORS[(edgeDepth - 1) % MIND_MAP_HEX_COLORS.length] : config.edgeColor;
+
         edges.push({
           id: `e${parentId}-${id}`,
           source: parentId,
           target: id,
           sourceHandle: sourceHandleId,
           animated: true,
-          style: { stroke: config.edgeColor, strokeWidth: 2.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: config.edgeColor }
+          style: { stroke: edgeColor, strokeWidth: 2.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor }
         });
       }
 
@@ -155,10 +204,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         if (currentLayout === 'radial') {
           // Calculate a dynamic global radius from the center (0,0) instead of the parent
           // This creates beautiful concentric circles and prevents messy overlapping
-          let depthRadius = 500;
-          if (depth === 0) depthRadius = 500;
-          else if (depth === 1) depthRadius = 1100;
-          else depthRadius = 1100 + (depth - 1) * 500;
+          let depthRadius = 600;
+          if (depth === 0) depthRadius = 600;
+          else if (depth === 1) depthRadius = 1200;
+          else depthRadius = 1200 + (depth - 1) * 600;
 
           const [startAngle, endAngle] = angleRange;
           const totalAngle = endAngle - startAngle;
@@ -189,21 +238,21 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           const leftChildren = children.slice(0, midway);
           const rightChildren = children.slice(midway);
 
-          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 80;
-          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 80;
+          const leftSize = leftChildren.reduce((acc: number, c: any) => acc + (subtreeSizes.get(c) || 200), 0) + (leftChildren.length - 1) * 60;
+          const rightSize = rightChildren.reduce((acc: number, acc_val: any) => acc + (subtreeSizes.get(acc_val) || 200), 0) + (rightChildren.length - 1) * 60;
 
           let leftOffset = -(leftSize / 2);
           leftChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 280;
             traverse(child, id, x - 550, y + (leftOffset + childSize / 2), [0, 0], 1, 'left');
-            leftOffset += childSize + 40;
+            leftOffset += childSize + 60;
           });
 
           let rightOffset = -(rightSize / 2);
           rightChildren.forEach((child: any) => {
             const childSize = subtreeSizes.get(child) || 280;
             traverse(child, id, x + 550, y + (rightOffset + childSize / 2), [0, 0], 1, 'right');
-            rightOffset += childSize + 40;
+            rightOffset += childSize + 60;
           });
         } else {
           const itemSize = subtreeSizes.get(item) || (currentLayout === 'vertical' ? 450 : 280);
@@ -214,16 +263,16 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
-              traverse(child, id, x + posOffset, y + 350);
+              traverse(child, id, x + posOffset, y + 400, [0,0], depth + 1);
             } else if (currentLayout === 'dual') {
               traverse(child, id, x + (side === 'left' ? -550 : 550), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 450, y + posOffset);
+              traverse(child, id, x + 500, y + posOffset, [0,0], depth + 1);
             } else {
-              traverse(child, id, x + 550, y + posOffset);
+              traverse(child, id, x + 550, y + posOffset, [0,0], depth + 1);
             }
 
-            offset += childSize + 40;
+            offset += childSize + 60;
           });
         }
       }
@@ -235,17 +284,30 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
 
   useEffect(() => {
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-      console.log('--- MIND MAP DATA DEBUG ---');
-      console.log('Raw Tree Data:', data);
-
       const { nodes: newNodes, edges: newEdges } = treeToGraph(data, theme, layout);
-
-      console.log('Generated Nodes:', newNodes);
-      console.log('Generated Edges:', newEdges);
-      console.log('---------------------------');
-
       setNodes(newNodes);
       setEdges(newEdges);
+
+      // Persist the state to survive refreshes
+      try {
+        localStorage.setItem('law_ph_last_mind_map', JSON.stringify({ nodes: newNodes, edges: newEdges, data }));
+      } catch (e) {
+        console.error('Failed to persist map data:', e);
+      }
+    } else {
+      // Re-access data from persistence if prop is missing on refresh
+      try {
+        const cached = localStorage.getItem('law_ph_last_mind_map');
+        if (cached) {
+          const { nodes: oldNodes, edges: oldEdges } = JSON.parse(cached);
+          if (oldNodes?.length > 0) {
+            setNodes(oldNodes);
+            setEdges(oldEdges);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to recover map data:', e);
+      }
     }
   }, [data, theme, layout, treeToGraph, setNodes, setEdges]);
 
@@ -255,6 +317,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   };
 
   const resetLayout = useCallback(() => {
+    setSelectedNodeId(null);
     if (is3D) {
       mindMap3DRef.current?.recenter();
       return;
@@ -351,12 +414,26 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     if (!parentNode) return;
     const id = Date.now().toString();
     const childIndex = edges.filter(e => e.source === parentId).length;
-    const color = themeConfig.nodeClass(childIndex);
+
+    let hexColor = '#E0A7C2';
+    if (theme === 'premium') {
+      hexColor = MIND_MAP_HEX_COLORS[childIndex % MIND_MAP_HEX_COLORS.length];
+    } else if (theme === 'classic') {
+      hexColor = '#2C3E50';
+    } else if (theme === 'neon') {
+      const colors = ['#FF00E5', '#7000FF', '#00FF66'];
+      hexColor = colors[childIndex % colors.length];
+    } else if (theme === 'vibrant') {
+      const colors = ['#4D96FF', '#6BCB77', '#FFD93D', '#9772FB'];
+      hexColor = colors[childIndex % colors.length];
+    }
+
+    const className = themeConfig.nodeClass(childIndex);
     const newNode: Node = {
       id,
       type: 'custom',
-      data: { id, label: 'New Node', color, theme, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode },
-      position: { x: parentNode.position.x + 350, y: parentNode.position.y + (childIndex - 1) * 120 },
+      data: { id, label: 'New Node', color: hexColor, className, theme, onEdit: handleEditNode, onAdd: handleAddNode, onDelete: handleDeleteNode },
+      position: { x: parentNode.position.x + 500, y: parentNode.position.y + (childIndex - 1) * 150 },
     };
     const newEdge: Edge = {
       id: `e${parentId}-${id}`, source: parentId, target: id, animated: true,
@@ -381,9 +458,34 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     }));
   }, [nodes, handleEditNode, handleAddNode, handleDeleteNode, selectedNodeId]);
 
+  // In 3D mode, use the data stored from the 3D click; in 2D use React Flow
   const selectedNodeData = useMemo(() => {
+    if (selected3DNodeData) return selected3DNodeData;
     return getNodes().find(n => n.id === selectedNodeId)?.data;
-  }, [selectedNodeId, getNodes]);
+  }, [selectedNodeId, getNodes, selected3DNodeData]);
+
+  // STRATEGIC SAFETY: Define 'isAttachment' for the sidebar portal
+  const isAttachment = selectedNodeId?.includes('attachment-') || selectedNodeId?.includes('vault-') || !!selectedNodeData?.isAttachment;
+
+  // Check if selected node has audio media
+  const hasAudioMedia = selectedNodeData?.media && selectedNodeData.media.some((m: any) => m.type === 'audio');
+
+  // Auto-open audio player when node with audio is selected
+  useEffect(() => {
+    if (selectedNodeData?.media && selectedNodeData.media.length > 0) {
+      const audioItem = selectedNodeData.media.find((m: any) => m.type === 'audio');
+      if (audioItem) {
+        setPlayingAudio(audioItem);
+      }
+    }
+  }, [selectedNodeData]);
+
+  // Ensure clicking away closes audio modal as well
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setPlayingAudio(null);
+    }
+  }, [selectedNodeId]);
 
   const undo = () => {
     if (history.length === 0) return;
@@ -410,12 +512,25 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         {/* 3D Model Layer */}
         {is3D && data && (
           <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden z-10">
-            <MindMap3D 
+            <MindMap3D
               ref={mindMap3DRef}
-              root={data} 
-              onNodeClick={(node) => {
+              root={data}
+              rootTitle={rootTitle}
+              onNodeClick={(node: any) => {
                 setSelectedNodeId(node.id);
-              }} 
+                // Store full enriched data so detail panel works in 3D mode
+                setSelected3DNodeData({
+                  label: node.label,
+                  description: node.description,
+                  media: node.media,
+                  color: node.color
+                });
+              }}
+              onBackgroundClick={() => {
+                setSelectedNodeId(null);
+                setSelected3DNodeData(null);
+                setPlayingAudio(null);
+              }}
             />
           </div>
         )}
@@ -429,10 +544,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             onConnect={onConnect}
             onNodeClick={(_, node) => {
               setSelectedNodeId(node.id);
+              setSelected3DNodeData({
+                label: node.data.label,
+                description: node.data.description,
+                media: node.data.media,
+                color: node.data.color
+              });
               fitView({ nodes: [node], duration: 800, padding: 0.6 });
             }}
             onPaneClick={() => {
               setSelectedNodeId(null);
+              setPlayingAudio(null);
               fitView({ padding: 0.05, duration: 800 });
             }}
             nodeTypes={nodeTypes}
@@ -499,22 +621,6 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     {layout === item.id && <Check size={10} strokeWidth={4} />}
                   </button>
                 ))}
-                <div className="mt-1 pt-1 border-t border-white/5">
-                  <div className="px-4 py-1.5 text-[8px] uppercase font-bold text-white/20">Themes</div>
-                  {(Object.keys(MIND_MAP_THEMES) as MindMapThemeType[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setTheme(key);
-                        setIsThemeOpen(false);
-                      }}
-                      className={`w-full px-4 py-2 flex items-center gap-3 rounded-md hover:bg-white/5 transition-all text-[10px] font-bold ${theme === key ? 'text-[#E0A7C2]' : 'text-gray-500'}`}
-                    >
-                      <div className="w-2 h-2 rounded-full" style={{ background: MIND_MAP_THEMES[key].edgeColor }} />
-                      {MIND_MAP_THEMES[key].name}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           )}
@@ -628,39 +734,58 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </button>
       </div>
 
-      {/* Sleek Minimalist Detail Card - Portaled to Context Container for Fullscreen visibility */}
       {containerRef.current && ReactDOM.createPortal(
         <AnimatePresence mode="wait">
-          {selectedNodeId && selectedNodeData && (
+          {selectedNodeId && selectedNodeData && !hasAudioMedia && (
             <motion.div
               key={selectedNodeId}
               initial={{ opacity: 0, scale: 0.98, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.98, x: 20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-28 right-10 w-[320px] z-[99999] bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5"
+              className={`absolute ${
+                isAttachment
+                  ? 'top-20 bottom-20 right-10 w-[28vw] max-w-[360px]'
+                  : 'top-28 right-10 w-[320px]'
+              } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
             >
               {/* Elegant Header Accent */}
-              <div 
-                className="h-1 w-full opacity-60" 
-                style={{ background: selectedNodeData.color?.replace('bg-', '') || '#E0A7C2' }} 
+              <div
+                className="h-1 w-full opacity-90"
+                style={{
+                  background: selectedNodeData.color?.startsWith('#')
+                    ? selectedNodeData.color
+                    : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')
+                }}
               />
 
-              <div className="p-7">
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white leading-tight pr-4">
+              <div
+                className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+                style={{
+                  borderTop: `2px solid ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}`,
+                  boxShadow: `0 18px 45px ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}40`,
+                }}
+              >
+                <div className="flex items-start justify-between mb-4 gap-3 min-w-0">
+                  <h3 className="text-xl font-bold text-white leading-tight truncate">
                     {selectedNodeData.label}
                   </h3>
-                  <button 
-                    onClick={() => setSelectedNodeId(null)}
-                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0"
+                  <button
+                    onClick={() => {
+                      setSelectedNodeId(null);
+                      if (is3D) {
+                        mindMap3DRef.current?.recenter();
+                      } else {
+                        fitView({ padding: 0.05, duration: 800 });
+                      }
+                    }}
+                    className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0 bg-white/5 rounded-full hover:bg-white/10"
                   >
                     <X size={18} />
                   </button>
-                </div>
-                
-                <div className="space-y-4">
-                  {(() => {
+                      </div>
+                <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
+                  {!isAttachment && (() => {
                     const desc = selectedNodeData.description || "N/A";
                     const isList = desc.includes('\n-') || desc.includes('\n*') || desc.startsWith('-') || desc.startsWith('*');
                     const isShort = desc.length < 50 && !desc.includes('.');
@@ -702,7 +827,199 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                       </div>
                     );
                   })()}
+
+                  {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
+                  {selectedNodeData.media && selectedNodeData.media.length > 0 && (
+                    <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4"}>
+                      {!isAttachment && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>}
+                      <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "flex flex-col gap-3"}>
+                        {selectedNodeData.media.map((item: any, idx: number) => {
+                          if (item.type === 'image') return (
+                            <div key={idx} className={`relative group/media overflow-hidden rounded-xl border border-white/10 shadow-lg ${isAttachment ? 'flex-1 flex min-h-0' : ''}`}>
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) {
+                                  return (
+                                    <div className="w-full h-full min-h-[140px] bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4">
+                                      <span className="text-4xl mb-2 grayscale opacity-50">🖼️</span>
+                                      <span className="text-white/70 text-xs font-semibold">{item.name || 'Image'} Preview Not Available</span>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <img
+                                    src={url}
+                                    alt={item.name}
+                                    className={`w-full transition-transform group-hover/media:scale-[1.02] ${
+                                      isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'
+                                    }`}
+                                  />
+                                );
+                              })()}
+                              {(() => {
+                                const url = item.url;
+                                const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                                const isMissingUrl = !url || url === '#' || isBlobUrl;
+                                if (isMissingUrl) return null;
+                                return (
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                    <a href={url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
+                                      {isAttachment ? 'Open Original Image' : 'Expand File'}
+                                    </a>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          );
+                          if (item.type === 'audio') return null;
+                          if (item.type === 'file') {
+                            const isWordDoc = /\.(doc|docx)$/i.test(item.name);
+                            const isBlobUrl = typeof item.url === 'string' && item.url.startsWith('blob:');
+                            const isMissingUrl = !item.url || item.url === '#' || isBlobUrl;
+                            const viewerUrl = isMissingUrl ? '' : (isWordDoc
+                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}`
+                              : item.url);
+
+                            if (isAttachment) {
+                              return (
+                                <div key={idx} className="w-full flex-1 flex flex-col gap-2 min-h-0">
+                                  {isMissingUrl ? (
+                                    <div className="flex-1 min-h-[300px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-6">
+                                      <span className="text-4xl mb-4 grayscale opacity-50">📄</span>
+                                      <span className="text-white/80 text-sm font-semibold mb-1">Preview Not Available</span>
+                                      <span className="text-white/40 text-xs text-balance">This document was uploaded offline or its URL has expired. Upload a new file to see the live preview.</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <iframe
+                                        src={viewerUrl}
+                                        className="w-full flex-1 rounded-lg bg-white shadow-inner min-h-0"
+                                        title={item.name}
+                                      />
+                                      <div className="flex justify-between items-center px-2 mt-1">
+                                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                          Open Original ↗
+                                        </a>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            // Standard accordion view for regular nodes with attached files
+                            return (
+                              <details key={idx} className="group bg-[#0A0A0A] rounded-xl border border-white/10 overflow-hidden outline-none">
+                                <summary className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-white/5 transition-all list-none [&::-webkit-details-marker]:hidden">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
+                                    <div className="flex flex-col">
+                                      <span className="text-[12px] font-bold text-white/90 truncate max-w-[160px]">{item.name}</span>
+                                      <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-[#E0A7C2] text-[10px] font-bold px-2.5 py-1 bg-[#E0A7C2]/10 rounded-md group-open:hidden uppercase tracking-wider">Expand</div>
+                                  <div className="text-white/50 text-[10px] font-bold px-2.5 py-1 bg-white/5 rounded-md hidden group-open:block uppercase tracking-wider">Close</div>
+                                </summary>
+                                <div className="p-2 border-t border-white/5 bg-[#050505] flex flex-col gap-2">
+                                  {isMissingUrl ? (
+                                    <div className="w-full h-[120px] mb-2 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center p-4">
+                                      <span className="text-2xl mb-2 grayscale opacity-50">📄</span>
+                                      <span className="text-white/60 text-xs font-semibold">Preview Not Available</span>
+                                      <span className="text-white/40 text-[10px] mt-1">This document was uploaded offline or its URL has expired.</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <iframe
+                                        src={viewerUrl}
+                                        className="w-full h-[320px] rounded-lg bg-white"
+                                        title={item.name}
+                                      />
+                                      <div className="flex justify-between items-center px-1">
+                                        <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
+                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                          Open Original ↗
+                                        </a>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </details>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+            </motion.div>
+          )}
+          {/* Audio Player Bottom Modal */}
+          {playingAudio && (
+            <motion.div
+              key="audio-player"
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[85vw] max-w-[760px] z-[99998] bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/95 to-[#0A0A0A]/80 backdrop-blur-xl border-t border-[#00E5FF]/20 px-6 py-6 shadow-2xl rounded-t-2xl"
+              onClick={(e) => {
+                // Close modal when clicking on the background (not on the content)
+                if (e.target === e.currentTarget) {
+                  setPlayingAudio(null);
+                }
+              }}
+            >
+              <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="text-3xl">🎵</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-bold truncate">{playingAudio.name}</h4>
+                      <p className="text-white/40 text-sm">Now Playing</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPlayingAudio(null)}
+                    className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                {(() => {
+                  const url = playingAudio.url;
+                  const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
+                  const isMissingUrl = !url || url === '#' || isBlobUrl;
+                  
+                  if (isMissingUrl) {
+                    return (
+                      <div className="w-full py-8 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center">
+                        <span className="text-2xl mb-2 grayscale opacity-50">🔇</span>
+                        <span className="text-white/60 text-sm font-semibold">Preview Not Available</span>
+                        <span className="text-white/40 text-xs mt-1">This audio file was uploaded offline or its URL has expired.</span>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <audio
+                      autoPlay
+                      controls
+                      className="w-full accent-[#00E5FF]"
+                      style={{
+                        filter: 'brightness(1.1)',
+                      }}
+                    >
+                      <source src={url} />
+                    </audio>
+                  );
+                })()}
               </div>
             </motion.div>
           )}

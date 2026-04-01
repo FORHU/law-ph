@@ -379,6 +379,8 @@ export function ConversationProvider({
         ? cleanAiText(text)
         : text;
 
+    console.log("Fetched file attachments for message:", msg.id, meta.fileAttachments);
+
     return {
       ...msg,
       text: cleanText,

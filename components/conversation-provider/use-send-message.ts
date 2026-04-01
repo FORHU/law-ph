@@ -109,21 +109,24 @@ export function useSendMessage({
 
           // 1. If there's a file, upload and analyze it first
           if (file) {
+            console.log("Attempting to upload file:", file.name, file.type, file.size);
             try {
               const uploadData = await uploadAndAnalyzeDocument(
                 file,
                 process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001',
                 !skipAIResponse
               );
+              console.log("File uploaded and analyzed successfully:", uploadData);
               
+              const resolvedUrl = uploadData.file_url || `https://law-ph.s3.amazonaws.com/${uploadData.s3_key}`;
               currentFileAttachment = {
                 ...currentFileAttachment!,
-                url: uploadData.file_url,
+                url: resolvedUrl,
                 s3_key: uploadData.s3_key,
-                ai_summary: uploadData.ai_summary
+                ai_summary: uploadData.ai_summary || ""
               };
               
-              currentDocumentContext = uploadData.ai_summary;
+              currentDocumentContext = uploadData.ai_summary || "";
 
               // If this is an analysis trigger, we need to construct the special prompt
               if (isAnalysisTrigger) {
@@ -156,7 +159,7 @@ export function useSendMessage({
               // If this is an analysis trigger, we can speed things up by showing the summary directly 
               // but we'll stick to the stream for the premium formatting
             } catch (uploadErr) {
-              console.error("File upload/analysis failed:", uploadErr);
+              console.error("File upload/analysis failed for:", file.name, uploadErr);
               // We'll continue without the file context if it failed
             }
           }

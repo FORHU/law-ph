@@ -275,6 +275,29 @@ export function useConsultationState({
     .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0);
   let activeMindMap = latestMindMapMessage?.mindMap;
 
+  // Calculate briefcaseAttachments
+  const briefcaseAttachments: any[] = [];
+  messages.forEach(m => {
+    const docs = m.fileAttachments || (m.fileAttachment ? [m.fileAttachment] : []);
+    docs.forEach((doc: any) => {
+      if (doc.url) briefcaseAttachments.push({ ...doc, messageId: m.id });
+    });
+  });
+  console.log("Collected briefcase attachments:", briefcaseAttachments);
+
+  // Create vault nodes
+  const vaultNodes = briefcaseAttachments.map((att, i) => {
+    const isImage = att.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+    const isAudio = att.name?.match(/\.(mp3|wav|ogg|m4a)$/i);
+    return {
+      id: `vault-briefcase-${i}`,
+      label: att.name || 'Document',
+      description: att.ai_summary || `Legal Evidence: ${att.name}`,
+      media: [{ type: isImage ? 'image' : (isAudio ? 'audio' : 'file'), url: att.url, name: att.name }],
+      children: []
+    };
+  });
+
   if (!activeMindMap && activeCase) {
     const partyLabels = (activeCase.party_involved || "")
       .split(/[,\/]/)
@@ -350,6 +373,129 @@ export function useConsultationState({
         },
       ],
     };
+  }
+
+  // If no mind map but have files, create a basic one
+  if (!activeMindMap && briefcaseAttachments.length > 0) {
+    activeMindMap = {
+      id: "root",
+      label: "Document Analysis",
+      children: [
+        { id: 'legal-vault', label: 'Legal Evidence Vault', children: vaultNodes }
+      ]
+    };
+  }
+
+  // Add vault to existing mind map if files exist
+  if (activeMindMap && briefcaseAttachments.length > 0) {
+    activeMindMap = JSON.parse(JSON.stringify(activeMindMap));
+
+    const normalizeName = (value: any) => {
+      const s = typeof value === "string" ? value : "";
+      // Strip directories and normalise case for more reliable matching.
+      return s.toLowerCase().trim().replace(/^.*[\\/]/, "");
+    };
+
+    const getExt = (filename: any) => {
+      const name = normalizeName(filename);
+      const m = name.match(/\.([a-z0-9]{1,10})$/i);
+      return m ? m[1].toLowerCase() : "";
+    };
+
+    // Sync evidence to tree
+    const syncEvidenceToTree = (node: any) => {
+      const nodeLabel = (node.label || "").toLowerCase();
+      const nodeDesc = (node.description || "").toLowerCase();
+      
+      // Heal existing media
+      if (node.media) {
+        node.media = node.media.map((m: any) => {
+          const mNameNorm = normalizeName(m?.name);
+          const mUrl = m?.url;
+          const mExt = getExt(m?.name);
+          const isBlobStale = typeof mUrl === "string" && mUrl.startsWith("blob:");
+
+          const matches = briefcaseAttachments.filter((att: any) => {
+            const attUrl = att?.url;
+            const attNameNorm = normalizeName(att?.name);
+            if (attUrl && attUrl === mUrl) return true;
+            if (mNameNorm && attNameNorm && attNameNorm === mNameNorm) return true;
+            if (isBlobStale && mExt && attNameNorm && getExt(att?.name) === mExt) return true;
+            return false;
+          });
+
+          if (!matches.length) return m;
+
+          const bestAtt = matches.find((a: any) => a?.url && !a.url.startsWith("blob:")) || matches[0];
+          if (!bestAtt?.url) return m;
+
+          return {
+            ...m,
+            url: bestAtt.url,
+            name: bestAtt.name || m.name,
+          };
+        });
+      }
+
+      // Discover new evidence
+      const matchedAtt = briefcaseAttachments.find((att: any) => {
+        const name = (att.name || "").toLowerCase();
+        const summary = (att.ai_summary || "").toLowerCase();
+        const words = name.split(/[._\s-]/).filter((w: string) => w.length > 3);
+        
+        return words.some((word: string) => nodeLabel.includes(word)) || 
+               summary.split(' ').slice(0, 10).some((word: string) => word.length > 4 && nodeLabel.includes(word)) ||
+               nodeLabel.includes(name);
+      });
+
+      if (matchedAtt) {
+        node.media = node.media || [];
+        const matchedType = matchedAtt.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+          ? "image"
+          : matchedAtt.name?.match(/\.(mp3|wav|ogg|m4a)$/i)
+            ? "audio"
+            : "file";
+
+        const matchedNameNorm = normalizeName(matchedAtt.name);
+        const existingIdx = node.media.findIndex((m: any) => {
+          const mNameNorm = normalizeName(m?.name);
+          return (matchedNameNorm && mNameNorm === matchedNameNorm) || m?.url === matchedAtt.url;
+        });
+
+        if (existingIdx >= 0) {
+          node.media[existingIdx] = {
+            ...node.media[existingIdx],
+            type: matchedType,
+            name: matchedAtt.name,
+            url: matchedAtt.url,
+          };
+        } else {
+          node.media.push({
+            type: matchedType,
+            name: matchedAtt.name,
+            url: matchedAtt.url,
+          });
+        }
+      }
+      if (node.children) node.children.forEach(syncEvidenceToTree);
+    };
+
+    syncEvidenceToTree(activeMindMap);
+
+    activeMindMap.children = activeMindMap.children || [];
+    let vault = activeMindMap.children.find((c: any) => 
+      c.label && (c.label.toLowerCase().includes('vault') || c.label.toLowerCase().includes('evidence'))
+    );
+
+    if (vault) {
+      vault.children = vault.children.filter((c: any) => !c.id?.includes('-empty'));
+      const seen = new Set(vault.children.map((c: any) => (c.label || "").toLowerCase()));
+      vaultNodes.forEach(n => {
+        if (!seen.has(n.label.toLowerCase())) vault.children.push(n);
+      });
+    } else {
+      activeMindMap.children.push({ id: 'legal-vault', label: 'Legal Evidence Vault', children: vaultNodes });
+    }
   }
 
   return {
