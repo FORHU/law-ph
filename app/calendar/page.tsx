@@ -293,8 +293,7 @@ export default function CalendarPage() {
         if (error) throw error;
         setEvents(prev => prev.map(e => e.id === editingEventId ? { ...data, dateTime: data.date_time, clientEmail: data.client_email } : e));
       } else {
-        // Create new event
-        if (isGoogleConnected) {
+        if (isGoogleConnected && userId) {
           // Create in Google Calendar
           const start = new Date(form.dateTime);
           const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -306,38 +305,36 @@ export default function CalendarPage() {
             form.notes ? `Notes: ${form.notes}` : null,
           ].filter(Boolean).join('\n');
 
-          if (userId && isGoogleConnected) {
-            // Create in Google Calendar
-            const result = await createCalendarEvent(userId, {
+          const result = await createCalendarEvent(userId, {
+            title: form.title,
+            start_datetime: toISO(start),
+            end_datetime: toISO(end),
+            description,
+          });
+
+          if (result.needs_auth) {
+            handleConnectGoogle();
+            setSubmitting(false);
+            return;
+          }
+
+          if (result.success) {
+            const newEvent: CalendarEvent = {
+              id: result.event_id ?? Date.now().toString(),
               title: form.title,
-              start_datetime: startStr,
-              end_datetime: endStr,
-              description,
-            });
-
-            if (result.needs_auth) {
-              handleConnectGoogle();
-              return;
-            }
-
-            if (result.success) {
-              const newEvent: CalendarEvent = {
-                id: result.event_id ?? Date.now().toString(),
-                title: form.title,
-                type: form.type,
-                date_time: form.dateTime,
-                dateTime: form.dateTime,
-                clientEmail: form.clientEmail || undefined,
-                notes: form.notes || undefined,
-                googleLink: result.link ?? undefined,
-                isGoogleEvent: true,
-              };
-              setEvents(prev => [...prev, newEvent]);
-            } else {
-              setCreateError(result.error ?? 'Failed to create Google event.');
-              setSubmitting(false);
-              return;
-            }
+              type: form.type,
+              date_time: form.dateTime,
+              dateTime: form.dateTime,
+              clientEmail: form.clientEmail || undefined,
+              notes: form.notes || undefined,
+              googleLink: result.link ?? undefined,
+              isGoogleEvent: true,
+            };
+            setEvents(prev => [...prev, newEvent]);
+          } else {
+            setCreateError(result.error ?? 'Failed to create Google event.');
+            setSubmitting(false);
+            return;
           }
 
           // Send confirmation email via Resend
@@ -358,11 +355,10 @@ export default function CalendarPage() {
               });
             } catch (emailErr) {
               console.error('Failed to send confirmation email:', emailErr);
-              // We don't block the UI for email failures, just log it
             }
           }
 
-          // Always save to Supabase for persistence
+          // Also persist to Supabase for cross-session history
           const { data, error } = await supabase
             .from('events')
             .insert({
@@ -377,9 +373,23 @@ export default function CalendarPage() {
             .single();
 
           if (error) throw error;
-          if (!isGoogleConnected) {
-            setEvents(prev => [...prev, { ...data, dateTime: data.date_time, clientEmail: data.client_email }]);
-          }
+        } else {
+          // No Google Calendar — save only to Supabase
+          const { data, error } = await supabase
+            .from('events')
+            .insert({
+              user_id: userId,
+              title: form.title,
+              type: form.type,
+              date_time: form.dateTime,
+              client_email: form.clientEmail,
+              notes: form.notes
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          setEvents(prev => [...prev, { ...data, dateTime: data.date_time, clientEmail: data.client_email }]);
         }
 
         setSubmitted(true);
@@ -390,84 +400,85 @@ export default function CalendarPage() {
           setActionReason('');
           setForm({ title: '', type: 'meeting', dateTime: '', clientEmail: '', notes: '' });
         }, 2000);
-      } catch (err: any) {
-        console.error('Error saving event:', err.message || err);
-        setCreateError(err.message || 'Unexpected error.');
-      } finally {
-        setSubmitting(false);
       }
-    };
+    } catch (err: any) {
+      console.error('Error saving event:', err.message || err);
+      setCreateError(err.message || 'Unexpected error.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    const handleCancelConfirm = async () => {
-      if (!actionEventId || !actionReason || !userId) return;
-      setSubmitting(true);
+  const handleCancelConfirm = async () => {
+    if (!actionEventId || !actionReason || !userId) return;
+    setSubmitting(true);
 
-      try {
-        // If it's a Google event, delete it there first
-        const eventToDelete = events.find(e => e.id === actionEventId);
-        if (eventToDelete?.isGoogleEvent) {
-          await deleteCalendarEvent(userId, String(actionEventId));
-        }
-
-        // Delete from Supabase
-        const { error } = await supabase
-          .from('events')
-          .delete()
-          .eq('id', actionEventId);
-
-        if (error) throw error;
-
-        setEvents(prev => prev.filter(e => e.id !== actionEventId));
-        setSelectedDayEvents(prev => prev.filter(e => e.id !== actionEventId));
-
-        setSubmitting(false);
-        setPendingAction(null);
-        setActionEventId(null);
-        setActionReason('');
-
-        if (selectedDayEvents.length <= 1) {
-          setShowDayDetails(false);
-        }
-      } catch (err: any) {
-        console.error('Error canceling event:', err.message || err);
-        setSubmitting(false);
+    try {
+      // If it's a Google event, delete it there first
+      const eventToDelete = events.find(e => e.id === actionEventId);
+      if (eventToDelete?.isGoogleEvent) {
+        await deleteCalendarEvent(userId, String(actionEventId));
       }
-    };
 
-    const handleDeleteEvent = async (eventId: string | number) => {
-      if (!userId) return;
-      try {
-        const eventToDelete = events.find(e => e.id === eventId);
-        if (eventToDelete?.isGoogleEvent) {
-          await deleteCalendarEvent(userId, String(eventId));
-        }
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', actionEventId);
 
-        await supabase
-          .from('events')
-          .delete()
-          .eq('id', eventId);
+      if (error) throw error;
 
-        setEvents(prev => prev.filter(e => e.id !== eventId));
-      } catch (err: any) {
-        console.error('[Calendar] delete error:', err);
+      setEvents(prev => prev.filter(e => e.id !== actionEventId));
+      setSelectedDayEvents(prev => prev.filter(e => e.id !== actionEventId));
+
+      setSubmitting(false);
+      setPendingAction(null);
+      setActionEventId(null);
+      setActionReason('');
+
+      if (selectedDayEvents.length <= 1) {
+        setShowDayDetails(false);
       }
-    };
+    } catch (err: any) {
+      console.error('Error canceling event:', err.message || err);
+      setSubmitting(false);
+    }
+  };
 
-    const handleConnectGoogle = () => {
-      if (!userId) return;
-      window.location.href = getGoogleAuthUrl(userId, '/calendar');
-    };
-
-    const handleRefresh = () => {
-      if (userId && isGoogleConnected) {
-        loadGoogleEvents(userId);
+  const handleDeleteEvent = async (eventId: string | number) => {
+    if (!userId) return;
+    try {
+      const eventToDelete = events.find(e => e.id === eventId);
+      if (eventToDelete?.isGoogleEvent) {
+        await deleteCalendarEvent(userId, String(eventId));
       }
-    };
+
+      await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+    } catch (err: any) {
+      console.error('[Calendar] delete error:', err);
+    }
+  };
+
+  const handleConnectGoogle = () => {
+    if (!userId) return;
+    window.location.href = getGoogleAuthUrl(userId, '/calendar');
+  };
+
+  const handleRefresh = () => {
+    if (userId && isGoogleConnected) {
+      loadGoogleEvents(userId);
+    }
+  };
 
 
-    // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
-    return (
+  return (
       <PageLayout
         activePage="calendar"
         title="Calendar"
@@ -1016,4 +1027,4 @@ export default function CalendarPage() {
         </AnimatePresence>
       </PageLayout>
     );
-  }
+}
