@@ -1,4 +1,4 @@
-import { useState, useRef, RefObject } from "react";
+import { useState, useRef, useEffect, RefObject } from "react";
 import { Message } from "@/components/conversation-provider/conversation-context";
 import { CaseData } from "@/types";
 import { createCalendarEvent } from "@/lib/calendar-api";
@@ -9,6 +9,8 @@ interface UseConsultationStateProps {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   supabase?: any;
   userId?: string;
+  userEmail?: string;
+  userName?: string;
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
@@ -20,6 +22,8 @@ export function useConsultationState({
   scrollContainerRef,
   supabase,
   userId,
+  userEmail,
+  userName,
   isGoogleConnected,
   handleSendMessage,
   onTabChange,
@@ -55,9 +59,15 @@ export function useConsultationState({
   const [emailSentStatus, setEmailSentStatus] = useState<
     "idle" | "success" | "error"
   >("idle");
+  const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = () => {
+    if (!emailTo || !emailBody) return;
+    setIsEmailPreviewOpen(true);
+  };
+
+  const handleConfirmSendEmail = async () => {
     if (!emailTo || !emailBody) return;
 
     setIsSendingEmail(true);
@@ -77,15 +87,21 @@ export function useConsultationState({
               : "Update from Legal Consultation"),
           body: emailBody,
           type: "direct",
+          organizer: {
+            name: userName || userEmail,
+            email: userEmail
+          }
         }),
       });
 
       if (response.ok) {
         setEmailSentStatus("success");
+        setEmailSentStatus("success");
         // Clear inputs on success
         setEmailTo("");
         setEmailSubject("");
         setEmailBody("");
+        setIsEmailPreviewOpen(false); // Close preview
         setTimeout(() => setEmailSentStatus("idle"), 3000);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -104,15 +120,62 @@ export function useConsultationState({
   // Schedule Form State
   const [scheduleType, setScheduleType] = useState("Meeting");
   const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const [scheduleEmail, setScheduleEmail] = useState("");
+  const [scheduleEmails, setScheduleEmails] = useState<string[]>([]);
   const [scheduleNotes, setScheduleNotes] = useState("");
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleStatus, setScheduleStatus] = useState<
-    "idle" | "success" | "error"
+    "idle" | "drafted" | "success" | "error"
   >("idle");
+  const [draftedEventId, setDraftedEventId] = useState<string | null>(null);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [isSchedulePreviewOpen, setIsSchedulePreviewOpen] = useState(false);
+  
+  // Automatic conflict check as the user picks date/time
+  useEffect(() => {
+    if (!scheduleDateTime || !userId) {
+      setConflictWarning(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        // Calculate overlap range (e.g., 59 minutes before/after)
+        const checkTime = new Date(scheduleDateTime);
+        if (isNaN(checkTime.getTime())) return; // Avoid querying with invalid dates
+
+        const startRange = new Date(checkTime.getTime() - 59 * 60 * 1000).toISOString();
+        const endRange = new Date(checkTime.getTime() + 59 * 60 * 1000).toISOString();
+
+        let query = supabase
+          .from("events")
+          .select("id, title, date_time")
+          .eq("user_id", userId)
+          .gte("date_time", startRange)
+          .lte("date_time", endRange)
+          .neq("status", "cancelled");
+
+        if (draftedEventId) {
+          query = query.neq("id", draftedEventId);
+        }
+
+        const { data: conflicts } = await query.limit(1);
+
+        if (conflicts && conflicts.length > 0) {
+          const conflictTime = new Date(conflicts[0].date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" at ${conflictTime}.`);
+        } else {
+          setConflictWarning(null);
+        }
+      } catch (err) {
+        console.error("Conflict check failed:", err);
+      }
+    }, 200); // reduced to 200ms for "instant" feel
+
+    return () => clearTimeout(timer);
+  }, [scheduleDateTime, userId, draftedEventId]);
 
   const handleScheduleEvent = async () => {
-    if (!scheduleDateTime || !scheduleType) return;
+    if (!scheduleDateTime || !scheduleType || !userId || scheduleEmails.length === 0) return;
     setIsScheduling(true);
 
     // Parse date/time into a readable format for the AI
@@ -125,97 +188,111 @@ export function useConsultationState({
     });
 
     try {
-      // 1. Create Google Calendar Event (if connected)
-      let googleLink = "";
-      if (isGoogleConnected && userId) {
-        try {
-          const start = new Date(scheduleDateTime);
-          const end = new Date(start.getTime() + 60 * 60 * 1000);
-          const toISO = (d: Date) => d.toISOString().slice(0, 19);
+      // 1. Create as Draft in Supabase (Conflict check is already reactive via useEffect)
+      const { data, error } = await supabase
+        .from("events")
+        .insert({
+          user_id: userId,
+          title: `${scheduleType}: Consultation`,
+          type: scheduleType.toLowerCase(),
+          date_time: scheduleDateTime,
+          client_email: scheduleEmails.join(', '),
+          notes: scheduleNotes,
+          status: "draft"
+        })
+        .select()
+        .single();
 
-          const result = await createCalendarEvent(userId, {
-            title: `${scheduleType}: Consultation`,
-            start_datetime: toISO(start),
-            end_datetime: toISO(end),
-            description: scheduleNotes,
-          });
-          if (result.success && result.link) {
-            googleLink = result.link;
-          }
-        } catch (calendarErr) {
-          console.error("Failed to sync with Google Calendar:", calendarErr);
-        }
+      if (error) throw error;
+      // 3. Status update (No chat interaction as requested)
+      setDraftedEventId(data.id);
+      setScheduleStatus("drafted");
+      setIsSchedulePreviewOpen(true);
+
+    } catch (err: any) {
+      console.error("Error drafting schedule:", err);
+      setScheduleStatus("error");
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const handleFinalizeSchedule = async () => {
+    if (!draftedEventId || !userId || scheduleEmails.length === 0) return;
+    setIsScheduling(true);
+    try {
+      // 1. Sync with Google Calendar if connected
+      let googleLink: string | null = null;
+      if (isGoogleConnected) {
+        const start = new Date(scheduleDateTime);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        const toISO = (d: Date) => d.toISOString().slice(0, 19);
+        const result = await createCalendarEvent(userId, {
+          title: `${scheduleType}: Consultation`,
+          start_datetime: toISO(start),
+          end_datetime: toISO(end),
+          description: scheduleNotes,
+        });
+        if (result.success && result.link) googleLink = result.link;
       }
 
-      // 2. Send Notification Email via Resend
+      // 2. Update status to pending
+      const { error: updateError } = await supabase
+        .from("events")
+        .update({ status: "pending", google_link: googleLink })
+        .eq("id", draftedEventId);
+
+      if (updateError) throw new Error(`Database update failed: ${updateError.message}`);
+
+      // 3. Trigger Resend API
       const response = await fetch("/api/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          to: scheduleEmail,
+          to: scheduleEmails,
           type: "schedule",
           eventDetails: {
+            eventId: draftedEventId,
             eventType: scheduleType,
             dateTime: scheduleDateTime,
             notes: scheduleNotes,
           },
+          organizer: {
+            name: userName || userEmail,
+            email: userEmail
+          }
         }),
       });
 
-      if (response.ok) {
-        // 2. Persist to Database if logged in
-        if (supabase && userId) {
-          const { error: dbError } = await supabase
-            .from("events")
-            .insert({
-              user_id: userId,
-              title: `${scheduleType}: Consultation`,
-              type: scheduleType.toLowerCase(),
-              date_time: scheduleDateTime,
-              client_email: scheduleEmail,
-              notes: scheduleNotes,
-            });
-
-          if (dbError) {
-            console.error("Failed to save event to database:", dbError.message);
-          }
-        }
-
-        // 3. Generate AI confirmation prompt (from main)
-        const prompt = [
-          `[Legal AI] I have scheduled an event. Here are the details:`,
-          ``,
-          `• Type: ${scheduleType}`,
-          `• Date: ${dateStr}`,
-          `• Time: ${timeStr}`,
-          scheduleEmail ? `• Client/Attendee Email: ${scheduleEmail}` : null,
-          scheduleNotes ? `• Notes: ${scheduleNotes}` : null,
-          googleLink ? `• Google Calendar Link: ${googleLink}` : null,
-          ``,
-          `The automation has sent the invitation email and added it to the internal records. Please acknowledge this in our chat.`,
-        ]
-          .filter((line) => line !== null)
-          .join('\n');
-
-        if (handleSendMessage) {
-          handleSendMessage(prompt);
-        }
-
-        setScheduleStatus("success");
-        // Clear inputs after a delay
-        setTimeout(() => {
-          setScheduleStatus("idle");
-          setScheduleType("Meeting");
-          setScheduleDateTime("");
-          setScheduleEmail("");
-          setScheduleNotes("");
-          if (onTabChange) onTabChange('chat');
-        }, 3000);
-      } else {
-        setScheduleStatus("error");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Email API failed with status ${response.status}`);
       }
-    } catch (error) {
-      console.error("Failed to schedule event:", error);
+
+      setScheduleStatus("success");
+      setConflictWarning(null); // Clear warning on success
+
+      // Reset form and clear state IMMEDIATELY so the user sees a blank form
+      setDraftedEventId(null);
+      setIsSchedulePreviewOpen(false);
+      
+      // Clear all form inputs
+      setScheduleType("Meeting");
+      setScheduleDateTime("");
+      setScheduleEmails([]);
+      setScheduleNotes("");
+
+      // Revert status to idle after a delay (allows for success UI to show)
+      setTimeout(() => {
+        setScheduleStatus("idle");
+      }, 3000);
+
+    } catch (err: any) {
+      console.error("Technical error finalizing schedule:", err);
+      // Log more context
+      if (err instanceof Error) {
+        console.error("Error Detail:", err.message);
+      }
       setScheduleStatus("error");
     } finally {
       setIsScheduling(false);
@@ -512,20 +589,29 @@ export function useConsultationState({
       isSendingEmail,
       emailSentStatus,
       emailErrorMessage,
+      isEmailPreviewOpen,
+      setIsEmailPreviewOpen,
       handleSendEmail,
+      handleConfirmSendEmail,
     },
     scheduleState: {
       scheduleType,
       setScheduleType,
       scheduleDateTime,
       setScheduleDateTime,
-      scheduleEmail,
-      setScheduleEmail,
+      scheduleEmails,
+      setScheduleEmails,
       scheduleNotes,
       setScheduleNotes,
       isScheduling,
       scheduleStatus,
       handleScheduleEvent,
+      handleFinalizeSchedule,
+      conflictWarning,
+      setConflictWarning,
+      draftedEventId,
+      isSchedulePreviewOpen,
+      setIsSchedulePreviewOpen,
     },
     derivedData: {
       activeTimeline,

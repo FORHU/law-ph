@@ -24,7 +24,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface CalendarEvent {
-  id: string | number;
+  id: string;
   title: string;
   type: 'meeting' | 'appointment' | 'hearing' | 'deposition';
   date_time: string; // Used by Supabase
@@ -34,6 +34,8 @@ interface CalendarEvent {
   notes?: string;
   googleLink?: string;
   isGoogleEvent?: boolean;
+  status: 'draft' | 'pending' | 'confirmed' | 'requested_change';
+  client_feedback?: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -68,6 +70,20 @@ function formatDT(dt: string | undefined) {
   }
 }
 
+const StatusBadge = ({ status }: { status: CalendarEvent['status'] }) => {
+  const configs = {
+    draft: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+    pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    confirmed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    requested_change: 'bg-red-500/10 text-red-400 border-red-500/20'
+  };
+  return (
+    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${configs[status || 'draft']}`}>
+      {status === 'pending' ? 'Invitation Sent' : status === 'requested_change' ? 'Change Requested' : status || 'draft'}
+    </span>
+  );
+};
+
 /** Infer an event type from Google Calendar description text */
 function inferEventType(description?: string, title?: string): CalendarEvent['type'] {
   const text = `${title ?? ''} ${description ?? ''}`.toLowerCase();
@@ -89,6 +105,7 @@ function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
     notes: e.description ?? undefined,
     googleLink: e.link ?? undefined,
     isGoogleEvent: true,
+    status: 'confirmed'
   };
 }
 
@@ -126,8 +143,35 @@ export default function CalendarPage() {
   const [activeMobileTab, setActiveMobileTab] = useState<'calendar' | 'agenda'>('calendar');
 
   const [form, setForm] = useState({ title: '', type: 'meeting' as CalendarEvent['type'], dateTime: '', clientEmail: '', notes: '' });
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const handleAddEmail = (val: string) => {
+    const email = val.trim().replace(/,$/, "");
+    if (!email) return;
+    
+    if (validateEmail(email)) {
+      const currentList = form.clientEmail ? form.clientEmail.split(',').map(e => e.trim()).filter(Boolean) : [];
+      if (!currentList.includes(email)) {
+        setForm(f => ({ ...f, clientEmail: [...currentList, email].join(', ') }));
+      }
+      setEmailInput("");
+      setEmailError(false);
+    } else {
+      setEmailError(true);
+    }
+  };
+
+  const removeEmail = (index: number) => {
+    const currentList = form.clientEmail ? form.clientEmail.split(',').map(e => e.trim()).filter(Boolean) : [];
+    currentList.splice(index, 1);
+    setForm(f => ({ ...f, clientEmail: currentList.join(', ') }));
+  };
+
 
   // Google Calendar auth state
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
@@ -135,6 +179,9 @@ export default function CalendarPage() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Workflow states
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -157,6 +204,7 @@ export default function CalendarPage() {
           ...e,
           dateTime: e.date_time,
           clientEmail: e.client_email,
+          status: e.status || 'draft'
         }));
         setEvents(normalized);
       }
@@ -223,6 +271,53 @@ export default function CalendarPage() {
     }
   }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
 
+  // Automatic conflict check for the Calendar Form
+  useEffect(() => {
+    if (!form.dateTime || !userId || !showCreate) {
+      setConflictWarning(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        // Calculate overlap range (e.g., 59 minutes before/after)
+        const checkTime = new Date(form.dateTime);
+        if (isNaN(checkTime.getTime())) return;
+
+        const startRange = new Date(checkTime.getTime() - 59 * 60 * 1000).toISOString();
+        const endRange = new Date(checkTime.getTime() + 59 * 60 * 1000).toISOString();
+
+        let query = supabase
+          .from('events')
+          .select('id, title, date_time')
+          .eq('user_id', userId)
+          .gte('date_time', startRange)
+          .lte('date_time', endRange)
+          .neq('status', 'cancelled');
+
+        if (editingEventId) {
+          query = query.neq('id', editingEventId);
+        }
+
+        const { data: conflicts } = await query.limit(1);
+
+        if (conflicts && conflicts.length > 0) {
+          const conflictTime = new Date(conflicts[0].date_time).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" at ${conflictTime}.`);
+        } else {
+          setConflictWarning(null);
+        }
+      } catch (err) {
+        console.error('Conflict check failed:', err);
+      }
+    }, 200); // 200ms for instant feel
+
+    return () => clearTimeout(timer);
+  }, [form.dateTime, userId, editingEventId, showCreate, supabase]);
+
 
   // ── Derived lists ──────────────────────────────────────────────────────────
 
@@ -275,132 +370,126 @@ export default function CalendarPage() {
     setCreateError(null);
 
     try {
+      // 1. Check for conflicts before saving
+      const { data: conflicts } = await supabase
+        .from('events')
+        .select('id, title, date_time')
+        .eq('user_id', userId)
+        .eq('date_time', form.dateTime)
+        .neq('id', editingEventId || 'none')
+        .neq('status', 'cancelled');
+
+      if (conflicts && conflicts.length > 0 && !conflictWarning) {
+        setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" scheduled at this time.`);
+        setSubmitting(false);
+        return;
+      }
+
+      // 2. Prepare event data object
+      const eventData = {
+        user_id: userId,
+        title: form.title,
+        type: form.type,
+        date_time: form.dateTime,
+        client_email: form.clientEmail,
+        notes: `${form.notes}${actionReason ? `\n\n[Rescheduled: ${actionReason}]` : ''}`,
+        status: 'draft'
+      };
+
+      // 3. Save to Supabase (Update or Insert)
+      let result;
       if (editingEventId) {
-        // Update existing event in Supabase
-        const { data, error } = await supabase
+        result = await supabase
           .from('events')
-          .update({
-            title: form.title,
-            type: form.type,
-            date_time: form.dateTime,
-            client_email: form.clientEmail,
-            notes: `${form.notes}${actionReason ? `\n\n[Rescheduled: ${actionReason}]` : ''}`
-          })
+          .update(eventData)
           .eq('id', editingEventId)
           .select()
           .single();
-
-        if (error) throw error;
-        setEvents(prev => prev.map(e => e.id === editingEventId ? { ...data, dateTime: data.date_time, clientEmail: data.client_email } : e));
       } else {
-        if (isGoogleConnected && userId) {
-          // Create in Google Calendar
+        result = await supabase
+          .from('events')
+          .insert(eventData)
+          .select()
+          .single();
+      }
+
+      if (result.error) throw result.error;
+
+      const createdEventId = result.data.id;
+      let finalStatus = result.data.status || 'draft';
+      let gLink = result.data.googleLink || '';
+
+      // Auto-send if there's a client email
+      if (form.clientEmail) {
+        // Sync to Google Calendar
+        if (isGoogleConnected) {
           const start = new Date(form.dateTime);
           const end = new Date(start.getTime() + 60 * 60 * 1000);
           const toISO = (d: Date) => d.toISOString().slice(0, 19);
 
-          const description = [
-            form.type ? `Type: ${form.type}` : null,
-            form.clientEmail ? `Client: ${form.clientEmail}` : null,
-            form.notes ? `Notes: ${form.notes}` : null,
-          ].filter(Boolean).join('\n');
-
-          const result = await createCalendarEvent(userId, {
+          const gResult = await createCalendarEvent(userId, {
             title: form.title,
             start_datetime: toISO(start),
             end_datetime: toISO(end),
-            description,
+            description: form.notes,
           });
-
-          if (result.needs_auth) {
-            handleConnectGoogle();
-            setSubmitting(false);
-            return;
-          }
-
-          if (result.success) {
-            const newEvent: CalendarEvent = {
-              id: result.event_id ?? Date.now().toString(),
-              title: form.title,
-              type: form.type,
-              date_time: form.dateTime,
-              dateTime: form.dateTime,
-              clientEmail: form.clientEmail || undefined,
-              notes: form.notes || undefined,
-              googleLink: result.link ?? undefined,
-              isGoogleEvent: true,
-            };
-            setEvents(prev => [...prev, newEvent]);
-          } else {
-            setCreateError(result.error ?? 'Failed to create Google event.');
-            setSubmitting(false);
-            return;
-          }
-
-          // Send confirmation email via Resend
-          if (form.clientEmail) {
-            try {
-              await fetch('/api/resend', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  to: form.clientEmail,
-                  type: 'schedule',
-                  eventDetails: {
-                    eventType: form.type,
-                    dateTime: form.dateTime,
-                    notes: form.notes,
-                  },
-                }),
-              });
-            } catch (emailErr) {
-              console.error('Failed to send confirmation email:', emailErr);
-            }
-          }
-
-          // Also persist to Supabase for cross-session history
-          const { data, error } = await supabase
-            .from('events')
-            .insert({
-              user_id: userId,
-              title: form.title,
-              type: form.type,
-              date_time: form.dateTime,
-              client_email: form.clientEmail,
-              notes: form.notes
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-        } else {
-          // No Google Calendar — save only to Supabase
-          const { data, error } = await supabase
-            .from('events')
-            .insert({
-              user_id: userId,
-              title: form.title,
-              type: form.type,
-              date_time: form.dateTime,
-              client_email: form.clientEmail,
-              notes: form.notes
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-          setEvents(prev => [...prev, { ...data, dateTime: data.date_time, clientEmail: data.client_email }]);
+          if (gResult.success) gLink = gResult.link || '';
         }
 
-        setSubmitted(true);
-        setTimeout(() => {
-          setSubmitted(false);
-          setShowCreate(false);
-          setEditingEventId(null);
-          setActionReason('');
-          setForm({ title: '', type: 'meeting', dateTime: '', clientEmail: '', notes: '' });
-        }, 2000);
+        // Trigger Resend API
+        await fetch('/api/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: form.clientEmail,
+            type: 'schedule',
+            eventDetails: {
+              eventId: createdEventId,
+              eventType: form.type,
+              dateTime: form.dateTime,
+              notes: form.notes,
+            },
+            organizer: {
+              name: session?.user?.user_metadata?.full_name || session?.user?.email,
+              email: session?.user?.email
+            }
+          }),
+        });
+
+        // Update DB to pending
+        finalStatus = 'pending';
+        await supabase
+          .from('events')
+          .update({ status: finalStatus, googleLink: gLink || null })
+          .eq('id', createdEventId);
       }
+
+      // 4. Update local state
+      const normalizedEvent = { 
+        ...result.data, 
+        dateTime: result.data.date_time, 
+        clientEmail: result.data.client_email,
+        status: finalStatus,
+        googleLink: gLink
+      };
+      
+      if (editingEventId) {
+        setEvents(prev => prev.map(e => e.id === editingEventId ? normalizedEvent : e));
+      } else {
+        setEvents(prev => [...prev, normalizedEvent]);
+      }
+
+      // 5. Success feedback and close
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setShowCreate(false);
+        setEditingEventId(null);
+        setActionReason('');
+        setForm({ title: '', type: 'meeting', dateTime: '', clientEmail: '', notes: '' });
+        setConflictWarning(null);
+      }, 1500);
+
     } catch (err: any) {
       console.error('Error saving event:', err.message || err);
       setCreateError(err.message || 'Unexpected error.');
@@ -408,6 +497,8 @@ export default function CalendarPage() {
       setSubmitting(false);
     }
   };
+
+
 
   const handleCancelConfirm = async () => {
     if (!actionEventId || !actionReason || !userId) return;
@@ -727,47 +818,54 @@ export default function CalendarPage() {
                         className={`bg-[#2A2A2A]/70 backdrop-blur border rounded-2xl p-4 hover:border-white/10 transition-all group ${activeTab === 'accomplished' ? 'border-white/5 opacity-75' : 'border-white/5'
                           }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${EVENT_COLORS[event.type].dot}`} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start gap-2">
-                                <h3 className="font-semibold text-white text-sm flex-1">{event.title}</h3>
-                                {activeTab === 'accomplished' && (
-                                  <CheckCircle size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                                )}
-                              </div>
-                              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Clock size={11} /> {formatDT(event.date_time)}</p>
-                              {event.client_email && (
-                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1"><User size={11} /> {event.client_email}</p>
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${EVENT_COLORS[event.type].dot}`} />
+                          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                            
+                            <h3 className="font-medium text-white text-base truncate pr-4 leading-tight">{event.title}</h3>
+                            
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                              {activeTab === 'accomplished' ? (
+                                <StatusBadge status={'confirmed'} />
+                              ) : (
+                                <StatusBadge status={event.status} />
                               )}
-                              {event.notes && <p className="text-xs text-gray-500 mt-1.5 leading-relaxed italic">{event.notes}</p>}
-                              {event.googleLink && (
-                                <a
-                                  href={event.googleLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="mt-1.5 flex items-center gap-1 text-[10px] text-[#E0A7C2] hover:text-white transition-colors"
-                                >
-                                  <LinkIcon size={10} /> Open in Google Calendar
-                                </a>
+                              <span className={`text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-md border ${EVENT_COLORS[event.type].badge}`}>
+                                {event.type}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col gap-1 mt-2 text-gray-400">
+                              <p className="text-[13px] flex items-center gap-1.5"><Clock size={13} className="opacity-70"/> {formatDT(event.date_time)}</p>
+                              {event.client_email && (
+                                <p className="text-[13px] flex items-center gap-1.5"><User size={13} className="opacity-70"/> {event.client_email}</p>
                               )}
                             </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border flex-shrink-0 ${EVENT_COLORS[event.type].badge}`}>
-                              {event.type}
-                            </span>
-                            {event.isGoogleEvent && activeTab === 'upcoming' && (
-                              <button
-                                onClick={() => handleDeleteEvent(event.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-500/10"
-                                title="Remove event"
+
+                            {event.notes && <p className="text-xs text-gray-500 mt-2 leading-relaxed italic line-clamp-2">{event.notes}</p>}
+
+                            {event.googleLink && (
+                              <a
+                                href={event.googleLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 w-fit flex items-center gap-1.5 text-xs font-medium text-[#cfa8ba] hover:text-white transition-colors py-1 px-3 bg-white/5 hover:bg-white/10 rounded-lg"
                               >
-                                <X size={12} />
-                              </button>
+                                <LinkIcon size={12} /> View on Google Calendar
+                              </a>
                             )}
                           </div>
+                          
+                          {/* Close button for unlinked generated events */}
+                          {event.isGoogleEvent && activeTab === 'upcoming' && (
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-gray-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 flex-shrink-0"
+                              title="Hide this event"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     ))
@@ -860,12 +958,51 @@ export default function CalendarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Client Email</label>
-                    <div className="relative">
-                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                      <input type="email" placeholder="client@example.com" value={form.clientEmail}
-                        onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 placeholder:text-gray-600" />
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Client Email(s)</label>
+                    <div className={`flex flex-wrap gap-2 p-2 bg-black/40 border ${emailError ? 'border-red-500/50' : 'border-white/10'} rounded-xl min-h-[46px] focus-within:border-[#10B981]/50 transition-all`}>
+                      <AnimatePresence>
+                        {(form.clientEmail ? form.clientEmail.split(',').map(e => e.trim()).filter(Boolean) : []).map((email, index) => (
+                          <motion.div
+                            key={email}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] px-2 py-1 rounded-lg text-xs font-medium"
+                          >
+                            <span>{email}</span>
+                            <button 
+                              onClick={() => removeEmail(index)}
+                              className="hover:text-white transition-colors"
+                            >
+                              <X size={12} />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                      <input
+                        type="text"
+                        placeholder={!form.clientEmail ? "Press space or enter to add" : ""}
+                        value={emailInput}
+                        onChange={(e) => {
+                          setEmailInput(e.target.value);
+                          if (e.target.value.endsWith(",") || e.target.value.endsWith(" ")) {
+                            handleAddEmail(e.target.value);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddEmail(emailInput);
+                          } else if (e.key === "Backspace" && !emailInput) {
+                            const currentList = form.clientEmail ? form.clientEmail.split(',').map(e => e.trim()).filter(Boolean) : [];
+                            if (currentList.length > 0) {
+                              removeEmail(currentList.length - 1);
+                            }
+                          }
+                        }}
+                        onBlur={() => handleAddEmail(emailInput)}
+                        className="flex-1 bg-transparent min-w-[150px] text-sm text-white outline-none placeholder:text-gray-600 focus:placeholder-transparent"
+                      />
                     </div>
                   </div>
 
@@ -875,6 +1012,13 @@ export default function CalendarPage() {
                       onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                       rows={2} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 placeholder:text-gray-600 resize-none" />
                   </div>
+
+                  {conflictWarning && (
+                    <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                      <span>{conflictWarning}</span>
+                    </div>
+                  )}
 
                   {createError && (
                     <div className="flex items-start gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
@@ -914,7 +1058,6 @@ export default function CalendarPage() {
                     <div className="p-2 bg-[#8B4564]/20 text-[#E0A7C2] rounded-xl"><Calendar size={18} /></div>
                     <div>
                       <h2 className="font-bold text-white">Events for {MONTHS[viewMonth]} {selectedDay}, {viewYear}</h2>
-                      <p className="text-xs text-gray-400">Scheduled appointments and activities</p>
                     </div>
                   </div>
                   <button onClick={() => setShowDayDetails(false)} className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-all"><X size={18} /></button>

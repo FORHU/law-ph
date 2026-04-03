@@ -603,13 +603,17 @@ export function ConversationProvider({
         return;
       }
 
+      setIsLoading(true);
       const { data, error } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", syncedConversationId)
         .order("created_at", { ascending: true });
 
-      if (ignore) return;
+      if (ignore) {
+        setIsLoading(false);
+        return;
+      }
 
       if (!error && data) {
         const cloudMessages = data.map(mapCloudMessage);
@@ -641,6 +645,7 @@ export function ConversationProvider({
       } else if (error) {
         console.error("Error fetching messages:", error);
       }
+      setIsLoading(false);
     },
     [
       syncedConversationId,
