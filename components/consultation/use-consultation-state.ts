@@ -1,4 +1,4 @@
-import { useState, useRef, RefObject } from "react";
+import { useState, useRef, useEffect, RefObject } from "react";
 import { Message } from "@/components/conversation-provider/conversation-context";
 import { CaseData } from "@/types";
 import { createCalendarEvent } from "@/lib/calendar-api";
@@ -9,6 +9,8 @@ interface UseConsultationStateProps {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   supabase?: any;
   userId?: string;
+  userEmail?: string;
+  userName?: string;
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
@@ -20,6 +22,8 @@ export function useConsultationState({
   scrollContainerRef,
   supabase,
   userId,
+  userEmail,
+  userName,
   isGoogleConnected,
   handleSendMessage,
   onTabChange,
@@ -55,9 +59,15 @@ export function useConsultationState({
   const [emailSentStatus, setEmailSentStatus] = useState<
     "idle" | "success" | "error"
   >("idle");
+  const [isEmailPreviewOpen, setIsEmailPreviewOpen] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = () => {
+    if (!emailTo || !emailBody) return;
+    setIsEmailPreviewOpen(true);
+  };
+
+  const handleConfirmSendEmail = async () => {
     if (!emailTo || !emailBody) return;
 
     setIsSendingEmail(true);
@@ -77,15 +87,21 @@ export function useConsultationState({
               : "Update from Legal Consultation"),
           body: emailBody,
           type: "direct",
+          organizer: {
+            name: userName || userEmail,
+            email: userEmail
+          }
         }),
       });
 
       if (response.ok) {
         setEmailSentStatus("success");
+        setEmailSentStatus("success");
         // Clear inputs on success
         setEmailTo("");
         setEmailSubject("");
         setEmailBody("");
+        setIsEmailPreviewOpen(false); // Close preview
         setTimeout(() => setEmailSentStatus("idle"), 3000);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -113,6 +129,50 @@ export function useConsultationState({
   const [draftedEventId, setDraftedEventId] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [isSchedulePreviewOpen, setIsSchedulePreviewOpen] = useState(false);
+  
+  // Automatic conflict check as the user picks date/time
+  useEffect(() => {
+    if (!scheduleDateTime || !userId) {
+      setConflictWarning(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        // Calculate overlap range (e.g., 59 minutes before/after)
+        const checkTime = new Date(scheduleDateTime);
+        if (isNaN(checkTime.getTime())) return; // Avoid querying with invalid dates
+
+        const startRange = new Date(checkTime.getTime() - 59 * 60 * 1000).toISOString();
+        const endRange = new Date(checkTime.getTime() + 59 * 60 * 1000).toISOString();
+
+        let query = supabase
+          .from("events")
+          .select("id, title, date_time")
+          .eq("user_id", userId)
+          .gte("date_time", startRange)
+          .lte("date_time", endRange)
+          .neq("status", "cancelled");
+
+        if (draftedEventId) {
+          query = query.neq("id", draftedEventId);
+        }
+
+        const { data: conflicts } = await query.limit(1);
+
+        if (conflicts && conflicts.length > 0) {
+          const conflictTime = new Date(conflicts[0].date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" at ${conflictTime}.`);
+        } else {
+          setConflictWarning(null);
+        }
+      } catch (err) {
+        console.error("Conflict check failed:", err);
+      }
+    }, 200); // reduced to 200ms for "instant" feel
+
+    return () => clearTimeout(timer);
+  }, [scheduleDateTime, userId, draftedEventId]);
 
   const handleScheduleEvent = async () => {
     if (!scheduleDateTime || !scheduleType || !userId || scheduleEmails.length === 0) return;
@@ -128,19 +188,7 @@ export function useConsultationState({
     });
 
     try {
-      // 1. Conflict Check
-      const { data: conflicts } = await supabase
-        .from("events")
-        .select("id, title")
-        .eq("user_id", userId)
-        .eq("date_time", scheduleDateTime)
-        .limit(1);
-
-      if (conflicts && conflicts.length > 0) {
-        setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" at this time.`);
-      }
-
-      // 2. Create as Draft in Supabase
+      // 1. Create as Draft in Supabase (Conflict check is already reactive via useEffect)
       const { data, error } = await supabase
         .from("events")
         .insert({
@@ -156,14 +204,10 @@ export function useConsultationState({
         .single();
 
       if (error) throw error;
+      // 3. Status update (No chat interaction as requested)
       setDraftedEventId(data.id);
       setScheduleStatus("drafted");
       setIsSchedulePreviewOpen(true);
-
-      // 3. Inform Chat (Optional, but keeping for continuity)
-      if (handleSendMessage) {
-        handleSendMessage(`I've drafted a **${scheduleType}** on **${dateStr}** at **${timeStr}**. \n\nPlease review the details and click **Approve & Send** to notify the client(s).`);
-      }
 
     } catch (err: any) {
       console.error("Error drafting schedule:", err);
@@ -213,6 +257,10 @@ export function useConsultationState({
             dateTime: scheduleDateTime,
             notes: scheduleNotes,
           },
+          organizer: {
+            name: userName || userEmail,
+            email: userEmail
+          }
         }),
       });
 
@@ -222,16 +270,21 @@ export function useConsultationState({
       }
 
       setScheduleStatus("success");
-      if (handleSendMessage) {
-        handleSendMessage(`The invitation for the **${scheduleType}** has been approved and sent to **${scheduleEmails.join(', ')}**. The client(s) can now verify and confirm from their inbox.`);
-      }
+      setConflictWarning(null); // Clear warning on success
 
-      // Clear after success
+      // Reset form and clear state IMMEDIATELY so the user sees a blank form
+      setDraftedEventId(null);
+      setIsSchedulePreviewOpen(false);
+      
+      // Clear all form inputs
+      setScheduleType("Meeting");
+      setScheduleDateTime("");
+      setScheduleEmails([]);
+      setScheduleNotes("");
+
+      // Revert status to idle after a delay (allows for success UI to show)
       setTimeout(() => {
         setScheduleStatus("idle");
-        setDraftedEventId(null);
-        setIsSchedulePreviewOpen(false);
-        if (onTabChange) onTabChange('chat');
       }, 3000);
 
     } catch (err: any) {
@@ -536,7 +589,10 @@ export function useConsultationState({
       isSendingEmail,
       emailSentStatus,
       emailErrorMessage,
+      isEmailPreviewOpen,
+      setIsEmailPreviewOpen,
       handleSendEmail,
+      handleConfirmSendEmail,
     },
     scheduleState: {
       scheduleType,

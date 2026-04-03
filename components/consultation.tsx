@@ -26,6 +26,8 @@ import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
 import { uploadAndAnalyzeDocument } from "@/lib/s3-utils";
 import { Session } from "@supabase/supabase-js";
 import { Conversation } from "@/types";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useConversations, Message } from "@/components/conversation-provider/conversation-context";
@@ -200,6 +202,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     scrollContainerRef,
     supabase,
     userId: session?.user?.id,
+    userEmail: session?.user?.email,
+    userName: session?.user?.user_metadata?.full_name,
     isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),
@@ -224,6 +228,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     isSendingEmail,
     emailSentStatus,
     emailErrorMessage,
+    isEmailPreviewOpen,
+    setIsEmailPreviewOpen,
+    handleConfirmSendEmail,
     handleSendEmail,
   } = emailState;
   const { 
@@ -567,6 +574,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
               )}
 
+              {conflictWarning && (
+                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-white font-bold">Scheduling Conflict</p>
+                    <p className="text-xs text-amber-200/70">{conflictWarning}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-4 flex flex-col gap-3">
                 <button
                   onClick={handleFinalizeSchedule}
@@ -589,6 +606,97 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       </motion.div>
     );
   };
+
+  const EmailPreviewModal = () => {
+    if (!isEmailPreviewOpen) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+        onClick={() => setIsEmailPreviewOpen(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0, y: 30 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 30 }}
+          className="bg-[#141414] border border-[#8B4564]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-[#8B4564]/20 rounded-lg">
+                  <Send className="w-5 h-5 text-[#E0A7C2]" />
+                </div>
+                Review Email
+              </h2>
+              <button
+                onClick={() => setIsEmailPreviewOpen(false)}
+                className="p-2 rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">To</p>
+                  <p className="text-white font-medium break-all">{emailTo}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Subject</p>
+                  <p className="text-white font-medium truncate">{emailSubject}</p>
+                </div>
+              </div>
+              
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/5 max-h-[35vh] overflow-y-auto w-full">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Message Body</p>
+                <div className="text-gray-300 text-sm">
+                  <div className="prose prose-invert prose-sm max-w-none text-gray-300 prose-p:leading-relaxed prose-a:text-[#E0A7C2] hover:prose-a:text-white">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {emailBody}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+
+              {emailErrorMessage && (
+                <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3">
+                  <AlertCircle size={18} className="text-red-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-white font-bold">Failed to Send</p>
+                    <p className="text-xs text-red-200/70">{emailErrorMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 flex flex-col gap-3">
+                <button
+                  onClick={handleConfirmSendEmail}
+                  disabled={isSendingEmail}
+                  className="w-full py-4 bg-[#E0A7C2] hover:bg-white text-black font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#E0A7C2]/20"
+                >
+                  {isSendingEmail ? <Loader2 className="w-5 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
+                  {isSendingEmail ? "Sending Secure Email..." : "Approve & Send Email"}
+                </button>
+                <button
+                  onClick={() => setIsEmailPreviewOpen(false)}
+                  className="w-full py-4 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium rounded-2xl transition-all"
+                >
+                  Back to Editor
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
 
 
   /* sidebarRecentItems update to include onRename */
@@ -690,7 +798,18 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
             <AnimatePresence mode="wait">
-              {messages.length === 0 && (
+              {isLoading && messages.length === 0 ? (
+                <motion.div
+                  key="loading-main"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="h-full flex flex-col items-center justify-center py-20"
+                >
+                  <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
+                  <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
+                </motion.div>
+              ) : messages.length === 0 && !isLoading && (
                 <motion.div
                   key="quick-questions-top"
                   initial={{ opacity: 0, y: -10 }}
@@ -1008,55 +1127,55 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </div>
 
                     <div className="pt-4 flex justify-end">
-                      {scheduleStatus === 'success' ? (
-                        <div className="flex flex-col items-end gap-3 w-full">
-                          <div className="flex items-center gap-2 text-white bg-white/10 px-4 py-2 rounded-xl border border-[#10B981]/30">
-                            <span className="text-[#10B981] font-bold">✓ Scheduled Successfully</span>
-                          </div>
-                          <a
-                            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(scheduleType)}&dates=${new Date(scheduleDateTime).toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '')}/${new Date(new Date(scheduleDateTime).getTime() + 3600000).toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '')}&details=${encodeURIComponent(scheduleNotes)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-semibold text-[#10B981] hover:text-white transition-colors flex items-center gap-1.5 underline underline-offset-4"
-                          >
-                            <Calendar size={12} /> Add to your Google Calendar
-                          </a>
-                        </div>
-                      ) : (
-                        <div className="w-full space-y-4">
-                          {conflictWarning && (
-                            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                              <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
-                              <div className="flex-1">
-                                <p className="text-sm text-white font-bold">Scheduling Conflict</p>
-                                <p className="text-xs text-amber-200/70">{conflictWarning}</p>
-                                <button 
-                                  onClick={() => setConflictWarning(null)}
-                                  className="mt-2 text-xs font-bold text-amber-400 hover:underline"
-                                >
-                                  Ignore & Proceed
-                                </button>
-                              </div>
+                      <div className="w-full space-y-4">
+                        {conflictWarning && (
+                          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                            <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-white font-bold">Scheduling Conflict</p>
+                              <p className="text-xs text-amber-200/70">{conflictWarning}</p>
+                              <button 
+                                onClick={() => setConflictWarning(null)}
+                                className="mt-2 text-xs font-bold text-amber-400 hover:underline"
+                              >
+                                Ignore & Proceed
+                              </button>
                             </div>
-                          )}
+                          </div>
+                        )}
 
-                          <button
-                            className={`bg-[#10B981] text-black text-sm font-bold w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
-                                  'hover:bg-white'
-                              }`}
-                            onClick={handleScheduleEvent}
-                            disabled={isScheduling}
-                          >
-                            {isScheduling ? "Preparing invitation..." :
-                              scheduleStatus === 'error' ? "Try Again" :
-                                <>
-                                  <Calendar size={16} /> {scheduleStatus === 'drafted' ? 'Update & Review Preview' : 'Prepare Invitation'}
-                                </>
-                            }
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          className={`bg-[#10B981] text-black text-sm font-bold w-full py-3 rounded-lg transition-all flex items-center justify-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' :
+                                'hover:bg-white'
+                            }`}
+                          onClick={handleScheduleEvent}
+                          disabled={isScheduling || scheduleStatus === 'success'}
+                        >
+                          {isScheduling ? "Preparing invitation..." :
+                            scheduleStatus === 'error' ? "Try Again" :
+                            scheduleStatus === 'success' ? "Sent Successfully!" :
+                              <>
+                                <Calendar size={16} /> {scheduleStatus === 'drafted' ? 'Update & Review Preview' : 'Prepare Invitation'}
+                              </>
+                          }
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Success Popup Notification */}
+                    <AnimatePresence>
+                      {scheduleStatus === 'success' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 50, scale: 0.9, x: '-50%' }}
+                          animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                          exit={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
+                          className="fixed bottom-10 left-1/2 z-[100] bg-[#10B981] text-black px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold pointer-events-none"
+                        >
+                          <CheckCircle size={24} />
+                          <span>Consultation Scheduled & Invitation Sent!</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>
@@ -1134,6 +1253,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       <AnimatePresence>
         {isAnalysisModalOpen && <DocumentAnalysisModal />}
         {isSchedulePreviewOpen && <SchedulePreviewModal />}
+        {isEmailPreviewOpen && <EmailPreviewModal />}
       </AnimatePresence>
 
       {/* Source Detail Sidebar */}
