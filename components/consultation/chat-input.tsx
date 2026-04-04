@@ -240,8 +240,9 @@ export function ChatInput({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a"
+                accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
                 className="hidden"
+
                 disabled={disabled}
               />
 
@@ -252,10 +253,12 @@ export function ChatInput({
                 onClick={() => {
                   fileInputRef.current?.click();
                 }}
-                className="h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+
                 disabled={disabled}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:size-5 md:stroke-2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+
               </button>
 
               {/* Analyze Document button */}
@@ -266,7 +269,8 @@ export function ChatInput({
                   onClick={() => {
                     if (!isAnalyzing) onAnalyzeClick?.();
                   }}
-                  className={`h-9 w-9 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+
                     isAnalyzing
                       ? 'text-[#E0A7C2] bg-[#8B4564]/20 cursor-not-allowed'
                       : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
@@ -274,23 +278,28 @@ export function ChatInput({
                   disabled={disabled || isAnalyzing}
                 >
                   {isAnalyzing ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={20} className="animate-spin md:size-4" />
                   ) : (
-                    <Sparkles size={18} />
+                    <Sparkles size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
+
                   )}
+
                 </button>
               )}
 
               <button 
-                className={`h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`h-11 w-11 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+
                 onClick={handleSend}
                 disabled={disabled || (!value.trim() && !selectedFile)}
               >
                 {disabled ? (
-                  <Loader2 size={18} className="text-white animate-spin" />
+                  <Loader2 size={20} className="text-white animate-spin md:size-4" />
                 ) : (
-                  <Send size={18} className="text-white" />
+                  <Send size={20} className="text-white md:size-4 stroke-[2.5] md:stroke-2" />
+
                 )}
+
               </button>
 
             </div>

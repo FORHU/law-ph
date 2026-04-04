@@ -118,7 +118,8 @@ export function useSendMessage({
               );
               console.log("File uploaded and analyzed successfully:", uploadData);
               
-              const resolvedUrl = uploadData.file_url || `https://law-ph.s3.amazonaws.com/${uploadData.s3_key}`;
+              const s3BaseUrl = uploadData.url ? uploadData.url.split('?')[0] : null;
+              const resolvedUrl = uploadData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${uploadData.s3_key}`;
               currentFileAttachment = {
                 ...currentFileAttachment!,
                 url: resolvedUrl,

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mic, StopCircle, Briefcase, Loader2, Play, Pause, Trash2, Volume2, Sparkles, History, Plus } from 'lucide-react';
+import { X, Mic, StopCircle, Briefcase, Loader2, Play, Pause, Trash2, Volume2, Plus } from 'lucide-react';
+
 import { useRouter } from 'next/navigation';
 import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
@@ -17,7 +18,6 @@ import { ModalHeader } from './create-case/header';
 import { FormField } from './create-case/form-field';
 import { TranscriptionButton, AudioRecordButton } from './create-case/recording-buttons';
 import { SimpleAudioPlayer } from './create-case/audio-player';
-import { AISummarizerControls } from './create-case/ai-summarizer';
 import { MODAL_STYLES, STRINGS } from './create-case/constants';
 import { CaseNameInput } from './create-case/case-name-input';
 import { PartyInputList } from './create-case/party-input-list';
@@ -34,11 +34,11 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
   const [caseName, setCaseName] = useState('');
   const [parties, setParties] = useState<{ id: string, value: string }[]>([{ id: crypto.randomUUID(), value: '' }]);
   const [notes, setNotes] = useState('');
-  const [originalNotes, setOriginalNotes] = useState<string | null>(null);
   
+
   // Logic State
-  const [isSummarizing, setIsSummarizing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   
   // Recording Hook
   const {
@@ -101,6 +101,9 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
     e.preventDefault();
     if (!caseName.trim() || isRecording || isAudioRecording) return;
     
+    // Snapshot recordings NOW before any async work clears them
+    const recordingsSnapshot = [...recordings];
+    
     setIsSubmitting(true);
     try {
       const partyString = parties.map(p => p.value.trim()).filter(Boolean).join(', ');
@@ -112,25 +115,49 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
       });
 
       if (newCase) {
-        // Upload recordings
-        const { uploadVoiceNote } = await import('@/lib/s3-utils');
-        const { createClient } = await import('@/lib/supabase/client');
-        const supabase = createClient();
+        // Upload recordings to S3 (with fallback to blob URL on failure)
+        if (recordingsSnapshot.length > 0) {
+          const { uploadVoiceNote } = await import('@/lib/s3-utils');
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
 
-        const voiceNotes = await Promise.all(recordings.map(async (r, i) => {
-          const s3Url = await uploadVoiceNote(r.blob, `case_${newCase.id}_rec_${i}.webm`);
-          return { id: r.id, url: s3Url, label: `Recording ${i + 1}` };
-        }));
+          const voiceNotes = await Promise.all(recordingsSnapshot.map(async (r, i) => {
+            try {
+              const { file_url, s3_key } = await uploadVoiceNote(r.blob, `case_${newCase.id}_rec_${i + 1}.webm`);
+              if (!file_url) throw new Error('No URL returned from uploadVoiceNote');
+              
+              return { 
+                id: r.id, 
+                url: file_url, 
+                s3_key: s3_key,
+                label: `Recording ${i + 1}`,
+                duration: r.duration 
+              };
+            } catch (err: any) {
+              console.error(`[CreateCase] Failed to upload recording ${i + 1}:`, err);
+              // Fall back to temporary blob URL if upload fails - but warn user
+              return { 
+                id: r.id, 
+                url: r.url, 
+                label: `Recording ${i + 1} (Upload Failed)`,
+                duration: r.duration 
+              };
+            }
+          }));
 
-        if (voiceNotes.length > 0) {
-          const meta = { voiceNotes, recordingUrl: voiceNotes[0].url };
-          const content = `New case recordings attached.\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+          const meta = { voiceNotes, recordingUrl: voiceNotes[0]?.url, hidden: true };
+          const content = `\uD83C\uDF99\uFE0F ${voiceNotes.length} voice recording${voiceNotes.length > 1 ? 's' : ''} attached to this case.\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
           
-          await supabase.from('messages').insert({
+          // 'role' is the correct DB column (not 'sender') — matches use-send-message pattern
+          const { error: msgError } = await supabase.from('messages').insert({
             conversation_id: newCase.id,
+            role: 'user',
             content,
-            sender: 'user',
           });
+
+          if (msgError) {
+            console.error('[CreateCase] Failed to store recordings in message:', msgError.message);
+          }
         }
 
         onClose();
@@ -140,6 +167,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
         clearRecordings();
         router.push('/cases/' + newCase.id);
       }
+
     } catch (error) {
       console.error('Failed to create case:', error);
       alert('Failed to create case.');
@@ -148,54 +176,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
     }
   };
 
-  const handleSummarize = async () => {
-    if (!notes.trim() || isSummarizing) return;
-    const currentNotes = notes;
-    setOriginalNotes(currentNotes);
-    setIsSummarizing(true);
-    setNotes('');
-    
-    try {
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_input: `[STRICT SUMMARY] Summarize concisely: ${currentNotes}`,
-          session_id: `summarize_${Date.now()}`,
-        })
-      });
 
-      if (!response.ok) throw new Error("Failed to summarize");
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedText = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          let chunk = decoder.decode(value, { stream: true });
-          if (chunk.includes("__END__")) chunk = chunk.replace("__END__", "");
-          if (chunk.startsWith("[Tool]") || chunk.startsWith("[Error]")) continue;
-          accumulatedText += chunk;
-          setNotes(accumulatedText);
-        }
-      }
-    } catch (error) {
-      setNotes(currentNotes);
-      setOriginalNotes(null);
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  const handleRestoreOriginal = () => {
-    if (originalNotes !== null) {
-      const current = notes;
-      setNotes(originalNotes);
-      setOriginalNotes(current);
-    }
-  };
 
   return (
     <Portal>
@@ -246,9 +227,8 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                     />
                   </FormField>
 
-                  <FormField 
-                    label={STRINGS.notesLabel} 
-                    rightElement={
+                  <FormField label={STRINGS.notesLabel}>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <RecordingControls 
                         isRecording={isRecording} 
                         isAudioRecording={isAudioRecording} 
@@ -256,22 +236,12 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                         onToggleTranscription={toggleTranscription} 
                         onToggleAudio={toggleAudioRecording} 
                       />
-                    }
-                  >
-                    <NotesTextarea value={notes} onChange={handleNotesChange} isSummarizing={isSummarizing} />
-                    
-                    <AISummarizerControls 
-                      onSummarize={handleSummarize}
-                      onRestoreOriginal={handleRestoreOriginal}
-                      isSummarizing={isSummarizing}
-                      hasNotes={!!notes.trim()}
-                      hasOriginalNotes={originalNotes !== null}
-                      isShowingSummary={originalNotes !== null && notes.length < (originalNotes?.length || 0)}
-                    />
-                    
+                    </div>
+                    <NotesTextarea value={notes} onChange={handleNotesChange} />
+
                     <div className="space-y-2 mt-2">
                       {recordings.length > 0 && (
-                        <p className="text-[11px] font-medium text-gray-400 ml-1 uppercase tracking-wider">{STRINGS.recordingMultiple}</p>
+                        <p className="text-[11px] font-medium text-gray-400 ml-1 uppercase tracking-wider">{STRINGS.recordingMultiple} ({recordings.length})</p>
                       )}
                       <AnimatePresence>
                         {recordings.map((rec) => (
@@ -290,6 +260,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                       </AnimatePresence>
                     </div>
                   </FormField>
+
 
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={onClose} className={MODAL_STYLES.buttonCancel}>{STRINGS.cancelBtn}</button>

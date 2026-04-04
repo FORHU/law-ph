@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark, Mic } from 'lucide-react';
+import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark, Mic, Download } from 'lucide-react';
 import { LegalSource, RelatedCase, isGenericTitle, extractTitleFromContent, cleanLegalTitle } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
 import { COLORS } from '@/lib/constants';
@@ -332,18 +332,65 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                         Voice Recordings ({localVoiceNotes.length})
                       </h3>
                       <div className="space-y-3">
-                        {localVoiceNotes.map((note, idx) => (
-                          <div key={note.id || idx} className="p-3 bg-black/30 rounded-xl border border-white/5">
-                            <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
-                              <Mic size={10} className="text-[#8B4564]" />
-                              {note.label || `Voice Note #${idx + 1}`}
-                            </p>
-                            <audio
-                              controls
-                              src={note.url}
-                              controlsList="nodownload"
-                              className="h-9 w-full"
-                            />
+                        {localVoiceNotes.map((note: any, idx) => (
+                          <div key={note.id || idx} className="p-4 bg-[#1A1A1A] rounded-2xl border border-white/5 shadow-inner group/player">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-[#8B4564]/20 rounded-lg text-[#E0A7C2]">
+                                  <Mic size={12} />
+                                </div>
+                                <p className="text-xs font-bold text-gray-200">
+                                  {note.label || `Voice Note #${idx + 1}`}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {note.duration > 0 && (
+                                  <span className="text-[10px] font-mono text-gray-400 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
+                                    {Math.floor(note.duration / 60)}:{(note.duration % 60).toString().padStart(2, '0')}
+                                  </span>
+                                )}
+                                {note.messageTime && (
+                                  <span className="text-[9px] text-gray-500 font-medium">
+                                    {note.messageTime}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="w-full flex items-center gap-3">
+                              <audio
+                                controls
+                                src={note.s3_key ? `/api/proxy/api/legal/document-content?s3_key=${note.s3_key}` : note.url}
+                                controlsList="nodownload"
+                                className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
+                                onLoadedMetadata={(e) => {
+                                  // Sometimes WebM blobs need a little nudge to show duration
+                                  const audio = e.currentTarget;
+                                  if (audio.duration === Infinity) {
+                                    audio.currentTime = 1e101;
+                                    audio.ontimeupdate = () => {
+                                      audio.ontimeupdate = null;
+                                      audio.currentTime = 0;
+                                    };
+                                  }
+                                }}
+                              />
+                            </div>
+                            
+                            <div className="mt-2 flex justify-end">
+                              <button 
+                                onClick={() => {
+                                  const playUrl = note.s3_key ? `/api/proxy/api/legal/document-content?s3_key=${note.s3_key}` : note.url;
+                                  const a = document.createElement('a');
+                                  a.href = playUrl;
+                                  a.download = `recording-${idx + 1}.webm`;
+                                  a.click();
+                                }}
+                                className="text-[10px] text-gray-500 hover:text-[#E0A7C2] flex items-center gap-1 transition-colors"
+                              >
+                                <Download size={10} /> Download
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

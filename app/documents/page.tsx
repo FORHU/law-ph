@@ -161,7 +161,10 @@ export default function Documents() {
                   dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
                 }`}
               >
-                <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt" multiple
+                <input ref={fileInputRef} type="file" className="hidden" 
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*" 
+                  multiple
+
                   onChange={(e) => { 
                     if (e.target.files?.length) {
                       setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]); 
@@ -195,8 +198,8 @@ export default function Documents() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-base text-white">Drop documents here or click to browse</p>
-                      <p className="text-sm text-gray-500">PDF, DOC, DOCX, TXT (Max 20MB per file). Select multiple to synthesize.</p>
+                      <p className="text-sm text-gray-500">PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Select multiple to synthesize.</p>
+
                     </>
                   )}
                 </div>
@@ -225,15 +228,18 @@ export default function Documents() {
               <button
                 onClick={handleLinkToChat}
                 disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
-                className={`w-full mt-5 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`w-full mt-5 px-6 py-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                   selectedFiles.length > 0 && !isUploading && selectedCaseId
                     ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
-                    : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed'
+                    : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed shadow-inner'
                 }`}
+
               >
-                {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Scale size={18} />} 
+                {isUploading ? <Loader2 size={20} className="animate-spin md:size-4 stroke-[2.5] md:stroke-2" /> : <Scale size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />} 
+ 
                 {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case'}
             </button>
+
           </div>
         </div>
       </div>

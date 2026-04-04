@@ -6,6 +6,7 @@ interface RecordingResult {
   id: string;
   url: string;
   blob: Blob;
+  duration: number;
 }
 
 export function useCaseRecording() {
@@ -19,6 +20,7 @@ export function useCaseRecording() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -63,7 +65,10 @@ export function useCaseRecording() {
   useEffect(() => {
     if (isRecording || isAudioRecording) {
       setDuration(0);
-      timerRef.current = setInterval(() => setDuration(prev => prev + 1), 1000);
+      startTimeRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
       setDuration(0);
@@ -104,9 +109,24 @@ export function useCaseRecording() {
         };
 
         mediaRecorder.onstop = () => {
+          const finalDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
           const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(blob);
-          setRecordings(prev => [...prev, { id: crypto.randomUUID(), url, blob }]);
+          
+          console.log(`[Use-Recording] Recording stopped. Duration: ${finalDuration}s, Size: ${blob.size} bytes`);
+
+          if (blob.size === 0) {
+            console.error('[Use-Recording] Recorded blob is empty. Check microphone permissions or input.');
+            alert('Recording contains no audio data. Please ensure your microphone is working and try again.');
+          } else {
+            setRecordings(prev => [...prev, { 
+              id: crypto.randomUUID(), 
+              url, 
+              blob, 
+              duration: finalDuration 
+            }]);
+          }
+          
           stream.getTracks().forEach(track => track.stop());
         };
 
