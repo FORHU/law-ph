@@ -171,8 +171,9 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a"
+                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
                   onChange={handleFileChange}
+
                   className="hidden"
                   disabled={disabled}
                 />
@@ -284,18 +285,21 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={resetState}
-                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 text-sm font-medium transition-colors"
+                  className="flex-1 py-3.5 md:py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:border-white/20 text-sm font-medium transition-colors"
                 >
                   Upload Another
                 </button>
                 <button
                   onClick={handleSendToChat}
                   disabled={disabled}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B4564] to-[#7a3c58] hover:from-[#9D5373] hover:to-[#8B4564] text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#8B4564]/20"
+                  className="flex-1 py-3.5 md:py-2.5 rounded-xl bg-gradient-to-r from-[#8B4564] to-[#7a3c58] hover:from-[#9D5373] hover:to-[#8B4564] text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#8B4564]/20"
                 >
-                  <Send size={15} />
+
+                  <Send size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
+
                   Send to Chat
                 </button>
+
               </div>
             </motion.div>
           )}

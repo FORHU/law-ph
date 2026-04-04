@@ -389,7 +389,19 @@ export function MessageItem({
                   <span className="text-xs font-bold text-[#E0A7C2] animate-pulse italic">ANALYZING...</span>
                 ) : null
               ) : (
-                message.text
+                <>
+                  {message.text && <span>{message.text}</span>}
+                  {/* Show voice notes for user messages (e.g. case recordings) */}
+                  {(message.voiceNotes?.length || message.recordingUrl) ? (
+                    <div className="mt-3">
+                      <VoiceNoteSection
+                        message={message}
+                        onUpdateMessage={onUpdateMessage}
+                        formatTime={formatTime}
+                      />
+                    </div>
+                  ) : null}
+                </>
               )
             ) : (
               <div className="w-full min-w-[300px] md:min-w-[500px]">

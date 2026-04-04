@@ -122,6 +122,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         url: string;
         label?: string;
         messageTime?: string;
+        duration?: number;
       }[] = [];
       messages.forEach((msg) => {
         const notes =
@@ -135,6 +136,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               note.label ||
               `Recording from ${msg.time || "unknown time"}${notes.length > 1 ? ` (#${idx + 1})` : ""}`,
             messageTime: msg.time,
+            duration: note.duration, // Capture stored duration
           });
         });
       });
@@ -147,7 +149,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             m.voiceNotes &&
             m.voiceNotes.length > 0 &&
             m.text &&
-            !m.text.startsWith("[Case Analysis Request]"),
+            !m.text.startsWith("[Case Analysis Request]") &&
+            !m.text.includes("voice recording attached to this case") // Exclude meta placeholder
         )
         .map((m) => m.text.trim())
         .filter(Boolean);
@@ -155,7 +158,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       let description = `**Party Involved:** ${activeCase.party_involved || "N/A"}\n\n**Notes:**\n${activeCase.notes || "None provided"}`;
 
       if (transcribedTexts.length > 0) {
-        description += `\n\n---\n\n**Transcribed Audio Notes:**\n${transcribedTexts.map((t, i) => `${i + 1}. ${t}`).join("\n\n")}`;
+        description += `\n\n---\n\n**Recorded Audio:**\n${transcribedTexts.map((t, i) => `${i + 1}. ${t}`).join("\n\n")}`;
       }
 
       openCaseDetail({
@@ -474,8 +477,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 ref={modalFileInputRef}
                 type="file"
                 className="hidden"
-                accept=".pdf,.doc,.docx,.txt"
+                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
                 onChange={(e) => {
+
                   if (e.target.files?.length) {
                     handleAnalyzeFile(e.target.files[0]);
                   }
@@ -490,8 +494,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     Drop documents here or click to browse
                   </p>
                   <p className="text-sm text-gray-500 max-w-[280px] mx-auto">
-                    PDF, DOC, DOCX, TXT (Max 20MB). Your analysis will start automatically.
+                    PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Analysis will start automatically.
                   </p>
+
                 </div>
               </div>
             </div>
@@ -809,7 +814,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
                   <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
                 </motion.div>
-              ) : messages.length === 0 && !isLoading && (
+              ) : (messages.filter(m => m.sender === 'ai').length === 0) && !isLoading && (
                 <motion.div
                   key="quick-questions-top"
                   initial={{ opacity: 0, y: -10 }}
