@@ -1,6 +1,6 @@
 export interface Message {
   id: string | number
-  role?: 'user' | 'assistant'
+  role?: 'user' | 'assistant' | 'system'
   content?: string
   conversation_id?: string
   imagePreview?: string
@@ -9,7 +9,7 @@ export interface Message {
   timestamp?: Date | string
   // Chat UI fields (required for UI but can be mapped from content)
   text: string
-  sender: 'user' | 'ai'
+  sender: 'user' | 'ai' | 'system'
   time: string
   recordingUrl?: string // @deprecated
   voiceNotes?: { id: string, url: string }[]

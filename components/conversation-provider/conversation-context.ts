@@ -7,7 +7,7 @@ import { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
 export interface Message {
   id: string | number;
   text: string;
-  sender: 'user' | 'ai';
+  sender: 'user' | 'ai' | 'system';
   time: string;
   sources?: LegalSource[];
   relatedCases?: RelatedCase[];

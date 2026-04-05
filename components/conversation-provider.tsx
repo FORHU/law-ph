@@ -345,7 +345,8 @@ export function ConversationProvider({
   // Helper to map Supabase/Cloud messages to UI format
   const mapCloudMessage = useCallback((msg: any): Message => {
     let text = msg.content || msg.text || "";
-    const sender = msg.sender || (msg.role === "assistant" ? "ai" : "user");
+    const role = msg.role || msg.sender;
+    const sender = role === "assistant" ? "ai" : (role === "system" ? "system" : "user");
 
     // Extract custom ILM metadata
     let meta: any = {};
@@ -415,7 +416,6 @@ export function ConversationProvider({
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -739,7 +739,6 @@ export function ConversationProvider({
       const { data, error } = await supabase
         .from("cases")
         .select("*")
-        .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (!error && data) setCases(data as CaseData[]);
     } catch (err) {

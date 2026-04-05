@@ -3,7 +3,7 @@ import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 export interface Message {
   id: string | number;
   text: string;
-  sender: 'user' | 'ai';
+  sender: 'user' | 'ai' | 'system';
   time: string;
   sources?: LegalSource[];
   relatedCases?: RelatedCase[];

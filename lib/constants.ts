@@ -2,6 +2,7 @@
 export const CHAT_SENDER = {
   USER: 'user',
   AI: 'ai',
+  SYSTEM: 'system',
 } as const;
 
 export const STORAGE_KEYS = {

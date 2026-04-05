@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Shield, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AUTH_ROUTES } from '@/lib/constants';
@@ -15,6 +15,8 @@ import { motion } from 'framer-motion';
 
 const LoginScreen = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams?.get('redirect') || '/consultation';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +37,7 @@ const LoginScreen = () => {
 
       if (signInError) throw signInError;
       
-      router.push('/consultation');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message || 'An error occurred during sign in');
     } finally {

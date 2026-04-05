@@ -94,6 +94,16 @@ export function MessageItem({
     }
   };
 
+  if (message.sender === 'system') {
+    return (
+      <div id={`message-bubble-${message.id}`} className="flex flex-col items-center justify-center my-6 scroll-mt-32 w-full animate-in fade-in slide-in-from-bottom-1 duration-700">
+        <div className="text-[12px] font-medium text-center text-gray-500/80 tracking-tight max-w-xl px-4 py-1 italic">
+          {message.text}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       id={`message-bubble-${message.id}`}

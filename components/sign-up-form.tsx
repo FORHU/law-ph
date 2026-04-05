@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UserPlus, Lock, Shield, Scale } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -15,6 +15,9 @@ import { SignUpSuccessModal } from './auth/sign-up-success-modal';
 
 export function SignUpForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams?.get('redirect');
+  const redirectQuery = redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : '';
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -48,7 +51,7 @@ export function SignUpForm() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.LOGIN}`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.LOGIN}${redirectQuery}`,
           data: {
             full_name: formData.fullName,
           },
@@ -182,7 +185,7 @@ export function SignUpForm() {
           <p className="text-white/60 text-sm">
             Already have an account?{' '}
             <button
-              onClick={() => router.push(AUTH_ROUTES.LOGIN)}
+              onClick={() => router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`)}
               className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
             >
               Sign in
@@ -219,7 +222,7 @@ export function SignUpForm() {
 
       <SignUpSuccessModal 
         isOpen={showSuccessModal} 
-        onClose={() => router.push(AUTH_ROUTES.LOGIN)}
+        onClose={() => router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`)}
         email={formData.email}
       />
     </AuthLayout>
