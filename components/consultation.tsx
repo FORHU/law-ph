@@ -44,6 +44,7 @@ import { NoteSidebar } from "./consultation/note-sidebar";
 import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
+import { CaseInviteButton } from "./consultation/case-invite-button";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
@@ -784,12 +785,15 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       headerActions={
         <div className="flex items-center gap-2">
           {isCaseMode && activeCase && messages.length > 0 && (
-            <button
-              onClick={handleViewCaseDetails}
-              className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
-            >
-              <Briefcase size={13} /> View Case Details
-            </button>
+            <>
+              <CaseInviteButton caseId={activeCase.id.toString()} />
+              <button
+                onClick={handleViewCaseDetails}
+                className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
+              >
+                <Briefcase size={13} /> View Case Details
+              </button>
+            </>
           )}
         </div>
       }

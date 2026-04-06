@@ -3,19 +3,27 @@
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 export function GoogleLoginButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+      const redirectParam = searchParams?.get('redirect');
+      const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+      if (redirectParam) {
+        callbackUrl.searchParams.set('next', redirectParam);
+      }
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       });
 
