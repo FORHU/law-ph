@@ -13,7 +13,7 @@ export interface Message {
   relatedCases?: RelatedCase[];
   timeline?: any[];
   recordingUrl?: string; // @deprecated
-  voiceNotes?: { id: string, url: string }[];
+  voiceNotes?: { id: string, url: string, s3_key?: string }[];
   isEditing?: boolean;
   originalText?: string;
   editedAt?: string;
@@ -83,11 +83,12 @@ export type ConversationContextType = {
   detailContext: string;
   openSourceDetail: (source: LegalSource, context?: string) => void;
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
-  openSourceByItemId: (itemId: string, context?: string) => void;
+  openSourceByItemId: (itemId: string, title?: string, context?: string) => void;
   closeDetailSidebar: () => void;
 
   cases: CaseData[];
   refreshCases: () => Promise<void>;
+  casesLoaded: boolean;
   handleCreateCase: (caseData: { name: string; party: string; notes: string }) => Promise<CaseData | null>;
   handleDeleteCase: (id: string) => Promise<void>;
 

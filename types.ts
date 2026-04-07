@@ -12,7 +12,7 @@ export interface Message {
   sender: 'user' | 'ai' | 'system'
   time: string
   recordingUrl?: string // @deprecated
-  voiceNotes?: { id: string, url: string }[]
+  voiceNotes?: { id: string, url: string, s3_key?: string }[]
   isEditing?: boolean
   originalText?: string
   editedAt?: string

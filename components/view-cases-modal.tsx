@@ -7,6 +7,7 @@ import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
 import { CaseData } from '@/types';
 import { useRouter } from 'next/navigation';
+import { useAuth } from './auth/auth-provider';
 
 interface ViewCasesModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface ViewCasesModalProps {
 
 function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelete: (id: string) => void; onClose: () => void }) {
   const router = useRouter();
+  const { session } = useAuth();
   const [deleting, setDeleting] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
 
@@ -56,7 +58,7 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
         </div>
         <div className="flex flex-col gap-2 flex-shrink-0">
           <AnimatePresence mode="wait">
-            {!showConfirm ? (
+            {caseItem.user_id === session?.user?.id && !showConfirm ? (
               <motion.button
                 key="delete-btn"
                 initial={{ opacity: 0 }}
@@ -68,7 +70,7 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
               >
                 <Trash2 size={16} />
               </motion.button>
-            ) : (
+            ) : showConfirm ? (
               <motion.div
                 key="confirm-btns"
                 initial={{ opacity: 0, x: 20 }}
@@ -91,7 +93,7 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
                   {deleting ? <Loader2 size={11} className="animate-spin" /> : "Delete"}
                 </button>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
         </div>
       </div>

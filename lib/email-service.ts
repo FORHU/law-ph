@@ -129,7 +129,7 @@ export async function sendEmail({
   }
 
   return await resend.emails.send({
-    from: `Lawyer (${organizer?.email}) <updates@ilovelawyer.com>`,
+    from: `${organizer?.email} <updates@ilovelawyer.com>`,
     to: cleanRecipients,
     replyTo: organizer?.email,
     subject: emailSubject,

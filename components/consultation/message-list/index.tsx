@@ -10,7 +10,7 @@ interface MessageListProps {
   onDelete?: (id: string | number) => void;
   onSourceClick?: (source: any, context?: string) => void;
   onCaseClick?: (caseItem: any, context?: string) => void;
-  onSourceLinkClick?: (itemId: string) => void;
+  onSourceLinkClick?: (itemId: string, title?: string) => void;
   onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
   onOpenNote?: (id: string | number, text: string) => void;
   isLoading?: boolean;

@@ -93,6 +93,7 @@ export default function Consultation() {
     closeDetailSidebar,
     updateMessage,
     cases,
+    casesLoaded,
     analyzeDocuments
   } = useConversations();
 
@@ -124,6 +125,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         label?: string;
         messageTime?: string;
         duration?: number;
+        s3_key?: string;
       }[] = [];
       messages.forEach((msg) => {
         const notes =
@@ -138,6 +140,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               `Recording from ${msg.time || "unknown time"}${notes.length > 1 ? ` (#${idx + 1})` : ""}`,
             messageTime: msg.time,
             duration: note.duration, // Capture stored duration
+            s3_key: note.s3_key, // Ensure secure proxy can be used
           });
         });
       });
@@ -807,7 +810,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
             <AnimatePresence mode="wait">
-              {isLoading && messages.length === 0 ? (
+              {(isLoading && messages.length === 0) || (isCaseMode && !casesLoaded) ? (
                 <motion.div
                   key="loading-main"
                   initial={{ opacity: 0 }}
@@ -818,7 +821,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
                   <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
                 </motion.div>
-              ) : (messages.filter(m => m.sender === 'ai').length === 0) && !isLoading && (
+              ) : (messages.filter(m => m.sender === 'ai').length === 0) && !isLoading && casesLoaded && (
                 <motion.div
                   key="quick-questions-top"
                   initial={{ opacity: 0, y: -10 }}
@@ -892,9 +895,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   openCaseDetail(cs, c);
                   setIsSidebarOpen(false);
                 }}
-                onSourceLinkClick={(id) => {
+                onSourceLinkClick={(id, title) => {
                   if (id && id !== "__NAVIGATE__") {
-                    openSourceByItemId(id);
+                    openSourceByItemId(id, title);
                   }
                   setIsSidebarOpen(false);
                 }}

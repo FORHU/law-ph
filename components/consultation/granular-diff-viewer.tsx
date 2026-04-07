@@ -63,7 +63,7 @@ export function GranularDiffViewer({
 }: {
   original?: string;
   current?: string;
-  onSourceLinkClick?: (itemId: string) => void;
+  onSourceLinkClick?: (itemId: string, title?: string) => void;
 }) {
   const safeOriginal = original || "";
   const safeCurrent = current || "";
@@ -95,7 +95,12 @@ export function GranularDiffViewer({
               target={isSourceLink ? undefined : '_blank'}
               rel={isSourceLink ? undefined : 'noopener noreferrer'}
               className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors cursor-pointer"
-              onClick={isSourceLink ? (e: React.MouseEvent) => { e.preventDefault(); onSourceLinkClick(itemId); } : undefined}
+              onClick={isSourceLink ? (e: React.MouseEvent) => { 
+                e.preventDefault(); 
+                // Pass the children text as the title if available
+                const title = children?.toString() || "";
+                onSourceLinkClick(itemId, title); 
+              } : undefined}
             >
               {children}
             </a>
