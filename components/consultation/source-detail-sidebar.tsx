@@ -9,6 +9,7 @@ import { COLORS } from '@/lib/constants';
 import ReactMarkdown from 'react-markdown';
 import { HtmlRenderer } from '@/components/ui/html-renderer';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
+import { useAuth } from '@/components/auth/auth-provider';
 
 interface SourceDetailSidebarProps {
   isOpen: boolean;
@@ -25,7 +26,6 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
   const { addBookmark, removeBookmark, isBookmarked } = useConversations();
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
-  // Derive a stable item_id from the source/case reference
   // Derive a stable item_id from the source/case reference
   const itemId = source?.reference || caseItem?.caseNumber || caseItem?.itemId || content?.reference || content?.title || '';
 
@@ -358,38 +358,23 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                             </div>
                             
                             <div className="w-full flex items-center gap-3">
-                              <audio
-                                controls
-                                src={note.s3_key ? `/api/proxy/api/legal/document-content?s3_key=${note.s3_key}` : note.url}
-                                controlsList="nodownload"
-                                className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
-                                onLoadedMetadata={(e) => {
-                                  // Sometimes WebM blobs need a little nudge to show duration
-                                  const audio = e.currentTarget;
-                                  if (audio.duration === Infinity) {
-                                    audio.currentTime = 1e101;
-                                    audio.ontimeupdate = () => {
-                                      audio.ontimeupdate = null;
-                                      audio.currentTime = 0;
-                                    };
-                                  }
-                                }}
-                              />
-                            </div>
-                            
-                            <div className="mt-2 flex justify-end">
-                              <button 
-                                onClick={() => {
-                                  const playUrl = note.s3_key ? `/api/proxy/api/legal/document-content?s3_key=${note.s3_key}` : note.url;
-                                  const a = document.createElement('a');
-                                  a.href = playUrl;
-                                  a.download = `recording-${idx + 1}.webm`;
-                                  a.click();
-                                }}
-                                className="text-[10px] text-gray-500 hover:text-[#E0A7C2] flex items-center gap-1 transition-colors"
-                              >
-                                <Download size={10} /> Download
-                              </button>
+                                <audio
+                                  controls
+                                  src={note.s3_key ? `https://d1lq91nbxprxl1.cloudfront.net/${note.s3_key}` : note.url}
+                                  controlsList="nodownload"
+                                  className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
+                                  onLoadedMetadata={(e) => {
+                                    // Sometimes WebM blobs need a little nudge to show duration
+                                    const audio = e.currentTarget;
+                                    if (audio.duration === Infinity) {
+                                      audio.currentTime = 1e101;
+                                      audio.ontimeupdate = () => {
+                                        audio.ontimeupdate = null;
+                                        audio.currentTime = 0;
+                                      };
+                                    }
+                                  }}
+                                />
                             </div>
                           </div>
                         ))}

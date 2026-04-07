@@ -30,7 +30,7 @@ interface MessageItemProps {
   onDelete?: (id: string | number) => void;
   onSourceClick?: (source: LegalSource, context?: string) => void;
   onCaseClick?: (caseItem: RelatedCase, context?: string) => void;
-  onSourceLinkClick?: (itemId: string) => void;
+  onSourceLinkClick?: (itemId: string, title?: string) => void;
   onUpdateMessage?: (id: string | number, updates: Partial<Message>) => void;
   onOpenNote?: (id: string | number, text: string) => void;
   scrollToMessage: (id: string | number) => void;

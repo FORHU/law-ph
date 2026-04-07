@@ -17,10 +17,47 @@ export interface LegalContentDetail {
  * In a production environment, this would call an API to fetch actual legal documents
  */
 export async function fetchSourceContent(source: LegalSource, context?: string): Promise<LegalContentDetail> {
-  // Simulate API call delay
+  // If we have a real database itemId, fetch the real content
+  if (source.itemId) {
+    try {
+      const res = await fetch(`/api/legal/case/${encodeURIComponent(source.itemId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Convert the HTML from the DB into clean Markdown
+        const turndownService = new TurndownService({
+          headingStyle: 'atx',
+          codeBlockStyle: 'fenced',
+          bulletListMarker: '-',
+        });
+        
+        // Remove images to prevent 404s for broken legacy assets
+        turndownService.addRule('removeImages', {
+          filter: ['img'],
+          replacement: () => ''
+        });
+        
+        const cleanMarkdown = turndownService.turndown(data.text_content || '');
+        const apiTitle = data.title || source.reference;
+        const finalTitle = extractTitleFromContent(cleanMarkdown, apiTitle);
+
+        return {
+          title: finalTitle,
+          reference: data.law_number || data.gr_number || source.reference,
+          fullText: cleanMarkdown,
+          relevantSection: extractRelevantSection(cleanMarkdown, context),
+          url: data.url || generateSourceUrl(source),
+          isHtml: false
+        };
+      }
+      console.warn('[Fetch Source] API error, falling back:', res.status);
+    } catch (err) {
+      console.error('[Fetch Source] Network error, falling back:', err);
+    }
+  }
+
+  // Fallback to mock content
   await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // Mock content based on source type
   const mockContent = generateMockSourceContent(source);
   
   return {

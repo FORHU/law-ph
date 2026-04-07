@@ -27,9 +27,14 @@ export function useDetailSidebar(setIsSidebarOpen: (isOpen: boolean) => void) {
   };
 
   /** Open the source detail sidebar by item_id (e.g. from a /sources/123 link). Stays on current page. */
-  const openSourceByItemId = (itemId: string, context?: string) => {
-    setSelectedCase({ itemId, title: '', caseNumber: '', description: '' });
-    setSelectedSource(null);
+  const openSourceByItemId = (itemId: string, title?: string, context?: string) => {
+    setSelectedSource({ 
+      reference: title || itemId, 
+      type: 'code', 
+      description: 'Legal reference',
+      itemId: itemId 
+    });
+    setSelectedCase(null);
     setDetailContext(context || '');
     setIsDetailSidebarOpen(true);
     setIsSidebarOpen(false);

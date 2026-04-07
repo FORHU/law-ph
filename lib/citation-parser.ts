@@ -4,6 +4,7 @@ export interface LegalSource {
   type: 'article' | 'section' | 'provision' | 'code';
   reference: string;
   description: string;
+  itemId?: string;
 }
 
 export interface RelatedCase {

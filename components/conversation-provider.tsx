@@ -72,7 +72,7 @@ export function ConversationProvider({
     async (
       id: string | number,
       updates: Partial<Message> & {
-        __appendVoiceNote?: { id: string; url: string; label?: string };
+        __appendVoiceNote?: { id: string; url: string; label?: string; s3_key?: string };
       },
     ) => {
       // 1. Update state immediately for UI responsiveness
@@ -235,6 +235,7 @@ export function ConversationProvider({
   // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [casesLoaded, setCasesLoaded] = useState(false);
 
   // Ref to track all IDs deleted during this session to prevent any "resurrection" from stale API data
   const deletedIdsRef = useRef<Set<string>>(new Set());
@@ -572,7 +573,13 @@ export function ConversationProvider({
         return;
       }
 
-      if (!userId || !loggedIn || !loaded) return;
+      if (!userId || !loggedIn) return;
+      
+      // If we are looking for a specific conversation/case, we don't strictly need the full sidebar lists (loaded/casesLoaded)
+      // to have finished. We can attempt to fetch the messages for that specific ID immediately.
+      const isInitialFetchWithId = syncedConversationId && !loaded && !casesLoaded;
+      
+      if (!isInitialFetchWithId && (!loaded && !casesLoaded)) return;
 
       // Prevent race condition: if we intentionally cleared the consultation ID but the URL hasn't updated yet,
       // don't immediately re-fetch the old one.
@@ -741,6 +748,7 @@ export function ConversationProvider({
         .select("*")
         .order("created_at", { ascending: false });
       if (!error && data) setCases(data as CaseData[]);
+      setCasesLoaded(true);
     } catch (err) {
       console.error("[ConversationProvider] fetchCases error:", err);
     }
@@ -810,17 +818,38 @@ export function ConversationProvider({
 
   const handleDeleteCase = useCallback(
     async (id: string) => {
+      // Optimistically remove from UI
       setCases((prev) => prev.filter((c) => c.id !== id));
-      const { error } = await supabase.from("cases").delete().eq("id", id);
-      if (error) {
-        console.error(
-          "[ConversationProvider] handleDeleteCase error:",
-          error.message,
-        );
-        await fetchCases(); // Revert on failure
+      
+      try {
+        const { data: dbCase } = await supabase.from("cases").select("*").eq("id", id).single();
+        if (dbCase && dbCase.user_id !== userId) {
+          alert(`Wait! You are not the owner. Owner: ${dbCase.user_id}, You: ${userId}`);
+        }
+
+        const convRes = await supabase.from("conversations").delete().eq("id", id);
+        if (convRes.error) {
+          alert(`Conv Delete Error: ${convRes.error.message}`);
+        }
+        
+        const caseRes = await supabase.from("cases").delete().eq("id", id).select();
+        
+        if (caseRes.error) {
+          alert(`Case Delete Error: ${caseRes.error.message}`);
+          await fetchCases(); // Revert on failure
+        } else if (!caseRes.data || caseRes.data.length === 0) {
+          alert(`Case delete failed silently. ID: ${id}, user_id: ${dbCase?.user_id}, my id: ${userId}`);
+          await fetchCases();
+        } else {
+          // Success
+          console.log("Successfully deleted case:", caseRes.data);
+        }
+      } catch (err: any) {
+        alert(`Critical delete error: ${err?.message || 'Unknown'}`);
+        await fetchCases();
       }
     },
-    [supabase, fetchCases],
+    [supabase, fetchCases, userId],
   );
 
   useEffect(() => {
@@ -1024,6 +1053,7 @@ Please help me understand this document or answer questions based on it.`;
         closeDetailSidebar,
         cases,
         refreshCases: fetchCases,
+        casesLoaded,
         handleCreateCase,
         handleDeleteCase,
         bookmarks,
