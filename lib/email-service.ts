@@ -1,4 +1,4 @@
-import { resend } from './resend';
+import { transporter, defaultFrom } from './mail-transport';
 import { Buffer } from 'buffer';
 
 interface SendEmailParams {
@@ -128,12 +128,23 @@ export async function sendEmail({
     emailContent = markdownToHtml(body);
   }
 
-  return await resend.emails.send({
-    from: `${organizer?.email} <updates@ilovelawyer.com>`,
-    to: cleanRecipients,
-    replyTo: organizer?.email,
-    subject: emailSubject,
-    html: emailContent,
-    ...(attachments.length > 0 && { attachments }),
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: organizer?.email ? `${organizer.name || organizer.email} <${organizer.email}>` : defaultFrom,
+      to: cleanRecipients,
+      replyTo: organizer?.email || defaultFrom,
+      subject: emailSubject,
+      html: emailContent,
+      attachments: attachments.map(a => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType
+      })),
+    });
+
+    return { data: info, error: null };
+  } catch (error) {
+    console.error('Nodemailer Error:', error);
+    return { data: null, error };
+  }
 }

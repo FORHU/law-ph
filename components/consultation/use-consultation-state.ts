@@ -75,7 +75,7 @@ export function useConsultationState({
     setEmailErrorMessage("");
 
     try {
-      const response = await fetch("/api/resend", {
+      const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -244,8 +244,8 @@ export function useConsultationState({
 
       if (updateError) throw new Error(`Database update failed: ${updateError.message}`);
 
-      // 3. Trigger Resend API
-      const response = await fetch("/api/resend", {
+      // 3. Trigger Email API
+      const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

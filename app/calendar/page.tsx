@@ -436,8 +436,8 @@ export default function CalendarPage() {
           if (gResult.success) gLink = gResult.link || '';
         }
 
-        // Trigger Resend API
-        await fetch('/api/resend', {
+        // Trigger Email API
+        await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
