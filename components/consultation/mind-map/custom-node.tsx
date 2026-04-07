@@ -44,24 +44,24 @@ export const CustomNode = memo(({ data }: any) => {
   const hasImageOrAudio = data.media?.some((m: any) => m.type === 'image' || m.type === 'audio');
 
   return (
-    <div className={`${hasImageOrAudio ? 'px-3 py-2 max-w-[180px] min-w-[140px]' : 'px-8 py-5 min-w-[280px] max-w-[450px]'} ${borderRadius} border-[4px] transition-all duration-300 group relative cursor-pointer hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:border-white/40 hover:scale-[1.05] ${data.className || 'bg-[#1A1A1A] border-[#333]'}`}>
+    <div className={`${hasImageOrAudio ? 'px-3 py-2 max-w-[180px] min-w-[140px]' : 'px-8 py-5 min-w-[280px] max-w-[450px]'} ${borderRadius} ${data.isRoot ? 'border-[4px]' : ''} transition-all duration-300 group relative cursor-pointer hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] hover:border-white/40 hover:scale-[1.05] ${data.className || 'bg-[#1A1A1A] border-[#333]'}`}>
 
       {/* Target Handle - Root doesn't usually have one, others do */}
       {!data.isRoot && (
         <Handle
           type="target"
           position={targetPos}
-          className={`!w-4 !h-4 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
+          className="!w-0 !h-0 opacity-0 pointer-events-none"
         />
       )}
 
       {/* Root Multi-Ports for Dual/Radial */}
       {isMultiPort && (
         <>
-          <Handle type="source" position={Position.Left} id="left" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Right} id="right" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Top} id="top" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
-          <Handle type="source" position={Position.Bottom} id="bottom" className="!w-3 !h-3 !bg-[#8B4564] !z-20" />
+          <Handle type="source" position={Position.Left} id="left" className="!w-0 !h-0 opacity-0 pointer-events-none" />
+          <Handle type="source" position={Position.Right} id="right" className="!w-0 !h-0 opacity-0 pointer-events-none" />
+          <Handle type="source" position={Position.Top} id="top" className="!w-0 !h-0 opacity-0 pointer-events-none" />
+          <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 opacity-0 pointer-events-none" />
         </>
       )}
 
@@ -70,7 +70,7 @@ export const CustomNode = memo(({ data }: any) => {
         <Handle
           type="source"
           position={sourcePos}
-          className={`!w-4 !h-4 !border-white/20 !z-20 ${isLight ? '!bg-black' : '!bg-[#8B4564]'}`}
+          className="!w-0 !h-0 opacity-0 pointer-events-none"
         />
       )}
 

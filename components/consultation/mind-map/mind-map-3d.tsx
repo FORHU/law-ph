@@ -212,10 +212,12 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       context.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
       context.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Colored border matching node color (50% opacity)
-      context.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
-      context.lineWidth = 3;
-      context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+      // Colored border matching node color (50% opacity) - only for root nodes
+      if (node.isRoot) {
+        context.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`;
+        context.lineWidth = 3;
+        context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+      }
 
       context.fillStyle = '#ffffff';
       context.textAlign = 'center';
@@ -228,9 +230,9 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
       const sprite = new THREE.Sprite(spriteMaterial);
 
       const aspectRatio = canvas.width / canvas.height;
-      // Slightly reduced physical 3D dimension so zoomToFit can push the camera closer
-      sprite.scale.set(node.isRoot ? 34 * aspectRatio : 24 * aspectRatio, node.isRoot ? 34 : 24, 1);
-      sprite.position.y = node.isRoot ? 5 : 3;
+      // Larger 3D node size for enhanced visibility
+      sprite.scale.set(node.isRoot ? 55 * aspectRatio : 38 * aspectRatio, node.isRoot ? 55 : 38, 1);
+      sprite.position.y = node.isRoot ? 7 : 5;
       group.add(sprite);
     }
 
@@ -293,8 +295,8 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         enableNavigationControls={true}
         showNavInfo={false}
         cooldownTicks={0}
-        d3AlphaDecay={0.08}
-        d3VelocityDecay={0.5}
+        d3AlphaDecay={0.04}
+        d3VelocityDecay={0.35}
         onEngineStop={() => {
           if (fgRef.current && graphData.nodes.length > 0 && !hasFittedInitial.current) {
             setTimeout(() => {
