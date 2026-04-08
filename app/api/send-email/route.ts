@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      console.error('Resend Error:', error);
+      console.error('Email Sending Error:', error);
       return NextResponse.json({ error: (error as any).message }, { status: 400 });
     }
 
