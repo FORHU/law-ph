@@ -41,8 +41,8 @@ export function useSendMessage({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSendMessage = useCallback(async (
-    text: string, 
-    targetConversationId?: string | number, 
+    text: string,
+    targetConversationId?: string | number,
     explicitDocumentContext?: string | null,
     file?: File | null,
     skipAIResponse?: boolean,
@@ -117,7 +117,7 @@ export function useSendMessage({
                 !skipAIResponse
               );
               console.log("File uploaded and analyzed successfully:", uploadData);
-              
+
               const s3BaseUrl = uploadData.url ? uploadData.url.split('?')[0] : null;
               const resolvedUrl = uploadData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${uploadData.s3_key}`;
               currentFileAttachment = {
@@ -126,7 +126,7 @@ export function useSendMessage({
                 s3_key: uploadData.s3_key,
                 ai_summary: uploadData.ai_summary || ""
               };
-              
+
               currentDocumentContext = uploadData.ai_summary || "";
 
               // If this is an analysis trigger, we need to construct the special prompt
@@ -156,7 +156,7 @@ export function useSendMessage({
 
               // Update the local message with the final file data
               setMessages(prev => prev.map(m => m.id === newMessageId ? { ...m, fileAttachment: currentFileAttachment, text: isAnalysisTrigger ? "" : m.text } : m));
-              
+
               // If this is an analysis trigger, we can speed things up by showing the summary directly 
               // but we'll stick to the stream for the premium formatting
             } catch (uploadErr) {
@@ -171,11 +171,11 @@ export function useSendMessage({
             isAnalysis: isAnalysisTrigger,
             hidden: false
           };
-          
+
           // For analysis triggers, we use the finalPromptToAI which already has [ILM_META]
           // Otherwise build it from currentInput
-          const contentWithMeta = isAnalysisTrigger 
-            ? finalPromptToAI 
+          const contentWithMeta = isAnalysisTrigger
+            ? finalPromptToAI
             : currentInput + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
 
           const { data: savedUserMsg, error: userMsgError } = await supabase
@@ -214,7 +214,7 @@ Just tell me 👍`;
                 role: 'assistant',
                 content: receiptText
               }).select().single();
-              
+
               if (savedAiMsg) {
                 setMessages(prev => prev.map(m => m.id === aiMessageId ? mapCloudMessage(savedAiMsg) : m));
               }
@@ -254,6 +254,15 @@ Just tell me 👍`;
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
+            let googleAccessToken: string | undefined = undefined;
+            if (supabase) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                googleAccessToken = session?.provider_token || undefined;
+              } catch (e) {
+                console.error("Failed to get session for provider token", e);
+              }
+            }
             const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
              Do NOT write it as a numbered list, bullet points, or any other Markdown format.
 
@@ -315,7 +324,8 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
               body: JSON.stringify({
                 user_input: payloadUserInput,
                 session_id: sId,
-                document_context: currentDocumentContext
+                document_context: currentDocumentContext,
+                google_access_token: googleAccessToken
               }),
               signal: controller.signal
             });

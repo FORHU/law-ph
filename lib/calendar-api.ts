@@ -1,13 +1,4 @@
-/**
- * calendar-api.ts
- * Typed client for the chat-wonder-api Google Calendar REST endpoints.
- * All functions use the Supabase user UUID as session_id.
- */
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:8001';
+import { createClient } from '@/lib/supabase/client';
 
 export interface CalendarAuthStatus {
   session_id: string;
@@ -55,83 +46,107 @@ export interface DeleteEventResult {
   error?: string;
 }
 
-/**
- * Check if a user (by session_id / Supabase UUID) has Google Calendar connected.
- */
 export async function checkAuthStatus(sessionId: string): Promise<CalendarAuthStatus> {
-  const res = await fetch(
-    `${API_BASE}/auth/status?session_id=${encodeURIComponent(sessionId)}`
-  );
-  if (!res.ok) throw new Error(`Auth status check failed: ${res.status}`);
-  return res.json();
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    session_id: sessionId,
+    authenticated: !!session?.provider_token,
+    service: 'google'
+  };
 }
 
-/**
- * Build the URL that initiates the Google OAuth flow.
- * The backend will redirect back to returnPath after auth.
- */
 export function getGoogleAuthUrl(sessionId: string, returnPath: string = '/calendar'): string {
-  return `${API_BASE}/auth/google?session_id=${encodeURIComponent(sessionId)}&return_path=${encodeURIComponent(returnPath)}`;
+  // Use Next.js auth page since we migrated to Supabase frontend direct OAuth
+  return '/auth?mode=login';
 }
 
-/**
- * List upcoming Google Calendar events.
- */
 export async function listCalendarEvents(
   sessionId: string,
   opts: { maxResults?: number; timeMin?: string; timeMax?: string } = {}
 ): Promise<ListEventsResult> {
-  const params = new URLSearchParams({ session_id: sessionId });
-  if (opts.maxResults) params.set('max_results', String(opts.maxResults));
-  if (opts.timeMin) params.set('time_min', opts.timeMin);
-  if (opts.timeMax) params.set('time_max', opts.timeMax);
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.provider_token) return { success: false, needs_auth: true };
 
-  const res = await fetch(`${API_BASE}/calendar/events?${params.toString()}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to list events: ${res.status}`);
+  try {
+    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
+    if (opts.maxResults) url.searchParams.set('maxResults', String(opts.maxResults));
+    if (opts.timeMin) url.searchParams.set('timeMin', opts.timeMin);
+    if (opts.timeMax) url.searchParams.set('timeMax', opts.timeMax);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${session.provider_token}` }
+    });
+
+    if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
+    const data = await res.json();
+    const events = (data.items || []).map((i: any) => ({
+      id: i.id,
+      title: i.summary || "Untitled",
+      start: i.start?.dateTime || i.start?.date,
+      description: i.description,
+      link: i.htmlLink
+    }));
+    return { success: true, events, count: events.length };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
-  return res.json();
 }
 
-/**
- * Create a Google Calendar event.
- */
 export async function createCalendarEvent(
   sessionId: string,
   data: {
     title: string;
-    start_datetime: string; // ISO format e.g. "2026-04-05T14:00:00"
+    start_datetime: string;
     end_datetime: string;
     description?: string;
   }
 ): Promise<CreateEventResult> {
-  const res = await fetch(`${API_BASE}/calendar/events`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId, ...data }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to create event: ${res.status}`);
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.provider_token) return { success: false, needs_auth: true };
+
+  try {
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.provider_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        summary: data.title,
+        description: data.description,
+        start: { dateTime: data.start_datetime },
+        end: { dateTime: data.end_datetime }
+      })
+    });
+
+    if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
+    const result = await res.json();
+    return { success: true, event_id: result.id, link: result.htmlLink };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
-  return res.json();
 }
 
-/**
- * Delete a Google Calendar event by ID.
- */
 export async function deleteCalendarEvent(
   sessionId: string,
   eventId: string
 ): Promise<DeleteEventResult> {
-  const res = await fetch(
-    `${API_BASE}/calendar/events/${encodeURIComponent(eventId)}?session_id=${encodeURIComponent(sessionId)}`,
-    { method: 'DELETE' }
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to delete event: ${res.status}`);
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.provider_token) return { success: false, needs_auth: true };
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.provider_token}` }
+    });
+
+    if (!res.ok && res.status !== 404) throw new Error(`Google API Error: ${res.status}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
-  return res.json();
 }
