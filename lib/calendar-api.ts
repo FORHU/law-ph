@@ -49,16 +49,17 @@ export interface DeleteEventResult {
 export async function checkAuthStatus(sessionId: string): Promise<CalendarAuthStatus> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
+  const providerToken = session?.provider_token || session?.user?.user_metadata?.provider_token;
   return {
     session_id: sessionId,
-    authenticated: !!session?.provider_token,
+    authenticated: !!providerToken,
     service: 'google'
   };
 }
 
 export function getGoogleAuthUrl(sessionId: string, returnPath: string = '/calendar'): string {
   // Use Next.js auth page since we migrated to Supabase frontend direct OAuth
-  return '/auth?mode=login';
+  return `/auth/login?redirect=${returnPath}`;
 }
 
 export async function listCalendarEvents(
@@ -67,7 +68,8 @@ export async function listCalendarEvents(
 ): Promise<ListEventsResult> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.provider_token) return { success: false, needs_auth: true };
+  const providerToken = session?.provider_token || session?.user?.user_metadata?.provider_token;
+  if (!providerToken) return { success: false, needs_auth: true };
 
   try {
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
@@ -76,7 +78,7 @@ export async function listCalendarEvents(
     if (opts.timeMax) url.searchParams.set('timeMax', opts.timeMax);
 
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${session.provider_token}` }
+      headers: { Authorization: `Bearer ${providerToken}` }
     });
 
     if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
@@ -105,13 +107,14 @@ export async function createCalendarEvent(
 ): Promise<CreateEventResult> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.provider_token) return { success: false, needs_auth: true };
+  const providerToken = session?.provider_token || session?.user?.user_metadata?.provider_token;
+  if (!providerToken) return { success: false, needs_auth: true };
 
   try {
     const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${session.provider_token}`,
+        Authorization: `Bearer ${providerToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -136,12 +139,13 @@ export async function deleteCalendarEvent(
 ): Promise<DeleteEventResult> {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.provider_token) return { success: false, needs_auth: true };
+  const providerToken = session?.provider_token || session?.user?.user_metadata?.provider_token;
+  if (!providerToken) return { success: false, needs_auth: true };
 
   try {
     const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.provider_token}` }
+      headers: { Authorization: `Bearer ${providerToken}` }
     });
 
     if (!res.ok && res.status !== 404) throw new Error(`Google API Error: ${res.status}`);

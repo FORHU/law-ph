@@ -11,8 +11,17 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      if (data.session?.provider_token) {
+        await supabase.auth.updateUser({
+          data: {
+            provider_token: data.session.provider_token,
+            provider_refresh_token: data.session.provider_refresh_token,
+          }
+        });
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
       if (isLocalEnv) {

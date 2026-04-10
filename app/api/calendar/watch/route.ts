@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { v4 as uuidv4 } from 'uuid';
-
 export async function POST(req: Request) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session || !session.provider_token) {
+    const providerToken = session?.provider_token || session?.user?.user_metadata?.provider_token;
+
+    if (!session || !providerToken) {
       return NextResponse.json({ error: 'Unauthorized or missing Google token' }, { status: 401 });
     }
 
@@ -18,13 +18,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing webhookUrl. In development, use an ngrok URL forwarding to /api/webhooks/calendar.' }, { status: 400 });
     }
 
-    const channelId = uuidv4();
+    const channelId = crypto.randomUUID();
 
     // Register watch with Google Calendar
     const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/watch', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.provider_token}`,
+        'Authorization': `Bearer ${providerToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
