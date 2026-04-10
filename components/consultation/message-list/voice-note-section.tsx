@@ -2,6 +2,7 @@ import React from 'react';
 import { Mic, Download, X, Square, Edit2, Check, Trash2, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Message } from './types';
+import { formatS3Url } from '@/lib/s3-utils';
 
 interface VoiceNoteSectionProps {
   message: Message;
@@ -203,7 +204,7 @@ export function VoiceNoteSection({
                   <button
                     title="Download recording"
                     className="p-1.5 text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-lg transition-all"
-                    onClick={() => handleDownload(note.url, note.label || `voice-note-${idx + 1}`)}
+                    onClick={() => handleDownload(formatS3Url(note.url), note.label || `voice-note-${idx + 1}`)}
                   >
                     <Download size={13} />
                   </button>
@@ -231,7 +232,7 @@ export function VoiceNoteSection({
                 <div className="pt-1">
                   <audio 
                     controls 
-                    src={note.url} 
+                    src={formatS3Url(note.url)} 
                     controlsList="nodownload"
                     className="h-9 w-full custom-audio-player" 
                   />

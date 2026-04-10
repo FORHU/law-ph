@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark, Mic, Download } from 'lucide-react';
 import { LegalSource, RelatedCase, isGenericTitle, extractTitleFromContent, cleanLegalTitle } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
-import { COLORS } from '@/lib/constants';
+import { COLORS, S3_CONFIG } from '@/lib/constants';
+import { formatS3Url } from '@/lib/s3-utils';
 import ReactMarkdown from 'react-markdown';
 import { HtmlRenderer } from '@/components/ui/html-renderer';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
@@ -360,7 +361,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                             <div className="w-full flex items-center gap-3">
                                 <audio
                                   controls
-                                  src={note.s3_key ? `https://d1lq91nbxprxl1.cloudfront.net/${note.s3_key}` : note.url}
+                                  src={note.s3_key ? `${S3_CONFIG.CDN_URL || ''}${note.s3_key}` : formatS3Url(note.url)}
                                   controlsList="nodownload"
                                   className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
                                   onLoadedMetadata={(e) => {

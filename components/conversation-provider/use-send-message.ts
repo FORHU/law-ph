@@ -1,9 +1,9 @@
 import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CHAT_SENDER } from '@/lib/constants';
+import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
 import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
-import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
+import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
 
 interface UseSendMessageParams {
   messages: Message[];
@@ -119,7 +119,7 @@ export function useSendMessage({
               console.log("File uploaded and analyzed successfully:", uploadData);
 
               const s3BaseUrl = uploadData.url ? uploadData.url.split('?')[0] : null;
-              const resolvedUrl = uploadData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${uploadData.s3_key}`;
+              const resolvedUrl = formatS3Url(uploadData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${uploadData.s3_key}`);
               currentFileAttachment = {
                 ...currentFileAttachment!,
                 url: resolvedUrl,
