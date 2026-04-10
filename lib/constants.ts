@@ -33,3 +33,7 @@ export const AUTH_ROUTES = {
   UPDATE_PASSWORD: '/auth/update-password',
   CALLBACK: '/auth/callback',
 } as const;
+
+export const S3_CONFIG = {
+  CDN_URL: process.env.NEXT_PUBLIC_CLOUDFRONT_URL,
+} as const;

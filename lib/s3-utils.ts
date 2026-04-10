@@ -1,3 +1,5 @@
+import { S3_CONFIG } from './constants';
+
 export interface UploadedDocumentData {
   filename: string;
   ai_summary: string;
@@ -16,6 +18,21 @@ export interface UploadedDocumentData {
  * @param analyze Whether to trigger backend analysis (default: true)
  * @returns Promise resolving to the uploaded document data
  */
+export function formatS3Url(url: string | undefined | null): string {
+  if (!url) return '';
+  
+  // Regex to match various S3 URL formats:
+  // 1. https://bucket.s3.amazonaws.com/
+  // 2. https://bucket.s3.region.amazonaws.com/
+  const s3Regex = /https:\/\/[a-z0-9.-]+\.s3(\.[a-z0-9-]+)?\.amazonaws\.com\//i;
+  
+  if (s3Regex.test(url)) {
+    return url.replace(s3Regex, S3_CONFIG.CDN_URL || '');
+  }
+  
+  return url;
+}
+
 export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, analyze: boolean = true): Promise<UploadedDocumentData> {
   // Step 1: Get S3 presigned URL through proxy
   const urlResponse = await fetch(`/api/proxy/api/legal/document-upload-url`, {
@@ -46,7 +63,9 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   // Step 3: Determine final file URL
   // Prefer backend-provided file_url, fallback to base of signed upload URL
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
-  const defaultFileUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
+  let defaultFileUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
+
+  // Automatically handle CloudFront replacement through regex in formatS3Url
 
   // Step 3: Trigger backend analysis through proxy
   if (analyze) {
@@ -65,7 +84,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
       return {
         filename: file.name,
         ai_summary: "",
-        file_url: defaultFileUrl,
+        file_url: formatS3Url(defaultFileUrl),
         s3_key: urlData.s3_key,
         url: urlData.url
       };
@@ -74,7 +93,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
     return {
       filename: file.name,
       ai_summary: data.ai_summary || "",
-      file_url: data.file_url || defaultFileUrl,
+      file_url: formatS3Url(data.file_url || defaultFileUrl),
       s3_key: data.s3_key || urlData.s3_key,
       url: urlData.url,
       char_count: data.char_count,
@@ -86,7 +105,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   return {
     filename: file.name,
     ai_summary: "",
-    file_url: defaultFileUrl,
+    file_url: formatS3Url(defaultFileUrl),
     s3_key: urlData.s3_key,
     url: urlData.url
   };
@@ -101,7 +120,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
  */
 export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ file_url: string; s3_key: string }> {
   const name = filename || `recording-${Date.now()}.webm`;
-  
+
   console.log(`[S3-Utils] Getting upload URL for voice note: ${name} (${blob.size} bytes)`);
 
   // Step 1: Get S3 presigned URL
@@ -138,11 +157,13 @@ export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ 
   // Step 3: Determine final file URL
   // Extract the base S3 URL from the presigned upload URL (removes signature params)
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
-  const finalUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
-  
+  let finalUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
+
+  // Automatically handle CloudFront replacement through regex in formatS3Url
+
   console.log(`[S3-Utils] Upload successful. Dynamic URL: ${finalUrl}`);
   return {
-    file_url: finalUrl,
+    file_url: formatS3Url(finalUrl),
     s3_key: urlData.s3_key
   };
 }

@@ -22,6 +22,7 @@ import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_HEX_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
+import { formatS3Url } from '@/lib/s3-utils';
 import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
 
 const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
@@ -100,6 +101,17 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setSelectedNodeId(null);
+    setSelected3DNodeData(null);
+    setPlayingAudio(null);
+    if (is3D) {
+      mindMap3DRef.current?.recenter();
+    } else {
+      fitView({ padding: 0.05, duration: 800 });
+    }
+  }, [is3D, fitView]);
 
   const themeConfig = MIND_MAP_THEMES[theme];
 
@@ -526,11 +538,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   color: node.color
                 });
               }}
-              onBackgroundClick={() => {
-                setSelectedNodeId(null);
-                setSelected3DNodeData(null);
-                setPlayingAudio(null);
-              }}
+              onBackgroundClick={handleCloseDetails}
             />
           </div>
         )}
@@ -552,11 +560,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               });
               fitView({ nodes: [node], duration: 1000, padding: 0.6 });
             }}
-            onPaneClick={() => {
-              setSelectedNodeId(null);
-              setPlayingAudio(null);
-              fitView({ padding: 0.05, duration: 1000 });
-            }}
+            onPaneClick={handleCloseDetails}
             nodeTypes={nodeTypes}
             nodesDraggable={true}
             nodesConnectable={true}
@@ -564,8 +568,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             panOnDrag={true}
             panOnScroll={false}
             panOnScrollSpeed={0.8}
-            zoomOnScroll={false}
-            zoomOnPinch={false}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
             zoomOnDoubleClick={false}
             defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
             fitView
@@ -778,14 +782,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     {selectedNodeData.label}
                   </h3>
                   <button
-                    onClick={() => {
-                      setSelectedNodeId(null);
-                      if (is3D) {
-                        mindMap3DRef.current?.recenter();
-                      } else {
-                        fitView({ padding: 0.05, duration: 800 });
-                      }
-                    }}
+                    onClick={handleCloseDetails}
                     className="p-1 -mt-1 text-white/20 hover:text-white transition-colors shrink-0 bg-white/5 rounded-full hover:bg-white/10"
                   >
                     <X size={18} />
@@ -857,7 +854,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                 }
                                 return (
                                   <img
-                                    src={url}
+                                    src={formatS3Url(url)}
                                     alt={item.name}
                                     className={`w-full transition-transform group-hover/media:scale-[1.02] ${
                                       isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'
@@ -872,7 +869,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                 if (isMissingUrl) return null;
                                 return (
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/media:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                    <a href={url} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
+                                    <a href={formatS3Url(url)} target="_blank" rel="noreferrer" className="px-4 py-2 bg-white text-black text-[11px] font-black rounded-lg uppercase tracking-wider shadow-xl hover:scale-105 transition-transform">
                                       {isAttachment ? 'Open Original Image' : 'Expand File'}
                                     </a>
                                   </div>
@@ -886,8 +883,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                             const isBlobUrl = typeof item.url === 'string' && item.url.startsWith('blob:');
                             const isMissingUrl = !item.url || item.url === '#' || isBlobUrl;
                             const viewerUrl = isMissingUrl ? '' : (isWordDoc
-                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(item.url)}`
-                              : item.url);
+                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(formatS3Url(item.url))}`
+                              : formatS3Url(item.url));
 
                             if (isAttachment) {
                               return (
@@ -907,7 +904,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-2 mt-1">
                                         <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
-                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
                                           Open Original ↗
                                         </a>
                                       </div>
@@ -947,7 +944,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-1">
                                         <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
-                                        <a href={item.url} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
+                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
                                           Open Original ↗
                                         </a>
                                       </div>
@@ -978,7 +975,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               onClick={(e) => {
                 // Close modal when clicking on the background (not on the content)
                 if (e.target === e.currentTarget) {
-                  setPlayingAudio(null);
+                  handleCloseDetails();
                 }
               }}
             >
@@ -992,7 +989,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     </div>
                   </div>
                   <button
-                    onClick={() => setPlayingAudio(null)}
+                    onClick={handleCloseDetails}
                     className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
                   >
                     <X size={20} />
@@ -1023,7 +1020,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                         filter: 'brightness(1.1)',
                       }}
                     >
-                      <source src={url} />
+                      <source src={formatS3Url(url)} />
                     </audio>
                   );
                 })()}
