@@ -16,9 +16,9 @@ export async function POST(req: Request) {
     const host = req.headers.get('host');
     const forwardedProto = req.headers.get('x-forwarded-proto');
     const protocol = forwardedProto || (host?.includes('localhost') ? 'http' : 'https');
-
+    
     // Fallback chain: Env Var > Vercel Prod > Vercel URL > Current Host
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
       || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
       || (host ? `${protocol}://${host}` : 'http://localhost:3000');

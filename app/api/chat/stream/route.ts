@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_input, session_id, document_context, google_access_token } = body;
+    const { user_input, session_id, document_context } = body;
 
     if (!user_input || !session_id) {
       return new Response(
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         const ws = new WebSocket(wsEndpoint);
         let isClosed = false;
-
+        
         const closeStream = () => {
           if (!isClosed) {
             isClosed = true;
@@ -37,17 +37,16 @@ export async function POST(request: NextRequest) {
             }
           }
         };
-
+        
         // Handle WebSocket connection open
         ws.onopen = () => {
           console.log('WebSocket connected to chat-wonder-api');
-
+          
           // Send the chat message
           const payload = {
             user_input,
             session_id,
             document_context,
-            google_access_token,
           };
           ws.send(JSON.stringify(payload));
         };
@@ -55,13 +54,13 @@ export async function POST(request: NextRequest) {
         // Handle incoming WebSocket messages
         ws.onmessage = (event) => {
           if (isClosed) return;
-
+          
           const message = event.data;
-
+          
           try {
             // Forward the message to the client
             controller.enqueue(new TextEncoder().encode(message));
-
+            
             // If this is the end signal, close the stream
             if (message === '__END__' && !isClosed) {
               ws.close();
