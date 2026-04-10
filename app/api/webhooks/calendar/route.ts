@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Using anon key for now; upgrade to SUPABASE_SERVICE_ROLE_KEY when handler writes to DB with RLS bypass
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function POST(req: Request) {
+  // We use the service role key to bypass RLS when handling webhooks.
+  // Instantiated inside handler to avoid build-time env var resolution errors.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   try {
     const channelId = req.headers.get('x-goog-channel-id');
     const resourceId = req.headers.get('x-goog-resource-id');
