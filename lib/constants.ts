@@ -35,6 +35,5 @@ export const AUTH_ROUTES = {
 } as const;
 
 export const S3_CONFIG = {
-  OLD_BASE_URL: 'https://chumme-dev.s3.amazonaws.com/',
-  NEW_BASE_URL: 'https://d1lq91nbxprxl1.cloudfront.net/',
+  CDN_URL: process.env.NEXT_PUBLIC_CLOUDFRONT_URL,
 } as const;

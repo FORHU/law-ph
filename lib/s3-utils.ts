@@ -27,12 +27,7 @@ export function formatS3Url(url: string | undefined | null): string {
   const s3Regex = /https:\/\/[a-z0-9.-]+\.s3(\.[a-z0-9-]+)?\.amazonaws\.com\//i;
   
   if (s3Regex.test(url)) {
-    return url.replace(s3Regex, S3_CONFIG.NEW_BASE_URL);
-  }
-
-  // Fallback for the explicit constant
-  if (url.includes(S3_CONFIG.OLD_BASE_URL)) {
-    return url.replace(S3_CONFIG.OLD_BASE_URL, S3_CONFIG.NEW_BASE_URL);
+    return url.replace(s3Regex, S3_CONFIG.CDN_URL || '');
   }
   
   return url;
@@ -70,10 +65,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
   let defaultFileUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
 
-  // Apply CloudFront replacement if it's the specific law-ph S3 bucket
-  if (defaultFileUrl.includes(S3_CONFIG.OLD_BASE_URL)) {
-    defaultFileUrl = defaultFileUrl.replace(S3_CONFIG.OLD_BASE_URL, S3_CONFIG.NEW_BASE_URL);
-  }
+  // Automatically handle CloudFront replacement through regex in formatS3Url
 
   // Step 3: Trigger backend analysis through proxy
   if (analyze) {
@@ -167,10 +159,7 @@ export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ 
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
   let finalUrl = urlData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${urlData.s3_key}`;
 
-  // Apply CloudFront replacement if it's the specific law-ph S3 bucket
-  if (finalUrl.includes(S3_CONFIG.OLD_BASE_URL)) {
-    finalUrl = finalUrl.replace(S3_CONFIG.OLD_BASE_URL, S3_CONFIG.NEW_BASE_URL);
-  }
+  // Automatically handle CloudFront replacement through regex in formatS3Url
 
   console.log(`[S3-Utils] Upload successful. Dynamic URL: ${finalUrl}`);
   return {
