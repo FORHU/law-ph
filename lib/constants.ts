@@ -33,3 +33,8 @@ export const AUTH_ROUTES = {
   UPDATE_PASSWORD: '/auth/update-password',
   CALLBACK: '/auth/callback',
 } as const;
+
+export const S3_CONFIG = {
+  OLD_BASE_URL: 'https://chumme-dev.s3.amazonaws.com/',
+  NEW_BASE_URL: 'https://d1lq91nbxprxl1.cloudfront.net/',
+} as const;

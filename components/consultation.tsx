@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
-import { uploadAndAnalyzeDocument } from "@/lib/s3-utils";
+import { uploadAndAnalyzeDocument, formatS3Url } from "@/lib/s3-utils";
 import { Session } from "@supabase/supabase-js";
 import { Conversation } from "@/types";
 import ReactMarkdown from 'react-markdown';
@@ -404,7 +404,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       hidden: false,
       fileAttachments: [{
         name: filename,
-        url: file_url,
+        url: formatS3Url(file_url),
         type: filename.split('.').pop() || 'file',
         s3_key: s3_key,
         ai_summary: ai_summary

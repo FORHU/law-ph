@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
+import { formatS3Url } from '@/lib/s3-utils';
 
 export const CustomNode = memo(({ data }: any) => {
   const isVibrant = data.theme === 'vibrant';
@@ -110,7 +111,7 @@ export const CustomNode = memo(({ data }: any) => {
                 return (
                   <div key={idx} className="relative group/media overflow-hidden rounded-xl border-2 border-white/10 shadow-lg">
                     <img
-                      src={url}
+                      src={formatS3Url(url)}
                       alt={item.name}
                       className="w-full h-auto max-h-[220px] object-cover transition-transform group-hover/media:scale-105"
                     />
@@ -142,7 +143,7 @@ export const CustomNode = memo(({ data }: any) => {
                   <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
                     <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">{item.name}</span>
                     <audio controls className="w-full h-9 rounded-md">
-                      <source src={url} />
+                      <source src={formatS3Url(url)} />
                     </audio>
                   </div>
                 );
@@ -162,7 +163,7 @@ export const CustomNode = memo(({ data }: any) => {
                 }
 
                 return (
-                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
+                  <a key={idx} href={formatS3Url(url)} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
                     <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
                     <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
                   </a>
