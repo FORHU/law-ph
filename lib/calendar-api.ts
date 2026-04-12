@@ -103,6 +103,7 @@ export async function createCalendarEvent(
     start_datetime: string;
     end_datetime: string;
     description?: string;
+    type?: 'meeting' | 'appointment' | 'hearing' | 'deposition';
   }
 ): Promise<CreateEventResult> {
   const supabase = createClient();
@@ -111,23 +112,44 @@ export async function createCalendarEvent(
   if (!providerToken) return { success: false, needs_auth: true };
 
   try {
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const eventBody: any = {
+      summary: data.title,
+      description: data.description,
+      start: { dateTime: data.start_datetime },
+      end: { dateTime: data.end_datetime }
+    };
+
+    // Add Google Meet for meeting type events
+    if (data.type === 'meeting') {
+      eventBody.conferenceData = {
+        createRequest: {
+          requestId: `meet-${Date.now()}`,
+          conferenceSolutionKey: {
+            key: 'hangoutsMeet'
+          }
+        }
+      };
+    }
+
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${providerToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        summary: data.title,
-        description: data.description,
-        start: { dateTime: data.start_datetime },
-        end: { dateTime: data.end_datetime }
-      })
+      body: JSON.stringify(eventBody)
     });
 
     if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
     const result = await res.json();
-    return { success: true, event_id: result.id, link: result.htmlLink };
+    return {
+      success: true,
+      event_id: result.id,
+      link: result.htmlLink,
+      title: result.summary,
+      start: result.start?.dateTime,
+      end: result.end?.dateTime
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
