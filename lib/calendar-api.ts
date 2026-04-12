@@ -155,6 +155,8 @@ export async function createCalendarEvent(
             url.searchParams.set("conferenceDataVersion", "1");
         }
 
+        console.log('[createCalendarEvent] Request body:', JSON.stringify(eventBody, null, 2));
+
         const res = await fetch(url.toString(), {
             method: "POST",
             headers: {
@@ -164,14 +166,23 @@ export async function createCalendarEvent(
             body: JSON.stringify(eventBody),
         });
 
+        const responseText = await res.text();
+        console.log('[createCalendarEvent] Response status:', res.status);
+        console.log('[createCalendarEvent] Response text:', responseText);
+
         if (!res.ok) {
-            const errorData = await res.json().catch(() => null);
-            const errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-            console.error("[createCalendarEvent] Google API Error:", errorMsg, errorData);
-            throw new Error(`Google API Error: ${errorMsg}`);
+            let errorMsg = `HTTP ${res.status}`;
+            try {
+                const errorData = JSON.parse(responseText);
+                errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+                console.error("[createCalendarEvent] Google API Error details:", errorData);
+            } catch (e) {
+                console.error("[createCalendarEvent] Could not parse error response:", responseText);
+            }
+            throw new Error(errorMsg);
         }
 
-        const result = await res.json();
+        const result = JSON.parse(responseText);
         return {
             success: true,
             event_id: result.id,
@@ -181,6 +192,7 @@ export async function createCalendarEvent(
             end: result.end?.dateTime,
         };
     } catch (error: any) {
+        console.error('[createCalendarEvent] Error:', error);
         return { success: false, error: error.message };
     }
 }
