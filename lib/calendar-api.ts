@@ -136,6 +136,10 @@ export async function createCalendarEvent(
             end: { dateTime: data.end_datetime },
         };
 
+        console.log('[createCalendarEvent] Event type:', data.type);
+        console.log('[createCalendarEvent] Start:', data.start_datetime);
+        console.log('[createCalendarEvent] End:', data.end_datetime);
+
         // Add Google Meet for meeting type events
         if (data.type === "meeting") {
             eventBody.conferenceData = {
@@ -146,6 +150,7 @@ export async function createCalendarEvent(
                     },
                 },
             };
+            console.log('[createCalendarEvent] Conference data added for meeting type');
         }
 
         const url = new URL(
@@ -153,8 +158,10 @@ export async function createCalendarEvent(
         );
         if (data.type === "meeting") {
             url.searchParams.set("conferenceDataVersion", "1");
+            console.log('[createCalendarEvent] Added conferenceDataVersion=1 param');
         }
 
+        console.log('[createCalendarEvent] Full URL:', url.toString());
         console.log('[createCalendarEvent] Request body:', JSON.stringify(eventBody, null, 2));
 
         const res = await fetch(url.toString(), {
@@ -183,6 +190,16 @@ export async function createCalendarEvent(
         }
 
         const result = JSON.parse(responseText);
+        console.log('[createCalendarEvent] Event created successfully');
+        console.log('[createCalendarEvent] Event ID:', result.id);
+        console.log('[createCalendarEvent] Calendar link:', result.htmlLink);
+        console.log('[createCalendarEvent] Conference data in result:', result.conferenceData);
+
+        const meetUrl = result.conferenceData?.entryPoints?.find(
+            (ep: any) => ep.entryPointType === 'video'
+        )?.uri;
+        console.log('[createCalendarEvent] Extracted Meet URL:', meetUrl);
+
         return {
             success: true,
             event_id: result.id,
@@ -192,7 +209,7 @@ export async function createCalendarEvent(
             end: result.end?.dateTime,
         };
     } catch (error: any) {
-        console.error('[createCalendarEvent] Error:', error);
+        console.error('[createCalendarEvent] Error caught:', error);
         return { success: false, error: error.message };
     }
 }
