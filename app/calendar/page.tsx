@@ -244,6 +244,22 @@ export default function CalendarPage() {
     }
   }, []);
 
+  const registerWebhook = useCallback(async () => {
+    // Use NEXT_PUBLIC_WEBHOOK_URL in dev (your ngrok URL).
+    // In production this falls back to the current origin automatically.
+    const base = process.env.NEXT_PUBLIC_WEBHOOK_URL || window.location.origin;
+    const webhookUrl = `${base}/api/webhooks/calendar`;
+    try {
+      await fetch('/api/calendar/watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl }),
+      });
+    } catch (err) {
+      console.error('[calendar] Failed to register webhook:', err);
+    }
+  }, []);
+
   const checkGoogleAuth = useCallback(async (sessId: string) => {
     setIsCheckingAuth(true);
     try {
@@ -251,13 +267,14 @@ export default function CalendarPage() {
       setIsGoogleConnected(status.authenticated);
       if (status.authenticated) {
         await loadGoogleEvents(sessId);
+        await registerWebhook();
       }
     } catch {
       setIsGoogleConnected(false);
     } finally {
       setIsCheckingAuth(false);
     }
-  }, [loadGoogleEvents]);
+  }, [loadGoogleEvents, registerWebhook]);
 
   useEffect(() => {
     if (loggedIn && userId) {
