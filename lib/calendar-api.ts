@@ -139,9 +139,28 @@ export async function createCalendarEvent(
         console.log('[createCalendarEvent] Creating event:', data.title);
         console.log('[createCalendarEvent] Type:', data.type);
 
+        // Add Google Meet for meeting type events
+        if (data.type === "meeting") {
+            eventBody.conferenceData = {
+                createRequest: {
+                    requestId: `meet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    conferenceSolutionKey: {
+                        key: "hangoutsMeet",
+                    },
+                },
+            };
+            console.log('[createCalendarEvent] Adding conference data for meeting');
+        }
+
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
+        if (data.type === "meeting") {
+            url.searchParams.set("conferenceDataVersion", "1");
+        }
+
+        console.log('[createCalendarEvent] URL:', url.toString());
+        console.log('[createCalendarEvent] Body:', JSON.stringify(eventBody, null, 2));
 
         const res = await fetch(url.toString(), {
             method: "POST",
@@ -154,13 +173,14 @@ export async function createCalendarEvent(
 
         const responseText = await res.text();
         console.log('[createCalendarEvent] Response status:', res.status);
+        console.log('[createCalendarEvent] Response:', responseText);
 
         if (!res.ok) {
             let errorMsg = `HTTP ${res.status}`;
             try {
                 const errorData = JSON.parse(responseText);
+                console.error("[createCalendarEvent] Full error response:", JSON.stringify(errorData, null, 2));
                 errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
-                console.error("[createCalendarEvent] Google API Error:", errorMsg, errorData);
             } catch (e) {
                 console.error("[createCalendarEvent] Error response:", responseText);
             }
@@ -168,9 +188,13 @@ export async function createCalendarEvent(
         }
 
         const result = JSON.parse(responseText);
-        console.log('[createCalendarEvent] ✅ Event created successfully');
+        console.log('[createCalendarEvent] ✅ Event created');
         console.log('[createCalendarEvent] Event ID:', result.id);
         console.log('[createCalendarEvent] Event link:', result.htmlLink);
+
+        if (data.type === "meeting") {
+            console.log('[createCalendarEvent] Conference data in response:', JSON.stringify(result.conferenceData, null, 2));
+        }
 
         return {
             success: true,
