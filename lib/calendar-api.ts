@@ -142,15 +142,25 @@ export async function createCalendarEvent(
 
         // Add Google Meet for meeting type events
         if (data.type === "meeting") {
+            // Generate a proper UUID v4-like requestId
+            const generateRequestId = () => {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            };
+
             eventBody.conferenceData = {
                 createRequest: {
-                    requestId: `meet-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
+                    requestId: generateRequestId(),
                     conferenceSolutionKey: {
                         key: "hangoutsMeet",
                     },
                 },
             };
             console.log('[createCalendarEvent] Conference data added for meeting type');
+            console.log('[createCalendarEvent] Request ID:', eventBody.conferenceData.createRequest.requestId);
         }
 
         const url = new URL(
