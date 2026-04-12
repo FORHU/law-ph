@@ -139,25 +139,9 @@ export async function createCalendarEvent(
         console.log('[createCalendarEvent] Creating event:', data.title);
         console.log('[createCalendarEvent] Type:', data.type);
 
-        // Add Google Meet for meeting type events
-        if (data.type === "meeting") {
-            eventBody.conferenceData = {
-                createRequest: {
-                    requestId: `meet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    conferenceSolutionKey: {
-                        key: "hangoutsMeet",
-                    },
-                },
-            };
-            console.log('[createCalendarEvent] Conference data added');
-        }
-
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
-        if (data.type === "meeting") {
-            url.searchParams.set("conferenceDataVersion", "1");
-        }
 
         const res = await fetch(url.toString(), {
             method: "POST",
@@ -185,13 +169,6 @@ export async function createCalendarEvent(
 
         const result = JSON.parse(responseText);
         console.log('[createCalendarEvent] ✅ Event created:', result.id);
-
-        if (data.type === "meeting" && result.conferenceData) {
-            const meetUrl = result.conferenceData?.entryPoints?.find(
-                (ep: any) => ep.entryPointType === 'video'
-            )?.uri;
-            console.log('[createCalendarEvent] ✅ Google Meet URL:', meetUrl);
-        }
 
         return {
             success: true,
