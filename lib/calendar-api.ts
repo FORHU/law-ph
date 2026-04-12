@@ -175,6 +175,7 @@ export async function createCalendarEvent(
             try {
                 const errorData = JSON.parse(responseText);
                 errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+                console.error("[createCalendarEvent] Full error response:", errorData);
                 console.error("[createCalendarEvent] Error:", errorMsg);
             } catch (e) {
                 console.error("[createCalendarEvent] Error response:", responseText);
