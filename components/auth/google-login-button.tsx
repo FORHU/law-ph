@@ -24,7 +24,7 @@ export function GoogleLoginButton() {
         provider: "google",
         options: {
           redirectTo: callbackUrl.toString(),
-          scopes: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly",
+          scopes: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/meetings",
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
