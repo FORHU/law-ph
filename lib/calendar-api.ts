@@ -37,6 +37,55 @@ export interface CreateEventResult {
     error?: string;
 }
 
+export async function getAvailableConferenceSolutions() {
+    const supabase = createClient();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+    const providerToken =
+        session?.provider_token || session?.user?.user_metadata?.provider_token;
+
+    if (!providerToken) {
+        console.log("[getAvailableConferenceSolutions] No provider token");
+        return null;
+    }
+
+    try {
+        const res = await fetch(
+            "https://www.googleapis.com/calendar/v3/users/me/calendarSettings",
+            {
+                headers: {
+                    Authorization: `Bearer ${providerToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        if (res.ok) {
+            const settings = await res.json();
+            console.log("[getAvailableConferenceSolutions] Calendar settings:", settings);
+        }
+
+        // Try to get conference list from a calendar list
+        const calendarRes = await fetch(
+            "https://www.googleapis.com/calendar/v3/calendars/primary",
+            {
+                headers: {
+                    Authorization: `Bearer ${providerToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        if (calendarRes.ok) {
+            const cal = await calendarRes.json();
+            console.log("[getAvailableConferenceSolutions] Primary calendar:", cal);
+        }
+    } catch (error) {
+        console.error("[getAvailableConferenceSolutions] Error:", error);
+    }
+}
+
 export interface DeleteEventResult {
     success: boolean;
     needs_auth?: boolean;
@@ -139,9 +188,26 @@ export async function createCalendarEvent(
         console.log('[createCalendarEvent] Creating event:', data.title);
         console.log('[createCalendarEvent] Type:', data.type);
 
+        // Add Google Meet for meeting type events
+        if (data.type === "meeting") {
+            eventBody.conferenceData = {
+                createRequest: {
+                    requestId: `meet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    conferenceSolutionKey: {
+                        key: "eventHangout",
+                    },
+                },
+            };
+            console.log('[createCalendarEvent] Conference data added with eventHangout');
+        }
+
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
+        if (data.type === "meeting") {
+            url.searchParams.set("conferenceDataVersion", "1");
+            console.log('[createCalendarEvent] Added conferenceDataVersion=1');
+        }
 
         const res = await fetch(url.toString(), {
             method: "POST",
@@ -169,6 +235,13 @@ export async function createCalendarEvent(
 
         const result = JSON.parse(responseText);
         console.log('[createCalendarEvent] ✅ Event created:', result.id);
+
+        if (data.type === "meeting" && result.conferenceData) {
+            const meetUrl = result.conferenceData?.entryPoints?.find(
+                (ep: any) => ep.entryPointType === 'video'
+            )?.uri;
+            console.log('[createCalendarEvent] ✅ Google Meet URL:', meetUrl);
+        }
 
         return {
             success: true,
