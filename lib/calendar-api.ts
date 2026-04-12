@@ -143,8 +143,6 @@ export async function createCalendarEvent(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
 
-        console.log('[createCalendarEvent] Request body:', JSON.stringify(eventBody, null, 2));
-
         const res = await fetch(url.toString(), {
             method: "POST",
             headers: {
@@ -174,18 +172,6 @@ export async function createCalendarEvent(
         console.log('[createCalendarEvent] Event ID:', result.id);
         console.log('[createCalendarEvent] Event link:', result.htmlLink);
 
-        // If it's a meeting, try to add Google Meet
-        let meetUrl = undefined;
-        if (data.type === "meeting") {
-            console.log('[createCalendarEvent] Attempting to add Google Meet to meeting...');
-            meetUrl = await addGoogleMeetToEvent(providerToken, result.id);
-            if (meetUrl) {
-                console.log('[createCalendarEvent] ✅ Google Meet added:', meetUrl);
-            } else {
-                console.log('[createCalendarEvent] ⚠️ Could not add Google Meet');
-            }
-        }
-
         return {
             success: true,
             event_id: result.id,
@@ -197,58 +183,6 @@ export async function createCalendarEvent(
     } catch (error: any) {
         console.error('[createCalendarEvent] ❌ Error:', error.message);
         return { success: false, error: error.message };
-    }
-}
-
-async function addGoogleMeetToEvent(accessToken: string, eventId: string): Promise<string | undefined> {
-    try {
-        const generateRequestId = () => {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        };
-
-        const patchBody = {
-            conferenceData: {
-                createRequest: {
-                    requestId: generateRequestId(),
-                    conferenceSolutionKey: {
-                        key: "hangoutsMeet",
-                    },
-                },
-            },
-        };
-
-        const url = new URL(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
-        );
-        url.searchParams.set("conferenceDataVersion", "1");
-
-        const res = await fetch(url.toString(), {
-            method: "PATCH",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(patchBody),
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error('[addGoogleMeetToEvent] Failed:', res.status, errorText);
-            return undefined;
-        }
-
-        const result = await res.json();
-        const meetUrl = result.conferenceData?.entryPoints?.find(
-            (ep: any) => ep.entryPointType === 'video'
-        )?.uri;
-        return meetUrl;
-    } catch (error: any) {
-        console.error('[addGoogleMeetToEvent] Error:', error.message);
-        return undefined;
     }
 }
 
