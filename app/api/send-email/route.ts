@@ -3,7 +3,7 @@ import { sendEmail } from '@/lib/email-service';
 
 export async function POST(req: Request) {
   try {
-    const { to, subject, body, type, eventDetails, organizer, timezone } = await req.json();
+    const { to, subject, body, type, eventDetails, organizer, timezone: deviceTimezone } = await req.json();
 
     if (!to || (!body && !eventDetails)) {
       return NextResponse.json(
@@ -11,6 +11,9 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Default to UTC if not provided, but mostly rely on the device timezone injected by the client
+    const timezone = deviceTimezone || 'UTC';
 
     // Robust Site URL detection
     const host = req.headers.get('host');

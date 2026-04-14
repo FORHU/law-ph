@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_input, session_id, document_context } = body;
+    const { user_input, session_id, document_context, google_access_token } = body;
 
     if (!user_input || !session_id) {
       return new Response(
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
             user_input,
             session_id,
             document_context,
+            google_access_token,
           };
           ws.send(JSON.stringify(payload));
         };

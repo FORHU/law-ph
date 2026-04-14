@@ -623,7 +623,7 @@ export default function CalendarPage() {
                 user_id: userId,
                 title: form.title,
                 type: form.type,
-                date_time: form.dateTime,
+                date_time: new Date(form.dateTime).toISOString(),
                 client_email: form.clientEmail,
                 notes: `${form.notes}${actionReason ? `\n\n[Rescheduled: ${actionReason}]` : ""}`,
                 status: "draft",
@@ -1416,10 +1416,20 @@ export default function CalendarPage() {
                                                                 else {
                                                                     setEditingEventId(event.id);
                                                                     const dt = event.date_time || event.dateTime || "";
+                                                                    // Fix: slice(0, 16) takes the UTC time, shifting it 8 hours. 
+                                                                    // We must construct the local time string explicitly.
+                                                                    const localDate = new Date(dt);
+                                                                    const loY = localDate.getFullYear();
+                                                                    const loM = String(localDate.getMonth() + 1).padStart(2, "0");
+                                                                    const loD = String(localDate.getDate()).padStart(2, "0");
+                                                                    const loH = String(localDate.getHours()).padStart(2, "0");
+                                                                    const loMin = String(localDate.getMinutes()).padStart(2, "0");
+                                                                    const resolvedLocalString = `${loY}-${loM}-${loD}T${loH}:${loMin}`;
+
                                                                     setForm({
                                                                         title: event.title,
                                                                         type: event.type as CalendarEvent["type"],
-                                                                        dateTime: dt.slice(0, 16),
+                                                                        dateTime: resolvedLocalString,
                                                                         clientEmail: event.client_email || event.clientEmail || "",
                                                                         notes: event.notes || "",
                                                                     });
