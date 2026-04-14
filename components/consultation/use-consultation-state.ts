@@ -3,6 +3,18 @@ import { Message } from "@/components/conversation-provider/conversation-context
 import { CaseData } from "@/types";
 import { createCalendarEvent } from "@/lib/calendar-api";
 
+/** Get the minimum datetime allowed (current datetime in datetime-local format) */
+function getMinDateTime(): string {
+  const now = new Date();
+  // Format: YYYY-MM-DDTHH:mm using local timezone
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
@@ -129,6 +141,7 @@ export function useConsultationState({
   const [draftedEventId, setDraftedEventId] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [isSchedulePreviewOpen, setIsSchedulePreviewOpen] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   
   // Automatic conflict check as the user picks date/time
   useEffect(() => {
@@ -177,6 +190,17 @@ export function useConsultationState({
   const handleScheduleEvent = async () => {
     if (!scheduleDateTime || !scheduleType || !userId || scheduleEmails.length === 0) return;
     setIsScheduling(true);
+    setScheduleError(null);
+
+    // Validate that the selected date/time is not in the past
+    const selectedDateTime = new Date(scheduleDateTime);
+    const currentDateTime = new Date();
+    
+    if (selectedDateTime < currentDateTime) {
+      setScheduleError("Cannot schedule events for past dates. Please select a future date and time.");
+      setIsScheduling(false);
+      return;
+    }
 
     // Parse date/time into a readable format for the AI
     const dt = new Date(scheduleDateTime);
@@ -612,6 +636,9 @@ export function useConsultationState({
       draftedEventId,
       isSchedulePreviewOpen,
       setIsSchedulePreviewOpen,
+      scheduleError,
+      setScheduleError,
+      getMinDateTime,
     },
     derivedData: {
       activeTimeline,

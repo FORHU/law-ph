@@ -248,7 +248,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     isScheduling, scheduleStatus, 
     handleScheduleEvent, handleFinalizeSchedule,
     conflictWarning, setConflictWarning,
-    draftedEventId, isSchedulePreviewOpen, setIsSchedulePreviewOpen
+    draftedEventId, isSchedulePreviewOpen, setIsSchedulePreviewOpen,
+    scheduleError, setScheduleError, getMinDateTime
   } = scheduleState;
 
   // Email Validation Helper
@@ -1072,9 +1073,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
                         <input
                           type="datetime-local"
+                          min={getMinDateTime()}
                           value={scheduleDateTime}
                           onChange={(e) => setScheduleDateTime(e.target.value)}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1153,6 +1155,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                 Ignore & Proceed
                               </button>
                             </div>
+                          </div>
+                        )}
+
+                        {scheduleError && (
+                          <div className="flex items-start gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                            <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                            <span>{scheduleError}</span>
                           </div>
                         )}
 

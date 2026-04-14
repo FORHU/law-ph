@@ -107,6 +107,18 @@ function formatDT(dt: string | undefined) {
     }
 }
 
+/** Get the minimum datetime allowed (current datetime in datetime-local format) */
+function getMinDateTime(): string {
+    const now = new Date();
+    // Format: YYYY-MM-DDTHH:mm using local timezone
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 const StatusBadge = ({ status }: { status: CalendarEvent["status"] }) => {
     const configs = {
         draft: "bg-gray-500/10 text-gray-400 border-gray-500/20",
@@ -507,6 +519,16 @@ export default function CalendarPage() {
         setCreateError(null);
 
         try {
+            // 0. Validate that the selected date/time is not in the past
+            const selectedDateTime = new Date(form.dateTime);
+            const currentDateTime = new Date();
+            
+            if (selectedDateTime < currentDateTime) {
+                setCreateError("Cannot schedule events for past dates. Please select a future date and time.");
+                setSubmitting(false);
+                return;
+            }
+
             // 1. Check for conflicts before saving
             const { data: conflicts } = await supabase
                 .from("events")
@@ -888,12 +910,19 @@ export default function CalendarPage() {
                                     day === NOW.getDate() &&
                                     viewMonth === NOW.getMonth() &&
                                     viewYear === NOW.getFullYear();
+                                const isPast =
+                                    viewYear < NOW.getFullYear() ||
+                                    (viewYear === NOW.getFullYear() &&
+                                        viewMonth < NOW.getMonth()) ||
+                                    (viewYear === NOW.getFullYear() &&
+                                        viewMonth === NOW.getMonth() &&
+                                        day < NOW.getDate());
                                 const hasEvent = eventDatesThisMonth.has(day);
                                 return (
                                     <div
                                         key={day}
                                         onClick={() => {
-                                            if (hasEvent) {
+                                            if (hasEvent && !isPast) {
                                                 const dayEvents = events.filter(
                                                     (e) => {
                                                         const d = new Date(
@@ -916,12 +945,13 @@ export default function CalendarPage() {
                                                 setShowDayDetails(true);
                                             }
                                         }}
-                                        className={`aspect-square flex flex-col items-center justify-center rounded-lg md:rounded-xl text-xs md:text-sm cursor-pointer transition-all relative
-                      ${isToday ? "bg-[#8B4564]/40 border border-[#8B4564]/60 text-white font-bold" : "hover:bg-white/5 text-gray-400 hover:text-white"}
-                      ${hasEvent ? "hover:bg-[#8B4564]/20 font-medium" : ""}`}
+                                        className={`aspect-square flex flex-col items-center justify-center rounded-lg md:rounded-xl text-xs md:text-sm transition-all relative
+                      ${isPast ? "opacity-30 cursor-not-allowed text-gray-600" : "cursor-pointer"}
+                      ${isToday && !isPast ? "bg-[#8B4564]/40 border border-[#8B4564]/60 text-white font-bold" : !isPast ? "hover:bg-white/5 text-gray-400 hover:text-white" : ""}
+                      ${hasEvent && !isPast ? "hover:bg-[#8B4564]/20 font-medium" : ""}`}
                                     >
                                         {day}
-                                        {hasEvent && (
+                                        {hasEvent && !isPast && (
                                             <span className="absolute bottom-1 w-1 h-1 rounded-full bg-[#E0A7C2]" />
                                         )}
                                     </div>
@@ -1380,6 +1410,7 @@ export default function CalendarPage() {
                                         </label>
                                         <input
                                             type="datetime-local"
+                                            min={getMinDateTime()}
                                             value={form.dateTime}
                                             onChange={(e) =>
                                                 setForm((f) => ({
@@ -1387,7 +1418,7 @@ export default function CalendarPage() {
                                                     dateTime: e.target.value,
                                                 }))
                                             }
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 [color-scheme:dark]"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-[#10B981]/50 [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                 </div>
