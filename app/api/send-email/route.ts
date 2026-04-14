@@ -3,7 +3,7 @@ import { sendEmail } from '@/lib/email-service';
 
 export async function POST(req: Request) {
   try {
-    const { to, subject, body, type, eventDetails, organizer } = await req.json();
+    const { to, subject, body, type, eventDetails, organizer, timezone } = await req.json();
 
     if (!to || (!body && !eventDetails)) {
       return NextResponse.json(
@@ -30,7 +30,8 @@ export async function POST(req: Request) {
       type,
       eventDetails,
       organizer,
-      siteUrl
+      siteUrl,
+      timezone
     });
 
     if (error) {

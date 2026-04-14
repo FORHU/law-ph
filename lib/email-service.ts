@@ -17,6 +17,7 @@ interface SendEmailParams {
     email: string;
   };
   siteUrl: string;
+  timezone?: string;
 }
 
 export async function sendEmail({
@@ -26,8 +27,11 @@ export async function sendEmail({
   type,
   eventDetails,
   organizer,
-  siteUrl
+  siteUrl,
+  timezone
 }: SendEmailParams) {
+  const displayTimezone = timezone || 'UTC';
+
   const recipients = Array.isArray(to) ? to : [to];
   const cleanRecipients = recipients.map(r => r.replace(/\s+/g, '.').toLowerCase());
 
@@ -49,14 +53,14 @@ export async function sendEmail({
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
       `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED', 
+      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:0', 'TRANSP:OPAQUE', 'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{ 
-      filename: 'invite.ics', 
-      content: Buffer.from(icsString), 
-      contentType: 'text/calendar; method=REQUEST' 
+    attachments = [{
+      filename: 'invite.ics',
+      content: Buffer.from(icsString),
+      contentType: 'text/calendar; method=REQUEST'
     }];
 
     const reviewUrl = `${siteUrl}/confirm/${eventId}`;
@@ -73,7 +77,7 @@ export async function sendEmail({
                   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-radius: 12px; padding: 24px; margin-bottom: 30px; text-align: left;">
                     <tr><td style="padding-bottom: 12px; font-weight: bold; color: #666666; width: 100px;">From:</td><td style="padding-bottom: 12px; color: #333333;">${organizer?.email || 'Your Lawyer'}</td></tr>
                     <tr><td style="padding-bottom: 12px; font-weight: bold; color: #666666; width: 100px;">Event:</td><td style="padding-bottom: 12px; font-weight: bold; color: #8B4564;">${eventType}</td></tr>
-                    <tr><td style="padding-bottom: 12px; font-weight: bold; color: #666666;">Time:</td><td style="padding-bottom: 12px; color: #333333;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td></tr>
+                    <tr><td style="padding-bottom: 12px; font-weight: bold; color: #666666;">Time:</td><td style="padding-bottom: 12px; color: #333333;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' })}</td></tr>
                     ${notes ? `<tr><td style="font-weight: bold; color: #666666; vertical-align: top;">Notes:</td><td style="color: #666666; font-style: italic;">${notes}</td></tr>` : ''}
                   </table>
                   <p style="font-size: 14px; color: #666666; margin: 0;">You can add this to your calendar using the attached invitation file.</p>
@@ -109,7 +113,7 @@ export async function sendEmail({
               <tr>
                 <td style="padding: 40px; text-align: center;">
                   <p style="font-size: 16px; color: #333333;">Your appointment for <strong>${eventType}</strong> is now confirmed.</p>
-                  <p style="font-size: 16px; color: #333333; margin-top: 20px;">${startDate.toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                  <p style="font-size: 16px; color: #333333; margin-top: 20px;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' })}</p>
                   <p style="font-size: 14px; color: #666666; margin-top: 30px;">The event has been added to your calendar based on your confirmation.</p>
                 </td>
               </tr>
