@@ -70,6 +70,9 @@ export function getGoogleAuthUrl(
     return `/auth/login?redirect=${returnPath}`;
 }
 
+/**
+ * List upcoming Google Calendar events.
+ */
 export async function listCalendarEvents(
     sessionId: string,
     opts: { maxResults?: number; timeMin?: string; timeMax?: string } = {},

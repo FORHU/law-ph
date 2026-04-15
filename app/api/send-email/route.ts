@@ -3,7 +3,7 @@ import { sendEmail } from '@/lib/email-service';
 
 export async function POST(req: Request) {
   try {
-    const { to, subject, body, type, eventDetails, organizer } = await req.json();
+    const { to, subject, body, type, eventDetails, organizer, timezone: deviceTimezone } = await req.json();
 
     if (!to || (!body && !eventDetails)) {
       return NextResponse.json(
@@ -12,13 +12,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Default to UTC if not provided, but mostly rely on the device timezone injected by the client
+    const timezone = deviceTimezone || 'UTC';
+
     // Robust Site URL detection
     const host = req.headers.get('host');
     const forwardedProto = req.headers.get('x-forwarded-proto');
     const protocol = forwardedProto || (host?.includes('localhost') ? 'http' : 'https');
-
+    
     // Fallback chain: Env Var > Vercel Prod > Vercel URL > Current Host
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
       || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
       || (host ? `${protocol}://${host}` : 'http://localhost:3000');
@@ -30,7 +33,8 @@ export async function POST(req: Request) {
       type,
       eventDetails,
       organizer,
-      siteUrl
+      siteUrl,
+      timezone
     });
 
     if (error) {

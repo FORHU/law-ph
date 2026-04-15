@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         const ws = new WebSocket(wsEndpoint);
         let isClosed = false;
-
+        
         const closeStream = () => {
           if (!isClosed) {
             isClosed = true;
@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
             }
           }
         };
-
+        
         // Handle WebSocket connection open
         ws.onopen = () => {
           console.log('WebSocket connected to chat-wonder-api');
-
+          
           // Send the chat message
           const payload = {
             user_input,
@@ -55,13 +55,13 @@ export async function POST(request: NextRequest) {
         // Handle incoming WebSocket messages
         ws.onmessage = (event) => {
           if (isClosed) return;
-
+          
           const message = event.data;
-
+          
           try {
             // Forward the message to the client
             controller.enqueue(new TextEncoder().encode(message));
-
+            
             // If this is the end signal, close the stream
             if (message === '__END__' && !isClosed) {
               ws.close();
