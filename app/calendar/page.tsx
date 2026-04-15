@@ -133,9 +133,11 @@ const StatusBadge = ({ status }: { status: CalendarEvent["status"] }) => {
         >
             {status === "pending"
                 ? "Invitation Sent"
-                : status === "requested_change"
-                    ? "Change Requested"
-                    : status || "draft"}
+                : status === "rejected"
+                    ? "Denied"
+                    : status === "requested_change"
+                        ? "Change Requested"
+                        : status || "draft"}
         </span>
     );
 };
@@ -192,7 +194,7 @@ export default function CalendarPage() {
     const [viewMonth, setViewMonth] = useState(now.getMonth());
     const [viewYear, setViewYear] = useState(now.getFullYear());
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<"upcoming" | "rejected" | "accomplished">(
+    const [activeTab, setActiveTab] = useState<"upcoming" | "pending" | "denied" | "accomplished">(
         "upcoming",
     );
     const [showAll, setShowAll] = useState(false);
@@ -272,6 +274,7 @@ export default function CalendarPage() {
     const [emailError, setEmailError] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
     const validateEmail = (email: string) =>
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -365,12 +368,28 @@ export default function CalendarPage() {
             }
             if (result.success && result.events) {
                 const mapped = result.events.map(mapGoogleEvent);
-                // Merge with existing events (avoiding duplicates by ID)
+                // Merge with existing events — avoid duplicates by ID AND by title+time
                 setEvents((prev) => {
                     const existingIds = new Set(prev.map((e) => e.id));
-                    const newEvents = mapped.filter(
-                        (e) => !existingIds.has(e.id),
+                    // Build a set of "title|roundedTime" keys from Supabase events
+                    // to detect events we already synced via createCalendarEvent
+                    const existingKeys = new Set(
+                        prev.map((e) => {
+                            const t = new Date(e.date_time || e.dateTime || "").getTime();
+                            // Round to nearest 5 minutes to handle minor time drifts
+                            const rounded = Math.round(t / 300000) * 300000;
+                            return `${(e.title || "").toLowerCase().trim()}|${rounded}`;
+                        }),
                     );
+
+                    const newEvents = mapped.filter((e) => {
+                        if (existingIds.has(e.id)) return false;
+                        const t = new Date(e.date_time || e.dateTime || "").getTime();
+                        const rounded = Math.round(t / 300000) * 300000;
+                        const key = `${(e.title || "").toLowerCase().trim()}|${rounded}`;
+                        return !existingKeys.has(key);
+                    });
+
                     return [...prev, ...newEvents];
                 });
                 setIsGoogleConnected(true);
@@ -431,6 +450,34 @@ export default function CalendarPage() {
             checkGoogleAuth(userId);
         }
     }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
+
+    // ── Realtime Sync ──────────────────────────────────────────────────────────
+    // Listen for any INSERT/UPDATE/DELETE on the events table so that events
+    // created from the Schedule tab (or anywhere else) appear instantly here.
+    useEffect(() => {
+        if (!userId || !supabase) return;
+
+        const channel = supabase
+            .channel(`calendar-events-${userId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "events",
+                    filter: `user_id=eq.${userId}`,
+                },
+                () => {
+                    // Re-fetch the full list on any change
+                    fetchEvents();
+                },
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userId, supabase, fetchEvents]);
 
     // Automatic conflict check for the Calendar Form
     useEffect(() => {
@@ -495,6 +542,7 @@ export default function CalendarPage() {
                 .filter(
                     (e) =>
                         e.status !== "rejected" &&
+                        e.status !== "pending" &&
                         new Date(e.date_time || e.dateTime || "").getTime() >=
                         now.getTime(),
                 )
@@ -506,7 +554,19 @@ export default function CalendarPage() {
         [events],
     );
 
-    const rejectedEvents = useMemo(
+    const pendingEvents = useMemo(
+        () =>
+            events
+                .filter((e) => e.status === "pending")
+                .sort((a, b) =>
+                    (a.date_time || a.dateTime || "").localeCompare(
+                        b.date_time || b.dateTime || "",
+                    ),
+                ),
+        [events],
+    );
+
+    const deniedEvents = useMemo(
         () =>
             events
                 .filter((e) => e.status === "rejected")
@@ -524,6 +584,7 @@ export default function CalendarPage() {
                 .filter(
                     (e) =>
                         e.status !== "rejected" &&
+                        e.status !== "pending" &&
                         new Date(e.date_time || e.dateTime || "").getTime() <
                         now.getTime(),
                 )
@@ -538,9 +599,11 @@ export default function CalendarPage() {
     const activeList =
         activeTab === "upcoming"
             ? upcomingEvents
-            : activeTab === "rejected"
-                ? rejectedEvents
-                : accomplishedEvents;
+            : activeTab === "pending"
+                ? pendingEvents
+                : activeTab === "denied"
+                    ? deniedEvents
+                    : accomplishedEvents;
 
     const filteredList = useMemo(
         () =>
@@ -582,37 +645,81 @@ export default function CalendarPage() {
     // ── Handlers ───────────────────────────────────────────────────────────────
 
     const handleSave = async () => {
-        if (!form.title || !form.dateTime || !userId) return;
-        setSubmitting(true);
+        if (!userId) return;
+
+        // 0. Collect ALL validation errors at once
+        const errors: string[] = [];
         setCreateError(null);
 
-        try {
-            // 0. Validate that the selected date/time is not in the past (minute precision)
+        if (!form.title.trim()) {
+            errors.push("Event title is required.");
+        }
+
+        if (!form.dateTime) {
+            errors.push("Please select a date and time.");
+        } else {
             const selectedDateTime = new Date(form.dateTime);
             const currentDateTime = new Date();
-
-            // Normalize to minute to avoid sub-minute comparison issues
             selectedDateTime.setSeconds(0, 0);
             currentDateTime.setSeconds(0, 0);
-
             if (selectedDateTime < currentDateTime) {
-                setCreateError("Cannot schedule events for past times. Please select a future date and time.");
-                setSubmitting(false);
-                return;
+                errors.push("Cannot schedule events for past times. Please select a future date and time.");
             }
+        }
 
-            // 1. Check for conflicts before saving
-            const { data: conflicts } = await supabase
+        if (pendingAction === "reschedule" && !actionReason.trim()) {
+            errors.push("Please provide a reason for rescheduling.");
+        }
+
+        if (!form.notes.trim()) {
+            errors.push("Description/Notes are required to help prepare for the meeting.");
+        }
+
+        const emails = form.clientEmail ? form.clientEmail.split(",").map(e => e.trim()).filter(Boolean) : [];
+        if (emails.length === 0) {
+            errors.push("At least one client email is required.");
+        } else {
+            for (const email of emails) {
+                if (!validateEmail(email)) {
+                    errors.push(`Invalid email address detected: ${email}`);
+                }
+            }
+        }
+
+        if (errors.length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        // If all validation passes, proceed with submission
+        setValidationErrors([]);
+        setSubmitting(true);
+
+        try {
+
+            // 1. Check for conflicts before saving (use time range for overlap)
+            const checkTime = new Date(form.dateTime);
+            const startRange = new Date(checkTime.getTime() - 59 * 60 * 1000).toISOString();
+            const endRange = new Date(checkTime.getTime() + 59 * 60 * 1000).toISOString();
+
+            let conflictQuery = supabase
                 .from("events")
                 .select("id, title, date_time")
                 .eq("user_id", userId)
-                .eq("date_time", form.dateTime)
-                .neq("id", editingEventId || "none")
+                .gte("date_time", startRange)
+                .lte("date_time", endRange)
                 .neq("status", "cancelled");
 
+            if (editingEventId) {
+                conflictQuery = conflictQuery.neq("id", editingEventId);
+            }
+
+            const { data: conflicts } = await conflictQuery.limit(1);
+
             if (conflicts && conflicts.length > 0 && !conflictWarning) {
+                const conflictTime = new Date(conflicts[0].date_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
                 setConflictWarning(
-                    `Overlap detected: You already have "${conflicts[0].title}" scheduled at this time.`,
+                    `Overlap detected: You already have "${conflicts[0].title}" at ${conflictTime}. Click "Confirm Schedule" again to proceed anyway.`,
                 );
                 setSubmitting(false);
                 return;
@@ -1025,7 +1132,7 @@ export default function CalendarPage() {
                                             }`}
                                     >
                                         <span className={`text-[10px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0
-                                            ${isToday ? "bg-[#8B4564] text-white" : "text-gray-500"}`}
+                                            ${isToday ? "bg-[#8B4564] text-white font-bold" : "text-gray-500"}`}
                                         >
                                             {day}
                                         </span>
@@ -1112,17 +1219,32 @@ export default function CalendarPage() {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            setActiveTab("rejected");
+                                            setActiveTab("pending");
                                             setShowAll(false);
                                         }}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "rejected"
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "pending"
+                                            ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-lg"
+                                            : "text-gray-400 hover:bg-white/5"
+                                            }`}
+                                    >
+                                        <AlertCircle size={14} /> Pending{" "}
+                                        <span className="text-xs bg-amber-500/20 px-1.5 py-0.5 rounded-full text-amber-400 ml-1">
+                                            {pendingEvents.length}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setActiveTab("denied");
+                                            setShowAll(false);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "denied"
                                             ? "bg-red-500/20 border border-red-500/30 text-red-300"
                                             : "text-gray-400 hover:bg-white/5"
                                             }`}
                                     >
-                                        <XCircle size={14} /> Rejected{" "}
+                                        <XCircle size={14} /> Denied{" "}
                                         <span className="text-xs bg-red-500/20 px-1.5 py-0.5 rounded-full text-red-400 ml-1">
-                                            {rejectedEvents.length}
+                                            {deniedEvents.length}
                                         </span>
                                     </button>
                                     <button
@@ -1232,7 +1354,11 @@ export default function CalendarPage() {
                                                         ? `No results for "${searchQuery}"`
                                                         : activeTab === "upcoming"
                                                             ? "No upcoming events"
-                                                            : "No accomplished events yet"}
+                                                            : activeTab === "pending"
+                                                                ? "No pending invitations"
+                                                                : activeTab === "denied"
+                                                                    ? "No denied events"
+                                                                    : "No accomplished events yet"}
                                                 </p>
                                             </motion.div>
                                         ) : (
@@ -1494,7 +1620,7 @@ export default function CalendarPage() {
                                             value={actionReason}
                                             onChange={(e) => setActionReason(e.target.value)}
                                             rows={2}
-                                            className="w-full bg-black/40 border border-[#8B4564]/30 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/60 placeholder:text-gray-600 resize-none"
+                                            className="w-full bg-black/40 border border-[#10B981]/30 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/60 placeholder:text-gray-600 resize-none"
                                         />
                                     </div>
                                 )}
@@ -1506,8 +1632,11 @@ export default function CalendarPage() {
                                             type="text"
                                             placeholder="e.g. Legal Consultation"
                                             value={form.title}
-                                            onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 transition-all"
+                                            onChange={(e) => {
+                                                setForm(f => ({ ...f, title: e.target.value }));
+                                                setValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('title')));
+                                            }}
+                                            className={`w-full bg-black/40 border ${validationErrors.some(e => e.toLowerCase().includes('title')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 transition-all`}
                                         />
                                     </div>
 
@@ -1516,7 +1645,7 @@ export default function CalendarPage() {
                                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Type</label>
                                             <div
                                                 onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-                                                className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#8B4564]/50 cursor-pointer transition-all focus:ring-2 focus:ring-[#8B4564]/20"
+                                                className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#8B4564]/50 cursor-pointer transition-all"
                                             >
                                                 <span className="capitalize">{form.type}</span>
                                                 <ChevronDown size={16} className={`transition-transform duration-200 text-white/60 ${typeDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1563,8 +1692,11 @@ export default function CalendarPage() {
                                                 type="datetime-local"
                                                 min={getMinDateTime()}
                                                 value={form.dateTime}
-                                                onChange={(e) => setForm(f => ({ ...f, dateTime: e.target.value }))}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 [color-scheme:dark] transition-all"
+                                                onChange={(e) => {
+                                                    setForm(f => ({ ...f, dateTime: e.target.value }));
+                                                    setValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('date') && !err.toLowerCase().includes('past')));
+                                                }}
+                                                className={`w-full bg-black/40 border ${validationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 [color-scheme:dark] transition-all`}
                                             />
                                         </div>
                                     </div>
@@ -1599,18 +1731,36 @@ export default function CalendarPage() {
                                         <textarea
                                             placeholder="Agenda or special instructions..."
                                             value={form.notes}
-                                            onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+                                            onChange={(e) => {
+                                                setForm(f => ({ ...f, notes: e.target.value }));
+                                                setValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('notes')));
+                                            }}
                                             rows={3}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 resize-none transition-all"
+                                            className={`w-full bg-black/40 border ${validationErrors.some(e => e.toLowerCase().includes('notes')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 resize-none transition-all`}
                                         />
                                     </div>
 
-                                    {createError && (
-                                        <div className="flex items-start gap-2 text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
-                                            <AlertCircle size={16} className="flex-shrink-0" />
-                                            <span>{createError}</span>
-                                        </div>
-                                    )}
+                                    <div className="pt-2">
+                                        {validationErrors.length > 0 && (
+                                            <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-4 space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex items-center gap-2 font-bold">
+                                                    <AlertCircle size={14} className="flex-shrink-0" />
+                                                    <span>Please fix the following:</span>
+                                                </div>
+                                                <ul className="list-disc list-inside space-y-0.5 ml-1">
+                                                    {validationErrors.map((err, i) => (
+                                                        <li key={i}>{err}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {createError && validationErrors.length === 0 && (
+                                            <div className="flex items-start gap-2 text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
+                                                <AlertCircle size={16} className="flex-shrink-0" />
+                                                <span>{createError}</span>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div className="pt-4">
                                         <button

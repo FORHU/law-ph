@@ -132,11 +132,12 @@ export async function createCalendarEvent(
     if (!providerToken) return { success: false, needs_auth: true };
 
     try {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const eventBody: any = {
             summary: data.title,
             description: data.description,
-            start: { dateTime: data.start_datetime },
-            end: { dateTime: data.end_datetime },
+            start: { dateTime: data.start_datetime, timeZone: userTimeZone },
+            end: { dateTime: data.end_datetime, timeZone: userTimeZone },
         };
 
         const url = new URL(
