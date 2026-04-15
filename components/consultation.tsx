@@ -19,7 +19,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Send
+  Send,
+  Mic,
+  StopCircle
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
@@ -49,6 +51,7 @@ import { CaseInviteButton } from "./consultation/case-invite-button";
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
 import { checkAuthStatus } from "@/lib/calendar-api";
+import { RecordingConflictModal } from "./consultation/recording-conflict-modal";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -94,7 +97,12 @@ export default function Consultation() {
     updateMessage,
     cases,
     casesLoaded,
-    analyzeDocuments
+    analyzeDocuments,
+    isRecording,
+    recordingTime,
+    stopRecording,
+    formatTime,
+    conflictRecordingId
   } = useConversations();
 
   const activeCase = activeConversationId
@@ -1275,6 +1283,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         {isAnalysisModalOpen && <DocumentAnalysisModal />}
         {isSchedulePreviewOpen && <SchedulePreviewModal />}
         {isEmailPreviewOpen && <EmailPreviewModal />}
+        {conflictRecordingId && <RecordingConflictModal />}
       </AnimatePresence>
 
       {/* Source Detail Sidebar */}

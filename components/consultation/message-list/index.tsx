@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { CHAT_SENDER } from '@/lib/constants';
 import { useAuth } from '@/components/auth/auth-provider';
 import { MessageItem } from './message-item';
 import { Message } from './types';
 import { RelatedCase, cleanLegalTitle, isGenericTitle } from '@/lib/citation-parser';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 interface MessageListProps {
   messages: Message[];
@@ -29,109 +29,12 @@ export function MessageList({
   onSendMessage 
 }: MessageListProps) {
   const { session } = useAuth();
+  const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useConversations();
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
-  const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
-  const [recordingTime, setRecordingTime] = useState<Record<string | number, number>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
   const [relatedCasesLoading, setRelatedCasesLoading] = useState<Record<string | number, boolean>>({});
   const [relatedCasesPage, setRelatedCasesPage] = useState<Record<string | number, number>>({});
   const [relatedCasesHasMore, setRelatedCasesHasMore] = useState<Record<string | number, boolean>>({});
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const audioChunksRef = React.useRef<BlobPart[]>([]);
-  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  const startRecording = async (messageId: string | number) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.addEventListener('dataavailable', event => {
-        audioChunksRef.current.push(event.data);
-      });
-
-      mediaRecorder.addEventListener('stop', async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        // Optimistic UI update with blob URL (immediate playback)
-        const tempUrl = URL.createObjectURL(audioBlob);
-        const tempId = Date.now().toString();
-        
-        if (onUpdateMessage) {
-          onUpdateMessage(messageId, { 
-            __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Uploading...' } 
-          });
-        }
-
-        try {
-          // Robust Persistent Upload
-          const { uploadVoiceNote } = await import('@/lib/s3-utils');
-          const permanentUrl = await uploadVoiceNote(audioBlob);
-          
-          if (onUpdateMessage) {
-            // Update the temporary note with the real URL and label
-            // Note: we need to find the note in the message and replace its URL
-            // However, the current onUpdateMessage API for __appendVoiceNote always appends.
-            // Let's check how onUpdateMessage works in ConversationProvider.
-            
-            // Re-fetching messages to find our just-added note might be tricky.
-            // Let's modify onUpdateMessage to handle "update existing note" or just use a more surgical approach.
-            // For now, let's just trigger another update that will be merged.
-            
-            onUpdateMessage(messageId, { 
-              voiceNotes: undefined, // Trigger a refresh if needed, but actually we want to REPLACE the temp one.
-              // Let's use a special flag or just pass the full array if we had it.
-              // Actually, ConversationProvider's updateMessage is already quite robust.
-            });
-
-            // Better: updateMessage in ConversationProvider handles updates.
-            // I'll adjust ConversationProvider to handle updating a specific voice note by ID.
-            
-            // For now, let's just send the permanent one.
-            onUpdateMessage(messageId, { 
-              __appendVoiceNote: { id: tempId, url: permanentUrl, label: `Voice Note` } 
-            });
-          }
-        } catch (err) {
-          console.error("Failed to upload recording to S3:", err);
-          if (onUpdateMessage) {
-              onUpdateMessage(messageId, { 
-                __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Upload Failed (Local Only)' } 
-              });
-          }
-        }
-
-        stream.getTracks().forEach(track => track.stop());
-        if (timerRef.current) clearInterval(timerRef.current);
-        setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
-      });
-
-      mediaRecorder.start();
-      setIsRecording(prev => ({ ...prev, [messageId]: true }));
-      setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => ({ ...prev, [messageId]: (prev[messageId] || 0) + 1 }));
-      }, 1000);
-    } catch (err) {
-      console.error('Microphone access denied or error:', err);
-      alert('Could not access microphone.');
-    }
-  };
-
-  const stopRecording = (messageId: string | number) => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(prev => ({ ...prev, [messageId]: false }));
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
 
   const fetchRelatedCases = async (messageId: string | number, isLoadMore: boolean = false) => {
     const msgIndex = messages.findIndex(m => m.id === messageId);

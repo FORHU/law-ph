@@ -18,6 +18,7 @@ import {
   extractTimeline,
   extractMindMap,
   cleanAiText,
+  cleanMessageText,
 } from "@/lib/citation-parser";
 import { uploadAndAnalyzeDocument } from "@/lib/s3-utils";
 import {
@@ -60,6 +61,25 @@ export function ConversationProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Voice Recording Persistent State
+  const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
+  const [recordingTime, setRecordingTime] = useState<Record<string | number, number>>({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [conflictRecordingId, setConflictRecordingId] = useState<string | number | null>(null);
+  const [activeRecordingTitle, setActiveRecordingTitle] = useState<string | null>(null);
+  const [recordingCaseNames, setRecordingCaseNames] = useState<Record<string | number, string>>({});
+
+  // Ensure recording is cleaned up on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
 
   // One-time cleanup: remove stale localStorage consultation cache from old app versions
   useEffect(() => {
@@ -109,7 +129,8 @@ export function ConversationProvider({
               recordingUrl: newNotes[0]?.url,
             };
 
-            let newContent = mergedMsg.text;
+            const cleanedText = cleanMessageText(mergedMsg.text || "");
+            let finalContent = cleanedText;
             const meta = {
               originalText: mergedMsg.originalText,
               editedAt: mergedMsg.editedAt,
@@ -121,9 +142,9 @@ export function ConversationProvider({
             };
 
             if (Object.values(meta).some((v) => v !== undefined)) {
-              newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+              finalContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
             }
-            return { ...mergedMsg, text: newContent };
+            return { ...mergedMsg, text: cleanedText, content: finalContent };
           }
           return { ...msg, ...updates };
         }),
@@ -185,7 +206,8 @@ export function ConversationProvider({
               highlights: mergedMsg.highlights,
             };
 
-            let newContent = mergedMsg.text;
+            const cleanedText = cleanMessageText(mergedMsg.text || "");
+            let newContent = cleanedText;
             if (Object.values(meta).some((v) => v !== undefined)) {
               newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
             }
@@ -355,16 +377,18 @@ export function ConversationProvider({
     if (metaMatch) {
       try {
         meta = JSON.parse(metaMatch[1]);
-        text = text.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, "").trim();
-        // Also strip hidden instructions
-        text = text
-          .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/, "")
-          .trim();
-
       } catch (e) {
         console.error("Failed to parse ILM_META", e);
       }
     }
+
+    // Always clean the text for display, even if JSON parsing fails or metaMatch is null
+    text = cleanMessageText(text);
+
+    // Also strip hidden instructions (redundant but safe if cleanMessageText is expanded)
+    text = text
+      .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "")
+      .trim();
 
     // Auto-extract citations for AI messages on load/map
     const sources =
@@ -570,6 +594,7 @@ export function ConversationProvider({
         if (currentConsultationId !== null || messages.length > 0) {
           handleNewConsultation();
         }
+        loadedHistoryIdRef.current = null;
         return;
       }
 
@@ -1023,6 +1048,120 @@ Please help me understand this document or answer questions based on it.`;
     ],
   );
 
+  // ---- Voice Recording ----
+  const stopRecording = useCallback((messageId: string | number) => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null; // Clear ref immediately after stopping
+    }
+    setIsRecording(prev => ({ ...prev, [messageId]: false }));
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const _internalStartRecording = useCallback(async (messageId: string | number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      const chunks: BlobPart[] = [];
+
+      mediaRecorder.addEventListener('dataavailable', event => {
+        if (event.data.size > 0) chunks.push(event.data);
+      });
+
+      mediaRecorder.addEventListener('stop', async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        const tempUrl = URL.createObjectURL(audioBlob);
+        const tempId = Date.now().toString();
+        
+        updateMessage(messageId, { 
+          __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Uploading...' } 
+        });
+
+        try {
+          const { uploadVoiceNote } = await import('@/lib/s3-utils');
+          const { file_url, s3_key } = await uploadVoiceNote(audioBlob);
+          updateMessage(messageId, { 
+            __appendVoiceNote: { id: tempId, url: file_url, label: `Voice Note`, s3_key } 
+          });
+        } catch (err) {
+          console.error("Failed to upload recording to S3:", err);
+          updateMessage(messageId, { 
+            __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Upload Failed (Local Only)' } 
+          });
+        }
+
+        stream.getTracks().forEach(track => track.stop());
+        setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
+      });
+
+      mediaRecorder.start();
+      setIsRecording(prev => ({ ...prev, [messageId]: true }));
+      setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
+      
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => ({ ...prev, [messageId]: (prev[messageId] || 0) + 1 }));
+      }, 1000);
+
+      // Track the case name for this recording session
+      const currentTitle = recentConsultations.find(c => c.id.toString() === currentConsultationId?.toString())?.title || "Legal Consultation";
+      setRecordingCaseNames(prev => ({ ...prev, [messageId]: currentTitle }));
+
+    } catch (err) {
+      console.error('Microphone access denied or error:', err);
+      alert('Could not access microphone.');
+    }
+  }, [updateMessage, recentConsultations, currentConsultationId]);
+
+  const startRecording = useCallback(async (messageId: string | number) => {
+    // 1. Check for conflicts
+    const anyActiveId = Object.keys(isRecording).find(id => isRecording[id]);
+    if (anyActiveId) {
+      // Find the cached title for the active session
+      const activeSessionTitle = recordingCaseNames[anyActiveId] || "Active Case";
+      
+      setActiveRecordingTitle(activeSessionTitle);
+      setConflictRecordingId(messageId);
+      return; // HALT - wait for user choice
+    }
+
+    await _internalStartRecording(messageId);
+  }, [isRecording, recordingCaseNames, _internalStartRecording]);
+
+  const resolveRecordingConflict = useCallback(async (proceed: boolean) => {
+    if (proceed && conflictRecordingId) {
+      const targetId = conflictRecordingId;
+      
+      // 1. Stop the OLD one
+      const anyActiveId = Object.keys(isRecording).find(id => isRecording[id]);
+      if (anyActiveId) {
+        stopRecording(anyActiveId);
+        // Small delay to let the browser process the stop command
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      // 2. Clear conflict state
+      setConflictRecordingId(null);
+      setActiveRecordingTitle(null);
+      
+      // 3. Start the NEW one directly (bypassing redundant check)
+      await _internalStartRecording(targetId);
+    } else {
+      setConflictRecordingId(null);
+      setActiveRecordingTitle(null);
+    }
+  }, [conflictRecordingId, isRecording, stopRecording, _internalStartRecording]);
+
+  const formatTime = useCallback((secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }, []);
+
   return (
     <ConversationContext.Provider
       value={{
@@ -1065,6 +1204,14 @@ Please help me understand this document or answer questions based on it.`;
         analyzeDocuments,
         documentContext,
         setDocumentContext,
+        isRecording,
+        recordingTime,
+        startRecording,
+        stopRecording,
+        formatTime,
+        conflictRecordingId,
+        activeRecordingTitle,
+        resolveRecordingConflict,
       }}
     >
       {children}
