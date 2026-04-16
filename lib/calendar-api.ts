@@ -140,6 +140,13 @@ export async function createCalendarEvent(
             description: data.description,
             start: { dateTime: data.start_datetime, timeZone: userTimeZone },
             end: { dateTime: data.end_datetime, timeZone: userTimeZone },
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: "email", minutes: 1440 }, // 1 day before
+                    { method: "popup", minutes: 60 },   // 1 hour before
+                ],
+            },
         };
 
         if (data.client_email) {

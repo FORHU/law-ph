@@ -22,6 +22,7 @@ import {
     XCircle,
     Check,
     Link as LinkIcon,
+    Bell,
 } from "lucide-react";
 import { PageLayout } from "@/components/ui/page-layout";
 import { useConversations } from "@/components/conversation-provider/conversation-context";
@@ -48,6 +49,8 @@ interface CalendarEvent {
     clientEmail?: string;
     notes?: string;
     googleLink?: string;
+    google_link?: string;
+    google_event_id?: string;
     isGoogleEvent?: boolean;
     status: "pending" | "confirmed" | "requested_change" | "rejected";
     client_feedback?: string;
@@ -126,7 +129,7 @@ const StatusBadge = ({ status, isPast }: { status: CalendarEvent["status"]; isPa
         requested_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
         rejected: "bg-red-900/40 text-red-400 border-red-500/30",
     };
-    
+
     let label = status as string;
     if (status === "pending") label = "Invitation Sent";
     if (status === "rejected") label = "Denied";
@@ -550,19 +553,24 @@ export default function CalendarPage() {
                         b.date_time || b.dateTime || "",
                     ),
                 ),
-        [events],
+        [events, now],
     );
 
     const pendingEvents = useMemo(
         () =>
             events
-                .filter((e) => e.status === "pending" || e.status === "requested_change")
+                .filter(
+                    (e) =>
+                        (e.status === "pending" || e.status === "requested_change") &&
+                        new Date(e.date_time || e.dateTime || "").getTime() >=
+                        now.getTime(),
+                )
                 .sort((a, b) =>
                     (a.date_time || a.dateTime || "").localeCompare(
                         b.date_time || b.dateTime || "",
                     ),
                 ),
-        [events],
+        [events, now],
     );
 
     const deniedEvents = useMemo(
@@ -591,7 +599,7 @@ export default function CalendarPage() {
                         a.date_time || a.dateTime || "",
                     ),
                 ),
-        [events],
+        [events, now],
     );
 
     const activeList =
@@ -811,14 +819,14 @@ export default function CalendarPage() {
 
                 // Update DB with Google IDs
                 if (googleEventId || gLink) {
-                   const updatePayload: any = {};
-                   if (gLink) updatePayload.google_link = gLink;
-                   if (googleEventId) updatePayload.google_event_id = googleEventId;
+                    const updatePayload: any = {};
+                    if (gLink) updatePayload.google_link = gLink;
+                    if (googleEventId) updatePayload.google_event_id = googleEventId;
 
-                   await supabase
-                       .from("events")
-                       .update(updatePayload)
-                       .eq("id", createdEventId);
+                    await supabase
+                        .from("events")
+                        .update(updatePayload)
+                        .eq("id", createdEventId);
                 }
             }
 
@@ -827,7 +835,7 @@ export default function CalendarPage() {
                 ...result.data,
                 dateTime: result.data.date_time,
                 clientEmail: result.data.client_email,
-                status: finalStatus,
+                status: result.data.status,
                 googleLink: gLink,
             };
 
@@ -900,6 +908,45 @@ export default function CalendarPage() {
         } catch (err: any) {
             console.error("Error canceling event:", err.message || err);
             setSubmitting(false);
+        }
+    };
+
+    const handleRemindEvent = async (event: CalendarEvent) => {
+        if (!userId) return;
+
+        try {
+            // Trigger Email API
+            const response = await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    to: event.client_email || event.clientEmail,
+                    type: "schedule",
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    eventDetails: {
+                        eventId: event.id,
+                        eventType: event.type,
+                        dateTime: new Date(event.date_time || event.dateTime || "").toISOString(),
+                        notes: event.notes,
+                        // We use the supabase ID as the fallback UID for consistency if no google ID yet
+                        iCalUID: undefined
+                    },
+                    organizer: {
+                        name: session?.user?.user_metadata?.full_name || session?.user?.email,
+                        email: session?.user?.email,
+                    },
+                }),
+            });
+
+            if (response.ok) {
+                // Success feedback - you might want a toast system, but for now console and maybe update local state if needed
+                alert("Reminder sent successfully!");
+            } else {
+                throw new Error("Failed to send reminder");
+            }
+        } catch (err) {
+            console.error("[Calendar] Remind event failed:", err);
+            alert("Failed to send reminder. Please try again.");
         }
     };
 
@@ -1148,7 +1195,7 @@ export default function CalendarPage() {
                                             {dayEvents.slice(0, 3).map((evt) => (
                                                 <div
                                                     key={evt.id}
-                                                    className={`px-1.5 py-0.5 rounded text-[9px] truncate font-medium leading-tight border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"}`}
+                                                    className={`px-1.5 py-0.5 rounded text-[9px] truncate font-medium leading-tight border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"} ${evt.status === "confirmed" && isPast ? "line-through opacity-60" : ""}`}
                                                     title={evt.title}
                                                 >
                                                     {evt.title}
@@ -1393,9 +1440,41 @@ export default function CalendarPage() {
                                                             className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${EVENT_COLORS[event.type].dot}`}
                                                         />
                                                         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                                                            <h3 className="font-medium text-white text-base truncate pr-4 leading-tight">
-                                                                {event.title}
-                                                            </h3>
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <h3 className={`font-medium text-white text-base truncate pr-4 leading-tight ${activeTab === "accomplished" ? "line-through opacity-50" : ""}`}>
+                                                                    {event.title}
+                                                                </h3>
+                                                                {(() => {
+                                                                    const evtDate = new Date(event.date_time || event.dateTime || "");
+                                                                    const diff = evtDate.getTime() - now.getTime();
+                                                                    const isToday = evtDate.getDate() === now.getDate() &&
+                                                                        evtDate.getMonth() === now.getMonth() &&
+                                                                        evtDate.getFullYear() === now.getFullYear();
+                                                                    
+                                                                    if (isToday && diff > 0) {
+                                                                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                                                                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                                                        const countdownText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                                                                        return (
+                                                                            <span className="flex-shrink-0 bg-red-500/10 text-red-500 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/30 flex items-center gap-1 animate-pulse">
+                                                                                <Clock size={10} />
+                                                                                IN {countdownText}
+                                                                            </span>
+                                                                        );
+                                                                    }
+
+                                                                    const tomorrow = new Date(now);
+                                                                    tomorrow.setDate(now.getDate() + 1);
+                                                                    const isTomorrow = evtDate.getDate() === tomorrow.getDate() &&
+                                                                        evtDate.getMonth() === tomorrow.getMonth() &&
+                                                                        evtDate.getFullYear() === tomorrow.getFullYear();
+                                                                    return isTomorrow && (
+                                                                        <span className="flex-shrink-0 bg-amber-500/10 text-amber-500 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                                                                            TOMORROW
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </div>
 
                                                             <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                                                 <StatusBadge
@@ -1428,18 +1507,21 @@ export default function CalendarPage() {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {event.isGoogleEvent && activeTab === "upcoming" && (
+                                                        {activeTab === "pending" && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleDeleteEvent(event.id);
+                                                                    handleRemindEvent(event);
                                                                 }}
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-gray-500 hover:text-red-400 rounded-lg"
-                                                                title="Delete"
+                                                                className="transition-all p-2 text-amber-500 hover:text-amber-400 rounded-lg flex items-center gap-1.5 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20"
+                                                                title="Send Reminder"
                                                             >
-                                                                <X size={14} />
+                                                                <Bell size={14} />
+                                                                <span className="text-[10px] font-bold uppercase tracking-tight">Remind</span>
                                                             </button>
                                                         )}
+
+
                                                     </div>
                                                 </motion.div>
                                             ))
@@ -1496,9 +1578,31 @@ export default function CalendarPage() {
 
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-white text-base leading-tight mb-1">
-                                                    {event.title}
-                                                </h3>
+                                                <div className="flex items-center justify-between gap-3 mb-1">
+                                                    <h3 className="font-bold text-white text-base leading-tight">
+                                                        {event.title}
+                                                    </h3>
+                                                    {(() => {
+                                                        const evtDate = new Date(event.date_time || event.dateTime || "");
+                                                        const diff = evtDate.getTime() - now.getTime();
+                                                        const isToday = evtDate.getDate() === now.getDate() &&
+                                                            evtDate.getMonth() === now.getMonth() &&
+                                                            evtDate.getFullYear() === now.getFullYear();
+                                                        
+                                                        if (isToday && diff > 0) {
+                                                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                                                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                                            const countdownText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                                                            return (
+                                                                <span className="flex-shrink-0 bg-red-500/10 text-red-500 text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/30 flex items-center gap-1 animate-pulse">
+                                                                    <Clock size={10} />
+                                                                    IN {countdownText}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
                                                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
                                                     <p className="text-xs text-gray-400 flex items-center gap-1.5">
                                                         <Clock size={13} className="text-[#E0A7C2]" />
@@ -1581,18 +1685,50 @@ export default function CalendarPage() {
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => { setPendingAction("reschedule"); setActionEventId(event.id); }}
-                                                        className="text-[10px] font-bold px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
-                                                    >
-                                                        Reschedule
-                                                    </button>
-                                                    <button
-                                                        onClick={() => { setPendingAction("cancel"); setActionEventId(event.id); }}
-                                                        className="text-[10px] font-bold px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border border-red-500/20"
-                                                    >
-                                                        Cancel
-                                                    </button>
+                                                    {(() => {
+                                                        const isEventPast = new Date(event.date_time || event.dateTime || "").getTime() < now.getTime();
+                                                        
+                                                        // Confirmed past events (Accomplished) - No actions
+                                                        if (isEventPast && event.status === "confirmed") return null;
+
+                                                        // Unconfirmed past events (Missed) - Only Reschedule
+                                                        if (isEventPast) {
+                                                            return (
+                                                                <button
+                                                                    onClick={() => { setPendingAction("reschedule"); setActionEventId(event.id); }}
+                                                                    className="text-[10px] font-bold px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-lg transition-all border border-amber-500/20"
+                                                                >
+                                                                    Reschedule (Missed)
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        // Future events - Both actions + Remind if pending
+                                                        return (
+                                                            <>
+                                                                {event.status === "pending" && (
+                                                                    <button
+                                                                        onClick={() => handleRemindEvent(event)}
+                                                                        className="text-[10px] font-bold px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg transition-all border border-amber-500/20 flex items-center gap-1.5"
+                                                                    >
+                                                                        <Bell size={12} /> Remind
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => { setPendingAction("reschedule"); setActionEventId(event.id); }}
+                                                                    className="text-[10px] font-bold px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
+                                                                >
+                                                                    Reschedule
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { setPendingAction("cancel"); setActionEventId(event.id); }}
+                                                                    className="text-[10px] font-bold px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all border border-red-500/20"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
