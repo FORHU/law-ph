@@ -1,4 +1,5 @@
 import { transporter, defaultFrom } from './mail-transport';
+import { sendViaGmail } from './gmail-send';
 import { Buffer } from 'buffer';
 
 interface SendEmailParams {
@@ -18,6 +19,8 @@ interface SendEmailParams {
   };
   siteUrl: string;
   timezone?: string;
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
 }
 
 export async function sendEmail({
@@ -28,7 +31,9 @@ export async function sendEmail({
   eventDetails,
   organizer,
   siteUrl,
-  timezone
+  timezone,
+  googleAccessToken,
+  googleRefreshToken,
 }: SendEmailParams) {
   const displayTimezone = timezone || 'UTC';
 
@@ -132,9 +137,28 @@ export async function sendEmail({
     emailContent = markdownToHtml(body);
   }
 
+  const from = organizer?.email
+    ? `${organizer.name || organizer.email} <${organizer.email}>`
+    : defaultFrom;
+
+  // Use the Gmail API when the user has granted gmail.send access, so the
+  // email is delivered from their own Gmail account. Fall back to SMTP when
+  // no Google token is present (e.g. non-Google users or dev environment).
+  if (googleAccessToken) {
+    return sendViaGmail({
+      accessToken: googleAccessToken,
+      refreshToken: googleRefreshToken,
+      from,
+      to: cleanRecipients,
+      subject: emailSubject,
+      html: emailContent,
+      attachments,
+    });
+  }
+
   try {
     const info = await transporter.sendMail({
-      from: organizer?.email ? `${organizer.name || organizer.email} <${organizer.email}>` : defaultFrom,
+      from,
       to: cleanRecipients,
       replyTo: organizer?.email || defaultFrom,
       subject: emailSubject,
@@ -142,10 +166,9 @@ export async function sendEmail({
       attachments: attachments.map(a => ({
         filename: a.filename,
         content: a.content,
-        contentType: a.contentType
+        contentType: a.contentType,
       })),
     });
-
     return { data: info, error: null };
   } catch (error) {
     console.error('Nodemailer Error:', error);
