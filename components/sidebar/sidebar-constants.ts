@@ -1,5 +1,5 @@
 // components/sidebar/sidebar-constants.ts
-import { MessageSquare, FileText, Calendar } from 'lucide-react';
+import { MessageSquare, FileText, Calendar, Mic } from 'lucide-react';
 
 export interface RecentItem {
   id: string | number;
@@ -10,7 +10,7 @@ export interface RecentItem {
   onRename?: (newTitle: string) => void;
 }
 
-export type SidebarPage = 'chat' | 'documents' | 'calendar' | 'cases' | 'auth';
+export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth';
 
 export interface NavItem {
   id: SidebarPage;
@@ -23,6 +23,7 @@ export const SCROLL_THRESHOLD = 50;
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'documents', label: 'Documents', icon: FileText, href: '/documents' },
+  { id: 'transcribe', label: 'Transcribe', icon: Mic, href: '/transcribe' },
   { id: 'calendar', label: 'Calendar', icon: Calendar, href: '/calendar' },
   { id: 'chat', label: 'Chat', icon: MessageSquare, href: '/consultation' },
 ];

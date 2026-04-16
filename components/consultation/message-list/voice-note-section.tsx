@@ -126,7 +126,7 @@ export function VoiceNoteSection({
       )}
 
       {/* List existing notes */}
-      {notes.map((note: { id: string; url: string; label?: string }, idx: number) => (
+      {notes.map((note: { id: string; url: string; label?: string; s3_key?: string }, idx: number) => (
         <div key={note.id || idx} className="group p-3 bg-black/30 rounded-xl border border-white/5 flex flex-col gap-2 transition-all hover:border-[#8B4564]/30 w-full overflow-hidden">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
@@ -204,7 +204,15 @@ export function VoiceNoteSection({
                   <button
                     title="Download recording"
                     className="p-1.5 text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-lg transition-all"
-                    onClick={() => handleDownload(formatS3Url(note.url), note.label || `voice-note-${idx + 1}`)}
+                    onClick={() => {
+                        const downloadUrl = (typeof note.url === 'string' && note.url.startsWith('blob:')) 
+                            ? note.url 
+                            : (note.s3_key ? `https://da6hq15h0otl9.cloudfront.net/${note.s3_key}` : note.url);
+                        
+                        if (typeof downloadUrl === 'string') {
+                            handleDownload(downloadUrl, note.label || `voice-note-${idx + 1}`);
+                        }
+                    }}
                   >
                     <Download size={13} />
                   </button>
@@ -230,12 +238,14 @@ export function VoiceNoteSection({
                 className="overflow-hidden"
               >
                 <div className="pt-1">
-                  <audio 
-                    controls 
-                    src={formatS3Url(note.url)} 
-                    controlsList="nodownload"
-                    className="h-9 w-full custom-audio-player" 
-                  />
+                  {typeof (note.s3_key ? `https://da6hq15h0otl9.cloudfront.net/${note.s3_key}` : note.url) === 'string' && (
+                    <audio 
+                      controls 
+                      src={note.s3_key ? `https://da6hq15h0otl9.cloudfront.net/${note.s3_key}` : note.url} 
+                      controlsList="nodownload"
+                      className="h-9 w-full custom-audio-player" 
+                    />
+                  )}
                 </div>
               </motion.div>
             )}

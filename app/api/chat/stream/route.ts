@@ -17,16 +17,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the WebSocket URL from environment
-    const apiUrl = process.env.CHAT_WONDER_API_URL || 'http://localhost:8001';
+    const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8001').replace(/\/+$/, '');
     const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://');
     const wsEndpoint = `${wsUrl}/chat-stream`;
+    console.log('[chat/stream] Connecting WebSocket to:', wsEndpoint);
 
     // Create a readable stream that will proxy the WebSocket messages
     const stream = new ReadableStream({
       async start(controller) {
         const ws = new WebSocket(wsEndpoint);
         let isClosed = false;
-        
+
         const closeStream = () => {
           if (!isClosed) {
             isClosed = true;
@@ -37,11 +38,11 @@ export async function POST(request: NextRequest) {
             }
           }
         };
-        
+
         // Handle WebSocket connection open
         ws.onopen = () => {
           console.log('WebSocket connected to chat-wonder-api');
-          
+
           // Send the chat message
           const payload = {
             user_input,
@@ -55,13 +56,13 @@ export async function POST(request: NextRequest) {
         // Handle incoming WebSocket messages
         ws.onmessage = (event) => {
           if (isClosed) return;
-          
+
           const message = event.data;
-          
+
           try {
             // Forward the message to the client
             controller.enqueue(new TextEncoder().encode(message));
-            
+
             // If this is the end signal, close the stream
             if (message === '__END__' && !isClosed) {
               ws.close();

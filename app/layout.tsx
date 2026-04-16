@@ -8,6 +8,7 @@ import AuthProvider from "@/components/auth/auth-provider";
 import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
 import AuthLoading from "@/components/auth/auth-loading";
+import { GlobalRecorder } from "@/components/global-recorder";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -70,6 +71,7 @@ export default async function RootLayout({
             <AuthProvider initialSession={session}>
               <ConversationProvider>
                 {children}
+                <GlobalRecorder />
               </ConversationProvider>
             </AuthProvider>
           </Suspense>

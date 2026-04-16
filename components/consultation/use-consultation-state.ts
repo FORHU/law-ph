@@ -25,7 +25,7 @@ interface UseConsultationStateProps {
   userName?: string;
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
-  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
+  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe") => void;
 }
 
 export function useConsultationState({
@@ -41,7 +41,7 @@ export function useConsultationState({
   onTabChange,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
-    "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
+    "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe"
   >("chat");
 
   const chatScrollPositionRef = useRef<number>(0);

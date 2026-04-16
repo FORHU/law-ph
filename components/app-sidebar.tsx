@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark } from 'lucide-react';
+import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark, Mic } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
@@ -42,7 +42,7 @@ export function AppSidebar({
   const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const isDocumentsOrCalendar = activePage === 'documents' || activePage === 'calendar';
+  const isDocumentsOrCalendarOrTranscribe = activePage === 'documents' || activePage === 'calendar' || activePage === 'transcribe';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { openSourceByItemId } = useConversations() || {};
 
@@ -91,9 +91,9 @@ export function AppSidebar({
 
         {/* Action Buttons & Primary Nav (NOW IN SCROLLABLE AREA) */}
         <div className="p-4 space-y-2 border-b border-[#8B4564]/10 flex-shrink-0">
-          {isDocumentsOrCalendar ? (
+          {isDocumentsOrCalendarOrTranscribe ? (
             <>
-              {/* Chat button (moves to top when in Documents/Calendar) */}
+              {/* Chat button (moves to top when in non-chat views) */}
               <button
                 onClick={() => router.push('/consultation')}
                 className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-200 hover:text-white hover:bg-white/5"
@@ -109,6 +109,15 @@ export function AppSidebar({
               >
                 <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
                 <span className="text-sm font-medium text-white">Documents</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/transcribe')}
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'transcribe' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                  }`}
+              >
+                <Mic size={16} className={activePage === 'transcribe' ? 'text-white' : 'text-gray-300'} />
+                <span className="text-sm font-medium text-white">Transcribe</span>
               </button>
 
               <button
@@ -136,6 +145,14 @@ export function AppSidebar({
               >
                 <FileText size={16} className="text-gray-300" />
                 <span className="text-sm font-medium text-white">Documents</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/transcribe')}
+                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+              >
+                <Mic size={16} className="text-gray-300" />
+                <span className="text-sm font-medium text-white">Transcribe</span>
               </button>
 
               <button
@@ -206,7 +223,7 @@ export function AppSidebar({
         </div>
 
         {/* Bottom Navigation (Conditional Chat tab) */}
-        {!isDocumentsOrCalendar && (
+        {!isDocumentsOrCalendarOrTranscribe && (
           <div className="flex-shrink-0">
             <SidebarNav activePage={activePage} />
           </div>

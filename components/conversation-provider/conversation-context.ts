@@ -99,6 +99,16 @@ export type ConversationContextType = {
   removeBookmark: (id: string) => Promise<void>;
   isBookmarked: (itemId: string) => string | null; // returns bookmark id or null
   sendDocumentToChat: (name: string, summary: string, conversationId?: string | number) => Promise<string | number | undefined>;
+
+  // Voice Recording (Global Persistence)
+  isRecording: Record<string | number, boolean>;
+  recordingTime: Record<string | number, number>;
+  startRecording: (messageId: string | number) => Promise<void>;
+  stopRecording: (messageId: string | number) => void;
+  formatTime: (secs: number) => string;
+  conflictRecordingId: string | number | null;
+  activeRecordingTitle: string | null;
+  resolveRecordingConflict: (proceed: boolean) => void;
 };
 
 export const ConversationContext = createContext<ConversationContextType | null>(null);
