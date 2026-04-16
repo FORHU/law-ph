@@ -37,6 +37,55 @@ export interface CreateEventResult {
     error?: string;
 }
 
+export async function getAvailableConferenceSolutions() {
+    const supabase = createClient();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+    const providerToken =
+        session?.provider_token || session?.user?.user_metadata?.provider_token;
+
+    if (!providerToken) {
+        console.log("[getAvailableConferenceSolutions] No provider token");
+        return null;
+    }
+
+    try {
+        const res = await fetch(
+            "https://www.googleapis.com/calendar/v3/users/me/calendarSettings",
+            {
+                headers: {
+                    Authorization: `Bearer ${providerToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        if (res.ok) {
+            const settings = await res.json();
+            console.log("[getAvailableConferenceSolutions] Calendar settings:", settings);
+        }
+
+        // Try to get conference list from a calendar list
+        const calendarRes = await fetch(
+            "https://www.googleapis.com/calendar/v3/calendars/primary",
+            {
+                headers: {
+                    Authorization: `Bearer ${providerToken}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        if (calendarRes.ok) {
+            const cal = await calendarRes.json();
+            console.log("[getAvailableConferenceSolutions] Primary calendar:", cal);
+        }
+    } catch (error) {
+        console.error("[getAvailableConferenceSolutions] Error:", error);
+    }
+}
+
 export interface DeleteEventResult {
     success: boolean;
     needs_auth?: boolean;
@@ -139,6 +188,16 @@ export async function createCalendarEvent(
             end: { dateTime: data.end_datetime },
         };
 
+        console.log('[createCalendarEvent] Creating event:', data.title);
+        console.log('[createCalendarEvent] Type:', data.type);
+
+        // Add Google Meet template link for meeting type events
+        if (data.type === "meeting") {
+            const meetTemplate = "\n\n📞 Google Meet: https://meet.google.com/new";
+            eventBody.description = (eventBody.description || "") + meetTemplate;
+            console.log('[createCalendarEvent] Added Meet template link to description');
+        }
+
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
@@ -159,6 +218,7 @@ export async function createCalendarEvent(
             try {
                 const errorData = JSON.parse(responseText);
                 errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+                console.error("[createCalendarEvent] Full error response:", errorData);
                 console.error("[createCalendarEvent] Error:", errorMsg);
             } catch (e) {
                 console.error("[createCalendarEvent] Error response:", responseText);
