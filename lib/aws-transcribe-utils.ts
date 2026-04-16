@@ -4,6 +4,7 @@ import {
   GetTranscriptionJobCommand 
 } from "@aws-sdk/client-transcribe";
 import { TranscribeStreamingClient, StartStreamTranscriptionCommand } from "@aws-sdk/client-transcribe-streaming";
+import { getProxiedUrl } from "./s3-utils";
 
 const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
 
@@ -72,34 +73,75 @@ export async function getTranscriptionJobStatus(jobName: string) {
  */
 export async function fetchTranscriptionText(url: string): Promise<string> {
     try {
-        const response = await fetch(url);
+        const proxiedUrl = getProxiedUrl(url);
+        const response = await fetch(proxiedUrl);
         const data = await response.json();
         
-        // If speaker labels are not present, return simple transcript
-        if (!data.results.speaker_labels) {
-            return data.results.transcripts[0].transcript || "";
+        if (!data.results) return "";
+
+        // Fallback to simple transcript if speaker labels are missing
+        if (!data.results.speaker_labels || !data.results.speaker_labels.segments) {
+            return data.results.transcripts?.[0]?.transcript || "";
         }
 
-        // Advanced parsing for speaker labels
         const items = data.results.items;
-        const labels = data.results.speaker_labels.segments;
-        let fullTranscript = "";
+        const segments = data.results.speaker_labels.segments;
         
-        labels.forEach((segment: any) => {
-            const speaker = `Speaker ${segment.speaker_label.replace('spk_', '')}`;
-            const startTime = parseFloat(segment.start_time);
-            const endTime = parseFloat(segment.end_time);
-            
-            const segmentText = items
-                .filter((i: any) => parseFloat(i.start_time) >= startTime && parseFloat(i.end_time) <= endTime)
-                .map((i: any) => i.alternatives[0].content)
-                .join(" ")
-                .replace(/ ([,.!?;:])/g, "$1"); // Clean up punctuation spaces
-                
-            fullTranscript += `[${speaker}]: ${segmentText}\n\n`;
+        // Fast speaker lookup using cached segment index (since items are chronological)
+        let segmentIndex = 0;
+        const getSpeakerAtTime = (timeStr: string) => {
+            const time = parseFloat(timeStr);
+            for (let i = segmentIndex; i < segments.length; i++) {
+                const s = segments[i];
+                const start = parseFloat(s.start_time);
+                const end = parseFloat(s.end_time);
+                if (start <= time && end >= time) {
+                    segmentIndex = i;
+                    return `Speaker ${s.speaker_label.replace('spk_', '')}`;
+                }
+            }
+            return null;
+        };
+
+        let currentSpeaker: string | null = null;
+        let fullTranscript = "";
+        let currentSpeakerSentence = "";
+
+        items.forEach((item: any) => {
+            const content = item.alternatives[0].content;
+            let itemSpeaker: string | null = null;
+
+            if (item.start_time) {
+                // Word item - find which speaker segment it falls into
+                itemSpeaker = getSpeakerAtTime(item.start_time);
+            }
+
+            // If we found a speaker, or if this is punctuation (use current active speaker)
+            if (itemSpeaker && itemSpeaker !== currentSpeaker) {
+                // Speaker transition detected
+                if (currentSpeaker !== null && currentSpeakerSentence.trim()) {
+                    fullTranscript += `[${currentSpeaker}]: ${currentSpeakerSentence.trim()}\n\n`;
+                }
+                currentSpeaker = itemSpeaker;
+                currentSpeakerSentence = content;
+            } else {
+                // Continue with current speaker block
+                if (item.type === "punctuation") {
+                    currentSpeakerSentence += content;
+                } else {
+                    // Add space before words, but not at the start of a block
+                    currentSpeakerSentence += (currentSpeakerSentence ? " " : "") + content;
+                }
+            }
         });
 
-        return fullTranscript.trim() || data.results.transcripts[0].transcript || "";
+        // Add the final speaker block
+        if (currentSpeaker !== null && currentSpeakerSentence.trim()) {
+            fullTranscript += `[${currentSpeaker}]: ${currentSpeakerSentence.trim()}\n\n`;
+        }
+
+        // Return the reconstructed transcript or fallback to raw text
+        return fullTranscript.trim() || data.results.transcripts?.[0]?.transcript || "";
     } catch (err) {
         console.error("Error fetching/parsing transcript from S3", err);
         return "";

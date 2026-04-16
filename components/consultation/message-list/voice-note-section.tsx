@@ -2,7 +2,7 @@ import React from 'react';
 import { Mic, Download, X, Square, Edit2, Check, Trash2, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Message } from './types';
-import { formatS3Url } from '@/lib/s3-utils';
+import { formatS3Url, getProxiedUrl } from '@/lib/s3-utils';
 
 interface VoiceNoteSectionProps {
   message: Message;
@@ -81,7 +81,8 @@ export function VoiceNoteSection({
       // Create a sanitized filename
       const safeName = filename.replace(/[^a-z0-9_\-\s]/gi, '').split(' ').join('_').toLowerCase();
       
-      const response = await fetch(url, { mode: 'cors' });
+      const proxiedUrl = getProxiedUrl(url);
+      const response = await fetch(proxiedUrl, { mode: 'cors' });
       if (!response.ok) throw new Error('Network response was not ok');
       
       const blob = await response.blob();
