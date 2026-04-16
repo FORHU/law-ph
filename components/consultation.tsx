@@ -47,6 +47,7 @@ import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
 import { CaseInviteButton } from "./consultation/case-invite-button";
+import TranscribeWorkspace from "./transcribe/transcribe-workspace";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
@@ -1232,6 +1233,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </button>
                   </div>
                 )}
+              </div>
+            ) : globalTab === "transcribe" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full h-full min-h-[600px] flex">
+                <TranscribeWorkspace 
+                  onOpenSidebar={() => setIsSidebarOpen(true)}
+                  isSidebarOpen={isSidebarOpen}
+                />
               </div>
             ) : null}
           </div>

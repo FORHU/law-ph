@@ -1,7 +1,12 @@
-import { TranscribeClient, StartTranscriptionJobCommand } from "@aws-sdk/client-transcribe";
+import { 
+  TranscribeClient, 
+  StartTranscriptionJobCommand,
+  GetTranscriptionJobCommand 
+} from "@aws-sdk/client-transcribe";
 import { TranscribeStreamingClient, StartStreamTranscriptionCommand } from "@aws-sdk/client-transcribe-streaming";
 
 const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
+
 const getCredentials = () => {
   return {
     accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY || "",
@@ -23,11 +28,14 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
   const params = {
     TranscriptionJobName: jobName,
     LanguageCode: "en-US",
-    MediaFormat: "mp3", // Adjust based on upload format
+    MediaFormat: "mp3", 
     Media: {
       MediaFileUri: s3Uri,
     },
-    // OutputBucketName: "your-output-bucket", // Optional if you want explicit output location
+    Settings: {
+      ShowSpeakerLabels: true,
+      MaxSpeakerLabels: 2,
+    },
   };
 
   try {
@@ -41,8 +49,65 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
 }
 
 /**
+ * Get the status of a transcription job.
+ */
+export async function getTranscriptionJobStatus(jobName: string) {
+  const client = new TranscribeClient({
+    region: AWS_REGION,
+    credentials: getCredentials(),
+  });
+
+  try {
+    const data = await client.send(new GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
+    return data.TranscriptionJob;
+  } catch (err) {
+    console.error("Error getting transcription job status", err);
+    return null;
+  }
+}
+
+/**
+ * Fetch the transcript and parse speaker labels if available.
+ * Returns a string formatted with Speaker identifiers if data is present.
+ */
+export async function fetchTranscriptionText(url: string): Promise<string> {
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // If speaker labels are not present, return simple transcript
+        if (!data.results.speaker_labels) {
+            return data.results.transcripts[0].transcript || "";
+        }
+
+        // Advanced parsing for speaker labels
+        const items = data.results.items;
+        const labels = data.results.speaker_labels.segments;
+        let fullTranscript = "";
+        
+        labels.forEach((segment: any) => {
+            const speaker = `Speaker ${segment.speaker_label.replace('spk_', '')}`;
+            const startTime = parseFloat(segment.start_time);
+            const endTime = parseFloat(segment.end_time);
+            
+            const segmentText = items
+                .filter((i: any) => parseFloat(i.start_time) >= startTime && parseFloat(i.end_time) <= endTime)
+                .map((i: any) => i.alternatives[0].content)
+                .join(" ")
+                .replace(/ ([,.!?;:])/g, "$1"); // Clean up punctuation spaces
+                
+            fullTranscript += `[${speaker}]: ${segmentText}\n\n`;
+        });
+
+        return fullTranscript.trim() || data.results.transcripts[0].transcript || "";
+    } catch (err) {
+        console.error("Error fetching/parsing transcript from S3", err);
+        return "";
+    }
+}
+
+/**
  * Placeholder generator for audio stream chunks to be fed to AWS Transcribe Streaming.
- * In practice, you pipe a MediaRecorder or an AudioContext processor here.
  */
 async function* getAudioStream(audioChunks: AsyncGenerator<Uint8Array>) {
   for await (const chunk of audioChunks) {
@@ -52,8 +117,6 @@ async function* getAudioStream(audioChunks: AsyncGenerator<Uint8Array>) {
 
 /**
  * Starts a live streaming transcription session.
- * @param audioChunks An async generator yielding Uint8Array PCM audio data chunks
- * @param onTranscript Callback invoked when new text is transcribed
  */
 export async function startAWSLiveTranscription(
   audioChunks: AsyncGenerator<Uint8Array>,
@@ -68,7 +131,7 @@ export async function startAWSLiveTranscription(
     LanguageCode: "en-US",
     MediaEncoding: "pcm",
     MediaSampleRateHertz: 16000,
-    AudioStream: getAudioStream(audioChunks) as any, // TypeScript expects specific AsyncIterable typing
+    AudioStream: getAudioStream(audioChunks) as any,
   });
 
   try {
