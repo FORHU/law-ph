@@ -43,7 +43,7 @@ export function useConsultationState({
   consultationTitle,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
-    "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document"
+    "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe"
   >("chat");
 
   const chatScrollPositionRef = useRef<number>(0);
@@ -219,9 +219,9 @@ export function useConsultationState({
         .from("events")
         .insert({
           user_id: userId,
-          title: activeCase?.case_name 
-            ? activeCase.case_name 
-            : consultationTitle 
+          title: activeCase?.case_name
+            ? activeCase.case_name
+            : consultationTitle
               ? consultationTitle
               : `Consultation`,
           type: scheduleType.toLowerCase(),
@@ -257,9 +257,9 @@ export function useConsultationState({
         const start = new Date(scheduleDateTime);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
         const result = await createCalendarEvent(userId, {
-          title: activeCase?.case_name 
-            ? activeCase.case_name 
-            : consultationTitle 
+          title: activeCase?.case_name
+            ? activeCase.case_name
+            : consultationTitle
               ? consultationTitle
               : `Consultation`,
           start_datetime: start.toISOString(),

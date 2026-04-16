@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '@/lib/constants';
 
@@ -9,8 +9,8 @@ interface ChatInputProps {
   onSend: (message: string, file?: File | null, skipAIResponse?: boolean) => void;
   placeholder?: string;
   disabled?: boolean;
-  activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document';
-  onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document') => void;
+  activeTab?: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document' | 'transcribe';
+  onTabChange?: (tab: 'chat' | 'timeline' | 'mindmap' | 'email' | 'schedule' | 'document' | 'transcribe') => void;
   hasMessages?: boolean;
   isCaseMode?: boolean;
   onAnalyzeFile?: (file: File) => Promise<void>;
@@ -185,6 +185,18 @@ export function ChatInput({
                 >
                   <Calendar size={14} />
                   Schedule
+                </button>
+
+                <button 
+                  onClick={() => onTabChange?.('transcribe')}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
+                    activeTab === 'transcribe' 
+                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
+                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  <Mic size={14} />
+                  Transcribe
                 </button>
 
               </div>

@@ -19,8 +19,6 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Check,
-  ChevronDown,
   Send
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
@@ -47,10 +45,12 @@ import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
 import { CaseInviteButton } from "./consultation/case-invite-button";
+import TranscribeWorkspace from "./transcribe/transcribe-workspace";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
 import { checkAuthStatus } from "@/lib/calendar-api";
+import { RecordingConflictModal } from "./consultation/recording-conflict-modal";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +96,12 @@ export default function Consultation() {
     updateMessage,
     cases,
     casesLoaded,
-    analyzeDocuments
+    analyzeDocuments,
+    isRecording,
+    recordingTime,
+    stopRecording,
+    formatTime,
+    conflictRecordingId
   } = useConversations();
 
   const activeCase = activeConversationId
@@ -243,12 +248,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     handleConfirmSendEmail,
     handleSendEmail,
   } = emailState;
-  const { 
-    scheduleType, setScheduleType, 
-    scheduleDateTime, setScheduleDateTime, 
-    scheduleEmails, setScheduleEmails, 
-    scheduleNotes, setScheduleNotes, 
-    isScheduling, scheduleStatus, 
+  const {
+    scheduleType, setScheduleType,
+    scheduleDateTime, setScheduleDateTime,
+    scheduleEmails, setScheduleEmails,
+    scheduleNotes, setScheduleNotes,
+    isScheduling, scheduleStatus,
     handleScheduleEvent, handleFinalizeSchedule,
     conflictWarning, setConflictWarning,
     draftedEventId, isSchedulePreviewOpen, setIsSchedulePreviewOpen,
@@ -267,7 +272,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   const handleAddEmail = (val: string) => {
     const email = val.trim().replace(/,$/, "");
     if (!email) return;
-    
+
     if (validateEmail(email)) {
       if (!scheduleEmails.includes(email)) {
         setScheduleEmails([...scheduleEmails, email]);
@@ -479,8 +484,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               onDrop={handleDrop}
               onClick={() => modalFileInputRef.current?.click()}
               className={`relative border-2 border-dashed rounded-xl p-12 transition-all cursor-pointer group ${dragActive
-                  ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]'
-                  : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#2A2A2A]/40'
+                ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]'
+                : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#2A2A2A]/40'
                 }`}
             >
               <input
@@ -565,12 +570,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <p className="text-white font-semibold">{scheduleType}</p>
                 </div>
                 <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Date & Time</p>
-                      <p className="text-white font-medium">{dateStr}</p>
-                      <p className="text-[#10B981] font-bold text-lg">{timeStr}</p>
-                   </div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Date & Time</p>
+                  <p className="text-white font-medium">{dateStr}</p>
+                  <p className="text-[#10B981] font-bold text-lg">{timeStr}</p>
+                </div>
               </div>
-              
+
               <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Recipients</p>
                 <div className="flex flex-wrap gap-2">
@@ -667,7 +672,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <p className="text-white font-medium truncate">{emailSubject}</p>
                 </div>
               </div>
-              
+
               <div className="bg-white/5 p-5 rounded-2xl border border-white/5 max-h-[35vh] overflow-y-auto w-full">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Message Body</p>
                 <div className="text-gray-300 text-sm">
@@ -1009,8 +1014,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     <div className="pt-2 flex flex-col items-end gap-2">
                       <button
                         className={`bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${emailSentStatus === 'success' ? '!bg-green-500 !text-white' :
-                            emailSentStatus === 'error' ? '!bg-red-500 !text-white' :
-                              'hover:bg-white'
+                          emailSentStatus === 'error' ? '!bg-red-500 !text-white' :
+                            'hover:bg-white'
                           }`}
                         onClick={handleSendEmail}
                         disabled={isSendingEmail}
@@ -1270,10 +1275,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         >
                           {isScheduling ? "Preparing invitation..." :
                             scheduleStatus === 'error' ? "Try Again" :
-                            scheduleStatus === 'success' ? "Sent Successfully!" :
-                              <>
-                                <Calendar size={16} /> {scheduleStatus === 'drafted' ? 'Update & Review Preview' : 'Prepare Invitation'}
-                              </>
+                              scheduleStatus === 'success' ? "Sent Successfully!" :
+                                <>
+                                  <Calendar size={16} /> {scheduleStatus === 'drafted' ? 'Update & Review Preview' : 'Prepare Invitation'}
+                                </>
                           }
                         </button>
                       </div>
@@ -1320,6 +1325,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     </button>
                   </div>
                 )}
+              </div>
+            ) : globalTab === "transcribe" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full h-full min-h-[600px] flex">
+                <TranscribeWorkspace
+                  onOpenSidebar={() => setIsSidebarOpen(true)}
+                  isSidebarOpen={isSidebarOpen}
+                />
               </div>
             ) : null}
           </div>
@@ -1371,6 +1383,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         {isAnalysisModalOpen && <DocumentAnalysisModal />}
         {isSchedulePreviewOpen && <SchedulePreviewModal />}
         {isEmailPreviewOpen && <EmailPreviewModal />}
+        {conflictRecordingId && <RecordingConflictModal />}
       </AnimatePresence>
 
       {/* Source Detail Sidebar */}

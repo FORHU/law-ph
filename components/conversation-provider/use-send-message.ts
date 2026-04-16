@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText } from '@/lib/citation-parser';
+import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText, cleanMessageText } from '@/lib/citation-parser';
 import { Message } from './conversation-context';
 import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
 
@@ -77,9 +77,7 @@ export function useSendMessage({
           newMessage.fileAttachments = meta.fileAttachments;
           newMessage.hidden = !!meta.hidden;
           if (meta.fileAttachment) newMessage.fileAttachment = meta.fileAttachment;
-          displayInput = currentInput.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/, '').trim();
-          // Also strip hidden instructions for local display
-          displayInput = displayInput.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/, '').trim();
+          displayInput = cleanMessageText(currentInput);
           newMessage.text = displayInput;
         } catch (e) {
           console.error("Failed to parse ILM_META in outgoing message", e);
@@ -324,8 +322,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
               body: JSON.stringify({
                 user_input: payloadUserInput,
                 session_id: sId,
-                document_context: currentDocumentContext,
-                google_access_token: googleAccessToken
+                document_context: currentDocumentContext
               }),
               signal: controller.signal
             });

@@ -400,7 +400,7 @@ export function extractTitleFromContent(content: string, currentTitle: string): 
 }
 
 /**
- * Robustly removes bracketed and fallback MINDMAP/TIMELINE raw JSON blocks from AI text,
+ * Robustly removes bracketed and fallback MINDMAP/TIMELINE/ILM_META raw JSON blocks from AI text,
  * so they don't appear in the main conversation UI.
  */
 export function cleanAiText(text: string): string {
@@ -409,8 +409,10 @@ export function cleanAiText(text: string): string {
   let cleaned = text;
 
   // 1. Strip bracketed standard structures
-  cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, "");
-  cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, "");
+  cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/gi, "");
+  cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/gi, "");
+  cleaned = cleaned.replace(/\[ILM_META\][\s\S]*?(?:\[\/ILM_META\]|$)/gi, "");
+  cleaned = cleaned.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?(?:\[\/HIDDEN_INSTRUCTION\]|$)/gi, "");
 
   // 2. Find fallback structures starting with TIMELINE or MINDMAP
   const timelineIdx = cleaned.search(/\bTIMELINE\b\s*\[/i);
@@ -430,6 +432,21 @@ export function cleanAiText(text: string): string {
 
   return cleaned.trim();
 }
+
+/**
+ * Clean any message text for display by removing metadata tags and instructions.
+ * Safe to use for both User and AI messages.
+ */
+export function cleanMessageText(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\[ILM_META\][\s\S]*?(?:\[\/ILM_META\]|$)/gi, "")
+    .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?(?:\[\/HIDDEN_INSTRUCTION\]|$)/gi, "")
+    .replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/gi, "")
+    .replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/gi, "")
+    .trim();
+}
+
 
 /**
  * Robustly parses a JSON string that might contain unescaped control characters
