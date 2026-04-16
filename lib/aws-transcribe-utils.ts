@@ -39,7 +39,7 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
   };
 
   try {
-    const data = await client.send(new StartTranscriptionJobCommand(params));
+    const data = await client.send(new StartTranscriptionJobCommand(params as any));
     console.log("Success - Transcription job initiated.", data);
     return data;
   } catch (err: any) {

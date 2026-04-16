@@ -197,14 +197,17 @@ export default function TranscribeWorkspace({
     setUploadStatus("Uploading to S3...");
     
     try {
-      const s3Data = await uploadToS3Direct(file);
+      const s3Data = await uploadToS3Direct(file, file.name);
       if (s3Data.file_url) {
         setAudioUrl(s3Data.file_url);
         generateWaveform(s3Data.file_url);
       }
 
       const jobName = `transcribe-${Date.now()}`;
-      await startAWSBatchTranscription(s3Data.s3_uri, jobName);
+      const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
+      const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
+      
+      await startAWSBatchTranscription(s3Uri, jobName);
       setUploadStatus("Transcription job successfully initiated!");
       
       saveToHistory(s3Data.file_url, "Transcription in progress...", 0, jobName);
@@ -262,11 +265,14 @@ export default function TranscribeWorkspace({
           setIsUploading(true);
           setUploadStatus("Saving recording...");
           try {
-            const s3Data = await uploadToS3Direct(file);
+            const s3Data = await uploadToS3Direct(file, file.name);
             setAudioUrl(s3Data.file_url);
             
             const jobName = `transcribe-${Date.now()}`;
-            await startAWSBatchTranscription(s3Data.s3_uri, jobName);
+            const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
+            const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
+
+            await startAWSBatchTranscription(s3Uri, jobName);
             setUploadStatus("Transcription job successfully initiated!");
             
             saveToHistory(s3Data.file_url, "Transcription in progress...", duration, jobName);
