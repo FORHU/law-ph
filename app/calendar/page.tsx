@@ -49,7 +49,7 @@ interface CalendarEvent {
     notes?: string;
     googleLink?: string;
     isGoogleEvent?: boolean;
-    status: "draft" | "pending" | "confirmed" | "requested_change" | "rejected";
+    status: "pending" | "confirmed" | "requested_change" | "rejected";
     client_feedback?: string;
 }
 
@@ -119,25 +119,25 @@ function getMinDateTime(): string {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-const StatusBadge = ({ status }: { status: CalendarEvent["status"] }) => {
+const StatusBadge = ({ status, isPast }: { status: CalendarEvent["status"]; isPast?: boolean }) => {
     const configs = {
-        draft: "bg-gray-500/10 text-gray-400 border-gray-500/20",
         pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
         confirmed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-        requested_change: "bg-red-500/10 text-red-400 border-red-500/20",
+        requested_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
         rejected: "bg-red-900/40 text-red-400 border-red-500/30",
     };
+    
+    let label = status as string;
+    if (status === "pending") label = "Invitation Sent";
+    if (status === "rejected") label = "Denied";
+    if (status === "confirmed") label = isPast ? "Done" : "Confirmed";
+    if (status === "requested_change") label = "Change Requested";
+
     return (
         <span
-            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${configs[status || "draft"]}`}
+            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${configs[status || "pending"]}`}
         >
-            {status === "pending"
-                ? "Invitation Sent"
-                : status === "rejected"
-                    ? "Denied"
-                    : status === "requested_change"
-                        ? "Change Requested"
-                        : status || "draft"}
+            {label}
         </span>
     );
 };
@@ -194,8 +194,8 @@ export default function CalendarPage() {
     const [viewMonth, setViewMonth] = useState(now.getMonth());
     const [viewYear, setViewYear] = useState(now.getFullYear());
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<"upcoming" | "pending" | "denied" | "accomplished">(
-        "upcoming",
+    const [activeTab, setActiveTab] = useState<"pending" | "upcoming" | "accomplished" | "denied">(
+        "pending",
     );
     const [showAll, setShowAll] = useState(false);
     const [panelView, setPanelView] = useState<"list" | "details" | "create">("list");
@@ -345,7 +345,7 @@ export default function CalendarPage() {
                     ...e,
                     dateTime: e.date_time,
                     clientEmail: e.client_email,
-                    status: e.status || "draft",
+                    status: e.status || "pending",
                 }));
                 setEvents(normalized);
             }
@@ -541,8 +541,7 @@ export default function CalendarPage() {
             events
                 .filter(
                     (e) =>
-                        e.status !== "rejected" &&
-                        e.status !== "pending" &&
+                        e.status === "confirmed" &&
                         new Date(e.date_time || e.dateTime || "").getTime() >=
                         now.getTime(),
                 )
@@ -557,7 +556,7 @@ export default function CalendarPage() {
     const pendingEvents = useMemo(
         () =>
             events
-                .filter((e) => e.status === "pending")
+                .filter((e) => e.status === "pending" || e.status === "requested_change")
                 .sort((a, b) =>
                     (a.date_time || a.dateTime || "").localeCompare(
                         b.date_time || b.dateTime || "",
@@ -583,8 +582,7 @@ export default function CalendarPage() {
             events
                 .filter(
                     (e) =>
-                        e.status !== "rejected" &&
-                        e.status !== "pending" &&
+                        e.status === "confirmed" &&
                         new Date(e.date_time || e.dateTime || "").getTime() <
                         now.getTime(),
                 )
@@ -733,7 +731,7 @@ export default function CalendarPage() {
                 date_time: new Date(form.dateTime).toISOString(),
                 client_email: form.clientEmail,
                 notes: `${form.notes}${actionReason ? `\n\n[Rescheduled: ${actionReason}]` : ""}`,
-                status: "draft",
+                status: "pending",
             };
 
             // 3. Save to Supabase (Update or Insert)
@@ -756,12 +754,13 @@ export default function CalendarPage() {
             if (result.error) throw result.error;
 
             const createdEventId = result.data.id;
-            let finalStatus = result.data.status || "draft";
             let gLink = result.data.googleLink || "";
 
             // Auto-send if there's a client email
             if (form.clientEmail) {
                 // Sync to Google Calendar
+                let iCalUID: string | undefined;
+                let googleEventId: string | undefined;
                 if (isGoogleConnected) {
                     const start = new Date(form.dateTime);
                     const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -772,9 +771,12 @@ export default function CalendarPage() {
                         end_datetime: end.toISOString(),
                         description: form.notes,
                         type: form.type,
+                        client_email: form.clientEmail,
                     });
                     if (gResult.success) {
                         gLink = gResult.link || "";
+                        iCalUID = gResult.iCalUID;
+                        googleEventId = gResult.event_id;
                     } else {
                         console.error(
                             "[Calendar] Google Calendar sync failed:",
@@ -796,6 +798,7 @@ export default function CalendarPage() {
                             eventType: form.type,
                             dateTime: new Date(form.dateTime).toISOString(),
                             notes: form.notes,
+                            iCalUID: iCalUID,
                         },
                         organizer: {
                             name:
@@ -806,12 +809,17 @@ export default function CalendarPage() {
                     }),
                 });
 
-                // Update DB to pending
-                finalStatus = "pending";
-                await supabase
-                    .from("events")
-                    .update({ status: finalStatus, googleLink: gLink || null })
-                    .eq("id", createdEventId);
+                // Update DB with Google IDs
+                if (googleEventId || gLink) {
+                   const updatePayload: any = {};
+                   if (gLink) updatePayload.google_link = gLink;
+                   if (googleEventId) updatePayload.google_event_id = googleEventId;
+
+                   await supabase
+                       .from("events")
+                       .update(updatePayload)
+                       .eq("id", createdEventId);
+                }
             }
 
             // 4. Update local state
@@ -1204,21 +1212,6 @@ export default function CalendarPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <button
                                         onClick={() => {
-                                            setActiveTab("upcoming");
-                                            setShowAll(false);
-                                        }}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "upcoming"
-                                            ? "bg-[#8B4564] text-white shadow-lg"
-                                            : "text-gray-400 hover:bg-white/5"
-                                            }`}
-                                    >
-                                        <Clock size={14} /> Upcoming{" "}
-                                        <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded-full ml-1">
-                                            {upcomingEvents.length}
-                                        </span>
-                                    </button>
-                                    <button
-                                        onClick={() => {
                                             setActiveTab("pending");
                                             setShowAll(false);
                                         }}
@@ -1234,17 +1227,17 @@ export default function CalendarPage() {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            setActiveTab("denied");
+                                            setActiveTab("upcoming");
                                             setShowAll(false);
                                         }}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "denied"
-                                            ? "bg-red-500/20 border border-red-500/30 text-red-300"
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "upcoming"
+                                            ? "bg-[#8B4564] text-white shadow-lg"
                                             : "text-gray-400 hover:bg-white/5"
                                             }`}
                                     >
-                                        <XCircle size={14} /> Denied{" "}
-                                        <span className="text-xs bg-red-500/20 px-1.5 py-0.5 rounded-full text-red-400 ml-1">
-                                            {deniedEvents.length}
+                                        <Clock size={14} /> Upcoming{" "}
+                                        <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded-full ml-1">
+                                            {upcomingEvents.length}
                                         </span>
                                     </button>
                                     <button
@@ -1260,6 +1253,21 @@ export default function CalendarPage() {
                                         <History size={14} /> Accomplished{" "}
                                         <span className="text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded-full text-emerald-400 ml-1">
                                             {accomplishedEvents.length}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setActiveTab("denied");
+                                            setShowAll(false);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "denied"
+                                            ? "bg-red-500/20 border border-red-500/30 text-red-300"
+                                            : "text-gray-400 hover:bg-white/5"
+                                            }`}
+                                    >
+                                        <XCircle size={14} /> Denied{" "}
+                                        <span className="text-xs bg-red-500/20 px-1.5 py-0.5 rounded-full text-red-400 ml-1">
+                                            {deniedEvents.length}
                                         </span>
                                     </button>
                                 </div>
@@ -1391,7 +1399,8 @@ export default function CalendarPage() {
 
                                                             <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                                                 <StatusBadge
-                                                                    status={activeTab === "accomplished" ? "confirmed" : (event.status || "pending")}
+                                                                    status={event.status || "pending"}
+                                                                    isPast={activeTab === "accomplished"}
                                                                 />
                                                                 <span
                                                                     className={`text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-md border ${EVENT_COLORS[event.type].badge}`}

@@ -19,7 +19,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Send
+  Send,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";

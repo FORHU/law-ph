@@ -228,7 +228,7 @@ export function useConsultationState({
           date_time: new Date(scheduleDateTime).toISOString(),
           client_email: scheduleEmails.join(', '),
           notes: scheduleNotes,
-          status: "draft"
+          status: "pending"
         })
         .select()
         .single();
@@ -253,6 +253,9 @@ export function useConsultationState({
     try {
       // 1. Sync with Google Calendar if connected
       let googleLink: string | null = null;
+      let iCalUID: string | undefined;
+      let googleEventId: string | undefined;
+
       if (isGoogleConnected) {
         const start = new Date(scheduleDateTime);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -265,14 +268,23 @@ export function useConsultationState({
           start_datetime: start.toISOString(),
           end_datetime: end.toISOString(),
           description: scheduleNotes,
+          client_email: scheduleEmails.join(', ')
         });
-        if (result.success && result.link) googleLink = result.link;
+        if (result.success) {
+            if (result.link) googleLink = result.link;
+            iCalUID = result.iCalUID;
+            googleEventId = result.event_id;
+        }
       }
 
-      // 2. Update status to pending
+      // 2. Update status to pending and save Google data
+      const updatePayload: any = { status: "pending", google_link: googleLink };
+      if (googleEventId) {
+          updatePayload.google_event_id = googleEventId;
+      }
       const { error: updateError } = await supabase
         .from("events")
-        .update({ status: "pending", google_link: googleLink })
+        .update(updatePayload)
         .eq("id", draftedEventId);
 
       if (updateError) throw new Error(`Database update failed: ${updateError.message}`);
@@ -290,6 +302,7 @@ export function useConsultationState({
             eventType: scheduleType,
             dateTime: new Date(scheduleDateTime).toISOString(),
             notes: scheduleNotes,
+            iCalUID: iCalUID
           },
           organizer: {
             name: userName || userEmail,

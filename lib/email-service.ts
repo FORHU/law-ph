@@ -12,6 +12,7 @@ interface SendEmailParams {
     eventType: string;
     dateTime: string;
     notes?: string;
+    iCalUID?: string;
   };
   organizer?: {
     name: string;
@@ -45,14 +46,14 @@ export async function sendEmail({
   let attachments: any[] = [];
 
   if (type === 'schedule' && eventDetails) {
-    const { eventId, eventType, dateTime, notes } = eventDetails;
+    const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
     emailSubject = 'Scheduled Appointment';
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const formatG = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
 
-    const uid = `${eventId}@ilovelawyer.com`;
+    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,

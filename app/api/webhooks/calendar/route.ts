@@ -11,6 +11,26 @@ function inferEventType(title?: string, description?: string): string {
   return 'meeting';
 }
 
+// Helper to map google event status based on attendee responses
+function getEventStatus(e: any): string {
+  if (e.status === 'cancelled') return 'cancelled';
+  
+  if (e.attendees && Array.isArray(e.attendees)) {
+    // Filter out the organizer
+    const guests = e.attendees.filter((a: any) => !a.organizer);
+    if (guests.length > 0) {
+      const allDeclined = guests.every((a: any) => a.responseStatus === 'declined');
+      if (allDeclined) return 'rejected';
+      
+      const anyAccepted = guests.some((a: any) => a.responseStatus === 'accepted');
+      if (anyAccepted) return 'confirmed';
+
+      return 'pending'; // Needs action
+    }
+  }
+  return 'confirmed';
+}
+
 export async function POST(req: Request) {
   // Service-role client: bypasses RLS so the webhook can read channel mappings
   // and upsert events for any user.
@@ -109,7 +129,7 @@ export async function POST(req: Request) {
         date_time: e.start?.dateTime ?? e.start?.date ?? now,
         notes: e.description ?? null,
         google_link: e.htmlLink ?? null,
-        status: 'confirmed',
+        status: getEventStatus(e),
       }));
 
     if (rows.length > 0) {

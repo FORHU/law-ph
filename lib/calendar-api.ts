@@ -29,6 +29,7 @@ export interface CreateEventResult {
     needs_auth?: boolean;
     auth_url?: string;
     event_id?: string;
+    iCalUID?: string;
     title?: string;
     start?: string;
     end?: string;
@@ -121,6 +122,7 @@ export async function createCalendarEvent(
         end_datetime: string;
         description?: string;
         type?: "meeting" | "appointment" | "hearing" | "deposition";
+        client_email?: string;
     },
 ): Promise<CreateEventResult> {
     const supabase = createClient();
@@ -140,8 +142,12 @@ export async function createCalendarEvent(
             end: { dateTime: data.end_datetime, timeZone: userTimeZone },
         };
 
+        if (data.client_email) {
+            eventBody.attendees = data.client_email.split(',').map(e => ({ email: e.trim() }));
+        }
+
         const url = new URL(
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
         );
 
         const res = await fetch(url.toString(), {
@@ -173,6 +179,7 @@ export async function createCalendarEvent(
         return {
             success: true,
             event_id: result.id,
+            iCalUID: result.iCalUID,
             link: result.htmlLink,
             title: result.summary,
             start: result.start?.dateTime,
