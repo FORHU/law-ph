@@ -19,7 +19,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Send
+  Send,
+  Mic,
+  StopCircle
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
@@ -45,10 +47,12 @@ import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
 import { CaseInviteButton } from "./consultation/case-invite-button";
+import TranscribeWorkspace from "./transcribe/transcribe-workspace";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
 import { checkAuthStatus } from "@/lib/calendar-api";
+import { RecordingConflictModal } from "./consultation/recording-conflict-modal";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -94,7 +98,12 @@ export default function Consultation() {
     updateMessage,
     cases,
     casesLoaded,
-    analyzeDocuments
+    analyzeDocuments,
+    isRecording,
+    recordingTime,
+    stopRecording,
+    formatTime,
+    conflictRecordingId
   } = useConversations();
 
   const activeCase = activeConversationId
@@ -1225,6 +1234,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   </div>
                 )}
               </div>
+            ) : globalTab === "transcribe" ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full h-full min-h-[600px] flex">
+                <TranscribeWorkspace 
+                  onOpenSidebar={() => setIsSidebarOpen(true)}
+                  isSidebarOpen={isSidebarOpen}
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -1275,6 +1291,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         {isAnalysisModalOpen && <DocumentAnalysisModal />}
         {isSchedulePreviewOpen && <SchedulePreviewModal />}
         {isEmailPreviewOpen && <EmailPreviewModal />}
+        {conflictRecordingId && <RecordingConflictModal />}
       </AnimatePresence>
 
       {/* Source Detail Sidebar */}
