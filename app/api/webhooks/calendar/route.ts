@@ -20,10 +20,13 @@ function getEventStatus(e: any): string {
     const guests = e.attendees.filter((a: any) => !a.organizer);
     if (guests.length > 0) {
       const allDeclined = guests.every((a: any) => a.responseStatus === 'declined');
-      if (allDeclined) return 'rejected';
+      if (allDeclined) return 'denied';
       
       const anyAccepted = guests.some((a: any) => a.responseStatus === 'accepted');
       if (anyAccepted) return 'confirmed';
+
+      const anyTentative = guests.some((a: any) => a.responseStatus === 'tentative');
+      if (anyTentative) return 'tentative';
 
       return 'pending'; // Needs action
     }

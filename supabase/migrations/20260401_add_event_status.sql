@@ -5,7 +5,7 @@ DO $$
 BEGIN
     -- 1. Create a status enum type if it does not exist
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_status') THEN
-        CREATE TYPE event_status AS ENUM ('draft', 'pending', 'confirmed', 'requested_change');
+        CREATE TYPE event_status AS ENUM ('draft', 'pending', 'confirmed', 'requested_change', 'tentative', 'denied');
     END IF;
 
     -- 2. Add the status column with a default of 'draft'
@@ -21,4 +21,17 @@ BEGIN
     -- 4. Ensure ID is UUID (Supabase standard)
     -- If your current ID is int8, you may need a separate migration to convert it.
     -- Assuming Supabase default installation often uses UUID for public-facing tables.
+
+    -- 5. Add new status values if they don't exist in the current enum (for existing databases)
+    BEGIN
+        ALTER TYPE event_status ADD VALUE 'tentative';
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END;
+
+    BEGIN
+        ALTER TYPE event_status ADD VALUE 'denied';
+    EXCEPTION
+        WHEN duplicate_object THEN null;
+    END;
 END $$;

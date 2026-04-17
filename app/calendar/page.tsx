@@ -52,7 +52,7 @@ interface CalendarEvent {
     google_link?: string;
     google_event_id?: string;
     isGoogleEvent?: boolean;
-    status: "pending" | "confirmed" | "requested_change" | "rejected";
+    status: "pending" | "confirmed" | "requested_change" | "denied" | "tentative";
     client_feedback?: string;
 }
 
@@ -124,17 +124,20 @@ function getMinDateTime(): string {
 
 const StatusBadge = ({ status, isPast }: { status: CalendarEvent["status"]; isPast?: boolean }) => {
     const configs = {
-        pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        pending: isPast ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20",
         confirmed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
         requested_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-        rejected: "bg-red-900/40 text-red-400 border-red-500/30",
+        denied: "bg-red-900/40 text-red-400 border-red-500/30",
+        tentative: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     };
 
     let label = status as string;
-    if (status === "pending") label = "Invitation Sent";
-    if (status === "rejected") label = "Denied";
+    if (status === "pending") label = isPast ? "Client Missed" : "Invitation Sent";
+    if (status === "tentative") label = "Maybe";
+    if (status === "denied") label = "Denied";
     if (status === "confirmed") label = isPast ? "Done" : "Confirmed";
     if (status === "requested_change") label = "Change Requested";
+
 
     return (
         <span
@@ -157,11 +160,32 @@ function inferEventType(
     return "meeting";
 }
 
-/** Map a raw Google Calendar event to our CalendarEvent shape */
 function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
     const start = e.start || "";
+    const guests = (e.attendees || []).filter((a: any) => !a.organizer);
+    const clientEmail = guests.map((a: any) => a.email).join(", ");
+
+    // DEBUG SPY: This shows exactly what Google says in your F12 Console
+    if (e.attendees?.length) {
+        console.log(`[Google Sync] Event: "${e.title}" | Responses:`, e.attendees.map(a => `${a.email}: ${a.responseStatus}`));
+    }
+
+    // Determine status from attendees (focus on the first non-organizer guest)
+    let status: "confirmed" | "tentative" | "denied" | "pending" = "confirmed";
+    if (e.attendees && Array.isArray(e.attendees)) {
+        const clientGuest = e.attendees.find(a => !a.organizer);
+
+        if (clientGuest) {
+            if (clientGuest.responseStatus === "accepted") status = "confirmed";
+            else if (clientGuest.responseStatus === "tentative") status = "tentative";
+            else if (clientGuest.responseStatus === "declined") status = "denied";
+            else status = "pending"; // Specifically "needsAction" or "none"
+        }
+    }
+
     return {
         id: e.id,
+        google_event_id: e.id,
         title: e.title,
         type: inferEventType(e.description, e.title),
         date_time: start,
@@ -169,7 +193,9 @@ function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
         notes: e.description ?? undefined,
         googleLink: e.link ?? undefined,
         isGoogleEvent: true,
-        status: "confirmed",
+        status: status,
+        clientEmail: clientEmail || undefined,
+        client_email: clientEmail || undefined,
     };
 }
 
@@ -373,27 +399,82 @@ export default function CalendarPage() {
                 const mapped = result.events.map(mapGoogleEvent);
                 // Merge with existing events — avoid duplicates by ID AND by title+time
                 setEvents((prev) => {
-                    const existingIds = new Set(prev.map((e) => e.id));
-                    // Build a set of "title|roundedTime" keys from Supabase events
-                    // to detect events we already synced via createCalendarEvent
-                    const existingKeys = new Set(
-                        prev.map((e) => {
-                            const t = new Date(e.date_time || e.dateTime || "").getTime();
-                            // Round to nearest 5 minutes to handle minor time drifts
-                            const rounded = Math.round(t / 300000) * 300000;
-                            return `${(e.title || "").toLowerCase().trim()}|${rounded}`;
-                        }),
-                    );
+                    const sbEvents = prev.filter(e => !e.isGoogleEvent);
 
-                    const newEvents = mapped.filter((e) => {
-                        if (existingIds.has(e.id)) return false;
+                    // Create maps for IDs and Title+Time keys
+                    const sbIdMap = new Map();
+                    const sbKeyMap = new Map();
+
+                    sbEvents.forEach(e => {
+                        if (e.google_event_id) sbIdMap.set(e.google_event_id, e);
+
                         const t = new Date(e.date_time || e.dateTime || "").getTime();
                         const rounded = Math.round(t / 300000) * 300000;
-                        const key = `${(e.title || "").toLowerCase().trim()}|${rounded}`;
-                        return !existingKeys.has(key);
+                        const eTitle = (e.title || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const key = `${eTitle}|${rounded}`;
+                        sbKeyMap.set(key, e);
                     });
 
-                    return [...prev, ...newEvents];
+                    const mappedKeys = new Set();
+                    const mappedGoogleIds = new Set();
+
+                    // Priority 1: ID Match (Most Reliable)
+                    const newGoogleEvents = mapped.map(ge => {
+                        let localMatch = sbIdMap.get(ge.google_event_id);
+
+                        // Priority 2: Title + Time Match
+                        if (!localMatch) {
+                            const t = new Date(ge.date_time || ge.dateTime || "").getTime();
+                            const rounded = Math.round(t / 300000) * 300000;
+                            const geTitle = (ge.title || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const key = `${geTitle}|${rounded}`;
+                            localMatch = sbKeyMap.get(key);
+                        }
+
+                        if (localMatch) {
+                            mappedGoogleIds.add(ge.google_event_id);
+
+                            const t = new Date(localMatch.date_time || localMatch.dateTime || "").getTime();
+                            const rounded = Math.round(t / 300000) * 300000;
+                            const eTitle = (localMatch.title || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                            mappedKeys.add(`${eTitle}|${rounded}`);
+
+                            return {
+                                ...localMatch,
+                                status: ge.status,
+                                google_event_id: ge.google_event_id,
+                                googleLink: ge.googleLink,
+                                isGoogleEvent: true,
+                                clientEmail: localMatch.client_email || localMatch.clientEmail || ge.clientEmail,
+                                client_email: localMatch.client_email || localMatch.clientEmail || ge.client_email,
+                            };
+                        }
+                        return ge;
+                    });
+
+                    // Only keep Supabase events that weren't matched via ID or Key
+                    const remainingSb = sbEvents.filter(e => {
+                        if (e.google_event_id && mappedGoogleIds.has(e.google_event_id)) return false;
+
+                        const t = new Date(e.date_time || e.dateTime || "").getTime();
+                        const rounded = Math.round(t / 300000) * 300000;
+                        const eTitle = (e.title || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const key = `${eTitle}|${rounded}`;
+                        if (mappedKeys.has(key)) return false;
+
+                        return true;
+                    });
+
+                    // Combine and ensure absolute uniqueness by ID
+                    const combined = [...remainingSb, ...newGoogleEvents];
+                    const uniqueMap = new Map();
+                    combined.forEach(e => {
+                        if (!uniqueMap.has(e.id) || e.isGoogleEvent) {
+                            uniqueMap.set(e.id, e);
+                        }
+                    });
+
+                    return Array.from(uniqueMap.values());
                 });
                 setIsGoogleConnected(true);
             } else {
@@ -561,7 +642,7 @@ export default function CalendarPage() {
             events
                 .filter(
                     (e) =>
-                        (e.status === "pending" || e.status === "requested_change") &&
+                        (e.status === "pending" || e.status === "requested_change" || e.status === "tentative") &&
                         new Date(e.date_time || e.dateTime || "").getTime() >=
                         now.getTime(),
                 )
@@ -576,7 +657,7 @@ export default function CalendarPage() {
     const deniedEvents = useMemo(
         () =>
             events
-                .filter((e) => e.status === "rejected")
+                .filter((e) => e.status === "denied")
                 .sort((a, b) =>
                     (b.date_time || b.dateTime || "").localeCompare(
                         a.date_time || a.dateTime || "",
@@ -744,13 +825,43 @@ export default function CalendarPage() {
 
             // 3. Save to Supabase (Update or Insert)
             let result;
+            const isGoogleId = typeof editingEventId === 'string' && editingEventId.length > 20 && !editingEventId.includes('-');
+
             if (editingEventId) {
-                result = await supabase
-                    .from("events")
-                    .update(eventData)
-                    .eq("id", editingEventId)
-                    .select()
-                    .single();
+                if (isGoogleId) {
+                    // Try to update by google_event_id first - WRAP in try/catch for missing column
+                    try {
+                        result = await supabase
+                            .from("events")
+                            .update(eventData)
+                            .eq("google_event_id", editingEventId)
+                            .select()
+                            .single();
+
+                        if (result.error || !result.data) {
+                            // Try insert, but omit the google_event_id if it's likely the cause of failure
+                            result = await supabase
+                                .from("events")
+                                .insert(eventData)
+                                .select()
+                                .single();
+                        }
+                    } catch (e) {
+                        // Total fallback: just insert as a new event if DB is out of sync
+                        result = await supabase
+                            .from("events")
+                            .insert(eventData)
+                            .select()
+                            .single();
+                    }
+                } else {
+                    result = await supabase
+                        .from("events")
+                        .update(eventData)
+                        .eq("id", editingEventId)
+                        .select()
+                        .single();
+                }
             } else {
                 result = await supabase
                     .from("events")
@@ -785,6 +896,10 @@ export default function CalendarPage() {
                         gLink = gResult.link || "";
                         iCalUID = gResult.iCalUID;
                         googleEventId = gResult.event_id;
+                    } else if (gResult.needs_auth) {
+                        setIsGoogleConnected(false);
+                        setCreateError("Google Calendar session expired. Please reconnect.");
+                        console.error("[Calendar] Google session expired.");
                     } else {
                         console.error(
                             "[Calendar] Google Calendar sync failed:",
@@ -823,10 +938,19 @@ export default function CalendarPage() {
                     if (gLink) updatePayload.google_link = gLink;
                     if (googleEventId) updatePayload.google_event_id = googleEventId;
 
-                    await supabase
-                        .from("events")
-                        .update(updatePayload)
-                        .eq("id", createdEventId);
+                    // Update DB with Google IDs - SILENT FAIL if columns are missing
+                    try {
+                        const { error: finalError } = await supabase
+                            .from("events")
+                            .update(updatePayload)
+                            .eq("id", createdEventId);
+
+                        if (finalError) {
+                            console.warn("[Calendar] DB update skip (missing columns?):", finalError.message);
+                        }
+                    } catch (e) {
+                        console.warn("[Calendar] DB update crash (missing columns?):", e);
+                    }
                 }
             }
 
@@ -885,12 +1009,30 @@ export default function CalendarPage() {
             }
 
             // Delete from Supabase
-            const { error } = await supabase
-                .from("events")
-                .delete()
-                .eq("id", actionEventId);
+            const isGoogleId = typeof actionEventId === 'string' && actionEventId.length > 20 && !actionEventId.includes('-');
 
-            if (error) throw error;
+            if (isGoogleId) {
+                const { error } = await supabase
+                    .from("events")
+                    .delete()
+                    .eq("google_event_id", actionEventId);
+
+                // FALLBACK: If column doesn't exist or delete fails, try deleting by finding the local match's ID
+                if (error && (error.message.includes("google_event_id") || error.code === 'PGRST204')) {
+                    const localMatch = events.find(e => e.google_event_id === actionEventId || e.id === actionEventId);
+                    if (localMatch && localMatch.id && localMatch.id !== actionEventId) {
+                        await supabase.from("events").delete().eq("id", localMatch.id);
+                    }
+                } else if (error) {
+                    throw error;
+                }
+            } else {
+                const { error } = await supabase
+                    .from("events")
+                    .delete()
+                    .eq("id", actionEventId);
+                if (error) throw error;
+            }
 
             setEvents((prev) => prev.filter((e) => e.id !== actionEventId));
             setSelectedDayEvents((prev) =>
@@ -1450,7 +1592,7 @@ export default function CalendarPage() {
                                                                     const isToday = evtDate.getDate() === now.getDate() &&
                                                                         evtDate.getMonth() === now.getMonth() &&
                                                                         evtDate.getFullYear() === now.getFullYear();
-                                                                    
+
                                                                     if (isToday && diff > 0) {
                                                                         const hours = Math.floor(diff / (1000 * 60 * 60));
                                                                         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -1574,7 +1716,7 @@ export default function CalendarPage() {
                                         key={event.id}
                                         className="bg-[#2A2A2A]/40 backdrop-blur border border-white/5 rounded-2xl p-5 space-y-4 relative overflow-hidden group shadow-xl"
                                     >
-                                        <div className={`absolute top-0 left-0 bottom-0 w-1 ${EVENT_COLORS[event.type || "meeting"].dot}`} />
+                                        <div className={`absolute top-0 left-0 bottom-0 w-1 h-full ${EVENT_COLORS[event.type || "meeting"].dot}`} />
 
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
@@ -1588,7 +1730,7 @@ export default function CalendarPage() {
                                                         const isToday = evtDate.getDate() === now.getDate() &&
                                                             evtDate.getMonth() === now.getMonth() &&
                                                             evtDate.getFullYear() === now.getFullYear();
-                                                        
+
                                                         if (isToday && diff > 0) {
                                                             const hours = Math.floor(diff / (1000 * 60 * 60));
                                                             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -1687,7 +1829,7 @@ export default function CalendarPage() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     {(() => {
                                                         const isEventPast = new Date(event.date_time || event.dateTime || "").getTime() < now.getTime();
-                                                        
+
                                                         // Confirmed past events (Accomplished) - No actions
                                                         if (isEventPast && event.status === "confirmed") return null;
 

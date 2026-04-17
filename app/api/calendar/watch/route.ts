@@ -18,9 +18,17 @@ export async function POST(req: Request) {
 
     if (!webhookUrl) {
       return NextResponse.json(
-        { error: 'Missing webhookUrl. In development, use an ngrok URL forwarding to /api/webhooks/calendar.' },
+        { error: 'Missing webhookUrl.' },
         { status: 400 }
       );
+    }
+    
+    // Skip Google Watch if we are on localhost (Google requires HTTPS)
+    if (webhookUrl.includes('localhost') || webhookUrl.includes('127.0.0.1')) {
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Skipping Google Watch API on localhost (HTTPS required for webhooks).' 
+      });
     }
 
     const channelId = crypto.randomUUID();

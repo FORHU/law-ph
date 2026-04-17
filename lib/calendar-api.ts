@@ -12,6 +12,7 @@ export interface GoogleCalendarEvent {
     start: string;
     description?: string;
     link?: string;
+    attendees?: any[];
 }
 
 export interface ListEventsResult {
@@ -123,6 +124,7 @@ export async function createCalendarEvent(
         description?: string;
         type?: "meeting" | "appointment" | "hearing" | "deposition";
         client_email?: string;
+        clientEmail?: string;
     },
 ): Promise<CreateEventResult> {
     const supabase = createClient();
@@ -149,12 +151,13 @@ export async function createCalendarEvent(
             },
         };
 
-        if (data.client_email) {
-            eventBody.attendees = data.client_email.split(',').map(e => ({ email: e.trim() }));
+        const clientEmailStr = data.clientEmail || data.client_email;
+        if (clientEmailStr) {
+            eventBody.attendees = clientEmailStr.split(',').map((e: string) => ({ email: e.trim() }));
         }
 
         const url = new URL(
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
         );
 
         const res = await fetch(url.toString(), {
@@ -167,6 +170,11 @@ export async function createCalendarEvent(
         });
 
         const responseText = await res.text();
+
+        if (res.status === 401) {
+            console.error("[createCalendarEvent] 401 Unauthorized - Token may be expired.");
+            return { success: false, needs_auth: true };
+        }
 
         if (!res.ok) {
             let errorMsg = `HTTP ${res.status}`;
