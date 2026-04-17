@@ -25,7 +25,7 @@ interface UseConsultationStateProps {
   userName?: string;
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
-  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document") => void;
+  onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe") => void;
   consultationTitle?: string;
 }
 
@@ -271,16 +271,16 @@ export function useConsultationState({
           client_email: scheduleEmails.join(', ')
         });
         if (result.success) {
-            if (result.link) googleLink = result.link;
-            iCalUID = result.iCalUID;
-            googleEventId = result.event_id;
+          if (result.link) googleLink = result.link;
+          iCalUID = result.iCalUID;
+          googleEventId = result.event_id;
         }
       }
 
       // 2. Update status to pending and save Google data
       const updatePayload: any = { status: "pending", google_link: googleLink };
       if (googleEventId) {
-          updatePayload.google_event_id = googleEventId;
+        updatePayload.google_event_id = googleEventId;
       }
       const { error: updateError } = await supabase
         .from("events")

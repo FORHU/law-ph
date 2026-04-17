@@ -22,16 +22,4 @@ BEGIN
     -- If your current ID is int8, you may need a separate migration to convert it.
     -- Assuming Supabase default installation often uses UUID for public-facing tables.
 
-    -- 5. Add new status values if they don't exist in the current enum (for existing databases)
-    BEGIN
-        ALTER TYPE event_status ADD VALUE 'tentative';
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END;
-
-    BEGIN
-        ALTER TYPE event_status ADD VALUE 'denied';
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END;
 END $$;
