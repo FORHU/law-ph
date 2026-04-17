@@ -13,6 +13,9 @@ export interface GoogleCalendarEvent {
     description?: string;
     link?: string;
     attendees?: any[];
+    status?: string;
+    iCalUID?: string;
+    organizer?: { email?: string; displayName?: string };
 }
 
 export interface ListEventsResult {
@@ -91,6 +94,8 @@ export async function listCalendarEvents(
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
+        url.searchParams.set("fields", "items(id,summary,description,location,start,end,htmlLink,attendees(email,responseStatus,organizer),status,iCalUID,organizer)");
+        url.searchParams.set("singleEvents", "true");
         if (opts.maxResults)
             url.searchParams.set("maxResults", String(opts.maxResults));
         if (opts.timeMin) url.searchParams.set("timeMin", opts.timeMin);
@@ -108,6 +113,10 @@ export async function listCalendarEvents(
             start: i.start?.dateTime || i.start?.date,
             description: i.description,
             link: i.htmlLink,
+            attendees: i.attendees,
+            status: i.status,
+            iCalUID: i.iCalUID,
+            organizer: i.organizer,
         }));
         return { success: true, events, count: events.length };
     } catch (error: any) {
@@ -157,7 +166,7 @@ export async function createCalendarEvent(
         }
 
         const url = new URL(
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
         );
 
         const res = await fetch(url.toString(), {

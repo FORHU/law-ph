@@ -19,6 +19,8 @@ import {
     RefreshCw,
     AlertCircle,
     Loader2,
+    CheckCircle2,
+    Trash2,
     XCircle,
     Check,
     Link as LinkIcon,
@@ -54,6 +56,7 @@ interface CalendarEvent {
     isGoogleEvent?: boolean;
     status: "pending" | "confirmed" | "requested_change" | "denied" | "tentative";
     client_feedback?: string;
+    iCalUID?: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -162,25 +165,28 @@ function inferEventType(
 
 function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
     const start = e.start || "";
-    const guests = (e.attendees || []).filter((a: any) => !a.organizer);
-    const clientEmail = guests.map((a: any) => a.email).join(", ");
+    // STRICT RULE: Only monitor the people invited (Guests), ignore the Law Firm (Organizer)
+    const organizerEmail = e.organizer?.email;
+    const guestList = (e.attendees || []).filter((a: any) => 
+        !a.organizer && a.email !== organizerEmail
+    );
+    const clientEmail = guestList.map((a: any) => a.email).join(", ");
 
-    // DEBUG SPY: This shows exactly what Google says in your F12 Console
-    if (e.attendees?.length) {
-        console.log(`[Google Sync] Event: "${e.title}" | Responses:`, e.attendees.map(a => `${a.email}: ${a.responseStatus}`));
-    }
+    // CRITICAL DEBUG: Check this in your F12 Console!
+    console.log(`[Google Sync] "${e.title}" | Organizer: ${organizerEmail} | Guests:`, guestList.map(g => `${g.email}: ${g.responseStatus}`));
 
-    // Determine status from attendees (focus on the first non-organizer guest)
+    // Determine status from attendees (focus on any non-organizer guest)
     let status: "confirmed" | "tentative" | "denied" | "pending" = "confirmed";
-    if (e.attendees && Array.isArray(e.attendees)) {
-        const clientGuest = e.attendees.find(a => !a.organizer);
+    if (guestList.length > 0) {
+        // Priority 1: If anyone accepted, it's confirmed
+        const anyAccepted = guestList.some(a => a.responseStatus === "accepted");
+        const allDeclined = guestList.every(a => a.responseStatus === "declined");
+        const anyTentative = guestList.some(a => a.responseStatus === "tentative");
 
-        if (clientGuest) {
-            if (clientGuest.responseStatus === "accepted") status = "confirmed";
-            else if (clientGuest.responseStatus === "tentative") status = "tentative";
-            else if (clientGuest.responseStatus === "declined") status = "denied";
-            else status = "pending"; // Specifically "needsAction" or "none"
-        }
+        if (anyAccepted) status = "confirmed";
+        else if (allDeclined) status = "denied";
+        else if (anyTentative) status = "tentative";
+        else status = "pending";
     }
 
     return {
@@ -194,6 +200,7 @@ function mapGoogleEvent(e: GoogleCalendarEvent): CalendarEvent {
         googleLink: e.link ?? undefined,
         isGoogleEvent: true,
         status: status,
+        iCalUID: e.iCalUID, // Crucial for RSVP syncing in reminders!
         clientEmail: clientEmail || undefined,
         client_email: clientEmail || undefined,
     };
@@ -249,6 +256,74 @@ export default function CalendarPage() {
     const [activeMobileTab, setActiveMobileTab] = useState<
         "calendar" | "agenda"
     >("calendar");
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Success Modal State
+    const [successModal, setSuccessModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: "success" | "delete" | "info";
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        type: "success"
+    });
+
+    const openSuccess = (title: string, message: string, type: "success" | "delete" | "info" = "success") => {
+        setSuccessModal({ isOpen: true, title, message, type });
+        // Auto close after 3.5 seconds
+        setTimeout(() => setSuccessModal(prev => ({ ...prev, isOpen: false })), 3500);
+    };
+
+    /**
+     * Premium Success Modal
+     */
+    const SuccessNotification = () => (
+        <AnimatePresence>
+            {successModal.isOpen && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4"
+                >
+                    <div className="bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 overflow-hidden">
+                        <div className={`p-2.5 rounded-xl flex-shrink-0 ${
+                            successModal.type === 'delete' ? 'bg-red-500/20 text-red-400' : 
+                            successModal.type === 'info' ? 'bg-blue-500/20 text-blue-400' : 'bg-[#8B4564]/20 text-[#E0A7C2]'
+                        }`}>
+                            {successModal.type === 'delete' ? <Trash2 size={24} /> : 
+                             successModal.type === 'info' ? <Calendar size={24} /> : <CheckCircle2 size={24} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-white text-sm truncate">{successModal.title}</h3>
+                            <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{successModal.message}</p>
+                        </div>
+                        <button 
+                            onClick={() => setSuccessModal(prev => ({ ...prev, isOpen: false }))}
+                            className="p-1 hover:bg-white/5 rounded-lg transition-colors text-gray-500 hover:text-white"
+                        >
+                            <X size={16} />
+                        </button>
+                        
+                        {/* Progress Bar (Nested inside for overflow clipping) */}
+                        <motion.div 
+                            initial={{ width: "100%" }}
+                            animate={{ width: "0%" }}
+                            transition={{ duration: 3.5, ease: "linear" }}
+                            className={`h-[3px] absolute bottom-0 left-0 right-0 rounded-b-2xl ${
+                                successModal.type === 'delete' ? 'bg-red-500' : 
+                                successModal.type === 'info' ? 'bg-blue-500' : 'bg-[#8B4564]'
+                            }`}
+                        />
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+
     const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
 
     const [form, setForm] = useState({
@@ -444,6 +519,7 @@ export default function CalendarPage() {
                                 status: ge.status,
                                 google_event_id: ge.google_event_id,
                                 googleLink: ge.googleLink,
+                                iCalUID: ge.iCalUID,
                                 isGoogleEvent: true,
                                 clientEmail: localMatch.client_email || localMatch.clientEmail || ge.clientEmail,
                                 client_email: localMatch.client_email || localMatch.clientEmail || ge.client_email,
@@ -907,7 +983,6 @@ export default function CalendarPage() {
                         );
                     }
                 }
-
                 // Trigger Email API
                 await fetch("/api/send-email", {
                     method: "POST",
@@ -946,6 +1021,7 @@ export default function CalendarPage() {
                             .eq("id", createdEventId);
 
                         if (finalError) {
+
                             console.warn("[Calendar] DB update skip (missing columns?):", finalError.message);
                         }
                     } catch (e) {
@@ -974,9 +1050,12 @@ export default function CalendarPage() {
             }
 
             // 5. Success feedback and close
-            setSubmitted(true);
+            openSuccess(
+                editingEventId ? "Schedule Updated" : "Schedule Created", 
+                editingEventId ? "Changes have been saved and synced." : "Your new consultation has been scheduled."
+            );
+            
             setTimeout(() => {
-                setSubmitted(false);
                 setPanelView("list");
                 setEditingEventId(null);
                 setActionReason("");
@@ -988,7 +1067,7 @@ export default function CalendarPage() {
                     notes: "",
                 });
                 setConflictWarning(null);
-            }, 1500);
+            }, 300);
         } catch (err: any) {
             console.error("Error saving event:", err.message || err);
             setCreateError(err.message || "Unexpected error.");
@@ -1043,6 +1122,7 @@ export default function CalendarPage() {
             setPendingAction(null);
             setActionEventId(null);
             setActionReason("");
+            openSuccess("Event Cancelled", "The meeting has been removed from all calendars.", "delete");
 
             if (selectedDayEvents.length <= 1) {
                 setPanelView("list");
@@ -1070,8 +1150,9 @@ export default function CalendarPage() {
                         eventType: event.type,
                         dateTime: new Date(event.date_time || event.dateTime || "").toISOString(),
                         notes: event.notes,
-                        // We use the supabase ID as the fallback UID for consistency if no google ID yet
-                        iCalUID: undefined
+                        isReminder: true, // Flag this as a follow-up
+                        // Use the remembered iCalUID, or fallback to the Google ID
+                        iCalUID: (event as any).iCalUID || (typeof event.google_event_id === 'string' ? event.google_event_id : undefined),
                     },
                     organizer: {
                         name: session?.user?.user_metadata?.full_name || session?.user?.email,
@@ -1082,7 +1163,7 @@ export default function CalendarPage() {
 
             if (response.ok) {
                 // Success feedback - you might want a toast system, but for now console and maybe update local state if needed
-                alert("Reminder sent successfully!");
+                openSuccess("Reminder Sent", "The client has been notified via email.");
             } else {
                 throw new Error("Failed to send reminder");
             }
@@ -1122,7 +1203,9 @@ export default function CalendarPage() {
     // ── Render ─────────────────────────────────────────────────────────────────
 
     return (
-        <PageLayout
+        <>
+            <SuccessNotification />
+            <PageLayout
             activePage="calendar"
             title="Calendar"
             subtitle="Legal appointments and hearings"
@@ -1773,8 +1856,14 @@ export default function CalendarPage() {
 
                                         <div className="pt-3 border-t border-white/5">
                                             {pendingAction && actionEventId === event.id ? (
-                                                <div className="space-y-3 bg-[#E0A7C2]/5 rounded-xl p-3 border border-[#E0A7C2]/20">
-                                                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#E0A7C2]">
+                                                <div className={`space-y-3 p-3 rounded-xl border animate-in fade-in zoom-in-95 ${
+                                                    pendingAction === 'cancel' 
+                                                        ? 'bg-red-500/5 border-red-500/20' 
+                                                        : 'bg-amber-500/5 border-amber-500/20'
+                                                }`}>
+                                                    <label className={`text-[10px] font-bold uppercase tracking-widest ${
+                                                        pendingAction === 'cancel' ? 'text-red-400' : 'text-amber-400'
+                                                    }`}>
                                                         Reason for {pendingAction === "cancel" ? "Cancellation" : "Rescheduling"}
                                                     </label>
                                                     <textarea
@@ -1782,7 +1871,11 @@ export default function CalendarPage() {
                                                         value={actionReason}
                                                         onChange={(e) => setActionReason(e.target.value)}
                                                         placeholder={`Enter reason...`}
-                                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#E0A7C2]/50 resize-none h-16"
+                                                        className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-xs text-white outline-none resize-none h-16 transition-all ${
+                                                            pendingAction === 'cancel' 
+                                                                ? 'border-red-500/20 focus:border-red-500/50' 
+                                                                : 'border-amber-500/20 focus:border-amber-500/50'
+                                                        }`}
                                                     />
                                                     <div className="flex items-center gap-2 justify-end">
                                                         <button
@@ -1819,7 +1912,13 @@ export default function CalendarPage() {
                                                                 }
                                                             }}
                                                             disabled={!actionReason || submitting}
-                                                            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${!actionReason ? "bg-white/5 text-gray-600" : "bg-[#E0A7C2] text-black hover:bg-white"}`}
+                                                            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-lg ${
+                                                                !actionReason 
+                                                                    ? "bg-white/5 text-gray-600 cursor-not-allowed" 
+                                                                    : pendingAction === 'cancel'
+                                                                        ? "bg-red-500 text-white hover:bg-red-600 active:scale-95"
+                                                                        : "bg-amber-500 text-black hover:bg-amber-600 active:scale-95"
+                                                            }`}
                                                         >
                                                             {submitting ? "..." : `Confirm`}
                                                         </button>
@@ -1898,8 +1997,8 @@ export default function CalendarPage() {
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-5">
                                 {editingEventId && (
-                                    <div className="p-4 bg-[#8B4564]/10 border border-[#8B4564]/20 rounded-2xl">
-                                        <label className="block text-xs font-bold text-[#E0A7C2] uppercase tracking-widest mb-2">
+                                    <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                                        <label className="block text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">
                                             Reschedule Reason *
                                         </label>
                                         <textarea
@@ -1907,7 +2006,7 @@ export default function CalendarPage() {
                                             value={actionReason}
                                             onChange={(e) => setActionReason(e.target.value)}
                                             rows={2}
-                                            className="w-full bg-black/40 border border-[#10B981]/30 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/60 placeholder:text-gray-600 resize-none"
+                                            className="w-full bg-black/40 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500/50 placeholder:text-gray-600 resize-none transition-all"
                                         />
                                     </div>
                                 )}
@@ -2072,5 +2171,6 @@ export default function CalendarPage() {
                 </div>
             </div>
         </PageLayout>
+    </>
     );
 }
