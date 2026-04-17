@@ -6,7 +6,7 @@ import {
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon, 
   CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2
 } from 'lucide-react';
-import { uploadToS3Direct } from '@/lib/s3-utils';
+import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import { 
   startAWSBatchTranscription, 
   getTranscriptionJobStatus, 
@@ -93,7 +93,8 @@ export default function TranscribeWorkspace({
   const generateWaveform = async (url: string) => {
     if (!url || !url.startsWith('http')) return;
     try {
-      const response = await fetch(url, { mode: 'cors' });
+      const proxiedUrl = getProxiedUrl(url);
+      const response = await fetch(proxiedUrl, { mode: 'cors' });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
