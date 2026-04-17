@@ -12,6 +12,7 @@ interface SendEmailParams {
     eventType: string;
     dateTime: string;
     notes?: string;
+    iCalUID?: string;
   };
   organizer?: {
     name: string;
@@ -45,27 +46,30 @@ export async function sendEmail({
   let attachments: any[] = [];
 
   if (type === 'schedule' && eventDetails) {
-    const { eventId, eventType, dateTime, notes } = eventDetails;
+    const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
     emailSubject = 'Scheduled Appointment';
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const formatG = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
 
-    const uid = `${eventId}@ilovelawyer.com`;
+    const sequence = (eventDetails as any).isReminder ? '1' : '0';
+    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
       `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
-      'SEQUENCE:0', 'TRANSP:OPAQUE', 'END:VEVENT', 'END:VCALENDAR'
+      `SEQUENCE:${sequence}`, 'TRANSP:OPAQUE',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment tomorrow', 'TRIGGER:-P1D', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
     attachments = [{
-      filename: 'invite.ics',
+      filename: 'meeting_invite.ics',
       content: Buffer.from(icsString),
-      contentType: 'text/calendar; method=REQUEST'
+      contentType: 'text/calendar; charset=UTF-8; method=REQUEST'
     }];
 
     const reviewUrl = `${siteUrl}/confirm/${eventId}`;
@@ -105,7 +109,9 @@ export async function sendEmail({
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR'
+      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment tomorrow', 'TRIGGER:-P1D', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
     attachments = [{ filename: 'event.ics', content: Buffer.from(icsString), contentType: 'text/calendar; method=PUBLISH' }];

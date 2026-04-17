@@ -12,6 +12,10 @@ export interface GoogleCalendarEvent {
     start: string;
     description?: string;
     link?: string;
+    attendees?: any[];
+    status?: string;
+    iCalUID?: string;
+    organizer?: { email?: string; displayName?: string };
 }
 
 export interface ListEventsResult {
@@ -29,6 +33,7 @@ export interface CreateEventResult {
     needs_auth?: boolean;
     auth_url?: string;
     event_id?: string;
+    iCalUID?: string;
     title?: string;
     start?: string;
     end?: string;
@@ -89,6 +94,8 @@ export async function listCalendarEvents(
         const url = new URL(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events",
         );
+        url.searchParams.set("fields", "items(id,summary,description,location,start,end,htmlLink,attendees(email,responseStatus,organizer),status,iCalUID,organizer)");
+        url.searchParams.set("singleEvents", "true");
         if (opts.maxResults)
             url.searchParams.set("maxResults", String(opts.maxResults));
         if (opts.timeMin) url.searchParams.set("timeMin", opts.timeMin);
@@ -106,6 +113,10 @@ export async function listCalendarEvents(
             start: i.start?.dateTime || i.start?.date,
             description: i.description,
             link: i.htmlLink,
+            attendees: i.attendees,
+            status: i.status,
+            iCalUID: i.iCalUID,
+            organizer: i.organizer,
         }));
         return { success: true, events, count: events.length };
     } catch (error: any) {
@@ -121,6 +132,8 @@ export async function createCalendarEvent(
         end_datetime: string;
         description?: string;
         type?: "meeting" | "appointment" | "hearing" | "deposition";
+        client_email?: string;
+        clientEmail?: string;
     },
 ): Promise<CreateEventResult> {
     const supabase = createClient();
@@ -132,15 +145,28 @@ export async function createCalendarEvent(
     if (!providerToken) return { success: false, needs_auth: true };
 
     try {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const eventBody: any = {
             summary: data.title,
             description: data.description,
-            start: { dateTime: data.start_datetime },
-            end: { dateTime: data.end_datetime },
+            start: { dateTime: data.start_datetime, timeZone: userTimeZone },
+            end: { dateTime: data.end_datetime, timeZone: userTimeZone },
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: "email", minutes: 1440 }, // 1 day before
+                    { method: "popup", minutes: 60 },   // 1 hour before
+                ],
+            },
         };
 
+        const clientEmailStr = data.clientEmail || data.client_email;
+        if (clientEmailStr) {
+            eventBody.attendees = clientEmailStr.split(',').map((e: string) => ({ email: e.trim() }));
+        }
+
         const url = new URL(
-            "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
         );
 
         const res = await fetch(url.toString(), {
@@ -153,6 +179,11 @@ export async function createCalendarEvent(
         });
 
         const responseText = await res.text();
+
+        if (res.status === 401) {
+            console.error("[createCalendarEvent] 401 Unauthorized - Token may be expired.");
+            return { success: false, needs_auth: true };
+        }
 
         if (!res.ok) {
             let errorMsg = `HTTP ${res.status}`;
@@ -172,6 +203,7 @@ export async function createCalendarEvent(
         return {
             success: true,
             event_id: result.id,
+            iCalUID: result.iCalUID,
             link: result.htmlLink,
             title: result.summary,
             start: result.start?.dateTime,
