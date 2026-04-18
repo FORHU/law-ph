@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +34,8 @@ import {
   getGoogleAuthUrl,
   listCalendarEvents,
   createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
   type GoogleCalendarEvent,
 } from "@/lib/calendar-api";
 
@@ -58,9 +60,12 @@ interface CalendarEvent {
     | "requested_change"
     | "denied"
     | "tentative"
-    | "cancelled";
+    | "cancelled"
+    | "canceled";
   client_feedback?: string;
   iCalUID?: string;
+  lawyerAcknowledgedAt?: string;
+  lastReminderSentAt?: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -145,6 +150,7 @@ const StatusBadge = ({
     denied: "bg-red-900/40 text-red-400 border-red-500/30",
     tentative: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    canceled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
   };
 
   let label = status as string;
@@ -154,7 +160,7 @@ const StatusBadge = ({
   if (status === "denied") label = "Denied";
   if (status === "confirmed") label = isPast ? "Done" : "Confirmed";
   if (status === "requested_change") label = "Change Requested";
-  if (status === "cancelled") label = "Cancelled";
+  if (status === "cancelled" || status === "canceled") label = "Cancelled";
 
   return (
     <span
@@ -488,8 +494,25 @@ export default function CalendarPage() {
           dateTime: e.date_time,
           clientEmail: e.client_email,
           status: e.status || "pending",
+          lawyerAcknowledgedAt: e.lawyer_acknowledged_at,
+          lastReminderSentAt: e.last_reminder_sent_at,
         }));
-        setEvents(normalized);
+        
+        // Smart merge: if we already have Google-enriched events, keep their extra data
+        setEvents((prev) => {
+          const googleMap = new Map();
+          prev.filter(e => e.isGoogleEvent).forEach(e => {
+            if (e.google_event_id) googleMap.set(e.google_event_id, e);
+          });
+
+          return normalized.map(sb => {
+            const ge = sb.google_event_id ? googleMap.get(sb.google_event_id) : null;
+            if (ge) {
+              return { ...ge, ...sb }; // Prefer DB notes but keep Google metadata
+            }
+            return sb;
+          });
+        });
       }
     } catch (err) {
       console.error("Unexpected error fetching events:", err);
@@ -596,16 +619,42 @@ export default function CalendarPage() {
             return true;
           });
 
-          // Combine and ensure absolute uniqueness by ID
+          // Combine and ensure absolute uniqueness
           const combined = [...remainingSb, ...newGoogleEvents];
           const uniqueMap = new Map();
+          
           combined.forEach((e) => {
-            if (!uniqueMap.has(e.id) || e.isGoogleEvent) {
-              uniqueMap.set(e.id, e);
+            // Priority: keep the one with google_event_id, then the one with notes
+            const key = e.id;
+            const existing = uniqueMap.get(key);
+            if (!existing) {
+              uniqueMap.set(key, e);
+            } else {
+              // Merge if we somehow have two records for one ID
+              uniqueMap.set(key, { ...existing, ...e });
             }
           });
 
-          return Array.from(uniqueMap.values());
+          // Final aggressive deduplication for the display list: 
+          // If two events have identical Title + Rounded Time, merge them.
+          const finalMap = new Map();
+          Array.from(uniqueMap.values()).forEach(e => {
+            const t = new Date(e.dateTime || e.date_time || "").getTime();
+            const rounded = Math.round(t / 60000) * 60000; // Round to minute
+            const title = (e.title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            const dedupKey = `${title}|${rounded}`;
+            
+            const existing = finalMap.get(dedupKey);
+            if (!existing) {
+              finalMap.set(dedupKey, e);
+            } else {
+              // Keep the one that is synced to google or has notes
+              const preferNew = (!existing.google_event_id && e.google_event_id) || (!existing.notes && e.notes);
+              finalMap.set(dedupKey, preferNew ? { ...existing, ...e } : { ...e, ...existing });
+            }
+          });
+
+          return Array.from(finalMap.values());
         });
         setIsGoogleConnected(true);
       } else {
@@ -1021,37 +1070,58 @@ export default function CalendarPage() {
 
       // Auto-send if there's a client email
       if (form.clientEmail) {
-        // Sync to Google Calendar — only for NEW events. Rescheduling skips
-        // Google event creation to avoid duplicates; the email handles the notification.
+        // Sync to Google Calendar
         let iCalUID: string | undefined;
         let googleEventId: string | undefined;
-        if (isGoogleConnected && !editingEventId) {
+
+        if (editingEventId) {
+          const existing = events.find((e) => e.id === editingEventId);
+          iCalUID = (existing as any)?.iCalUID;
+          googleEventId = existing?.google_event_id;
+        }
+
+        if (isGoogleConnected) {
           const start = new Date(form.dateTime);
           const end = new Date(start.getTime() + 60 * 60 * 1000);
 
-          const gResult = await createCalendarEvent(userId, {
-            title: form.title,
-            start_datetime: start.toISOString(),
-            end_datetime: end.toISOString(),
-            description: form.notes,
-            type: form.type,
-            client_email: form.clientEmail,
-          });
-          if (gResult.success) {
-            gLink = gResult.link || "";
-            iCalUID = gResult.iCalUID;
-            googleEventId = gResult.event_id;
-          } else if (gResult.needs_auth) {
-            setIsGoogleConnected(false);
-            setCreateError(
-              "Google Calendar session expired. Please reconnect.",
-            );
-            console.error("[Calendar] Google session expired.");
+          if (!editingEventId) {
+            const gResult = await createCalendarEvent(userId, {
+              title: form.title,
+              start_datetime: start.toISOString(),
+              end_datetime: end.toISOString(),
+              description: form.notes,
+              type: form.type,
+              client_email: form.clientEmail,
+            });
+            if (gResult.success) {
+               gLink = gResult.link || "";
+               iCalUID = gResult.iCalUID;
+               googleEventId = gResult.event_id;
+            } else if (gResult.needs_auth) {
+               setIsGoogleConnected(false);
+               setCreateError("Google Calendar session expired. Please reconnect.");
+               console.error("[Calendar] Google session expired.");
+            } else {
+               console.error("[Calendar] Google Calendar sync failed:", gResult.error);
+            }
           } else {
-            console.error(
-              "[Calendar] Google Calendar sync failed:",
-              gResult.error,
-            );
+             const existingGoogleId = typeof editingEventId === 'string' && editingEventId.length > 20 && !editingEventId.includes('-') ? editingEventId : googleEventId;
+             if (existingGoogleId) {
+                const gResult = await updateCalendarEvent(userId, existingGoogleId, {
+                   title: form.title,
+                   start_datetime: start.toISOString(),
+                   end_datetime: end.toISOString(),
+                   description: form.notes,
+                   type: form.type,
+                   client_email: form.clientEmail,
+                });
+                if (gResult.needs_auth) {
+                   setIsGoogleConnected(false);
+                   setCreateError("Google session expired.");
+                } else if (!gResult.success) {
+                   console.error("[Calendar] Google update failed:", gResult.error);
+                }
+             }
           }
         }
         // Trigger Email API — send 'reschedule' when editing an existing event, 'schedule' for new ones
@@ -1067,14 +1137,13 @@ export default function CalendarPage() {
               eventType: form.type,
               dateTime: new Date(form.dateTime).toISOString(),
               notes: form.notes,
-              iCalUID: iCalUID,
+              iCalUID: iCalUID || (googleEventId ? `${googleEventId}@google.com` : undefined),
               ...(editingEventId && actionReason
                 ? { reason: actionReason }
                 : {}),
             },
             organizer: {
-              name:
-                session?.user?.user_metadata?.full_name || session?.user?.email,
+              name: session?.user?.user_metadata?.full_name || session?.user?.email,
               email: session?.user?.email,
             },
           }),
@@ -1099,6 +1168,22 @@ export default function CalendarPage() {
                 finalError.message,
               );
             }
+            
+            // CLEANUP REDUNDANCY: If we have a google_event_id, make sure NO OTHER 
+            // record in our DB exists for this ID. This removes "residue" from 
+            // failed syncs or duplicate inserts during rescheduling.
+            if (googleEventId) {
+              const { error: cleanupError } = await supabase
+                .from("events")
+                .delete()
+                .eq("user_id", userId)
+                .eq("google_event_id", googleEventId)
+                .neq("id", createdEventId); // Don't delete our currently saved record!
+              
+              if (!cleanupError) {
+                console.log("[Calendar] Cleaned up redundant duplicate records.");
+              }
+            }
           } catch (e) {
             console.warn("[Calendar] DB update crash (missing columns?):", e);
           }
@@ -1116,7 +1201,10 @@ export default function CalendarPage() {
 
       if (editingEventId) {
         setEvents((prev) =>
-          prev.map((e) => (e.id === editingEventId ? normalizedEvent : e)),
+          prev
+            .map((e) => (e.id === editingEventId ? normalizedEvent : e))
+            // Remove any other events that share this same Google ID (cleanup duplicates)
+            .filter((e) => !normalizedEvent.google_event_id || e.id === normalizedEvent.id || e.google_event_id !== normalizedEvent.google_event_id)
         );
       } else {
         setEvents((prev) => [...prev, normalizedEvent]);
@@ -1142,11 +1230,11 @@ export default function CalendarPage() {
           notes: "",
         });
         setConflictWarning(null);
+        setSubmitting(false); // Enable ONLY after closing/clearing
       }, 300);
     } catch (err: any) {
       console.error("Error saving event:", err.message || err);
       setCreateError(err.message || "Unexpected error.");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -1155,18 +1243,62 @@ export default function CalendarPage() {
     if (!actionEventId || !actionReason || !userId) return;
     setSubmitting(true);
     const eventToCancel = events.find((e) => e.id === actionEventId);
+
+    const isGoogleId =
+        typeof actionEventId === "string" &&
+        actionEventId.length > 20 &&
+        !actionEventId.includes("-");
+
     try {
-      // Update status to 'cancelled' in Supabase
-      const { error } = await supabase
-        .from("events")
-        .update({
-          status: "cancelled",
-          notes: `${eventToCancel?.notes || ""}\n\n[Cancelled: ${actionReason}]`,
-        })
-        .eq("id", actionEventId);
+      // 1. Sync to Google Calendar first (Delete the event)
+      if (isGoogleConnected) {
+         const gId = isGoogleId ? actionEventId : eventToCancel?.google_event_id;
+         if (gId) {
+            try {
+                await deleteCalendarEvent(userId, gId);
+            } catch (gErr) {
+                console.warn("[CalendarSync] Google delete failed (might be already gone):", gErr);
+                // We continue anyway since we want to update our local record
+            }
+         }
+      }
 
-      if (error) throw error;
+      // 2. Update status to 'cancelled' in Supabase
+      const getNote = () => `${eventToCancel?.notes || ""}\n\n[Cancelled: ${actionReason}]`;
+      
+      const updateData = {
+        status: "cancelled",
+        notes: getNote(),
+      };
 
+      let query = supabase.from("events").update(updateData);
+      
+      if (isGoogleId) {
+          query = query.eq("google_event_id", actionEventId);
+      } else {
+          query = query.eq("id", actionEventId);
+      }
+
+      const { error } = await query;
+      
+      // Fallback: If DB rejected 'cancelled' (2 Ls), try 'canceled' (1 L)
+      if (error && error.message.includes("event_status")) {
+          console.log("[Calendar] DB rejected 'cancelled', trying 'canceled' fallback...");
+          const fallbackQuery = supabase.from("events").update({ 
+               status: 'canceled' as any, 
+               notes: getNote() 
+          });
+          
+          if (isGoogleId) fallbackQuery.eq("google_event_id", actionEventId);
+          else fallbackQuery.eq("id", actionEventId);
+          
+          const { error: error2 } = await fallbackQuery;
+          if (error2) throw error2;
+      } else if (error) {
+          throw error;
+      }
+
+      // 3. Update local state
       setEvents((prev) =>
         prev.map((e) =>
           e.id === actionEventId ? { ...e, status: "cancelled" } : e,
@@ -1178,11 +1310,12 @@ export default function CalendarPage() {
         ),
       );
 
-      // Send cancellation email to client
-      const clientEmail =
-        eventToCancel?.client_email || eventToCancel?.clientEmail;
+      // 4. Send cancellation email to client
+      const clientEmail = eventToCancel?.client_email || eventToCancel?.clientEmail;
+      
       if (clientEmail) {
-        await fetch("/api/send-email", {
+        console.log(`[Calendar] Sending cancellation email to ${clientEmail}...`);
+        const emailRes = await fetch("/api/send-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1207,6 +1340,16 @@ export default function CalendarPage() {
             },
           }),
         });
+
+        if (!emailRes.ok) {
+           const errBody = await emailRes.json().catch(() => ({}));
+           console.error("[Calendar] Email sending failed:", errBody);
+           // We don't throw here to ensure the UI success still shows for the cancellation itself
+        } else {
+           console.log("[Calendar] Cancellation email sent successfully.");
+        }
+      } else {
+        console.warn("[Calendar] No client email found to send cancellation notice.");
       }
 
       setSubmitting(false);
@@ -1228,7 +1371,7 @@ export default function CalendarPage() {
     }
   };
 
-  const handleRemindEvent = async (event: CalendarEvent) => {
+  const handleRemindEvent = async (event: CalendarEvent, opts: { silent?: boolean } = {}) => {
     if (!userId) return;
 
     try {
@@ -1247,7 +1390,6 @@ export default function CalendarPage() {
               event.date_time || event.dateTime || "",
             ).toISOString(),
             notes: event.notes,
-            // Use the remembered iCalUID, or fallback to the Google ID
             iCalUID:
               (event as any).iCalUID ||
               (typeof event.google_event_id === "string"
@@ -1263,16 +1405,88 @@ export default function CalendarPage() {
       });
 
       if (response.ok) {
-        // Success feedback - you might want a toast system, but for now console and maybe update local state if needed
-        openSuccess("Reminder Sent", "The client has been notified via email.");
+        // Update DB to track that we sent this reminder
+        const now = new Date().toISOString();
+        await supabase
+          .from("events")
+          .update({ last_reminder_sent_at: now })
+          .eq("id", event.id);
+
+        // Update local state immediately to prevent re-triggers before next fetch
+        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, lastReminderSentAt: now } : e));
+
+        if (!opts.silent) {
+          openSuccess("Reminder Sent", "The client has been notified via email.");
+        }
       } else {
         throw new Error("Failed to send reminder");
       }
     } catch (err) {
       console.error("[Calendar] Remind event failed:", err);
-      alert("Failed to send reminder. Please try again.");
+      if (!opts.silent) {
+        alert("Failed to send reminder. Please try again.");
+      }
     }
   };
+
+  // ── Automated Reminders (Today / Tomorrow) ─────────────────────────────────
+  const autoRemindProcessed = useRef<Set<string>>(new Set());
+  const isProcessingReminders = useRef(false);
+  
+  useEffect(() => {
+    if (!loggedIn || !userId || events.length === 0 || isLoading || isProcessingReminders.current) return;
+
+    const runAutoReminders = async () => {
+      isProcessingReminders.current = true;
+      try {
+        const nowTs = new Date();
+        const endOfTomorrow = new Date(nowTs);
+        endOfTomorrow.setDate(nowTs.getDate() + 2);
+        endOfTomorrow.setHours(0, 0, 0, 0);
+
+        const todayStart = new Date(nowTs);
+        todayStart.setHours(0, 0, 0, 0);
+
+        // Find events for today or tomorrow that haven't been reminded yet today
+        const toRemind = events.filter(e => {
+            if (e.status === 'cancelled' || e.status === 'denied') return false;
+            if (autoRemindProcessed.current.has(e.id)) return false;
+            
+            // Skip if already sent today
+            if (e.lastReminderSentAt) {
+               const lastSent = new Date(e.lastReminderSentAt);
+               if (lastSent.getFullYear() === nowTs.getFullYear() && 
+                   lastSent.getMonth() === nowTs.getMonth() && 
+                   lastSent.getDate() === nowTs.getDate()) {
+                 return false;
+               }
+            }
+
+            const evtDate = new Date(e.date_time || e.dateTime || "");
+            return evtDate >= todayStart && evtDate < endOfTomorrow;
+        });
+
+        if (toRemind.length === 0) return;
+
+        console.log(`[Calendar] Found ${toRemind.length} events needing automated reminders.`);
+        
+        for (const event of toRemind) {
+            // Check again inside loop in case state updated during previous iterations
+            if (autoRemindProcessed.current.has(event.id)) continue;
+            
+            autoRemindProcessed.current.add(event.id);
+            await handleRemindEvent(event, { silent: true });
+            
+            // Small delay to avoid API rate limits
+            await new Promise(r => setTimeout(r, 1000));
+        }
+      } finally {
+        isProcessingReminders.current = false;
+      }
+    };
+
+    runAutoReminders();
+  }, [events, loggedIn, userId, isLoading]);
 
   const handleConnectGoogle = () => {
     if (!userId) return;
@@ -1285,11 +1499,136 @@ export default function CalendarPage() {
     }
   };
 
+  const [showLawyerModal, setShowLawyerModal] = useState(false);
+  const [unacknowledgedEvents, setUnacknowledgedEvents] = useState<CalendarEvent[]>([]);
+  const hasHandledModal = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || events.length === 0 || hasHandledModal.current) return;
+
+    const nowTs = new Date();
+    const endOfTomorrow = new Date(nowTs);
+    endOfTomorrow.setDate(nowTs.getDate() + 2);
+    endOfTomorrow.setHours(0, 0, 0, 0);
+    const todayStart = new Date(nowTs);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const filterUnacked = events.filter(e => {
+        if (e.status === 'cancelled' || e.status === 'denied' || e.status === 'canceled') return false;
+        if (e.lawyerAcknowledgedAt) return false;
+        const evtDate = new Date(e.date_time || e.dateTime || "");
+        return evtDate >= todayStart && evtDate < endOfTomorrow;
+    });
+
+    if (filterUnacked.length > 0) {
+      setUnacknowledgedEvents(filterUnacked);
+      setShowLawyerModal(true);
+    } else {
+      setShowLawyerModal(false);
+    }
+  }, [events, isLoading]);
+
+  const handleAcknowledgeEvents = async () => {
+    if (!userId || unacknowledgedEvents.length === 0) return;
+    hasHandledModal.current = true;
+    
+    const ids = unacknowledgedEvents.map(e => e.id);
+    const nowStr = new Date().toISOString();
+
+    try {
+        const { error } = await supabase
+            .from('events')
+            .update({ lawyer_acknowledged_at: nowStr })
+            .in('id', ids);
+
+        if (error) {
+            console.warn("[Calendar] Could not save acknowledgment to DB. Ensure you have run the migration to add the lawyer_acknowledged_at column.", error);
+            // Fallback: Clear locally for this session so the user isn't stuck
+            setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
+            setShowLawyerModal(false);
+            return;
+        }
+
+        setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
+        setShowLawyerModal(false);
+    } catch (err) {
+        console.error("Failed to acknowledge events:", err);
+        // Instant fallback for UX
+        setShowLawyerModal(false);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
       <SuccessNotification />
+      
+      {/* Lawyer Notification Modal */}
+      <AnimatePresence>
+        {showLawyerModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="w-full max-w-md bg-[#1A1A1A] border border-[#8B4564]/30 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                >
+                    <div className="p-6 border-b border-white/5 bg-gradient-to-r from-[#8B4564]/20 to-transparent">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-[#8B4564] flex items-center justify-center shadow-lg shadow-[#8B4564]/20">
+                                <Bell className="text-white" size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-white leading-tight">Upcoming Events</h2>
+                                <p className="text-xs text-[#E0A7C2] font-medium opacity-80 uppercase tracking-wider">Today & Tomorrow</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-h-[350px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        {unacknowledgedEvents.map((evt) => (
+                            <div key={evt.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-sm font-bold text-white truncate pr-2">{evt.title}</h3>
+                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${EVENT_COLORS[evt.type].badge}`}>
+                                        {evt.type}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                    <Clock size={12} className="text-[#E0A7C2]" />
+                                    <span>{formatDT(evt.date_time || evt.dateTime)}</span>
+                                </div>
+                                {evt.notes && (
+                                    <p className="mt-2 text-[11px] text-gray-500 line-clamp-2 leading-relaxed italic border-l-2 border-white/10 pl-3">
+                                        "{evt.notes}"
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="p-6 bg-black/20 border-t border-white/5 flex gap-3">
+                        <button 
+                            onClick={handleAcknowledgeEvents}
+                            className="flex-1 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 active:scale-[0.98]"
+                        >
+                            Mark as Read
+                        </button>
+                        <button 
+                            onClick={() => {
+                                hasHandledModal.current = true;
+                                setShowLawyerModal(false);
+                            }}
+                            className="px-6 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all border border-white/5"
+                        >
+                            Remind Me Later
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
       <PageLayout
         activePage="calendar"
         title="Calendar"
@@ -1452,6 +1791,7 @@ export default function CalendarPage() {
                       day < now.getDate());
 
                   const dayEvents = events.filter((e) => {
+                    if (e.status === 'cancelled' || e.status === 'canceled' || e.status === 'denied') return false;
                     const d = new Date(e.date_time || e.dateTime || "");
                     return (
                       d.getDate() === day &&

@@ -221,3 +221,126 @@ export async function createCalendarEvent(
     return { success: false, error: error.message };
   }
 }
+
+export async function updateCalendarEvent(
+    sessionId: string,
+    googleEventId: string,
+    data: {
+        title: string;
+        start_datetime: string;
+        end_datetime: string;
+        description?: string;
+        type?: "meeting" | "appointment" | "hearing" | "deposition";
+        client_email?: string;
+        clientEmail?: string;
+    },
+): Promise<CreateEventResult> {
+    const supabase = createClient();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+    const providerToken =
+        session?.provider_token || session?.user?.user_metadata?.provider_token;
+    if (!providerToken) return { success: false, needs_auth: true };
+
+    try {
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const eventBody: any = {
+            summary: data.title,
+            description: data.description,
+            start: { dateTime: data.start_datetime, timeZone: userTimeZone },
+            end: { dateTime: data.end_datetime, timeZone: userTimeZone },
+        };
+
+        const clientEmailStr = data.clientEmail || data.client_email;
+        if (clientEmailStr) {
+            eventBody.attendees = clientEmailStr.split(',').map((e: string) => ({ email: e.trim() }));
+        }
+
+        const url = new URL(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+        );
+
+        const res = await fetch(url.toString(), {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${providerToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventBody),
+        });
+
+        const responseText = await res.text();
+
+        if (res.status === 401) {
+            return { success: false, needs_auth: true };
+        }
+
+        if (!res.ok) {
+            let errorMsg = `HTTP ${res.status}`;
+            try {
+                const errorData = JSON.parse(responseText);
+                errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
+
+        const result = JSON.parse(responseText);
+        return {
+            success: true,
+            event_id: result.id,
+            iCalUID: result.iCalUID,
+            link: result.htmlLink,
+            title: result.summary,
+            start: result.start?.dateTime,
+            end: result.end?.dateTime,
+        };
+    } catch (error: any) {
+        console.error('[updateCalendarEvent] ❌ Error:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteCalendarEvent(
+    sessionId: string,
+    googleEventId: string,
+): Promise<DeleteEventResult> {
+    const supabase = createClient();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+    const providerToken =
+        session?.provider_token || session?.user?.user_metadata?.provider_token;
+    if (!providerToken) return { success: false, needs_auth: true };
+
+    try {
+        const url = new URL(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+        );
+
+        const res = await fetch(url.toString(), {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${providerToken}`,
+            },
+        });
+
+        if (res.status === 401) return { success: false, needs_auth: true };
+        
+        // Handle successfully deleted (204) or already gone (410/404)
+        if (res.status === 204 || res.status === 410 || res.status === 404 || res.ok) {
+            return { success: true, event_id: googleEventId };
+        }
+
+        const responseText = await res.text();
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+        } catch (e) {}
+        throw new Error(errorMsg);
+    } catch (error: any) {
+        console.error('[deleteCalendarEvent] ❌ Error:', error.message);
+        return { success: false, error: error.message };
+    }
+}

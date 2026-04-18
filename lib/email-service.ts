@@ -173,7 +173,7 @@ export async function sendEmail({
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
       `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:[Rescheduled] ${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:2', 'TRANSP:OPAQUE',
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Rescheduled appointment', 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
@@ -216,7 +216,7 @@ export async function sendEmail({
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
       `ATTENDEE;CN="Participant";RSVP=FALSE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:[Cancelled] ${eventType}`, 'STATUS:CANCELLED',
+      `SUMMARY:${eventType}`, 'STATUS:CANCELLED',
       'SEQUENCE:3', 'TRANSP:TRANSPARENT',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');

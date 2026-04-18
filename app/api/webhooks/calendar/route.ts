@@ -120,32 +120,60 @@ export async function POST(req: Request) {
       return new Response('No events to sync', { status: 200 });
     }
 
-    // 5. Upsert each event into the Supabase events table.
-    //    We use google_event_id as the unique key to avoid duplicates.
-    const rows = googleEvents
-      .filter((e: any) => e.status !== 'cancelled')
-      .map((e: any) => ({
-        user_id: userId,
-        google_event_id: e.id,
-        title: e.summary ?? 'Untitled',
-        type: inferEventType(e.summary, e.description),
-        date_time: e.start?.dateTime ?? e.start?.date ?? now,
-        notes: e.description ?? null,
-        google_link: e.htmlLink ?? null,
-        status: getEventStatus(e),
-      }));
+    // 5. Intelligent Sync: Prevent duplicates by matching NULL-id events by Title + Time
+    // This handles the race condition where handleSave inserts a record but the webhook
+    // fires before handleSave can update the record with its new google_event_id.
+    const syncedRows = [];
+    for (const ge of googleEvents) {
+      if (ge.status === 'cancelled') continue;
+      
+      const geTitle = ge.summary ?? 'Untitled';
+      const geTime = ge.start?.dateTime ?? ge.start?.date;
+      if (!geTime) continue;
 
-    if (rows.length > 0) {
+      // Try to find a local event that hasn't been linked yet but matches this one
+      const { data: localMatch } = await adminClient
+        .from('events')
+        .select('id')
+        .eq('user_id', userId)
+        .is('google_event_id', null)
+        .eq('title', geTitle)
+        .eq('date_time', new Date(geTime).toISOString())
+        .maybeSingle();
+
+      if (localMatch) {
+         // Link it!
+         await adminClient
+           .from('events')
+           .update({ google_event_id: ge.id })
+           .eq('id', localMatch.id);
+         console.log(`[Calendar Webhook] Linked existing event ${localMatch.id} to google ID ${ge.id}`);
+      } else {
+         // Add to the list for upserting
+         syncedRows.push({
+           user_id: userId,
+           google_event_id: ge.id,
+           title: geTitle,
+           type: inferEventType(geTitle, ge.description),
+           date_time: new Date(geTime).toISOString(),
+           notes: ge.description ?? null,
+           google_link: ge.htmlLink ?? null,
+           status: getEventStatus(ge),
+         });
+      }
+    }
+
+    if (syncedRows.length > 0) {
       const { error: upsertError } = await adminClient
         .from('events')
-        .upsert(rows, { onConflict: 'google_event_id,user_id', ignoreDuplicates: false });
+        .upsert(syncedRows, { onConflict: 'google_event_id,user_id', ignoreDuplicates: false });
 
       if (upsertError) {
         console.error('[Calendar Webhook] Upsert error:', upsertError.message);
         return new Response('DB upsert failed', { status: 500 });
       }
 
-      console.log(`[Calendar Webhook] Synced ${rows.length} events for user ${userId}`);
+      console.log(`[Calendar Webhook] Synced ${syncedRows.length} new events for user ${userId}`);
     }
 
     // 6. Delete any events that were cancelled in Google
