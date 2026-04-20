@@ -116,9 +116,8 @@ export function useSendMessage({
               );
               console.log("File uploaded and analyzed successfully:", uploadData);
 
-              const resolvedUrl = uploadData.s3_key
-                ? `https://da6hq15h0otl9.cloudfront.net/${uploadData.s3_key}`
-                : (uploadData.file_url || (uploadData.url ? uploadData.url.split('?')[0] : ''));
+              const s3BaseUrl = uploadData.url ? uploadData.url.split('?')[0] : null;
+              const resolvedUrl = formatS3Url(uploadData.file_url || s3BaseUrl || `https://s3.amazonaws.com/${uploadData.s3_key}`);
               currentFileAttachment = {
                 ...currentFileAttachment!,
                 url: resolvedUrl,
@@ -175,7 +174,7 @@ export function useSendMessage({
           // Otherwise build it from currentInput
           const contentWithMeta = isAnalysisTrigger
             ? finalPromptToAI
-            : cleanMessageText(currentInput) + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
+            : currentInput + (Object.values(meta).some(v => v !== undefined) ? `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]` : "");
 
           const { data: savedUserMsg, error: userMsgError } = await supabase
             .from("messages")
@@ -253,6 +252,15 @@ Just tell me 👍`;
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
+            let googleAccessToken: string | undefined = undefined;
+            if (supabase) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                googleAccessToken = session?.provider_token || undefined;
+              } catch (e) {
+                console.error("Failed to get session for provider token", e);
+              }
+            }
             const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
              Do NOT write it as a numbered list, bullet points, or any other Markdown format.
 
@@ -314,7 +322,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
               body: JSON.stringify({
                 user_input: payloadUserInput,
                 session_id: sId,
-                // document_context: currentDocumentContext
+                document_context: currentDocumentContext
               }),
               signal: controller.signal
             });

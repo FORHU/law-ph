@@ -26,6 +26,7 @@ interface UseConsultationStateProps {
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe") => void;
+  consultationTitle?: string;
 }
 
 export function useConsultationState({
@@ -39,6 +40,7 @@ export function useConsultationState({
   isGoogleConnected,
   handleSendMessage,
   onTabChange,
+  consultationTitle,
 }: UseConsultationStateProps) {
   const [globalTab, setGlobalTab] = useState<
     "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe"
@@ -142,7 +144,7 @@ export function useConsultationState({
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [isSchedulePreviewOpen, setIsSchedulePreviewOpen] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  
+
   // Automatic conflict check as the user picks date/time
   useEffect(() => {
     if (!scheduleDateTime || !userId) {
@@ -195,7 +197,7 @@ export function useConsultationState({
     // Validate that the selected date/time is not in the past
     const selectedDateTime = new Date(scheduleDateTime);
     const currentDateTime = new Date();
-    
+
     if (selectedDateTime < currentDateTime) {
       setScheduleError("Cannot schedule events for past dates. Please select a future date and time.");
       setIsScheduling(false);
@@ -217,12 +219,16 @@ export function useConsultationState({
         .from("events")
         .insert({
           user_id: userId,
-          title: `${scheduleType}: Consultation`,
+          title: activeCase?.case_name
+            ? activeCase.case_name
+            : consultationTitle
+              ? consultationTitle
+              : `Consultation`,
           type: scheduleType.toLowerCase(),
-          date_time: scheduleDateTime,
+          date_time: new Date(scheduleDateTime).toISOString(),
           client_email: scheduleEmails.join(', '),
           notes: scheduleNotes,
-          status: "draft"
+          status: "pending"
         })
         .select()
         .single();
@@ -247,23 +253,38 @@ export function useConsultationState({
     try {
       // 1. Sync with Google Calendar if connected
       let googleLink: string | null = null;
+      let iCalUID: string | undefined;
+      let googleEventId: string | undefined;
+
       if (isGoogleConnected) {
         const start = new Date(scheduleDateTime);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        const toISO = (d: Date) => d.toISOString().slice(0, 19);
         const result = await createCalendarEvent(userId, {
-          title: `${scheduleType}: Consultation`,
-          start_datetime: toISO(start),
-          end_datetime: toISO(end),
+          title: activeCase?.case_name
+            ? activeCase.case_name
+            : consultationTitle
+              ? consultationTitle
+              : `Consultation`,
+          start_datetime: start.toISOString(),
+          end_datetime: end.toISOString(),
           description: scheduleNotes,
+          client_email: scheduleEmails.join(', ')
         });
-        if (result.success && result.link) googleLink = result.link;
+        if (result.success) {
+          if (result.link) googleLink = result.link;
+          iCalUID = result.iCalUID;
+          googleEventId = result.event_id;
+        }
       }
 
-      // 2. Update status to pending
+      // 2. Update status to pending and save Google data
+      const updatePayload: any = { status: "pending", google_link: googleLink };
+      if (googleEventId) {
+        updatePayload.google_event_id = googleEventId;
+      }
       const { error: updateError } = await supabase
         .from("events")
-        .update({ status: "pending", google_link: googleLink })
+        .update(updatePayload)
         .eq("id", draftedEventId);
 
       if (updateError) throw new Error(`Database update failed: ${updateError.message}`);
@@ -275,11 +296,13 @@ export function useConsultationState({
         body: JSON.stringify({
           to: scheduleEmails,
           type: "schedule",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           eventDetails: {
             eventId: draftedEventId,
             eventType: scheduleType,
-            dateTime: scheduleDateTime,
+            dateTime: new Date(scheduleDateTime).toISOString(),
             notes: scheduleNotes,
+            iCalUID: iCalUID
           },
           organizer: {
             name: userName || userEmail,
@@ -299,7 +322,7 @@ export function useConsultationState({
       // Reset form and clear state IMMEDIATELY so the user sees a blank form
       setDraftedEventId(null);
       setIsSchedulePreviewOpen(false);
-      
+
       // Clear all form inputs
       setScheduleType("Meeting");
       setScheduleDateTime("");
@@ -507,7 +530,7 @@ export function useConsultationState({
     const syncEvidenceToTree = (node: any) => {
       const nodeLabel = (node.label || "").toLowerCase();
       const nodeDesc = (node.description || "").toLowerCase();
-      
+
       // Heal existing media
       if (node.media) {
         node.media = node.media.map((m: any) => {
@@ -543,10 +566,10 @@ export function useConsultationState({
         const name = (att.name || "").toLowerCase();
         const summary = (att.ai_summary || "").toLowerCase();
         const words = name.split(/[._\s-]/).filter((w: string) => w.length > 3);
-        
-        return words.some((word: string) => nodeLabel.includes(word)) || 
-               summary.split(' ').slice(0, 10).some((word: string) => word.length > 4 && nodeLabel.includes(word)) ||
-               nodeLabel.includes(name);
+
+        return words.some((word: string) => nodeLabel.includes(word)) ||
+          summary.split(' ').slice(0, 10).some((word: string) => word.length > 4 && nodeLabel.includes(word)) ||
+          nodeLabel.includes(name);
       });
 
       if (matchedAtt) {
@@ -584,7 +607,7 @@ export function useConsultationState({
     syncEvidenceToTree(activeMindMap);
 
     activeMindMap.children = activeMindMap.children || [];
-    let vault = activeMindMap.children.find((c: any) => 
+    let vault = activeMindMap.children.find((c: any) =>
       c.label && (c.label.toLowerCase().includes('vault') || c.label.toLowerCase().includes('evidence'))
     );
 

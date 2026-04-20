@@ -197,21 +197,3 @@ export async function uploadToS3Direct(
     throw error;
   }
 }
-
-/**
- * Returns a proxied URL for an external resource to avoid CORS issues.
- * 
- * @param url The original external URL (e.g., S3 or CloudFront)
- * @returns The proxied URL
- */
-export function getProxiedUrl(url: string | null | undefined): string {
-  if (!url) return '';
-  if (!url.startsWith('http')) return url; // Already local or blob
-  
-  // Only proxy if it's an external AWS-related URL
-  if (url.includes('cloudfront.net') || url.includes('amazonaws.com')) {
-    return `/api/resource-proxy?url=${encodeURIComponent(url)}`;
-  }
-  
-  return url;
-}
