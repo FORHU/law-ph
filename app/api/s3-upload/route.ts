@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File;
     const filename = formData.get("filename") as string;
     const targetBucket = formData.get("bucket") as string || process.env.AWS_S3_BUCKET || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
-    
+
     if (!file || !filename) {
       return NextResponse.json({ error: "Missing file or filename" }, { status: 400 });
     }

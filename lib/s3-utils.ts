@@ -21,16 +21,16 @@ export interface UploadedDocumentData {
  */
 export function formatS3Url(url: string | undefined | null): string {
   if (!url) return '';
-  
+
   // Regex to match various S3 URL formats:
   // 1. https://bucket.s3.amazonaws.com/
   // 2. https://bucket.s3.region.amazonaws.com/
   const s3Regex = /https:\/\/[a-z0-9.-]+\.s3(\.[a-z0-9-]+)?\.amazonaws\.com\//i;
-  
+
   if (s3Regex.test(url)) {
     return url.replace(s3Regex, S3_CONFIG.CDN_URL || '');
   }
-  
+
   return url;
 }
 
@@ -64,7 +64,7 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   // Step 3: Determine final file URL
   // Prefer backend-provided file_url, fallback to base of signed upload URL
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
-  const defaultFileUrl = urlData.s3_key 
+  const defaultFileUrl = urlData.s3_key
     ? `https://da6hq15h0otl9.cloudfront.net/${urlData.s3_key}`
     : (urlData.file_url || s3BaseUrl || "");
 
@@ -160,8 +160,8 @@ export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ 
  * @returns Promise resolving to the uploaded media info
  */
 export async function uploadToS3Direct(
-  blob: Blob | File, 
-  filename: string, 
+  blob: Blob | File,
+  filename: string,
   bucket?: string
 ): Promise<{ file_url: string; s3_key: string }> {
   const targetBucket = bucket || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
@@ -207,11 +207,11 @@ export async function uploadToS3Direct(
 export function getProxiedUrl(url: string | null | undefined): string {
   if (!url) return '';
   if (!url.startsWith('http')) return url; // Already local or blob
-  
+
   // Only proxy if it's an external AWS-related URL
   if (url.includes('cloudfront.net') || url.includes('amazonaws.com')) {
     return `/api/resource-proxy?url=${encodeURIComponent(url)}`;
   }
-  
+
   return url;
 }
