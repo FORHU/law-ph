@@ -4,6 +4,7 @@ import {
   GetTranscriptionJobCommand 
 } from "@aws-sdk/client-transcribe";
 import { TranscribeStreamingClient, StartStreamTranscriptionCommand } from "@aws-sdk/client-transcribe-streaming";
+import { getProxiedUrl } from "./s3-utils";
 
 const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
 
@@ -72,7 +73,8 @@ export async function getTranscriptionJobStatus(jobName: string) {
  */
 export async function fetchTranscriptionText(url: string): Promise<string> {
     try {
-        const response = await fetch(url);
+        const proxiedUrl = getProxiedUrl(url);
+        const response = await fetch(proxiedUrl);
         const data = await response.json();
         
         // If speaker labels are not present, return simple transcript
