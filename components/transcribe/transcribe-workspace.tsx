@@ -173,10 +173,10 @@ export default function TranscribeWorkspace({
     setIsPolling(false);
   };
 
-  const saveToHistory = async (url: string, initialTranscript: string, initialDuration: number, jobName?: string) => {
+  const saveToHistory = async (title: string, url: string, initialTranscript: string, initialDuration: number, jobName?: string) => {
     if (!userId) return;
     const newEntry = await addTranscription(userId, {
-      title: `Recording ${new Date().toLocaleString()}`,
+      title,
       audio_url: url,
       transcript: initialTranscript,
       duration: initialDuration,
@@ -210,7 +210,7 @@ export default function TranscribeWorkspace({
       await startAWSBatchTranscription(s3Uri, jobName);
       setUploadStatus("Transcription job successfully initiated!");
       
-      saveToHistory(s3Data.file_url, "Transcription in progress...", 0, jobName);
+      saveToHistory(file.name, s3Data.file_url, "Transcription in progress...", 0, jobName);
       
     } catch (error) {
       console.error("Upload/Transcribe Error:", error);
@@ -275,7 +275,7 @@ export default function TranscribeWorkspace({
             await startAWSBatchTranscription(s3Uri, jobName);
             setUploadStatus("Transcription job successfully initiated!");
             
-            saveToHistory(s3Data.file_url, "Transcription in progress...", duration, jobName);
+            saveToHistory(`Recording ${new Date().toLocaleString()}`, s3Data.file_url, "Transcription in progress...", duration, jobName);
           } catch (error) {
             console.error("Error saving recording:", error);
           } finally {
@@ -332,45 +332,33 @@ export default function TranscribeWorkspace({
   };
 
   return (
-    <div className="flex w-full h-[calc(100vh-1rem)] m-2 bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
+    <div className="flex w-full h-full glass-panel overflow-hidden">
       
       {/* Left Main Pane */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-        {!isSidebarOpen && (
-          <div className="absolute top-4 left-4 z-50">
-            <button 
-               onClick={onOpenSidebar}
-               className="p-2 text-gray-500 hover:text-gray-800 bg-white/80 backdrop-blur rounded-lg shadow-sm border border-gray-100 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-               title="Open Sidebar"
-            >
-               <Menu size={20} />
-            </button>
-          </div>
-        )}
-
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Text / Script Editor Area */}
-        <div className="flex-1 overflow-y-auto p-12 pr-24 relative">
+        <div className="flex-1 overflow-y-auto p-8 md:p-12 pr-12 md:pr-24 relative custom-sidebar-scrollbar">
            {!transcript && !isRecording && !isPolling && (
              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-               <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mb-8 text-indigo-500 shadow-sm border border-indigo-100">
+               <div className="w-20 h-20 bg-[#8B4564]/20 rounded-3xl flex items-center justify-center mb-8 text-[#E0A7C2] shadow-sm border border-[#8B4564]/30">
                   <Mic size={40} strokeWidth={1.5} />
                </div>
-               <h1 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Transcribe your voice.</h1>
-               <p className="text-gray-500 mb-10 leading-relaxed text-lg">
+               <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Transcribe your voice.</h1>
+               <p className="text-gray-400 mb-10 leading-relaxed text-lg">
                   Record locally or upload an audio file to generate professional, synchronized transcripts using AI.
                </p>
                <div className="flex gap-4 w-full">
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-semibold shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]"
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#8B4564]/80 text-white px-6 py-4 rounded-xl font-semibold shadow-lg shadow-[#8B4564]/10 transition-all active:scale-[0.98]"
                   >
                     <Upload size={20} /> Upload File
                   </button>
                   <button 
                     onClick={toggleRecording}
-                    className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 px-6 py-4 rounded-2xl font-semibold border-2 border-gray-100 shadow-sm transition-all active:scale-[0.98]"
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#2A1F1A]/50 hover:bg-[#2A1F1A]/80 text-white px-6 py-4 rounded-xl font-semibold border border-white/10 shadow-sm transition-all active:scale-[0.98]"
                   >
-                    <Mic size={20} className="text-red-500" /> Start Recording
+                    <Mic size={20} className="text-red-400" /> Start Recording
                   </button>
                   <input 
                     type="file" 
@@ -384,25 +372,25 @@ export default function TranscribeWorkspace({
            )}
 
           {(isUploading || uploadStatus) && (
-            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center text-center px-4">
-              <div className="mb-4 text-gray-500">
-                {isUploading ? <Loader2 size={48} className="animate-spin text-indigo-500" /> : <CheckCircle size={48} className="text-green-500" />}
+            <div className="absolute inset-0 z-50 bg-[#1A1A1A]/90 backdrop-blur-md flex flex-col items-center justify-center text-center px-4 rounded-tl-2xl rounded-bl-2xl">
+              <div className="mb-4">
+                {isUploading ? <Loader2 size={48} className="animate-spin text-[#E0A7C2]" /> : <CheckCircle size={48} className="text-green-400" />}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{isUploading ? 'Digital Assistant Working...' : 'Done'}</h2>
-              <p className="text-gray-500 font-medium text-lg">{uploadStatus || 'Preparing your transcription'}</p>
+              <h2 className="text-2xl font-bold text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Done'}</h2>
+              <p className="text-gray-400 font-medium text-lg">{uploadStatus || 'Preparing your transcription'}</p>
             </div>
           )}
 
            {(transcript || isRecording || isPolling) && (
-              <div className="max-w-4xl mx-auto py-8">
+              <div className="max-w-4xl mx-auto py-4">
                 <div className="flex items-center justify-between mb-12">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600 border border-indigo-100">
+                    <div className="p-3 bg-[#8B4564]/20 rounded-2xl text-[#E0A7C2] border border-[#8B4564]/30">
                       <FileAudio size={24} />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">Transcription Session</h2>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mt-0.5">
+                      <h2 className="text-xl font-bold text-white">Transcription Session</h2>
+                      <div className="flex items-center gap-2 text-sm text-gray-400 font-medium mt-0.5">
                         <Clock size={14} /> 
                         {isRecording ? formatTimelineTime(duration) : formatTimelineTime(totalDuration)}
                         <span className="mx-1">•</span>
@@ -414,25 +402,25 @@ export default function TranscribeWorkspace({
                   <div className="flex gap-3">
                     <button 
                       onClick={resetWorkspace}
-                      className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-semibold transition-colors border border-gray-200"
+                      className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
                     >
                       <Plus size={18} /> New
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl font-semibold transition-colors border border-indigo-100">
+                    <button className="flex items-center gap-2 px-4 py-2 text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 rounded-xl font-semibold transition-colors border border-[#8B4564]/30">
                       <ExternalLink size={18} /> Export
                     </button>
                   </div>
                 </div>
 
                 {isPolling && (
-                  <div className="mb-12 p-8 bg-indigo-50/50 rounded-3xl border border-indigo-100 flex items-center gap-6">
+                  <div className="mb-12 p-8 bg-[#8B4564]/10 rounded-3xl border border-[#8B4564]/20 flex items-center gap-6">
                     <div className="relative">
-                       <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                       <Loader2 className="absolute inset-0 m-auto text-indigo-600" size={20} />
+                       <div className="w-12 h-12 border-4 border-[#8B4564]/30 border-t-[#E0A7C2] rounded-full animate-spin"></div>
+                       <Loader2 className="absolute inset-0 m-auto text-[#E0A7C2]" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900">AI is transcribing...</h3>
-                      <p className="text-indigo-600 text-sm font-medium">Sit tight! We're processing your audio with high precision speaker diarization.</p>
+                      <h3 className="font-bold text-white">AI is transcribing...</h3>
+                      <p className="text-[#E0A7C2] text-sm font-medium opacity-80 mt-1">Sit tight! We're processing your audio with high precision speaker diarization.</p>
                     </div>
                   </div>
                 )}
@@ -440,9 +428,9 @@ export default function TranscribeWorkspace({
                 <div className="space-y-12">
                   {transcript === 'Transcription in progress...' ? (
                     <div className="animate-pulse space-y-4">
-                      <div className="h-4 bg-gray-100 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-100 rounded w-1/2"></div>
-                      <div className="h-4 bg-gray-100 rounded w-5/6"></div>
+                      <div className="h-4 bg-white/5 rounded w-3/4"></div>
+                      <div className="h-4 bg-white/5 rounded w-1/2"></div>
+                      <div className="h-4 bg-white/5 rounded w-5/6"></div>
                     </div>
                   ) : transcript.includes('[Speaker') ? (
                     // Structured transcript with speaker tags
@@ -454,14 +442,14 @@ export default function TranscribeWorkspace({
                        return (
                          <div key={idx} className="group flex gap-8">
                            <div className="w-32 flex-shrink-0 pt-1">
-                             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 group-hover:text-indigo-600 transition-colors">
+                             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#E0A7C2] transition-colors">
                                {speakerName}
                              </div>
-                             <div className="text-xs font-medium text-gray-300 font-mono">
+                             <div className="text-xs font-medium text-gray-400 font-mono">
                                 {formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
                              </div>
                            </div>
-                           <div className="flex-1 prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                           <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
                              {text}
                            </div>
                          </div>
@@ -472,14 +460,14 @@ export default function TranscribeWorkspace({
                     transcript.split('\n\n').map((paragraph, idx) => (
                        <div key={idx} className="group flex gap-8">
                          <div className="w-32 flex-shrink-0 pt-1">
-                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 group-hover:text-indigo-600 transition-colors">
+                           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#E0A7C2] transition-colors">
                              SPEAKER 1
                            </div>
-                           <div className="text-xs font-medium text-gray-300 font-mono">
+                           <div className="text-xs font-medium text-gray-400 font-mono">
                              {formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
                            </div>
                          </div>
-                         <div className="flex-1 prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                         <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
                            {paragraph}
                          </div>
                        </div>
@@ -491,19 +479,20 @@ export default function TranscribeWorkspace({
         </div>
 
         {/* Bottom Audio/Video Transport Area */}
-        <div className="h-48 border-t border-gray-200 flex flex-col bg-gray-50">
+        <div className="h-48 border-t border-white/10 flex flex-col bg-[#1A1A1A]/80 backdrop-blur-md rounded-bl-xl">
           
           {/* Controls Bar */}
-          <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200 bg-white shadow-sm z-10 w-full">
+          <div className="flex items-center justify-between px-6 h-16 border-b border-white/5 z-10 w-full relative">
+            <div className="absolute inset-0 bg-[#2A1F1A]/30 pointer-events-none" />
             
             {/* Left side timing indicator */}
-            <div className="flex-1 flex items-center gap-3">
-               <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 shadow-inner min-w-[100px] text-center">
-                  {formatTimelineTime(isRecording ? duration : currentTime)} <span className="text-gray-400 font-normal">/ {formatTimelineTime(isRecording ? duration : (totalDuration || duration))}</span>
+            <div className="flex-1 flex items-center gap-3 relative z-10">
+               <span className="text-xs font-semibold text-gray-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 min-w-[100px] text-center">
+                  {formatTimelineTime(isRecording ? duration : currentTime)} <span className="text-gray-500 font-normal">/ {formatTimelineTime(isRecording ? duration : (totalDuration || duration))}</span>
                </span>
                <button 
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'}`}
+                className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-[#8B4564] text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
                 title="History"
                >
                  <History size={18} />
@@ -511,15 +500,15 @@ export default function TranscribeWorkspace({
             </div>
 
             {/* Central core media controls */}
-            <div className="flex items-center justify-center gap-6 flex-[2]">
+            <div className="flex items-center justify-center gap-6 flex-[2] relative z-10">
               <button 
                 onClick={() => handleSkip(-10)}
-                className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                className="p-2 text-gray-400 hover:text-white transition-colors"
               >
                 <SkipBack size={20} />
               </button>
               <button 
-                className="w-12 h-12 flex items-center justify-center text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all border border-transparent hover:border-gray-200 shadow-sm" 
+                className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/20" 
                 onClick={() => {
                   if (!audioUrl && !isPlaying) {
                      alert("No recording available to play.");
@@ -539,29 +528,29 @@ export default function TranscribeWorkspace({
               
               <button 
                 onClick={toggleRecording}
-                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-md border-2 ${isRecording ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'}`}
+                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-md border-2 ${isRecording ? 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/10'}`}
               >
                 <Mic size={24} />
               </button>
               
               <button 
                 onClick={() => handleSkip(10)}
-                className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                className="p-2 text-gray-400 hover:text-white transition-colors"
               >
                 <SkipForward size={20} />
               </button>
             </div>
 
             {/* Right side tools */}
-            <div className="flex-1 flex items-center justify-end gap-3">
-              <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors"><Settings2 size={18} /></button>
+            <div className="flex-1 flex items-center justify-end gap-3 relative z-10">
+              <button className="p-2 text-gray-400 hover:text-white transition-colors"><Settings2 size={18} /></button>
             </div>
 
           </div>
 
           {/* Timeline / Waveform */}
           <div 
-            className={`flex-1 relative overflow-hidden bg-[#FAFAFA] ${(!audioUrl || isRecording) ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100 transition-colors'}`}
+            className={`flex-1 relative overflow-hidden ${(!audioUrl || isRecording) ? 'cursor-not-allowed bg-black/20' : 'cursor-pointer hover:bg-white/5 transition-colors bg-black/10'}`}
             onClick={handleSeek}
           >
              {audioUrl && (
@@ -574,11 +563,11 @@ export default function TranscribeWorkspace({
                />
              )}
              {/* Time markings top line */}
-             <div className="absolute top-0 w-full h-6 border-b border-gray-200 flex justify-between text-[10px] text-gray-400 font-medium px-4 pt-1">
+             <div className="absolute top-0 w-full h-6 border-b border-white/5 flex justify-between text-[10px] text-gray-500 font-medium px-4 pt-1">
                 {[0, 1, 2, 3, 4].map(ratio => {
                   const maxTime = Math.max(totalDuration, duration, 10);
                   return (
-                    <span key={ratio} className={ratio === 0 ? "" : "border-l border-gray-300 pl-1"}>
+                    <span key={ratio} className={ratio === 0 ? "" : "border-l border-white/10 pl-1"}>
                       {formatTimelineTime((maxTime / 4) * ratio)}
                     </span>
                   );
@@ -586,7 +575,7 @@ export default function TranscribeWorkspace({
              </div>
 
              {/* Waveform graphic */}
-             <div className="absolute top-8 left-0 w-full flex items-center justify-between px-4 h-24 opacity-60">
+             <div className="absolute top-8 left-0 w-full flex items-center justify-between px-4 h-24 opacity-80">
                   {Array.from({length: 150}).map((_, i) => {
                     const maxTime = Math.max(totalDuration, duration, 10);
                     const trackingDuration = isRecording ? activeDuration : (isPlaying ? currentTime : totalDuration);
@@ -608,7 +597,7 @@ export default function TranscribeWorkspace({
                     return (
                       <div 
                         key={i} 
-                        className={`w-1 rounded-full transition-all duration-100 ${isRecorded ? 'bg-indigo-400' : 'bg-gray-300 h-[10%]'}`} 
+                        className={`w-1 rounded-full transition-all duration-100 ${isRecorded ? 'bg-[#E0A7C2]/80' : 'bg-white/10 h-[10%]'}`} 
                         style={isRecorded ? { height: `${barHeight}%` } : {}}
                       />
                     );
@@ -617,10 +606,10 @@ export default function TranscribeWorkspace({
              
              {/* Progress handle/line */}
              <div 
-                className="absolute top-6 bottom-0 w-0.5 bg-indigo-600 shadow-sm z-10 transition-all duration-100 ease-linear pointer-events-none"
+                className="absolute top-6 bottom-0 w-[2px] bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.8)] z-10 transition-all duration-100 ease-linear pointer-events-none"
                 style={{ left: `${(currentTime / (totalDuration || 1)) * 100}%` }}
              >
-                <div className="w-3 h-3 bg-indigo-600 rounded-full -ml-[5px] -mt-[6px] shadow-lg border-2 border-white" />
+                <div className="w-3.5 h-3.5 bg-[#8B4564] rounded-full -ml-[6px] -mt-[6px] shadow-lg border-2 border-[#E0A7C2]" />
              </div>
           </div>
         </div>
@@ -628,23 +617,25 @@ export default function TranscribeWorkspace({
 
       {/* History Slide-out Sidebar */}
       {isHistoryOpen && (
-        <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-300">
-           <div className="p-6 border-b border-gray-200 bg-white flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                 <History size={18} className="text-indigo-600" /> History
+        <div className="w-80 bg-[#1A1A1A]/95 backdrop-blur-xl border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
+           <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                 <History size={18} className="text-[#E0A7C2]" /> History
               </h3>
-              <button onClick={() => setIsHistoryOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <button onClick={() => setIsHistoryOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
                  <X size={20} />
               </button>
            </div>
-           <div className="flex-1 overflow-y-auto p-4 space-y-3">
+           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-sidebar-scrollbar">
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-                  <Clock size={32} className="text-gray-300 mb-2" />
+                  <Clock size={32} className="text-gray-600 mb-2" />
                   <p className="text-sm text-gray-500">No transcription history yet.</p>
                 </div>
               ) : (
-                history.map((item) => (
+                history.map((item) => {
+                  const isRecorded = item.title.startsWith('Recording');
+                  return (
                   <button 
                     key={item.id}
                     onClick={() => {
@@ -658,25 +649,34 @@ export default function TranscribeWorkspace({
                         startPolling(item.id, item.job_name);
                       }
                     }}
-                    className={`w-full text-left p-4 rounded-2xl transition-all border ${activeTranscriptionId === item.id ? 'bg-indigo-600 text-white border-indigo-500 shadow-md' : 'bg-white hover:bg-gray-100 border-gray-200 text-gray-700'}`}
+                    className={`w-full text-left p-4 rounded-xl transition-all border outline-none overflow-hidden ${activeTranscriptionId === item.id ? 'bg-[#8B4564] text-white border-[#8B4564] shadow-lg shadow-[#8B4564]/20' : 'bg-white/5 hover:bg-white/10 border-white/5 text-gray-300'}`}
                   >
-                    <div className="font-bold text-sm truncate mb-1">{item.title}</div>
-                    <div className={`text-[10px] font-medium opacity-70 flex items-center gap-2 ${activeTranscriptionId === item.id ? 'text-indigo-100' : 'text-gray-400'}`}>
+                    <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                      <div className="shrink-0 flex items-center justify-center">
+                        {isRecorded ? (
+                          <Mic size={14} className={activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-red-400 opacity-80'} />
+                        ) : (
+                          <Upload size={14} className={activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-blue-400 opacity-80'} />
+                        )}
+                      </div>
+                      <div className="font-bold text-sm truncate text-white">{item.title}</div>
+                    </div>
+                    <div className={`text-[10px] font-medium opacity-80 flex items-center gap-2 ${activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-gray-500'}`}>
                       <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()} • {formatTimelineTime(item.duration)}
                     </div>
                     {item.transcript === "Transcription in progress..." && (
-                      <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-indigo-200">
+                      <div className={`mt-2 flex items-center gap-2 text-[10px] font-bold ${activeTranscriptionId === item.id ? 'text-white' : 'text-[#E0A7C2]'}`}>
                         <Loader2 size={10} className="animate-spin" /> Processing...
                       </div>
                     )}
                   </button>
-                ))
+                )})
               )}
            </div>
-           <div className="p-4 bg-white border-t border-gray-200">
+           <div className="p-4 bg-black/40 border-t border-white/5">
               <button 
                 onClick={resetWorkspace}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#8B4564] text-white rounded-xl font-bold hover:bg-[#8B4564]/80 transition-all active:scale-[0.98]"
               >
                 <Plus size={18} /> New Session
               </button>
