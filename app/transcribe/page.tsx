@@ -9,7 +9,7 @@ export default function TranscribePage() {
     <PageLayout
       activePage="transcribe"
       title="Transcription Workspace"
-      subtitle="Record locally or upload an audio file to generate professional, synchronized transcripts using AI."
+      subtitle="Record or upload audio to generate AI transcripts."
       maxWidth="max-w-6xl"
     >
       <div className="flex-1 min-w-0 h-full relative z-10 flex flex-col pb-[env(safe-area-inset-bottom)] px-2 md:px-0 pt-2">

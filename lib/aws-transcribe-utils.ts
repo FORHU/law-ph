@@ -35,7 +35,7 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
     },
     Settings: {
       ShowSpeakerLabels: true,
-      MaxSpeakerLabels: 2,
+      MaxSpeakerLabels: 10,
     },
   };
 
