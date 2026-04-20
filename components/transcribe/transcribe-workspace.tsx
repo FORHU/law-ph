@@ -20,6 +20,10 @@ import {
   deleteTranscription,
   Transcription
 } from '@/lib/transcriptions-service';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
+
 
 const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string, onUpdate: (oldName: string, newName: string) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -71,6 +75,9 @@ export default function TranscribeWorkspace({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -337,6 +344,110 @@ export default function TranscribeWorkspace({
     }
   };
 
+  const getParsedTranscript = () => {
+    if (!transcript) return [];
+    return transcript.split('\n\n').map((paragraph, idx) => {
+      const speakerMatch = paragraph.match(/^\[([^\]]+)\]: (.*)/s);
+      const speakerName = (speakerMatch ? speakerMatch[1] : "UNKNOWN").toUpperCase();
+      const text = speakerMatch ? speakerMatch[2] : paragraph;
+      const timestamp = formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx);
+      return { speakerName, text, timestamp };
+    });
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const data = getParsedTranscript();
+    
+    // Add Title
+    doc.setFontSize(20);
+    doc.setTextColor(139, 69, 100); // #8B4564
+    doc.text('Transcription Export', 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+    const tableData = data.map(item => [
+      item.timestamp,
+      item.speakerName,
+      item.text
+    ]);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Time', 'Speaker', 'Transcript Text']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [139, 69, 100] },
+      styles: { fontSize: 9, cellPadding: 4 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 35, fontStyle: 'bold' },
+        2: { cellWidth: 'auto' }
+      }
+    });
+
+    doc.save(`transcript-${Date.now()}.pdf`);
+    setShowExportMenu(false);
+  };
+
+  const exportToWord = async () => {
+    const data = getParsedTranscript();
+    
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: "Transcription Export",
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({
+            text: `Generated on: ${new Date().toLocaleString()}`,
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({ text: "" }), // spacing
+          ...data.flatMap(item => [
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${item.timestamp} - ${item.speakerName}`, bold: true, color: "8B4564" }),
+              ],
+              spacing: { before: 240 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: item.text }),
+              ],
+              spacing: { after: 120 },
+            })
+          ])
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transcript-${Date.now()}.docx`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const startMediaRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -529,17 +640,43 @@ export default function TranscribeWorkspace({
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={resetWorkspace}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
-                  >
-                    <Plus size={18} /> New
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 rounded-xl font-semibold transition-colors border border-[#8B4564]/30">
-                    <ExternalLink size={18} /> Export
-                  </button>
-                </div>
+                  <div className="flex gap-3 relative">
+                    <button
+                      onClick={resetWorkspace}
+                      className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
+                    >
+                      <Plus size={18} /> New
+                    </button>
+                    <div className="relative" ref={exportMenuRef}>
+                      <button 
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border ${showExportMenu ? 'bg-[#8B4564] text-white border-transparent' : 'text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30'}`}
+                      >
+                        <ExternalLink size={18} /> Export
+                      </button>
+                      
+                      {showExportMenu && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right">
+                          <div className="p-2 flex flex-col gap-1">
+                            <button 
+                              onClick={exportToPDF}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group"
+                            >
+                              <span>PDF Document</span>
+                              <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">.pdf</span>
+                            </button>
+                            <button 
+                              onClick={exportToWord}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group"
+                            >
+                              <span>Word Document</span>
+                              <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">.docx</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
               </div>
 
               {isPolling && (
