@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing file or filename" }, { status: 400 });
     }
 
-    const region = process.env.AWS_REGION || process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
+    // IMPORTANT: Drop process.env.AWS_REGION completely. Vercel forcefully injects its own Lambda execution region (e.g., us-east-1), overriding your S3 bucket's actual region.
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
 
     const client = new S3Client({
       region: region,
