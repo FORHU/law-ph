@@ -28,7 +28,8 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
 
   const params = {
     TranscriptionJobName: jobName,
-    LanguageCode: "en-US",
+    IdentifyLanguage: true,
+    LanguageOptions: ["en-US", "tl-PH", "ko-KR"], 
     MediaFormat: "mp3", 
     Media: {
       MediaFileUri: s3Uri,
@@ -53,6 +54,7 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
  * Get the status of a transcription job.
  */
 export async function getTranscriptionJobStatus(jobName: string) {
+  if (!jobName) return null;
   const client = new TranscribeClient({
     region: AWS_REGION,
     credentials: getCredentials(),
@@ -130,7 +132,8 @@ export async function startAWSLiveTranscription(
   });
 
   const command = new StartStreamTranscriptionCommand({
-    LanguageCode: "en-US",
+    IdentifyLanguage: true,
+    LanguageOptions: "en-US,tl-PH,ko-KR",
     MediaEncoding: "pcm",
     MediaSampleRateHertz: 16000,
     AudioStream: getAudioStream(audioChunks) as any,

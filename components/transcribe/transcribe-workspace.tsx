@@ -4,9 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Play, Pause, RotateCcw, RotateCw, Mic, Divide, ZoomIn, ZoomOut, Bookmark, Upload,
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon,
-  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2
+  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square
 } from 'lucide-react';
-import { uploadToS3Direct } from '@/lib/s3-utils';
+import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import {
   startAWSBatchTranscription,
   getTranscriptionJobStatus,
@@ -22,7 +22,6 @@ import {
 } from '@/lib/transcriptions-service';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 
 
 const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string, onUpdate: (oldName: string, newName: string) => void }) => {
@@ -179,7 +178,8 @@ export default function TranscribeWorkspace({
   const generateWaveform = async (url: string) => {
     if (!url || !url.startsWith('http')) return;
     try {
-      const response = await fetch(url, { mode: 'cors' });
+      const proxiedUrl = getProxiedUrl(url);
+      const response = await fetch(proxiedUrl);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -231,17 +231,30 @@ export default function TranscribeWorkspace({
     setIsPolling(true);
 
     pollingRef.current = setInterval(async () => {
-      const job = await getTranscriptionJobStatus(jobName);
-      if (job?.TranscriptionJobStatus === 'COMPLETED') {
-        const text = await fetchTranscriptionText(job.Transcript!.TranscriptFileUri!);
-        setTranscript(text);
-        setIsPolling(false);
-        await updateTranscription(dbId, { transcript: text });
-        loadHistory();
-        stopPolling();
-      } else if (job?.TranscriptionJobStatus === 'FAILED') {
-        setUploadStatus("Transcription failed.");
-        setIsPolling(false);
+      try {
+        const job = await getTranscriptionJobStatus(jobName);
+        
+        // If job is missing or start failed, stop polling immediately
+        if (!job) {
+          console.warn("Polling stopped: Job not found or failed to initiate.");
+          stopPolling();
+          return;
+        }
+
+        if (job.TranscriptionJobStatus === 'COMPLETED') {
+          const text = await fetchTranscriptionText(job.Transcript!.TranscriptFileUri!);
+          setTranscript(text);
+          setIsPolling(false);
+          await updateTranscription(dbId, { transcript: text });
+          loadHistory();
+          stopPolling();
+        } else if (job.TranscriptionJobStatus === 'FAILED') {
+          setUploadStatus("Transcription failed.");
+          setIsPolling(false);
+          stopPolling();
+        }
+      } catch (err) {
+        console.error("Critical polling error, stopping interval:", err);
         stopPolling();
       }
     }, 5000);
@@ -355,87 +368,152 @@ export default function TranscribeWorkspace({
     });
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
+  const exportToPDF = async () => {
     const data = getParsedTranscript();
+    const doc = new jsPDF('p', 'mm', 'a4');
     
-    // Add Title
-    doc.setFontSize(20);
-    doc.setTextColor(139, 69, 100); // #8B4564
-    doc.text('Transcription Export', 14, 22);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    // Technical Constants (Official TSN Format)
+    const PAGE_WM = 210; const PAGE_HM = 297;
+    const CW = 2480; const CH = 3508; 
+    const MX = 250; // Restore Wide Margin as per screenshot
+    const LNW = 100; // Line number column width
+    const INDENT_S = 80; // Indent for speaker name from margin line
+    const INDENT_T = 160; // Extra indent for dialogue text
+    const CWID = CW - MX - LNW - INDENT_T - 150; // Text column width
+    const L_HEIGHT = 45;
+    const S_GAP = 20; 
+    const B_GAP = 70; // Professional gap between speakers
+    const BOTTOM_LIMIT = CH - 150;
 
-    const tableData = data.map(item => [
-      item.timestamp,
-      item.speakerName,
-      item.text
-    ]);
+    let pageNum = 1;
 
-    autoTable(doc, {
-      startY: 35,
-      head: [['Time', 'Speaker', 'Transcript Text']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [139, 69, 100] },
-      styles: { fontSize: 9, cellPadding: 4 },
-      columnStyles: {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 35, fontStyle: 'bold' },
-        2: { cellWidth: 'auto' }
+    // Helper to render high-res court page
+    const renderPage = (drawActions: (ctx: CanvasRenderingContext2D) => void, isFirst: boolean) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = CW; canvas.height = CH;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, CW, CH);
+
+      // --- VERTICAL REFERENCE LINE ---
+      ctx.strokeStyle = '#cccccc'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(MX + LNW - 20, 100); ctx.lineTo(MX + LNW - 20, CH - 150); ctx.stroke();
+
+      if (isFirst) {
+        ctx.textAlign = 'center'; ctx.fillStyle = '#111';
+        ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW/2, 100);
+        ctx.font = 'bold 44px serif'; ctx.fillText('LAW-PH CASE INTELLIGENCE SYSTEM', CW/2, 160);
+        ctx.font = '36px serif'; ctx.fillText('STRATEGIC LEGAL HUB', CW/2, 210);
+        
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(300, 250); ctx.lineTo(CW - 300, 250); ctx.stroke();
+
+        ctx.font = 'bold 50px serif';
+        ctx.fillText('TRANSCRIPTION OF STENOGRAPHIC NOTES', CW/2, 340);
+        
+        ctx.textAlign = 'left'; ctx.font = '34px serif';
+        ctx.fillText(`DATE OF SESSION: ${new Date().toLocaleDateString()}`, MX + LNW, 420);
+        ctx.fillText(`TIME GENERATED: ${new Date().toLocaleTimeString()}`, MX + LNW, 470);
+        ctx.fillText(`ENGINE: AWS TRANSCRIBE (MULITLINGUAL)`, MX + LNW, 520);
+      } else {
+        ctx.font = 'italic 28px serif'; ctx.fillStyle = '#666';
+        ctx.fillText(`TRANSCRIPTION OF STENOGRAPHIC NOTES - Page ${pageNum} (Continued)`, MX + LNW, 100);
       }
+
+      drawActions(ctx);
+
+      // Page Number Footer (Subtle)
+      ctx.font = 'italic 24px serif'; ctx.fillStyle = '#888'; ctx.textAlign = 'right';
+      ctx.fillText(`Page ${pageNum} • LAW-PH Official Export`, CW - 150, CH - 80);
+
+      return canvas.toDataURL('image/jpeg', 0.90);
+    };
+
+    const tempCanvas = document.createElement('canvas');
+    const tctx = tempCanvas.getContext('2d')!;
+    tctx.font = '36px serif';
+
+    let currentY = 650; // Starting Y for page 1
+    let actions: ((ctx: CanvasRenderingContext2D) => void)[] = [];
+    let lineIncr = 1;
+
+    const flushPage = () => {
+      const pageActions = [...actions];
+      const img = renderPage((ctx) => {
+        pageActions.forEach(a => a(ctx));
+      }, pageNum === 1);
+      doc.addImage(img, 'JPEG', 0, 0, PAGE_WM, PAGE_HM);
+      doc.addPage();
+      pageNum++;
+      currentY = 200; // Starting Y for subsequent pages
+      actions = [];
+    };
+
+    data.forEach((item) => {
+      if (currentY + 100 > BOTTOM_LIMIT) flushPage();
+      
+      const sY = currentY; 
+      const currentLineNo = lineIncr++;
+      
+      actions.push((ctx) => {
+        // Line Number
+        ctx.fillStyle = '#999'; ctx.font = '28px serif'; ctx.fillText(`${currentLineNo}`, MX, sY);
+        // Speaker Indented
+        ctx.fillStyle = '#111'; ctx.font = 'bold 36px serif';
+        ctx.fillText(`${item.timestamp}  ${item.speakerName.toUpperCase()}:`, MX + LNW + INDENT_S, sY);
+      });
+      currentY += S_GAP + 50;
+
+      // Wrap Dialogue Text (Further Indented)
+      const words = item.text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (tctx.measureText(testLine).width > CWID && n > 0) {
+          if (currentY + L_HEIGHT > BOTTOM_LIMIT) flushPage();
+          
+          const drawY = currentY;
+          const drawLine = line;
+          actions.push((ctx) => {
+            ctx.fillStyle = '#333'; ctx.font = '36px serif';
+            ctx.fillText(drawLine, MX + LNW + INDENT_T, drawY);
+          });
+          line = words[n] + ' ';
+          currentY += L_HEIGHT;
+        } else {
+          line = testLine;
+        }
+      }
+      
+      // Last Line
+      if (currentY + L_HEIGHT > BOTTOM_LIMIT) flushPage();
+      const lastLY = currentY; const lastLS = line;
+      actions.push((ctx) => {
+        ctx.fillStyle = '#333'; ctx.font = '36px serif';
+        ctx.fillText(lastLS, MX + LNW + INDENT_T, lastLY);
+      });
+      currentY += B_GAP;
     });
 
-    doc.save(`transcript-${Date.now()}.pdf`);
-    setShowExportMenu(false);
-  };
-
-  const exportToWord = async () => {
-    const data = getParsedTranscript();
-    
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            text: "Transcription Export",
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            text: `Generated on: ${new Date().toLocaleString()}`,
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({ text: "" }), // spacing
-          ...data.flatMap(item => [
-            new Paragraph({
-              children: [
-                new TextRun({ text: `${item.timestamp} - ${item.speakerName}`, bold: true, color: "8B4564" }),
-              ],
-              spacing: { before: 240 },
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: item.text }),
-              ],
-              spacing: { after: 120 },
-            })
-          ])
-        ],
-      }],
+    // Signature Block at the end
+    if (currentY + 150 > BOTTOM_LIMIT) flushPage();
+    const finalY = currentY + 50;
+    actions.push((ctx) => {
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(CW - 800, finalY); ctx.lineTo(CW - 200, finalY); ctx.stroke();
+      ctx.font = 'italic 30px serif'; ctx.fillStyle = '#444'; ctx.textAlign = 'center';
+      ctx.fillText('Certified Correct By: Law-PH AI', CW - 500, finalY + 50);
     });
 
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `transcript-${Date.now()}.docx`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setShowExportMenu(false);
+    // Final Flush
+    const pageActions = [...actions];
+    const img = renderPage((ctx) => {
+      pageActions.forEach(a => a(ctx));
+    }, pageNum === 1);
+    doc.addImage(img, 'JPEG', 0, 0, PAGE_WM, PAGE_HM);
+
+    doc.save(`transcript-tsn-${Date.now()}.pdf`);
   };
+
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -492,7 +570,11 @@ export default function TranscribeWorkspace({
           const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
           const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
 
-          await startAWSBatchTranscription(s3Uri, jobName);
+          const result = await startAWSBatchTranscription(s3Uri, jobName);
+          if (!result) {
+            setUploadStatus("Failed to initiate transcription job. Please check AWS configuration.");
+            return;
+          }
           setUploadStatus("Transcription job successfully initiated!");
 
           saveToHistory(`Recording ${new Date().toLocaleString()}`, s3Data.file_url, "Transcription in progress...", duration, jobName);
@@ -597,9 +679,26 @@ export default function TranscribeWorkspace({
                 </button>
                 <button
                   onClick={toggleRecording}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#2A1F1A]/50 hover:bg-[#2A1F1A]/80 text-white px-6 py-4 rounded-xl font-semibold border border-white/10 shadow-sm transition-all active:scale-[0.98]"
+                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all active:scale-[0.98] border shadow-lg ${
+                    isRecording 
+                    ? 'bg-[#8B4564] border-[#8B4564]/50 text-white shadow-[#8B4564]/20' 
+                    : 'bg-[#2A1F1A]/50 hover:bg-[#2A1F1A]/80 text-white border-white/10'
+                  }`}
                 >
-                  <Mic size={20} className="text-red-400" /> Start Recording
+                  {isRecording ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                        <Square size={18} fill="white" strokeWidth={0} />
+                      </div>
+                      <span className="tracking-wide">Stop Recording</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic size={20} className="text-red-400" />
+                      <span>Start Recording</span>
+                    </>
+                  )}
                 </button>
                 <input
                   type="file"
@@ -647,35 +746,13 @@ export default function TranscribeWorkspace({
                     >
                       <Plus size={18} /> New
                     </button>
-                    <div className="relative" ref={exportMenuRef}>
-                      <button 
-                        onClick={() => setShowExportMenu(!showExportMenu)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border ${showExportMenu ? 'bg-[#8B4564] text-white border-transparent' : 'text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30'}`}
-                      >
-                        <ExternalLink size={18} /> Export
-                      </button>
-                      
-                      {showExportMenu && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right">
-                          <div className="p-2 flex flex-col gap-1">
-                            <button 
-                              onClick={exportToPDF}
-                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group"
-                            >
-                              <span>PDF Document</span>
-                              <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">.pdf</span>
-                            </button>
-                            <button 
-                              onClick={exportToWord}
-                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group"
-                            >
-                              <span>Word Document</span>
-                              <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded uppercase">.docx</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <button 
+                      onClick={exportToPDF}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30"
+                    >
+                      <ExternalLink size={18} /> Download PDF
+                    </button>
+
                   </div>
               </div>
 
@@ -809,9 +886,18 @@ export default function TranscribeWorkspace({
 
               <button
                 onClick={toggleRecording}
-                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-md border-2 ${isRecording ? 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/10'}`}
+                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg border-2 ${
+                  isRecording 
+                  ? 'bg-[#8B4564] border-[#8B4564]/40 text-white animate-pulse shadow-[#8B4564]/40' 
+                  : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/10 hover:border-white/20'
+                }`}
+                title={isRecording ? "Stop Recording" : "Start Recording"}
               >
-                <Mic size={24} />
+                {isRecording ? (
+                  <Square size={22} fill="white" strokeWidth={0} />
+                ) : (
+                  <Mic size={24} />
+                )}
               </button>
 
               <button
