@@ -24,39 +24,44 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 
-const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string, onUpdate: (oldName: string, newName: string) => void }) => {
+const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string; onUpdate: (old: string, newV: string) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [val, setVal] = useState(originalName);
-
-  if (isEditing) {
-    return (
-      <input
-        autoFocus
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        onBlur={() => {
-          setIsEditing(false);
-          if (val.trim() && val !== originalName) onUpdate(originalName, val);
-        }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') e.currentTarget.blur();
-          if (e.key === 'Escape') {
-            setVal(originalName);
-            setIsEditing(false);
-          }
-        }}
-        className="w-[110px] bg-black/40 border border-[#8B4564] rounded px-1.5 py-0.5 text-[10px] font-bold text-white outline-none -ml-1.5 uppercase tracking-widest shadow-lg"
-      />
-    );
-  }
+  const [value, setValue] = useState(originalName);
 
   return (
-    <div
-      onClick={() => setIsEditing(true)}
-      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hover:text-[#E0A7C2] hover:bg-white/5 cursor-text transition-colors rounded -ml-1.5 px-1.5 py-0.5 inline-flex items-center gap-1 group/label"
-      title="Click to rename"
-    >
-      {originalName} <PenTool size={8} className="opacity-0 group-hover/label:opacity-100 transition-opacity" />
+    <div className="flex flex-col mb-1">
+      <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
+        Voice Identity
+      </div>
+      {isEditing ? (
+        <input
+          autoFocus
+          className="bg-[#2A1F1A]/80 border border-[#8B4564]/30 text-white px-3 py-1.5 rounded-xl text-xs font-bold outline-none ring-1 ring-[#8B4564]/50 w-full max-w-[130px] shadow-lg"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={() => {
+            setIsEditing(false);
+            onUpdate(originalName, value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setIsEditing(false);
+              onUpdate(originalName, value);
+            }
+          }}
+        />
+      ) : (
+        <div
+          onClick={() => setIsEditing(true)}
+          className="group cursor-pointer flex items-center gap-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/20 border border-[#8B4564]/20 hover:border-[#8B4564]/40 px-3 py-1.5 rounded-xl transition-all duration-300"
+          title="Click to rename"
+        >
+          <span className="text-xs font-bold text-[#E0A7C2] tracking-wide truncate max-w-[120px]">
+            {originalName.toUpperCase()}
+          </span>
+          <PenTool size={10} className="text-[#E0A7C2]/40 group-hover:text-[#E0A7C2] transition-colors" />
+        </div>
+      )}
     </div>
   );
 };
@@ -92,10 +97,29 @@ export default function TranscribeWorkspace({
   const [duration, setDuration] = useState(0); // For recording
   const [currentTime, setCurrentTime] = useState(0); // For playback
   const [totalDuration, setTotalDuration] = useState(0); // For total audio length
+  const [activeSegmentIdx, setActiveSegmentIdx] = useState(0); // Karaoke active line
 
   const [isDragging, setIsDragging] = useState(false);
   const scrubberContainerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
+  const activeSegmentRef = useRef<HTMLDivElement | null>(null);
+
+  // Memoize parsed transcript segments to avoid re-parsing on every render
+  const parsedSegments = React.useMemo(() => {
+    if (!transcript || !transcript.includes('[TS:')) return [];
+    return transcript.split('\n\n').map((paragraph) => {
+      const tsMatch = paragraph.match(/^\[TS:([\d.]+)\]\s+\[([^\]]+)\]: (.*)/s);
+      return {
+        ts: tsMatch ? parseFloat(tsMatch[1]) : null,
+        speaker: tsMatch ? tsMatch[2] : 'UNKNOWN',
+        text: tsMatch ? tsMatch[3] : paragraph,
+      };
+    });
+  }, [transcript]);
+
+  // Use a ref so the animation loop can access parsed segments without causing re-renders
+  const parsedSegmentsRef = useRef(parsedSegments);
+  parsedSegmentsRef.current = parsedSegments;
 
   const [activeDuration, setActiveDuration] = useState(0); // smooth tick for visualizer
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -132,7 +156,19 @@ export default function TranscribeWorkspace({
     let shouldLoop = false;
 
     if (isPlayingRef.current && audioRef.current && !isDraggingRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      const t = audioRef.current.currentTime;
+      setCurrentTime(t);
+
+      // Karaoke: find active segment directly in the RAF loop (no useEffect chain)
+      const segs = parsedSegmentsRef.current;
+      if (segs.length > 0) {
+        let newIdx = 0;
+        for (let i = 0; i < segs.length; i++) {
+          if (segs[i].ts !== null && segs[i].ts! <= t) newIdx = i;
+        }
+        setActiveSegmentIdx((prev) => (prev !== newIdx ? newIdx : prev));
+      }
+
       shouldLoop = true;
     }
 
@@ -157,6 +193,16 @@ export default function TranscribeWorkspace({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [isPlaying, isRecording, isDragging]);
+
+  // Auto-scroll to active segment
+  useEffect(() => {
+    if (isPlaying && activeSegmentRef.current) {
+      activeSegmentRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [activeSegmentIdx, isPlaying]);
 
   // Clean initialization helper
   const resetWorkspace = () => {
@@ -233,7 +279,7 @@ export default function TranscribeWorkspace({
     pollingRef.current = setInterval(async () => {
       try {
         const job = await getTranscriptionJobStatus(jobName);
-        
+
         // If job is missing or start failed, stop polling immediately
         if (!job) {
           console.warn("Polling stopped: Job not found or failed to initiate.");
@@ -369,19 +415,36 @@ export default function TranscribeWorkspace({
   };
 
   const exportToPDF = async () => {
-    const data = getParsedTranscript();
+    // Parse transcript segments from the [TS:X.XX] [Speaker]: text format
+    const data = transcript.split('\n\n').map((paragraph) => {
+      const tsMatch = paragraph.match(/^\[TS:([\d.]+)\]\s+\[([^\]]+)\]: (.*)/s);
+      if (tsMatch) {
+        return {
+          timestamp: formatTimelineTime(parseFloat(tsMatch[1])),
+          speakerName: tsMatch[2],
+          text: tsMatch[3].trim(),
+        };
+      }
+      // Fallback: older format [Speaker]: text
+      const legacyMatch = paragraph.match(/^\[([^\]]+)\]: (.*)/s);
+      if (legacyMatch) {
+        return { timestamp: '', speakerName: legacyMatch[1], text: legacyMatch[2].trim() };
+      }
+      return { timestamp: '', speakerName: 'SPEAKER', text: paragraph.trim() };
+    }).filter(item => item.text.length > 0);
+
     const doc = new jsPDF('p', 'mm', 'a4');
-    
+
     // Technical Constants (Official TSN Format)
     const PAGE_WM = 210; const PAGE_HM = 297;
-    const CW = 2480; const CH = 3508; 
+    const CW = 2480; const CH = 3508;
     const MX = 250; // Restore Wide Margin as per screenshot
     const LNW = 100; // Line number column width
     const INDENT_S = 80; // Indent for speaker name from margin line
     const INDENT_T = 160; // Extra indent for dialogue text
     const CWID = CW - MX - LNW - INDENT_T - 150; // Text column width
     const L_HEIGHT = 45;
-    const S_GAP = 20; 
+    const S_GAP = 20;
     const B_GAP = 70; // Professional gap between speakers
     const BOTTOM_LIMIT = CH - 150;
 
@@ -400,16 +463,16 @@ export default function TranscribeWorkspace({
 
       if (isFirst) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#111';
-        ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW/2, 100);
-        ctx.font = 'bold 44px serif'; ctx.fillText('LAW-PH CASE INTELLIGENCE SYSTEM', CW/2, 160);
-        ctx.font = '36px serif'; ctx.fillText('STRATEGIC LEGAL HUB', CW/2, 210);
-        
+        ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW / 2, 100);
+        ctx.font = 'bold 44px serif'; ctx.fillText('ILOVELAWYER CASE INTELLIGENCE SYSTEM', CW / 2, 160);
+        ctx.font = '36px serif'; ctx.fillText('STRATEGIC LEGAL HUB', CW / 2, 210);
+
         ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(300, 250); ctx.lineTo(CW - 300, 250); ctx.stroke();
 
         ctx.font = 'bold 50px serif';
-        ctx.fillText('TRANSCRIPTION OF STENOGRAPHIC NOTES', CW/2, 340);
-        
+        ctx.fillText('TRANSCRIPTION OF STENOGRAPHIC NOTES', CW / 2, 340);
+
         ctx.textAlign = 'left'; ctx.font = '34px serif';
         ctx.fillText(`DATE OF SESSION: ${new Date().toLocaleDateString()}`, MX + LNW, 420);
         ctx.fillText(`TIME GENERATED: ${new Date().toLocaleTimeString()}`, MX + LNW, 470);
@@ -450,10 +513,10 @@ export default function TranscribeWorkspace({
 
     data.forEach((item) => {
       if (currentY + 100 > BOTTOM_LIMIT) flushPage();
-      
-      const sY = currentY; 
+
+      const sY = currentY;
       const currentLineNo = lineIncr++;
-      
+
       actions.push((ctx) => {
         // Line Number
         ctx.fillStyle = '#999'; ctx.font = '28px serif'; ctx.fillText(`${currentLineNo}`, MX, sY);
@@ -470,7 +533,7 @@ export default function TranscribeWorkspace({
         const testLine = line + words[n] + ' ';
         if (tctx.measureText(testLine).width > CWID && n > 0) {
           if (currentY + L_HEIGHT > BOTTOM_LIMIT) flushPage();
-          
+
           const drawY = currentY;
           const drawLine = line;
           actions.push((ctx) => {
@@ -483,7 +546,7 @@ export default function TranscribeWorkspace({
           line = testLine;
         }
       }
-      
+
       // Last Line
       if (currentY + L_HEIGHT > BOTTOM_LIMIT) flushPage();
       const lastLY = currentY; const lastLS = line;
@@ -679,11 +742,10 @@ export default function TranscribeWorkspace({
                 </button>
                 <button
                   onClick={toggleRecording}
-                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all active:scale-[0.98] border shadow-lg ${
-                    isRecording 
-                    ? 'bg-[#8B4564] border-[#8B4564]/50 text-white shadow-[#8B4564]/20' 
+                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all active:scale-[0.98] border shadow-lg ${isRecording
+                    ? 'bg-[#8B4564] border-[#8B4564]/50 text-white shadow-[#8B4564]/20'
                     : 'bg-[#2A1F1A]/50 hover:bg-[#2A1F1A]/80 text-white border-white/10'
-                  }`}
+                    }`}
                 >
                   {isRecording ? (
                     <>
@@ -739,21 +801,21 @@ export default function TranscribeWorkspace({
                   </div>
                 </div>
 
-                  <div className="flex gap-3 relative">
-                    <button
-                      onClick={resetWorkspace}
-                      className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
-                    >
-                      <Plus size={18} /> New
-                    </button>
-                    <button 
-                      onClick={exportToPDF}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30"
-                    >
-                      <ExternalLink size={18} /> Download PDF
-                    </button>
+                <div className="flex gap-3 relative">
+                  <button
+                    onClick={resetWorkspace}
+                    className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
+                  >
+                    <Plus size={18} /> New
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30"
+                  >
+                    <ExternalLink size={18} /> Download PDF
+                  </button>
 
-                  </div>
+                </div>
               </div>
 
               {isPolling && (
@@ -769,28 +831,30 @@ export default function TranscribeWorkspace({
                 </div>
               )}
 
-              <div className="space-y-12">
+              <div className="space-y-10">
                 {transcript === 'Transcription in progress...' ? (
-                  <div className="animate-pulse space-y-4">
+                  <div className="animate-pulse space-y-6">
                     <div className="h-4 bg-white/5 rounded w-3/4"></div>
-                    <div className="h-4 bg-white/5 rounded w-1/2"></div>
+                    <div className="h-5 bg-white/5 rounded w-1/2"></div>
                     <div className="h-4 bg-white/5 rounded w-5/6"></div>
                   </div>
-                ) : transcript.includes('[') ? (
-                  // Structured transcript with speaker tags
-                  transcript.split('\n\n').map((paragraph, idx) => {
-                    const speakerMatch = paragraph.match(/^\[([^\]]+)\]: (.*)/s);
-                    const speakerName = speakerMatch ? speakerMatch[1] : "UNKNOWN";
-                    const text = speakerMatch ? speakerMatch[2] : paragraph;
-
+                ) : transcript.includes('[TS:') ? (
+                  // Karaoke-style: active line glows, speaker column is independent
+                  parsedSegments.map((seg, idx) => {
+                    const isActive = idx === activeSegmentIdx && isPlaying;
                     return (
-                      <div key={idx} className="group flex gap-8">
-                        <div className="w-32 flex-shrink-0 pt-1 flex flex-col items-start justify-start">
+                      <div
+                        key={idx}
+                        ref={isActive ? activeSegmentRef : null}
+                        className="flex gap-10 items-start py-2"
+                      >
+                        {/* Speaker Identity — fully independent, no seek logic */}
+                        <div className="w-36 flex-shrink-0 flex flex-col items-start justify-start pt-1">
                           <InlineSpeakerLabel
-                            originalName={speakerName}
+                            originalName={seg.speaker}
                             onUpdate={(oldName, newName) => {
                               if (!transcript) return;
-                              const newTranscript = transcript.split(`[${oldName}]:`).join(`[${newName.trim()}]:`);
+                              const newTranscript = transcript.split(`] [${oldName}]:`).join(`] [${newName.trim()}]:`);
                               if (newTranscript !== transcript) {
                                 setTranscript(newTranscript);
                                 if (activeTranscriptionId) {
@@ -799,12 +863,29 @@ export default function TranscribeWorkspace({
                               }
                             }}
                           />
-                          <div className="text-xs font-medium text-gray-400 font-mono pl-1.5 mt-1 tracking-tight">
-                            {formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
+                          <div className="text-[10px] font-medium text-gray-500 font-mono pl-1 mt-0.5 tracking-wider opacity-60">
+                            {formatTimelineTime(seg.ts || 0)}
                           </div>
                         </div>
-                        <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
-                          {text}
+
+                        {/* Transcript Text — click to seek, karaoke glow when active */}
+                        <div
+                          onClick={() => {
+                            if (seg.ts !== null && audioRef.current) {
+                              audioRef.current.currentTime = seg.ts;
+                              setCurrentTime(seg.ts);
+                              if (!isPlaying) {
+                                audioRef.current.play();
+                                setIsPlaying(true);
+                              }
+                            }
+                          }}
+                          className={`flex-1 leading-[1.8] tracking-normal cursor-pointer transition-all duration-200 ${isActive
+                            ? 'text-white font-medium drop-shadow-[0_0_8px_rgba(224,167,194,0.5)]'
+                            : 'text-gray-500 font-light hover:text-gray-300'
+                            }`}
+                        >
+                          {seg.text}
                         </div>
                       </div>
                     );
@@ -812,16 +893,19 @@ export default function TranscribeWorkspace({
                 ) : (
                   // Simple text fallback
                   transcript.split('\n\n').map((paragraph, idx) => (
-                    <div key={idx} className="group flex gap-8">
-                      <div className="w-32 flex-shrink-0 pt-1">
-                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 group-hover:text-[#E0A7C2] transition-colors">
-                          SPEAKER 1
+                    <div key={idx} className="group flex gap-10 items-start hover:bg-white/[0.02] p-4 -mx-4 rounded-2xl transition-colors">
+                      <div className="w-36 flex-shrink-0 flex flex-col items-start pt-1">
+                        <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
+                          Voice Identity
                         </div>
-                        <div className="text-xs font-medium text-gray-400 font-mono">
+                        <div className="bg-[#8B4564]/10 border border-[#8B4564]/20 px-3 py-1.5 rounded-xl text-xs font-bold text-[#E0A7C2] tracking-wide">
+                          PRIMARY VOICE
+                        </div>
+                        <div className="text-[10px] font-medium text-gray-500 font-mono pl-1 mt-1 tracking-wider opacity-60">
                           {formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
                         </div>
                       </div>
-                      <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-relaxed">
+                      <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-[1.8] font-light">
                         {paragraph}
                       </div>
                     </div>
@@ -886,11 +970,10 @@ export default function TranscribeWorkspace({
 
               <button
                 onClick={toggleRecording}
-                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg border-2 ${
-                  isRecording 
-                  ? 'bg-[#8B4564] border-[#8B4564]/40 text-white animate-pulse shadow-[#8B4564]/40' 
+                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg border-2 ${isRecording
+                  ? 'bg-[#8B4564] border-[#8B4564]/40 text-white animate-pulse shadow-[#8B4564]/40'
                   : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/10 hover:border-white/20'
-                }`}
+                  }`}
                 title={isRecording ? "Stop Recording" : "Start Recording"}
               >
                 {isRecording ? (

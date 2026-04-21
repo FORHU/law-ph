@@ -1,7 +1,7 @@
-import { 
-  TranscribeClient, 
+import {
+  TranscribeClient,
   StartTranscriptionJobCommand,
-  GetTranscriptionJobCommand 
+  GetTranscriptionJobCommand
 } from "@aws-sdk/client-transcribe";
 import { TranscribeStreamingClient, StartStreamTranscriptionCommand } from "@aws-sdk/client-transcribe-streaming";
 import { getProxiedUrl } from "./s3-utils";
@@ -29,8 +29,8 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
   const params = {
     TranscriptionJobName: jobName,
     IdentifyLanguage: true,
-    LanguageOptions: ["en-US", "tl-PH", "ko-KR"], 
-    MediaFormat: "mp3", 
+    LanguageOptions: ["en-US", "tl-PH", "ko-KR"],
+    MediaFormat: "mp3",
     Media: {
       MediaFileUri: s3Uri,
     },
@@ -74,40 +74,75 @@ export async function getTranscriptionJobStatus(jobName: string) {
  * Returns a string formatted with Speaker identifiers if data is present.
  */
 export async function fetchTranscriptionText(url: string): Promise<string> {
-    try {
-        const proxiedUrl = getProxiedUrl(url);
-        const response = await fetch(proxiedUrl);
-        const data = await response.json();
-        
-        // If speaker labels are not present, return simple transcript
-        if (!data.results.speaker_labels) {
-            return data.results.transcripts[0].transcript || "";
-        }
+  try {
+    const proxiedUrl = getProxiedUrl(url);
+    const response = await fetch(proxiedUrl);
+    const data = await response.json();
 
-        // Advanced parsing for speaker labels
-        const items = data.results.items;
-        const labels = data.results.speaker_labels.segments;
-        let fullTranscript = "";
-        
-        labels.forEach((segment: any) => {
-            const speaker = `Speaker ${segment.speaker_label.replace('spk_', '')}`;
-            const startTime = parseFloat(segment.start_time);
-            const endTime = parseFloat(segment.end_time);
-            
-            const segmentText = items
-                .filter((i: any) => parseFloat(i.start_time) >= startTime && parseFloat(i.end_time) <= endTime)
-                .map((i: any) => i.alternatives[0].content)
-                .join(" ")
-                .replace(/ ([,.!?;:])/g, "$1"); // Clean up punctuation spaces
-                
-            fullTranscript += `[${speaker}]: ${segmentText}\n\n`;
-        });
-
-        return fullTranscript.trim() || data.results.transcripts[0].transcript || "";
-    } catch (err) {
-        console.error("Error fetching/parsing transcript from S3", err);
-        return "";
+    // If speaker labels are not present, return simple transcript
+    if (!data.results.speaker_labels) {
+      return data.results.transcripts[0].transcript || "";
     }
+
+    // Advanced parsing for speaker labels: 
+    // We linearly iterate items and assign to segments to ensure punctuation (which lacks timestamps) is included.
+    const items = data.results.items;
+    const segments = data.results.speaker_labels.segments;
+    let fullTranscript = "";
+    let currentSegmentIdx = 0;
+    let segmentBuffer: string[] = [];
+
+    items.forEach((item: any, itemIdx: number) => {
+      const content = item.alternatives[0].content;
+      const isPunctuation = item.type === "punctuation";
+      
+      // Determine which speaker this item belongs to
+      if (!isPunctuation) {
+        const itemStart = parseFloat(item.start_time);
+        
+        // Advance currentSegmentIdx if this item starts after the current segment ends
+        while (
+          currentSegmentIdx < segments.length - 1 && 
+          itemStart >= parseFloat(segments[currentSegmentIdx].end_time)
+        ) {
+          // Flush the buffer for the completed segment
+          if (segmentBuffer.length > 0) {
+            const seg = segments[currentSegmentIdx];
+            const speaker = `Speaker ${seg.speaker_label.replace('spk_', '')}`;
+            const startTime = parseFloat(seg.start_time);
+            
+            let text = segmentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
+            text = text.charAt(0).toUpperCase() + text.slice(1);
+            if (!/[.!?]$/.test(text)) text += ".";
+            
+            fullTranscript += `[TS:${startTime.toFixed(2)}] [${speaker}]: ${text}\n\n`;
+            segmentBuffer = [];
+          }
+          currentSegmentIdx++;
+        }
+      }
+
+      segmentBuffer.push(content);
+
+      // Final flush for the last item
+      if (itemIdx === items.length - 1 && segmentBuffer.length > 0) {
+        const seg = segments[currentSegmentIdx];
+        const speaker = `Speaker ${seg.speaker_label.replace('spk_', '')}`;
+        const startTime = parseFloat(seg.start_time);
+        
+        let text = segmentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
+        text = text.charAt(0).toUpperCase() + text.slice(1);
+        if (!/[.!?]$/.test(text)) text += ".";
+        
+        fullTranscript += `[TS:${startTime.toFixed(2)}] [${speaker}]: ${text}\n\n`;
+      }
+    });
+
+    return fullTranscript.trim() || data.results.transcripts[0].transcript || "";
+  } catch (err) {
+    console.error("Error fetching/parsing transcript from S3", err);
+    return "";
+  }
 }
 
 /**
@@ -148,10 +183,10 @@ export async function startAWSLiveTranscription(
     for await (const event of response.TranscriptResultStream) {
       if (event.TranscriptEvent?.Transcript?.Results) {
         for (const result of event.TranscriptEvent.Transcript.Results) {
-           const text = result.Alternatives?.[0]?.Transcript;
-           if (text) {
-             onTranscript(text, result.IsPartial || false);
-           }
+          const text = result.Alternatives?.[0]?.Transcript;
+          if (text) {
+            onTranscript(text, result.IsPartial || false);
+          }
         }
       }
     }
