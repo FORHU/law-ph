@@ -1,9 +1,9 @@
 import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2 } from 'lucide-react';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
@@ -71,7 +71,7 @@ export function MessageItem({
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
   const { addBookmark, removeBookmark, isBookmarked } = useConversations();
-  
+
   const bookmarkId = isBookmarked(message.id.toString());
   const bookmarked = !!bookmarkId;
 
@@ -82,7 +82,7 @@ export function MessageItem({
       // Create a title from the first line or first few words
       const textForTitle = message.text.split('\n')[0].replace(/[#*]/g, '').trim();
       const title = textForTitle.length > 60 ? textForTitle.substring(0, 57) + "..." : textForTitle || "AI Response";
-      
+
       await addBookmark({
         item_id: message.id.toString(),
         title: title,
@@ -119,24 +119,23 @@ export function MessageItem({
           <User size={16} className="text-white md:w-[18px] md:h-[18px]" />
         </div>
       )}
-      
+
       <div className={`flex-1 ${isUser ? 'max-w-[90%] md:max-w-[85%] ml-auto' : 'w-full md:max-w-[90%] lg:max-w-[85%]'} group/msg relative`}>
         {!isUser && isAI && (
           <div className="flex items-center justify-between gap-2 mb-2 px-1">
-            <AIResponseTabs 
-              activeTab={activeTab} 
-              onTabChange={onTabChange} 
-              tabConfig={TAB_CONFIG} 
+            <AIResponseTabs
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              tabConfig={TAB_CONFIG}
               message={message}
             />
           </div>
         )}
 
-        <div className={`backdrop-blur border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${
-          isUser 
-            ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm` 
-            : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
-        }`}>
+        <div className={`backdrop-blur border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${isUser
+          ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm`
+          : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
+          }`}>
           {message.isAnalysis && (
             <div className="flex items-center gap-1.5 mb-3 px-1">
               <span className="bg-[#8B4564]/20 text-[#E0A7C2] text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded border border-[#8B4564]/30 flex items-center gap-1">
@@ -159,21 +158,21 @@ export function MessageItem({
                   </span>
                 </button>
               )}
-                <button
-                  onClick={handleBookmarkToggle}
-                  className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none"
-                  title={bookmarked ? "Remove Bookmark" : "Bookmark Response"}
-                >
-                  <Bookmark size={14} className={bookmarked ? "fill-[#E0A7C2] text-[#E0A7C2]" : ""} />
-                </button>
-                <DropdownMenu>
+              <button
+                onClick={handleBookmarkToggle}
+                className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none"
+                title={bookmarked ? "Remove Bookmark" : "Bookmark Response"}
+              >
+                <Bookmark size={14} className={bookmarked ? "fill-[#E0A7C2] text-[#E0A7C2]" : ""} />
+              </button>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-1.5 text-gray-400 hover:text-white rounded-md transition-colors focus:outline-none">
                     <MoreHorizontal size={14} />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-[#252525]/95 backdrop-blur-xl border-white/5 text-gray-200">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#8B4564]/20 focus:text-white"
                     onClick={() => {
                       const activeTabToCopy = activeTab;
@@ -193,10 +192,10 @@ export function MessageItem({
                     <Copy size={14} className="mr-2 text-gray-400 group-hover:text-white" />
                     <span>Copy Content</span>
                   </DropdownMenuItem>
-                  
+
                   <DropdownMenuSeparator className="bg-white/5" />
-                  
-                  <DropdownMenuItem 
+
+                  <DropdownMenuItem
                     className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#8B4564]/20 focus:text-white"
                     onClick={() => onOpenNote?.(message.id, message.text)}
                   >
@@ -207,7 +206,7 @@ export function MessageItem({
               </DropdownMenu>
             </div>
           )}
-          
+
           {/* Message Actions For User (Edit Only) */}
           {isUser && (
             <div className="absolute top-2 right-2 transition-all z-20">
@@ -222,7 +221,7 @@ export function MessageItem({
               )}
             </div>
           )}
-          
+
           <div className="text-sm md:text-base text-gray-100 leading-relaxed prose prose-invert max-w-none">
             {message.fileAttachment && !message.fileAttachments && (
               <div className="mb-3 flex items-center gap-3 p-2.5 bg-white border border-black/5 rounded-xl hover:bg-gray-50 transition-colors group/file cursor-pointer max-w-sm shadow-sm">
@@ -266,7 +265,7 @@ export function MessageItem({
 
                 if (activeTab === 'related') {
                   const cases = message.relatedCases || [];
-                  
+
                   if (relatedCasesLoading && cases.length === 0) {
                     return (
                       <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
@@ -290,8 +289,8 @@ export function MessageItem({
                       </h4>
                       <div className="space-y-3">
                         {cases.map((caseItem: RelatedCase, i: number) => (
-                          <div 
-                            key={i} 
+                          <div
+                            key={i}
                             className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group"
                             onClick={() => onCaseClick?.(caseItem, message.text)}
                           >
@@ -303,7 +302,7 @@ export function MessageItem({
                           </div>
                         ))}
                       </div>
-                      
+
                       {hasMoreRelatedCases && (
                         <div className="pt-4 flex justify-center">
                           <button
@@ -315,10 +314,10 @@ export function MessageItem({
                               <>
                                 <Gavel size={14} className="animate-pulse" />
                                 {(() => {
-                                  const ref = message.sources?.[0]?.reference || 
-                                              message.relatedCases?.[0]?.caseNumber || 
-                                              message.text.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)?.[0] || 
-                                              'Jurisprudence';
+                                  const ref = message.sources?.[0]?.reference ||
+                                    message.relatedCases?.[0]?.caseNumber ||
+                                    message.text.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)?.[0] ||
+                                    'Jurisprudence';
                                   return `Loading ${ref}...`;
                                 })()}
                               </>
@@ -332,46 +331,46 @@ export function MessageItem({
                   );
                 }
 
-                
+
                 const displayContent = showOriginal && message.originalText ? message.originalText : message.text;
-                
+
                 return (
                   <div key="diff-view">
-                   <GranularDiffViewer 
-                      original={showOriginal ? '' : (message.originalText || '')} 
+                    <GranularDiffViewer
+                      original={showOriginal ? '' : (message.originalText || '')}
                       current={displayContent}
                       onSourceLinkClick={onSourceLinkClick}
-                   />
-                    
+                    />
+
                     {message.originalText && message.text !== message.originalText && (
-                       <div className="mt-2 flex justify-end gap-2">
-                          {showOriginal && (
-                            <button 
-                              onClick={() => {
-                                onUpdateMessage?.(message.id, { 
-                                  text: message.originalText!,
-                                  isEditing: false,
-                                  editedAt: undefined,
-                                  editedBy: undefined
-                                });
-                                onToggleOriginal();
-                                scrollToMessage(message.id);
-                              }} 
-                              className="text-[11px] font-semibold tracking-wide text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md flex items-center gap-1.5"
-                            >
-                              <RefreshCcw size={10} /> Reset to Original
-                            </button>
-                          )}
-                          <button 
+                      <div className="mt-2 flex justify-end gap-2">
+                        {showOriginal && (
+                          <button
                             onClick={() => {
+                              onUpdateMessage?.(message.id, {
+                                text: message.originalText!,
+                                isEditing: false,
+                                editedAt: undefined,
+                                editedBy: undefined
+                              });
                               onToggleOriginal();
                               scrollToMessage(message.id);
-                            }} 
-                            className="text-[11px] font-semibold tracking-wide text-[#E0A7C2] hover:text-white transition-colors bg-[#8B4564]/10 hover:bg-[#8B4564]/30 px-2.5 py-1 rounded-md"
+                            }}
+                            className="text-[11px] font-semibold tracking-wide text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md flex items-center gap-1.5"
                           >
-                            {showOriginal ? "Show Edited" : "Show Original"}
+                            <RefreshCcw size={10} /> Reset to Original
                           </button>
-                       </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            onToggleOriginal();
+                            scrollToMessage(message.id);
+                          }}
+                          className="text-[11px] font-semibold tracking-wide text-[#E0A7C2] hover:text-white transition-colors bg-[#8B4564]/10 hover:bg-[#8B4564]/30 px-2.5 py-1 rounded-md"
+                        >
+                          {showOriginal ? "Show Edited" : "Show Original"}
+                        </button>
+                      </div>
                     )}
                     {(() => {
                       const authUrlMatch = message.text.match(/\[AUTH_URL\]\s*(https?:\/\/[^\s]+)/);
@@ -379,7 +378,7 @@ export function MessageItem({
                     })()}
 
                     <div className="mt-4 flex flex-wrap items-end gap-3">
-                      <VoiceNoteSection 
+                      <VoiceNoteSection
                         message={message}
                         isRecording={isRecording}
                         recordingTime={recordingTime}
@@ -393,45 +392,45 @@ export function MessageItem({
                 );
               })()
             ) : (
-            !message.isEditing ? (
-              message.isAnalysis && message.sender === 'user' && message.text.toUpperCase().includes('ANALYZING') ? (
-                isLoading ? (
-                  <span className="text-xs font-bold text-[#E0A7C2] animate-pulse italic">ANALYZING...</span>
-                ) : null
+              !message.isEditing ? (
+                message.isAnalysis && message.sender === 'user' && message.text.toUpperCase().includes('ANALYZING') ? (
+                  isLoading ? (
+                    <span className="text-xs font-bold text-[#E0A7C2] animate-pulse italic">ANALYZING...</span>
+                  ) : null
+                ) : (
+                  <>
+                    {message.text && <span>{message.text}</span>}
+                    {/* Show voice notes for user messages (e.g. case recordings) */}
+                    {(message.voiceNotes?.length || message.recordingUrl) ? (
+                      <div className="mt-3">
+                        <VoiceNoteSection
+                          message={message}
+                          onUpdateMessage={onUpdateMessage}
+                          formatTime={formatTime}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                )
               ) : (
-                <>
-                  {message.text && <span>{message.text}</span>}
-                  {/* Show voice notes for user messages (e.g. case recordings) */}
-                  {(message.voiceNotes?.length || message.recordingUrl) ? (
-                    <div className="mt-3">
-                      <VoiceNoteSection
-                        message={message}
-                        onUpdateMessage={onUpdateMessage}
-                        formatTime={formatTime}
-                      />
-                    </div>
-                  ) : null}
-                </>
-              )
-            ) : (
-              <div className="w-full min-w-[300px] md:min-w-[500px]">
-                <EditMessageForm
-                  initialText={message.text}
-                  onSave={(newText) => {
-                    if (onUpdateMessage) {
-                      // Reset the current message's editing state WITHOUT changing its text
-                      onUpdateMessage(message.id, { isEditing: false });
-                      
-                      // Send the edited version as a NEW message at the bottom
-                      if (onSendMessage) {
-                        onSendMessage(newText);
+                <div className="w-full min-w-[300px] md:min-w-[500px]">
+                  <EditMessageForm
+                    initialText={message.text}
+                    onSave={(newText) => {
+                      if (onUpdateMessage) {
+                        // Reset the current message's editing state WITHOUT changing its text
+                        onUpdateMessage(message.id, { isEditing: false });
+
+                        // Send the edited version as a NEW message at the bottom
+                        if (onSendMessage) {
+                          onSendMessage(newText);
+                        }
                       }
-                    }
-                  }}
-                  onCancel={() => onUpdateMessage?.(message.id, { isEditing: false })}
-                />
-              </div>
-            )
+                    }}
+                    onCancel={() => onUpdateMessage?.(message.id, { isEditing: false })}
+                  />
+                </div>
+              )
             )}
           </div>
           <div className="mt-3 text-[10px] text-gray-500 flex items-center gap-1.5 font-medium">

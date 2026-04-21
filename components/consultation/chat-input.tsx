@@ -18,9 +18,9 @@ interface ChatInputProps {
   isAnalyzing?: boolean;
 }
 
-export function ChatInput({ 
-  
-  onSend, 
+export function ChatInput({
+
+  onSend,
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
   activeTab = 'chat',
@@ -110,13 +110,13 @@ export function ChatInput({
 
   return (
     <div className="relative z-10 border-t border-[#8B4564]/20 bg-[#1A1A1A]/90 backdrop-blur-sm landscape:border-t-0 landscape:bg-[#1A1A1A]/95">
-      
+
       {/* Input Box */}
       <div className="px-4 md:px-6 py-3 md:py-4 landscape:py-1.5 md:pt-4 pt-2">
         <div className="max-w-4xl mx-auto">
           {hasMessages && (
             <div className="mb-3 landscape:mb-1.5 overflow-hidden">
-              <div 
+              <div
                 ref={sliderRef}
                 className="flex gap-2 overflow-x-auto pb-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing"
                 onMouseDown={handleMouseDown}
@@ -124,13 +124,12 @@ export function ChatInput({
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
               >
-                <button 
+                <button
                   onClick={() => onTabChange?.('chat')}
-                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                    activeTab === 'chat' 
-                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                  }`}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'chat'
+                    ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                    : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
                 >
                   <MessageSquare size={14} />
                   Conversation
@@ -138,24 +137,22 @@ export function ChatInput({
 
                 {isCaseMode && (
                   <>
-                    <button 
+                    <button
                       onClick={() => onTabChange?.('timeline')}
-                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                        activeTab === 'timeline' 
-                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                          : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                      }`}
+                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'timeline'
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                        }`}
                     >
                       <History size={14} />
                       Timeline
                     </button>
-                    <button 
+                    <button
                       onClick={() => onTabChange?.('mindmap')}
-                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                        activeTab === 'mindmap' 
-                          ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                          : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                      }`}
+                      className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'mindmap'
+                        ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                        : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                        }`}
                     >
                       <GitGraph size={14} />
                       Mind Map
@@ -163,37 +160,34 @@ export function ChatInput({
                   </>
                 )}
 
-                <button 
+                <button
                   onClick={() => onTabChange?.('email')}
-                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                    activeTab === 'email' 
-                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                  }`}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'email'
+                    ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                    : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
                 >
                   <Mail size={14} />
                   Send Email
                 </button>
 
-                <button 
+                <button
                   onClick={() => onTabChange?.('schedule')}
-                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                    activeTab === 'schedule' 
-                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                  }`}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'schedule'
+                    ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                    : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
                 >
                   <Calendar size={14} />
                   Schedule
                 </button>
 
-                <button 
+                <button
                   onClick={() => onTabChange?.('transcribe')}
-                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${
-                    activeTab === 'transcribe' 
-                      ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner' 
-                      : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
-                  }`}
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold transition-all border flex items-center gap-2 ${activeTab === 'transcribe'
+                    ? 'bg-[#8B4564]/30 text-[#E0A7C2] border-[#8B4564]/40 shadow-inner'
+                    : 'bg-[#2A2A2A]/40 text-gray-400 border-white/5 hover:text-white'
+                    }`}
                 >
                   <Mic size={14} />
                   Transcribe
@@ -212,112 +206,110 @@ export function ChatInput({
                 <span>IMAGE ANALYSIS LIMITED</span>
               </div>
 
-            {/* Attached File Preview */}
-            <AnimatePresence>
-              {selectedFile && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20"
-                >
-                  <FileText size={16} className="text-[#E0A7C2]" />
-                  <span className="text-xs text-white max-w-[200px] truncate">{selectedFile.name}</span>
-                  <button 
-                    onClick={() => setSelectedFile(null)}
-                    className="ml-2 text-gray-400 hover:text-white bg-black/40 hover:bg-black/60 rounded-full h-5 w-5 flex items-center justify-center transition-colors"
+              {/* Attached File Preview */}
+              <AnimatePresence>
+                {selectedFile && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <FileText size={16} className="text-[#E0A7C2]" />
+                    <span className="text-xs text-white max-w-[200px] truncate">{selectedFile.name}</span>
+                    <button
+                      onClick={() => setSelectedFile(null)}
+                      className="ml-2 text-gray-400 hover:text-white bg-black/40 hover:bg-black/60 rounded-full h-5 w-5 flex items-center justify-center transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
-              <textarea
-                ref={textareaRef}
-                id="chat-message-input"
-                name="message"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                rows={1}
-                className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
-                disabled={disabled}
-              />
-              
-              {/* Hidden File Input (attach) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
-                className="hidden"
+              <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
+                <textarea
+                  ref={textareaRef}
+                  id="chat-message-input"
+                  name="message"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  rows={1}
+                  className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
+                  disabled={disabled}
+                />
 
-                disabled={disabled}
-              />
+                {/* Hidden File Input (attach) */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
+                  className="hidden"
 
-              {/* Paperclip / Attach button */}
-              <button
-                type="button"
-                title="Attach Document or Media"
-                onClick={() => {
-                  fileInputRef.current?.click();
-                }}
-                className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                  disabled={disabled}
+                />
 
-                disabled={disabled}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:size-5 md:stroke-2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-
-              </button>
-
-              {/* Analyze Document button */}
-              {onAnalyzeFile && (
+                {/* Paperclip / Attach button */}
                 <button
                   type="button"
-                  title={isAnalyzing ? 'Analyzing document...' : 'Analyze Document with AI'}
+                  title="Attach Document or Media"
                   onClick={() => {
-                    if (!isAnalyzing) onAnalyzeClick?.();
+                    fileInputRef.current?.click();
                   }}
-                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${
+                  className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
 
-                    isAnalyzing
+                  disabled={disabled}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:size-5 md:stroke-2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+
+                </button>
+
+                {/* Analyze Document button */}
+                {onAnalyzeFile && (
+                  <button
+                    type="button"
+                    title={isAnalyzing ? 'Analyzing document...' : 'Analyze Document with AI'}
+                    onClick={() => {
+                      if (!isAnalyzing) onAnalyzeClick?.();
+                    }}
+                    className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isAnalyzing
                       ? 'text-[#E0A7C2] bg-[#8B4564]/20 cursor-not-allowed'
                       : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'
-                  }`}
-                  disabled={disabled || isAnalyzing}
+                      }`}
+                    disabled={disabled || isAnalyzing}
+                  >
+                    {isAnalyzing ? (
+                      <Loader2 size={20} className="animate-spin md:size-4" />
+                    ) : (
+                      <Sparkles size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
+
+                    )}
+
+                  </button>
+                )}
+
+                <button
+                  className={`h-11 w-11 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+
+                  onClick={handleSend}
+                  disabled={disabled || (!value.trim() && !selectedFile)}
                 >
-                  {isAnalyzing ? (
-                    <Loader2 size={20} className="animate-spin md:size-4" />
+                  {disabled ? (
+                    <Loader2 size={20} className="text-white animate-spin md:size-4" />
                   ) : (
-                    <Sparkles size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
+                    <Send size={20} className="text-white md:size-4 stroke-[2.5] md:stroke-2" />
 
                   )}
 
                 </button>
-              )}
 
-              <button 
-                className={`h-11 w-11 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}
-
-                onClick={handleSend}
-                disabled={disabled || (!value.trim() && !selectedFile)}
-              >
-                {disabled ? (
-                  <Loader2 size={20} className="text-white animate-spin md:size-4" />
-                ) : (
-                  <Send size={20} className="text-white md:size-4 stroke-[2.5] md:stroke-2" />
-
-                )}
-
-              </button>
-
+              </div>
             </div>
-          </div>
-        )}
-          
+          )}
+
           {/* Disclaimer */}
           <div className="mt-0.5 text-center hidden md:block landscape:hidden">
             <p className="text-[10px] text-gray-500">

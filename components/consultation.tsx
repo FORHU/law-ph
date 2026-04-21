@@ -817,112 +817,114 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
         <div
           ref={scrollContainerRef}
-          className={`flex-1 ${globalTab === "mindmap" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}
+          className={`flex-1 ${globalTab === "mindmap" || globalTab === "transcribe" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : globalTab === "transcribe" ? "p-0" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}
         >
           <div
             className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
-            <AnimatePresence mode="wait">
-              {(isLoading && messages.length === 0) || (isCaseMode && !casesLoaded) ? (
-                <motion.div
-                  key="loading-main"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="h-full flex flex-col items-center justify-center py-20"
-                >
-                  <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
-                  <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
-                </motion.div>
-              ) : (messages.filter(m => m.sender === 'ai').length === 0) && !isLoading && casesLoaded && (
-                <motion.div
-                  key="quick-questions-top"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="mb-8"
-                >
-                  {isCaseMode && activeCase ? (
-                    <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
-                      <div className="bg-[#8B4564]/10 p-4 rounded-full">
-                        <MessageSquare className="w-8 h-8 text-[#E0A7C2]" />
-                      </div>
-                      <div className="space-y-2">
-                        <h2 className="text-2xl font-bold">
-                          Case: {activeCase.case_name}
-                        </h2>
-                        <p className="text-gray-400 max-w-md mx-auto">
-                          Ready to analyze this case. The AI can review the
-                          parties involved and notes to provide an initial
-                          strategy and timeline.
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleGetCaseInsight}
-                        className="bg-[#8B4564] hover:bg-[#7a3c58] text-white px-8 py-3 rounded-full font-medium transition-colors shadow-lg shadow-[#8B4564]/20 flex items-center gap-2"
-                      >
-                        <Sparkles size={18} />
-                        Get AI Insight
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="py-20 text-center">
-                      <div className="inline-flex p-5 bg-[#8B4564]/10 rounded-full mb-4">
-                        <MessageSquare size={32} className="text-[#E0A7C2]" />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-2">
-                        Start a New Consultation
-                      </h2>
-                      <p className="text-gray-400 max-w-md mx-auto">
-                        Describe your legal situation and get immediate
-                        AI-powered guidance.
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {globalTab === "chat" ? (
-              <MessageList
-                messages={messages.map((m) => {
-                  if (
-                    m.sender === CHAT_SENDER.USER &&
-                    m.text.startsWith("[Case Analysis Request]")
-                  ) {
-                    return {
-                      ...m,
-                      text: activeCase
-                        ? `Requesting AI analysis for "${activeCase.case_name}"...`
-                        : "Requesting AI Case Analysis...",
-                    };
-                  }
-                  return m;
-                })}
-                onDelete={handleDeleteMessage}
-                onSourceClick={(s, c) => {
-                  openSourceDetail(s, c);
-                  setIsSidebarOpen(false);
-                }}
-                onCaseClick={(cs, c) => {
-                  openCaseDetail(cs, c);
-                  setIsSidebarOpen(false);
-                }}
-                onSourceLinkClick={(id, title) => {
-                  if (id && id !== "__NAVIGATE__") {
-                    openSourceByItemId(id, title);
-                  }
-                  setIsSidebarOpen(false);
-                }}
-                onUpdateMessage={updateMessage}
-                onOpenNote={(msgId, msgText) => {
-                  setSelectedNoteMessage({ id: msgId, text: msgText });
-                  setIsNoteSidebarOpen(true);
-                  setIsSidebarOpen(false); // Already present, but good to keep
-                }}
-                isLoading={isLoading}
-                onSendMessage={handleSendMessage}
-              />
+              <>
+                <AnimatePresence mode="wait">
+                  {(isLoading && messages.length === 0) || (isCaseMode && !casesLoaded) ? (
+                    <motion.div
+                      key="loading-main"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="h-full flex flex-col items-center justify-center py-20"
+                    >
+                      <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
+                      <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
+                    </motion.div>
+                  ) : (messages.length === 0) && !isLoading && casesLoaded && (
+                    <motion.div
+                      key="quick-questions-top"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="mb-8"
+                    >
+                      {isCaseMode && activeCase ? (
+                        <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
+                          <div className="bg-[#8B4564]/10 p-4 rounded-full">
+                            <MessageSquare className="w-8 h-8 text-[#E0A7C2]" />
+                          </div>
+                          <div className="space-y-2">
+                            <h2 className="text-2xl font-bold">
+                              Case: {activeCase.case_name}
+                            </h2>
+                            <p className="text-gray-400 max-w-md mx-auto">
+                              Ready to analyze this case. The AI can review the
+                              parties involved and notes to provide an initial
+                              strategy and timeline.
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleGetCaseInsight}
+                            className="bg-[#8B4564] hover:bg-[#7a3c58] text-white px-8 py-3 rounded-full font-medium transition-colors shadow-lg shadow-[#8B4564]/20 flex items-center gap-2"
+                          >
+                            <Sparkles size={18} />
+                            Get AI Insight
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="py-20 text-center">
+                          <div className="inline-flex p-5 bg-[#8B4564]/10 rounded-full mb-4">
+                            <MessageSquare size={32} className="text-[#E0A7C2]" />
+                          </div>
+                          <h2 className="text-2xl font-bold mb-2">
+                            Start a New Consultation
+                          </h2>
+                          <p className="text-gray-400 max-w-md mx-auto">
+                            Describe your legal situation and get immediate
+                            AI-powered guidance.
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <MessageList
+                  messages={messages.map((m) => {
+                    if (
+                      m.sender === CHAT_SENDER.USER &&
+                      m.text.startsWith("[Case Analysis Request]")
+                    ) {
+                      return {
+                        ...m,
+                        text: activeCase
+                          ? `Requesting AI analysis for "${activeCase.case_name}"...`
+                          : "Requesting AI Case Analysis...",
+                      };
+                    }
+                    return m;
+                  })}
+                  onDelete={handleDeleteMessage}
+                  onSourceClick={(s, c) => {
+                    openSourceDetail(s, c);
+                    setIsSidebarOpen(false);
+                  }}
+                  onCaseClick={(cs, c) => {
+                    openCaseDetail(cs, c);
+                    setIsSidebarOpen(false);
+                  }}
+                  onSourceLinkClick={(id, title) => {
+                    if (id && id !== "__NAVIGATE__") {
+                      openSourceByItemId(id, title);
+                    }
+                    setIsSidebarOpen(false);
+                  }}
+                  onUpdateMessage={updateMessage}
+                  onOpenNote={(msgId, msgText) => {
+                    setSelectedNoteMessage({ id: msgId, text: msgText });
+                    setIsNoteSidebarOpen(true);
+                    setIsSidebarOpen(false); // Already present, but good to keep
+                  }}
+                  isLoading={isLoading}
+                  onSendMessage={handleSendMessage}
+                />
+              </>
             ) : globalTab === "timeline" ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
                 {activeTimeline.length > 0 ? (
@@ -1329,7 +1331,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 )}
               </div>
             ) : globalTab === "transcribe" ? (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full h-full min-h-[600px] flex">
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full h-[70vh] flex">
                 <TranscribeWorkspace
                   onOpenSidebar={() => setIsSidebarOpen(true)}
                   isSidebarOpen={isSidebarOpen}
