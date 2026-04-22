@@ -64,8 +64,11 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
   // Step 3: Determine final file URL
   // Prefer backend-provided file_url, fallback to base of signed upload URL
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
+  const cdnBase = (S3_CONFIG.CDN_URL || '').replace(/\/+$/, '');
+  const cdnUrl = cdnBase ? `${cdnBase}/` : '';
+
   const defaultFileUrl = urlData.s3_key
-    ? `https://da6hq15h0otl9.cloudfront.net/${urlData.s3_key}`
+    ? `${cdnUrl}${urlData.s3_key}`
     : (urlData.file_url || s3BaseUrl || "");
 
   // Step 3: Trigger backend analysis through proxy

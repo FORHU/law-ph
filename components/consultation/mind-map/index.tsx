@@ -275,13 +275,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
             const posOffset = offset + (childSize / 2);
 
             if (currentLayout === 'vertical') {
-              traverse(child, id, x + posOffset, y + 400, [0,0], depth + 1);
+              traverse(child, id, x + posOffset, y + 400, [0, 0], depth + 1);
             } else if (currentLayout === 'dual') {
               traverse(child, id, x + (side === 'left' ? -550 : 550), y + posOffset, [0, 0], depth + 1, side);
             } else if (currentLayout === 'compact') {
-              traverse(child, id, x + 500, y + posOffset, [0,0], depth + 1);
+              traverse(child, id, x + 500, y + posOffset, [0, 0], depth + 1);
             } else {
-              traverse(child, id, x + 550, y + posOffset, [0,0], depth + 1);
+              traverse(child, id, x + 550, y + posOffset, [0, 0], depth + 1);
             }
 
             offset += childSize + 60;
@@ -754,11 +754,10 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.98, x: 20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className={`absolute ${
-                isAttachment
-                  ? 'top-20 bottom-20 right-10 w-[28vw] max-w-[360px]'
-                  : 'top-28 right-10 w-[320px]'
-              } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
+              className={`absolute ${isAttachment
+                ? 'top-20 bottom-20 right-10 w-[28vw] max-w-[360px]'
+                : 'top-28 right-10 w-[320px]'
+                } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
             >
               {/* Elegant Header Accent */}
               <div
@@ -787,7 +786,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   >
                     <X size={18} />
                   </button>
-                      </div>
+                </div>
                 <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "space-y-4"}>
                   {!isAttachment && (() => {
                     const desc = selectedNodeData.description || "N/A";
@@ -856,9 +855,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                   <img
                                     src={formatS3Url(url)}
                                     alt={item.name}
-                                    className={`w-full transition-transform group-hover/media:scale-[1.02] ${
-                                      isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'
-                                    }`}
+                                    className={`w-full transition-transform group-hover/media:scale-[1.02] ${isAttachment ? 'h-full object-contain bg-black/50' : 'h-auto max-h-[160px] object-cover'
+                                      }`}
                                   />
                                 );
                               })()}
@@ -995,12 +993,12 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                     <X size={20} />
                   </button>
                 </div>
-                
+
                 {(() => {
                   const url = playingAudio.url;
                   const isBlobUrl = typeof url === 'string' && url.startsWith('blob:');
                   const isMissingUrl = !url || url === '#' || isBlobUrl;
-                  
+
                   if (isMissingUrl) {
                     return (
                       <div className="w-full py-8 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-center">
@@ -1010,7 +1008,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                       </div>
                     );
                   }
-                  
+
                   return (
                     <audio
                       autoPlay
