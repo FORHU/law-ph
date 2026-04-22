@@ -36,4 +36,5 @@ export const AUTH_ROUTES = {
 
 export const S3_CONFIG = {
   CDN_URL: process.env.NEXT_PUBLIC_CLOUDFRONT_URL,
+  AUDIO_CDN_URL: process.env.NEXT_PUBLIC_AUDIO_CLOUDFRONT_URL || process.env.NEXT_PUBLIC_CLOUDFRONT_URL,
 } as const;

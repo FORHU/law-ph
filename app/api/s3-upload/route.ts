@@ -35,8 +35,15 @@ export async function POST(req: NextRequest) {
 
     // Construct final URL
     let finalUrl = `https://${targetBucket}.s3.${region}.amazonaws.com/${filename}`;
-    if (process.env.NEXT_PUBLIC_CLOUDFRONT_URL) {
-      finalUrl = `${process.env.NEXT_PUBLIC_CLOUDFRONT_URL}${filename}`;
+    const isAudio = /\.(mp3|wav|webm|ogg|m4a)$/i.test(filename);
+    const audioCdn = process.env.NEXT_PUBLIC_AUDIO_CLOUDFRONT_URL;
+    const generalCdn = process.env.NEXT_PUBLIC_CLOUDFRONT_URL;
+    
+    const selectedCdn = isAudio ? (audioCdn || generalCdn) : generalCdn;
+
+    if (selectedCdn) {
+      const cdnBase = selectedCdn.replace(/\/+$/, '');
+      finalUrl = `${cdnBase}/${filename}`;
     }
 
     return NextResponse.json({

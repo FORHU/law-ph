@@ -22,13 +22,25 @@ export interface UploadedDocumentData {
 export function formatS3Url(url: string | undefined | null): string {
   if (!url) return '';
 
+  const isAudio = /\.(mp3|wav|webm|ogg|m4a)$/i.test(url);
+  const audioCdn = (S3_CONFIG.AUDIO_CDN_URL || '').replace(/\/+$/, '');
+  const generalCdn = (S3_CONFIG.CDN_URL || '').replace(/\/+$/, '');
+
   // Regex to match various S3 URL formats:
-  // 1. https://bucket.s3.amazonaws.com/
-  // 2. https://bucket.s3.region.amazonaws.com/
   const s3Regex = /https:\/\/[a-z0-9.-]+\.s3(\.[a-z0-9-]+)?\.amazonaws\.com\//i;
 
   if (s3Regex.test(url)) {
-    return url.replace(s3Regex, S3_CONFIG.CDN_URL || '');
+    const selectedCdn = isAudio ? (audioCdn || generalCdn) : generalCdn;
+    return url.replace(s3Regex, (selectedCdn || '') + '/');
+  }
+
+  // Swap CloudFront domains if the wrong one is used for the file type
+  if (isAudio && generalCdn && url.includes(generalCdn) && audioCdn && generalCdn !== audioCdn) {
+    return url.replace(generalCdn, audioCdn);
+  }
+  
+  if (!isAudio && audioCdn && url.includes(audioCdn) && generalCdn && generalCdn !== audioCdn) {
+    return url.replace(audioCdn, generalCdn);
   }
 
   return url;

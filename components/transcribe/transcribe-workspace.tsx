@@ -94,9 +94,10 @@ export default function TranscribeWorkspace({
   const audioChunksRef = useRef<Blob[]>([]);
 
   // Timing states
-  const [duration, setDuration] = useState(0); // For recording
+  const [duration, setDuration] = useState(0); // For recording (integer)
   const [currentTime, setCurrentTime] = useState(0); // For playback
-  const [totalDuration, setTotalDuration] = useState(0); // For total audio length
+  const [totalDuration, setTotalDuration] = useState(0); // For total audio length (metadata)
+  const [activeDuration, setActiveDuration] = useState(0); // high-precision tick for visualizer/recording
   const [activeSegmentIdx, setActiveSegmentIdx] = useState(0); // Karaoke active line
 
   const [isDragging, setIsDragging] = useState(false);
@@ -121,7 +122,6 @@ export default function TranscribeWorkspace({
   const parsedSegmentsRef = useRef(parsedSegments);
   parsedSegmentsRef.current = parsedSegments;
 
-  const [activeDuration, setActiveDuration] = useState(0); // smooth tick for visualizer
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -138,6 +138,9 @@ export default function TranscribeWorkspace({
   const [activeTranscriptionId, setActiveTranscriptionId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Unified duration for the entire UI
+  const displayTotalDuration = isRecording ? activeDuration : (totalDuration > 0 ? totalDuration : (duration > 0 ? duration : 0.1));
 
   useEffect(() => {
     if (userId) {
@@ -231,6 +234,11 @@ export default function TranscribeWorkspace({
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioContextClass();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      // Force totalDuration to match the actual decoded audio length to ensure visual sync
+      if (audioBuffer.duration > 0) {
+        setTotalDuration(audioBuffer.duration);
+      }
 
       const channelData = audioBuffer.getChannelData(0);
       const samples = 150; // match number of bars
@@ -409,7 +417,7 @@ export default function TranscribeWorkspace({
       const speakerMatch = paragraph.match(/^\[([^\]]+)\]: (.*)/s);
       const speakerName = (speakerMatch ? speakerMatch[1] : "UNKNOWN").toUpperCase();
       const text = speakerMatch ? speakerMatch[2] : paragraph;
-      const timestamp = formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx);
+      const timestamp = formatTimelineTime((displayTotalDuration / Math.max(1, transcript.split('\n\n').length)) * idx);
       return { speakerName, text, timestamp };
     });
   };
@@ -670,20 +678,19 @@ export default function TranscribeWorkspace({
   }, [isRecording]);
 
   const formatTimelineTime = (secs: number) => {
-    if (isNaN(secs)) return "0:00";
+    if (!Number.isFinite(secs) || isNaN(secs)) return "--:--";
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
   const updateSeekPosition = (clientX: number) => {
-    if (!scrubberContainerRef.current || !audioUrl || !totalDuration || isRecording) return;
+    if (!scrubberContainerRef.current || !audioUrl || displayTotalDuration <= 0.1 || isRecording) return;
     const rect = scrubberContainerRef.current.getBoundingClientRect();
     let x = clientX - rect.left;
     x = Math.max(0, Math.min(x, rect.width));
     const percentage = x / rect.width;
-    const maxTime = Math.max(totalDuration, activeDuration, 10);
-    const newTime = Math.min(percentage * maxTime, totalDuration);
+    const newTime = Math.min(percentage * displayTotalDuration, (totalDuration > 0 ? totalDuration : displayTotalDuration));
 
     if (audioRef.current) {
       audioRef.current.currentTime = newTime;
@@ -692,7 +699,7 @@ export default function TranscribeWorkspace({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!audioUrl || !totalDuration || isRecording) return;
+    if (!audioUrl || displayTotalDuration <= 0.1 || isRecording) return;
     setIsDragging(true);
     updateSeekPosition(e.clientX);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -712,7 +719,7 @@ export default function TranscribeWorkspace({
 
   const handleSkip = (amount: number) => {
     if (!audioRef.current || !audioUrl) return;
-    const newTime = Math.max(0, Math.min(totalDuration, audioRef.current.currentTime + amount));
+    const newTime = Math.max(0, Math.min(displayTotalDuration, audioRef.current.currentTime + amount));
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   };
@@ -785,36 +792,37 @@ export default function TranscribeWorkspace({
 
           {(transcript || isRecording || isPolling) && (
             <div className="max-w-4xl mx-auto py-4">
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-[#8B4564]/20 rounded-2xl text-[#E0A7C2] border border-[#8B4564]/30">
                     <FileAudio size={24} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Transcription Session</h2>
-                    <div className="flex items-center gap-2 text-sm text-gray-400 font-medium mt-0.5">
-                      <Clock size={14} />
-                      {isRecording ? formatTimelineTime(duration) : formatTimelineTime(totalDuration)}
-                      <span className="mx-1">•</span>
-                      AI Engine: AWS Transcribe
+                    <h2 className="text-xl font-bold text-white tracking-tight">Transcription Session</h2>
+                    <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-sm text-gray-400 font-medium mt-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={14} />
+                        {isRecording ? formatTimelineTime(duration) : formatTimelineTime(totalDuration)}
+                      </div>
+                      <span className="hidden sm:inline mx-1 opacity-40">•</span>
+                      <span className="text-gray-500">AI Engine: AWS Transcribe</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-3 relative">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
                     onClick={resetWorkspace}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
                   >
-                    <Plus size={18} /> New
+                    <Plus size={18} /> <span className="text-sm">New</span>
                   </button>
                   <button
                     onClick={exportToPDF}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30 whitespace-nowrap"
                   >
-                    <ExternalLink size={18} /> Download PDF
+                    <ExternalLink size={18} /> <span className="text-sm">Download PDF</span>
                   </button>
-
                 </div>
               </div>
 
@@ -846,10 +854,10 @@ export default function TranscribeWorkspace({
                       <div
                         key={idx}
                         ref={isActive ? activeSegmentRef : null}
-                        className="flex gap-10 items-start py-2"
+                        className="flex flex-col md:flex-row gap-4 md:gap-10 items-start py-2"
                       >
                         {/* Speaker Identity — fully independent, no seek logic */}
-                        <div className="w-36 flex-shrink-0 flex flex-col items-start justify-start pt-1">
+                        <div className="w-full md:w-36 flex-shrink-0 flex flex-col items-start justify-start pt-1">
                           <InlineSpeakerLabel
                             originalName={seg.speaker}
                             onUpdate={(oldName, newName) => {
@@ -893,8 +901,8 @@ export default function TranscribeWorkspace({
                 ) : (
                   // Simple text fallback
                   transcript.split('\n\n').map((paragraph, idx) => (
-                    <div key={idx} className="group flex gap-10 items-start hover:bg-white/[0.02] p-4 -mx-4 rounded-2xl transition-colors">
-                      <div className="w-36 flex-shrink-0 flex flex-col items-start pt-1">
+                    <div key={idx} className="group flex flex-col md:flex-row gap-4 md:gap-10 items-start hover:bg-white/[0.02] p-4 md:-mx-4 rounded-2xl transition-colors">
+                      <div className="w-full md:w-36 flex-shrink-0 flex flex-col items-start pt-1">
                         <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
                           Voice Identity
                         </div>
@@ -902,7 +910,7 @@ export default function TranscribeWorkspace({
                           PRIMARY VOICE
                         </div>
                         <div className="text-[10px] font-medium text-gray-500 font-mono pl-1 mt-1 tracking-wider opacity-60">
-                          {formatTimelineTime((totalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
+                          {formatTimelineTime((displayTotalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
                         </div>
                       </div>
                       <div className="flex-1 prose prose-lg prose-invert max-w-none text-gray-300 leading-[1.8] font-light">
@@ -917,42 +925,62 @@ export default function TranscribeWorkspace({
         </div>
 
         {/* Bottom Audio/Video Transport Area */}
-        <div className="h-48 border-t border-white/10 flex flex-col bg-[#1A1A1A]/80 backdrop-blur-md rounded-bl-xl">
+        <div className="h-auto md:h-48 border-t border-white/10 flex flex-col bg-[#111111] backdrop-blur-xl rounded-bl-xl z-20">
+
+          {/* Top Info Bar (Mobile Only - Spacing/Time) */}
+          <div className="flex md:hidden items-center justify-between px-6 pt-5 pb-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-600'}`} />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {isRecording ? 'Live Recording' : 'Playback Mode'}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-[#8B4564] text-white' : 'bg-white/5 border border-white/10 text-gray-400'}`}
+            >
+              <History size={16} />
+            </button>
+          </div>
 
           {/* Controls Bar */}
-          <div className="flex items-center justify-between px-6 h-16 border-b border-white/5 z-10 w-full relative">
-            <div className="absolute inset-0 bg-[#2A1F1A]/30 pointer-events-none" />
+          <div className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:h-20 border-b border-white/5 relative gap-6 md:gap-0">
+            {/* Desktop-only backdrop */}
+            <div className="absolute inset-0 bg-[#8B4564]/5 pointer-events-none hidden md:block" />
 
-            {/* Left side timing indicator */}
-            <div className="flex-1 flex items-center gap-3 relative z-10">
-              <span className="text-xs font-semibold text-gray-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 min-w-[100px] text-center">
-                {formatTimelineTime(isRecording ? duration : currentTime)} <span className="text-gray-500 font-normal">/ {formatTimelineTime(isRecording ? duration : (totalDuration || duration))}</span>
-              </span>
+            {/* Time Display */}
+            <div className="flex items-center gap-3 z-10 w-full md:w-auto justify-between md:justify-start">
+              <div className="flex flex-col md:flex-row md:items-center gap-0.5 md:gap-3">
+                <span className="text-xl md:text-2xl font-bold text-white tabular-nums tracking-tighter">
+                  {formatTimelineTime(isRecording ? duration : currentTime)}
+                </span>
+                <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  / {formatTimelineTime(displayTotalDuration)}
+                </span>
+              </div>
+              
               <button
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-[#8B4564] text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-                title="History"
+                className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${isHistoryOpen ? 'bg-[#8B4564] text-white border-[#8B4564]' : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400'}`}
               >
-                <History size={18} />
+                <History size={14} /> <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
               </button>
             </div>
 
-            {/* Central core media controls */}
-            <div className="flex items-center justify-center gap-6 flex-[2] relative z-10">
+            {/* Central Controls */}
+            <div className="flex items-center gap-4 md:gap-8 z-10">
               <button
                 onClick={() => handleSkip(-10)}
                 className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Rewind 10s"
+                title="Back 10s"
               >
-                <div className="relative flex flex-col items-center justify-center">
-                  <RotateCcw size={20} />
-                  <span className="text-[8px] font-bold mt-[2px] absolute">10</span>
-                </div>
+                <RotateCcw size={20} />
               </button>
+
               <button
-                className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/20"
+                className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 ${isPlaying ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent text-white border-white/20 hover:border-white/40'}`}
                 onClick={() => {
-                  if (!audioUrl && !isPlaying) {
+                  if (!audioUrl) {
                     alert("No recording available to play.");
                     return;
                   }
@@ -965,46 +993,44 @@ export default function TranscribeWorkspace({
                   }
                 }}
               >
-                {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} className="ml-1" fill="currentColor" />}
               </button>
 
+              {/* Record Button (Prominent) */}
               <button
                 onClick={toggleRecording}
-                className={`w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-lg border-2 ${isRecording
-                  ? 'bg-[#8B4564] border-[#8B4564]/40 text-white animate-pulse shadow-[#8B4564]/40'
-                  : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/10 hover:border-white/20'
+                className={`group relative w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all ${isRecording
+                  ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'
+                  : 'bg-[#8B4564]/20 text-[#E0A7C2] border border-[#8B4564]/30 hover:bg-[#8B4564]/30'
                   }`}
-                title={isRecording ? "Stop Recording" : "Start Recording"}
               >
-                {isRecording ? (
-                  <Square size={22} fill="white" strokeWidth={0} />
-                ) : (
-                  <Mic size={24} />
+                {isRecording ? <Square size={24} fill="currentColor" /> : <Mic size={24} />}
+                {isRecording && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                  </span>
                 )}
               </button>
 
               <button
                 onClick={() => handleSkip(10)}
                 className="p-2 text-gray-400 hover:text-white transition-colors"
-                title="Skip forward 10s"
+                title="Forward 10s"
               >
-                <div className="relative flex flex-col items-center justify-center">
-                  <RotateCw size={20} />
-                  <span className="text-[8px] font-bold mt-[2px] absolute">10</span>
-                </div>
+                <RotateCw size={20} />
               </button>
             </div>
 
-            {/* Right side tools */}
-            <div className="flex-1 flex items-center justify-end gap-3 relative z-10">
+            {/* Right side spacers (Desktop Only) */}
+            <div className="hidden md:flex items-center gap-4 z-10 w-48 justify-end">
             </div>
-
           </div>
 
-          {/* Timeline / Waveform */}
+          {/* Timeline / Waveform Area */}
           <div
             ref={scrubberContainerRef}
-            className={`flex-1 relative overflow-hidden select-none touch-none ${(!audioUrl || isRecording) ? 'cursor-not-allowed bg-black/20' : 'cursor-pointer hover:bg-white/5 transition-colors bg-black/10'}`}
+            className={`flex-1 min-h-[100px] md:min-h-0 relative overflow-hidden select-none touch-none ${(!audioUrl || isRecording) ? 'cursor-not-allowed bg-black/40' : 'cursor-pointer hover:bg-white/5 transition-colors bg-black/20'}`}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -1012,74 +1038,78 @@ export default function TranscribeWorkspace({
           >
             {audioUrl && (
               <audio
+                key={audioUrl}
                 ref={audioRef}
-                src={audioUrl}
-                onEnded={() => setIsPlaying(false)}
-                onLoadedMetadata={() => setTotalDuration(audioRef.current?.duration || 0)}
+                src={getProxiedUrl(audioUrl)}
+                crossOrigin="anonymous"
+                onEnded={() => {
+                  setIsPlaying(false);
+                  setCurrentTime(displayTotalDuration);
+                }}
+                onLoadedMetadata={() => {
+                  const dur = audioRef.current?.duration;
+                  if (dur && Number.isFinite(dur) && dur > 0) {
+                    setTotalDuration(dur);
+                  }
+                }}
               />
             )}
-            {/* Time markings top line */}
-            <div className="absolute top-0 w-full h-6 border-b border-white/5 flex justify-between text-[10px] text-gray-500 font-medium pt-1">
-              {[0, 1, 2, 3, 4].map(ratio => {
-                const maxTime = Math.max(totalDuration, activeDuration, 10);
+            
+            {/* Waveform Visualization */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex items-center gap-[2px] md:gap-1 w-full h-24 md:h-32 opacity-60">
+                {(() => {
+                  return Array.from({ length: 150 }).map((_, i) => {
+                    const hasAudioData = waveformPeaks.length > 0;
+                    // Use a deterministic pattern (sine wave) for placeholder if no data, to avoid hydration mismatch
+                    const placeholderHeight = 10 + (Math.sin(i * 0.5) * 5 + 5);
+                    const peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
+                    
+                    const timeAtBar = (i / 150) * displayTotalDuration;
+                    const isPlayed = !isRecording && timeAtBar <= currentTime;
+                    const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
+
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 rounded-full ${
+                        isPlayed || isRecordingProgress
+                          ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
+                          : 'bg-white/10'
+                      }`}
+                      style={{ 
+                        height: `${Math.max(4, peakHeight).toFixed(2)}%`,
+                        opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
+                      }}
+                    />
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Scrubber Line */}
+            {!isRecording && audioUrl && (
+              <div 
+                className="absolute top-0 bottom-0 w-[2px] bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] z-30 pointer-events-none"
+                style={{ 
+                  left: `${(currentTime / displayTotalDuration) * 100}%` 
+                }}
+              >
+                <div className="w-4 h-4 rounded-full bg-white absolute top-0 -left-[7px] shadow-lg border-4 border-[#111]" />
+              </div>
+            )}
+
+            {/* Time Markings */}
+            <div className="absolute bottom-1 left-0 right-0 flex justify-between pointer-events-none">
+              {Array.from({ length: 5 }).map((_, i) => {
+                const time = (i / 4) * displayTotalDuration;
                 return (
-                  <span key={ratio} className={ratio === 0 ? "" : "border-l border-white/10 pl-1"}>
-                    {formatTimelineTime((maxTime / 4) * ratio)}
+                  <span key={i} className="text-[9px] md:text-[10px] font-bold text-gray-600 font-mono tracking-tighter">
+                    {formatTimelineTime(time)}
                   </span>
                 );
               })}
-            </div>
-
-            {/* Waveform graphic */}
-            <div className="absolute top-8 left-0 w-full flex items-center justify-between h-24 opacity-80">
-              {Array.from({ length: 150 }).map((_, i) => {
-                const maxTime = Math.max(totalDuration, activeDuration, 10);
-                // The actual boundary of the full audio data:
-                const boundaryDuration = isRecording ? activeDuration : Math.max(totalDuration, 0.1);
-                const timeAtBar = (i / 150) * maxTime;
-
-                // Whether this specific physical bar physically exists inside the recorded/loaded audio timeline:
-                const hasAudioData = boundaryDuration > 0 && timeAtBar <= boundaryDuration;
-
-                let barHeight = 10;
-                let isPlayed = false;
-
-                if (hasAudioData) {
-                  isPlayed = timeAtBar <= (isRecording ? activeDuration : currentTime);
-
-                  if (waveformPeaks.length > 0 && !isRecording) {
-                    // Scale waveform representation accurately across how much space the audio physically takes up
-                    const peakIndex = Math.floor((timeAtBar / boundaryDuration) * (waveformPeaks.length - 1));
-                    barHeight = waveformPeaks[Math.max(0, Math.min(peakIndex, waveformPeaks.length - 1))] || 10;
-                  } else if (audioHistoryRef.current.length > 0) {
-                    const historyIndex = Math.floor((timeAtBar / boundaryDuration) * (audioHistoryRef.current.length - 1));
-                    barHeight = audioHistoryRef.current[Math.max(0, Math.min(historyIndex, audioHistoryRef.current.length - 1))] || 10;
-                  } else {
-                    barHeight = 50;
-                  }
-                }
-
-                // Unplayed active portions get dimmed, actual empty bounds get completely flattened:
-                const colorClass = hasAudioData
-                  ? (isPlayed ? 'bg-[#E0A7C2]/90' : 'bg-[#E0A7C2]/30')
-                  : 'bg-white/10 h-[10%]';
-
-                return (
-                  <div
-                    key={i}
-                    className={`w-1 rounded-full transition-all duration-100 ${colorClass}`}
-                    style={hasAudioData ? { height: `${barHeight}%` } : {}}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Progress handle/line */}
-            <div
-              className="absolute top-6 bottom-0 w-[2px] bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.8)] z-10 pointer-events-none"
-              style={{ left: `${((isRecording ? activeDuration : currentTime) / Math.max(totalDuration, activeDuration, 10)) * 100}%` }}
-            >
-              <div className="w-4 h-4 bg-[#E0A7C2] rounded-full -ml-[7px] -mt-[6px] shadow-[0_0_12px_rgba(224,167,194,1)] scale-y-110" />
             </div>
           </div>
         </div>
@@ -1087,70 +1117,96 @@ export default function TranscribeWorkspace({
 
       {/* History Slide-out Sidebar */}
       {isHistoryOpen && (
-        <div className="w-80 bg-[#1A1A1A]/95 backdrop-blur-xl border-l border-white/10 flex flex-col animate-in slide-in-from-right duration-300">
-          <div className="p-6 border-b border-white/5 flex items-center justify-between">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <History size={18} className="text-[#E0A7C2]" /> History
-            </h3>
-            <button onClick={() => setIsHistoryOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-sidebar-scrollbar">
-            {history.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-                <Clock size={32} className="text-gray-600 mb-2" />
-                <p className="text-sm text-gray-500">No transcription history yet.</p>
+        <div className="fixed md:relative inset-0 md:inset-auto z-[60] flex justify-end md:flex-none overflow-hidden">
+          {/* Backdrop (Mobile Only) */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in duration-300"
+            onClick={() => setIsHistoryOpen(false)}
+          />
+          
+          <div className="w-[85%] md:w-80 h-full bg-[#111111]/95 backdrop-blur-2xl border-l border-white/10 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex flex-col">
+                <h3 className="font-bold text-white flex items-center gap-2 tracking-tight">
+                  <History size={18} className="text-[#E0A7C2]" /> Session History
+                </h3>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Recently Transcribed</p>
               </div>
-            ) : (
-              history.map((item) => {
-                const isRecorded = item.title.startsWith('Recording');
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setAudioUrl(item.audio_url);
-                      setTranscript(item.transcript || '');
-                      if (item.duration > 0 || !totalDuration) setTotalDuration(item.duration);
-                      setActiveTranscriptionId(item.id);
-                      setIsHistoryOpen(false);
-                      if (item.audio_url) generateWaveform(item.audio_url);
-                      if (item.transcript === "Transcription in progress..." && item.job_name) {
-                        startPolling(item.id, item.job_name);
-                      }
-                    }}
-                    className={`w-full text-left p-4 rounded-xl transition-all border outline-none overflow-hidden ${activeTranscriptionId === item.id ? 'bg-[#8B4564] text-white border-[#8B4564] shadow-lg shadow-[#8B4564]/20' : 'bg-white/5 hover:bg-white/10 border-white/5 text-gray-300'}`}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5 min-w-0">
-                      <div className="shrink-0 flex items-center justify-center">
-                        {isRecorded ? (
-                          <Mic size={14} className={activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-red-400 opacity-80'} />
-                        ) : (
-                          <Upload size={14} className={activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-blue-400 opacity-80'} />
-                        )}
+              <button 
+                onClick={() => setIsHistoryOpen(false)} 
+                className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all active:scale-90"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-sidebar-scrollbar">
+              {history.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-60 text-center px-4">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                    <Clock size={32} className="text-gray-600" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-400">No transcription history yet.</p>
+                  <p className="text-xs text-gray-600 mt-1">Your recorded sessions will appear here.</p>
+                </div>
+              ) : (
+                history.map((item) => {
+                  const isRecorded = item.title.startsWith('Recording');
+                  const isActive = activeTranscriptionId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setAudioUrl(item.audio_url);
+                        setTranscript(item.transcript || '');
+                        if (item.duration > 0 || !totalDuration) setTotalDuration(item.duration);
+                        setActiveTranscriptionId(item.id);
+                        if (window.innerWidth < 768) setIsHistoryOpen(false);
+                        if (item.audio_url) generateWaveform(item.audio_url);
+                        if (item.transcript === "Transcription in progress..." && item.job_name) {
+                          startPolling(item.id, item.job_name);
+                        }
+                      }}
+                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#8B4564] text-white border-[#8B4564] shadow-lg shadow-[#8B4564]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isRecorded ? (
+                            <Mic size={14} className={isActive ? 'text-white' : 'text-red-400'} />
+                          ) : (
+                            <Upload size={14} className={isActive ? 'text-white' : 'text-blue-400'} />
+                          )}
+                          <div className="font-bold text-sm truncate">{item.title}</div>
+                        </div>
+                        <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
+                          {formatTimelineTime(item.duration)}
+                        </div>
                       </div>
-                      <div className="font-bold text-sm truncate text-white">{item.title}</div>
-                    </div>
-                    <div className={`text-[10px] font-medium opacity-80 flex items-center gap-2 ${activeTranscriptionId === item.id ? 'text-[#E0A7C2]' : 'text-gray-500'}`}>
-                      <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()} • {formatTimelineTime(item.duration)}
-                    </div>
-                    {item.transcript === "Transcription in progress..." && (
-                      <div className={`mt-2 flex items-center gap-2 text-[10px] font-bold ${activeTranscriptionId === item.id ? 'text-white' : 'text-[#E0A7C2]'}`}>
-                        <Loader2 size={10} className="animate-spin" /> Processing...
+                      
+                      <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 ${isActive ? 'text-white' : 'text-gray-500'}`}>
+                        <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
                       </div>
-                    )}
-                  </button>
-                )
-              })
-            )}
-          </div>
-          <div className="p-4 bg-black/40 border-t border-white/5">
-            <button
-              onClick={resetWorkspace}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-[#8B4564] text-white rounded-xl font-bold hover:bg-[#8B4564]/80 transition-all active:scale-[0.98]"
-            >
-              <Plus size={18} /> New Session
-            </button>
+                      
+                      {item.transcript === "Transcription in progress..." && (
+                        <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#E0A7C2]'}`}>
+                          <Loader2 size={10} className="animate-spin" /> 
+                          <span className="uppercase tracking-widest">Processing...</span>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+            
+            <div className="p-6 bg-[#111111] border-t border-white/5">
+              <button
+                onClick={resetWorkspace}
+                className="w-full flex items-center justify-center gap-3 py-4 bg-[#8B4564] hover:bg-[#8B4564]/90 text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-xl shadow-[#8B4564]/10"
+              >
+                <Plus size={20} /> <span className="tracking-tight text-sm">Start New Session</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

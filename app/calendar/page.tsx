@@ -307,6 +307,8 @@ export default function CalendarPage() {
     );
   };
 
+  const [showMobileEventModal, setShowMobileEventModal] = useState(false);
+
   /**
    * Premium Success Modal
    */
@@ -414,6 +416,7 @@ export default function CalendarPage() {
       setCreateError(null);
       setActionReason("");
       setPanelView("create");
+      setActiveMobileTab("agenda");
     },
     [viewYear, viewMonth],
   );
@@ -1629,6 +1632,99 @@ export default function CalendarPage() {
             </div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Event List Modal */}
+      <AnimatePresence>
+        {showMobileEventModal && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="w-full max-w-lg bg-[#1A1A1A] border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#8B4564]/10 to-transparent">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#8B4564]/20 flex items-center justify-center text-[#E0A7C2]">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">
+                      {MONTHS[viewMonth]} {selectedDay}, {viewYear}
+                    </h2>
+                    <p className="text-xs text-gray-400 font-medium">
+                      {selectedDayEvents.length} Events Scheduled
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileEventModal(false)}
+                  className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                {selectedDayEvents.map((evt) => (
+                  <div
+                    key={evt.id}
+                    onClick={() => {
+                      setSelectedDayEvents([evt]);
+                      setPanelView("details");
+                      setActiveMobileTab("agenda");
+                      setShowMobileEventModal(false);
+                    }}
+                    className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#8B4564]/30 transition-all cursor-pointer group"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${EVENT_COLORS[evt.type].dot}`}
+                        />
+                        <h3 className="text-sm font-bold text-white group-hover:text-[#E0A7C2] transition-colors">
+                          {evt.title}
+                        </h3>
+                      </div>
+                      <span
+                        className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${EVENT_COLORS[evt.type].badge}`}
+                      >
+                        {evt.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-[#E0A7C2]" />
+                        <span>
+                          {new Date(
+                            evt.date_time || evt.dateTime || "",
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {evt.status && <StatusBadge status={evt.status} />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-6 bg-black/20 border-t border-white/5">
+                <button
+                  onClick={() => {
+                    openCreateModal(selectedDay || undefined);
+                    setShowMobileEventModal(false);
+                  }}
+                  className="w-full bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} /> Schedule New Event
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <PageLayout
         activePage="calendar"
         title="Calendar"
@@ -1807,7 +1903,12 @@ export default function CalendarPage() {
                         if (dayEvents.length > 0) {
                           setSelectedDayEvents(dayEvents);
                           setSelectedDay(day);
-                          setPanelView("details");
+                          // On mobile, show modal. On desktop, show panel.
+                          if (window.innerWidth < 768) {
+                            setShowMobileEventModal(true);
+                          } else {
+                            setPanelView("details");
+                          }
                         } else if (!isPast) {
                           openCreateModal(day);
                         }

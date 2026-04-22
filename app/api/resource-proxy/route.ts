@@ -34,15 +34,41 @@ export async function GET(req: NextRequest) {
 
         console.log(`[Resource Proxy] Fetching: ${url}`);
 
-        const response = await fetch(url, {
+        let response = await fetch(url, {
             method: 'GET',
-            // Ensure we don't pass along any conflicting headers from the original request
             headers: {
                 'Accept': '*/*',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             },
         });
 
+        // Fallback Logic: If CloudFront fails (403/404), try direct S3
+        if (!response.ok && (response.status === 403 || response.status === 404) && url.includes('cloudfront.net')) {
+            console.warn(`[Resource Proxy] CloudFront failed (${response.status}). Attempting S3 fallback for: ${url}`);
+            
+            const filename = targetUrl.pathname.split('/').pop();
+            if (filename) {
+                const bucket = process.env.AWS_S3_BUCKET || "ilovelawyer-dev";
+                const region = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
+                const s3FallbackUrl = `https://${bucket}.s3.${region}.amazonaws.com/${filename}`;
+                
+                console.log(`[Resource Proxy] S3 Fallback URL: ${s3FallbackUrl}`);
+                const fallbackResponse = await fetch(s3FallbackUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': '*/*' }
+                });
+
+                if (fallbackResponse.ok) {
+                    console.log(`[Resource Proxy] S3 Fallback SUCCESS`);
+                    response = fallbackResponse;
+                } else {
+                    console.error(`[Resource Proxy] S3 Fallback also failed: ${fallbackResponse.status}`);
+                }
+            }
+        }
+
         if (!response.ok) {
+            console.error(`[Resource Proxy] Fetch failed for ${url}: ${response.status} ${response.statusText}`);
             throw new Error(`Failed to fetch resource: ${response.status} ${response.statusText}`);
         }
 
