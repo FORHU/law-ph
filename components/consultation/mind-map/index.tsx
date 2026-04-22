@@ -510,7 +510,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
   return (
     <div
       ref={containerRef}
-      className={`w-full h-[calc(92vh-150px)] min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`}
+      className={`w-full h-[70vh] md:h-[calc(92vh-150px)] min-h-[600px] md:min-h-[700px] max-h-[1200px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative transition-colors duration-500 scrollbar-hide flex flex-col ${isFullScreen ? 'h-screen max-h-none border-none rounded-none' : ''}`}
       style={{ backgroundColor: themeConfig.bg }}
     >
       <style>{`
@@ -589,11 +589,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       <div className="absolute top-4 left-4 z-[100000] flex items-center gap-2">
         <button
           onClick={() => setIs3D(!is3D)}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#1A1A1A]/80 text-[#E0A7C2] font-black border-[#E0A7C2]/30'
+          className={`flex items-center gap-2 px-3 py-1 md:px-3.5 md:py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#1A1A1A]/80 text-[#E0A7C2] font-black border-[#E0A7C2]/30'
             }`}
         >
           {is3D ? <Monitor size={14} /> : <Box size={14} />}
-          <span className="text-[9px] uppercase tracking-widest leading-none">{is3D ? '2D View' : '3D Model'}</span>
+          <span className="text-[8px] md:text-[9px] uppercase tracking-widest leading-none">{is3D ? '2D' : '3D'}</span>
         </button>
 
         {/* MINIMIZED Structure Selector */}
@@ -638,19 +638,18 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         </div>
       </div>
 
-      {/* Full Screen Toggle - Top Right */}
-      <div className="absolute top-4 right-4 z-[100000] pointer-events-auto">
+      <div className="absolute top-4 right-4 z-[100000] pointer-events-auto flex items-center gap-2">
         <button
           onClick={toggleFullScreen}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1 md:px-3 md:py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
         >
           <Maximize size={12} />
-          <span className="text-[9px] uppercase tracking-wider">{isFullScreen ? 'Exit' : 'Full Screen'}</span>
+          <span className="hidden sm:inline text-[9px] uppercase tracking-wider">{isFullScreen ? 'Exit' : 'Full'}</span>
         </button>
       </div>
 
       {/* Ultra-Compact Vertical Hub - Snug Corner */}
-      <div className="absolute bottom-6 left-6 z-[100000] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20">
+      <div className="absolute bottom-6 left-4 md:left-6 z-[100000] flex flex-col items-center gap-1 p-1 rounded-full bg-[#0A0A0A]/95 backdrop-blur-3xl border border-white/10 shadow-[5px_0_20px_rgba(0,0,0,0.5)] ring-1 ring-white/5 w-max pointer-events-auto transition-all hover:ring-white/20 scale-90 md:scale-100 origin-bottom-left">
 
         {/* Navigation Group - Minimalist */}
         <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
@@ -750,14 +749,15 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           {selectedNodeId && selectedNodeData && !hasAudioMedia && (
             <motion.div
               key={selectedNodeId}
-              initial={{ opacity: 0, scale: 0.98, x: 20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              initial={{ opacity: 0, scale: 0.98, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 20 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className={`absolute ${isAttachment
-                ? 'top-20 bottom-20 right-10 w-[28vw] max-w-[360px]'
-                : 'top-28 right-10 w-[320px]'
-                } z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5`}
+              className={`absolute z-[99999] bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-t-3xl md:rounded-2xl shadow-[0_50px_100px_rgba(0,0,0,0.9)] flex flex-col pointer-events-auto overflow-hidden ring-1 ring-white/5
+                ${isAttachment
+                  ? 'inset-x-0 bottom-0 md:inset-auto md:top-20 md:bottom-20 md:right-10 md:w-[28vw] md:max-w-[360px] h-[60vh] md:h-auto'
+                  : 'inset-x-4 bottom-4 md:inset-auto md:top-28 md:right-10 md:w-[320px]'
+                }`}
             >
               {/* Elegant Header Accent */}
               <div
@@ -770,7 +770,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
               />
 
               <div
-                className={`p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+                className={`p-5 md:p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}
                 style={{
                   borderTop: `2px solid ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}`,
                   boxShadow: `0 18px 45px ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}40`,
