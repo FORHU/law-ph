@@ -155,8 +155,8 @@ const StatusBadge = ({
 
   let label = status as string;
   if (status === "pending")
-    label = isPast ? "Client Missed" : "Invitation Sent";
-  if (status === "tentative") label = "Tentative";
+    label = isPast ? "Missed" : "Invitation Sent";
+  if (status === "tentative") label = isPast ? "Missed" : "Tentative";
   if (status === "denied") label = "Denied";
   if (status === "confirmed") label = isPast ? "Done" : "Confirmed";
   if (status === "requested_change") label = "Change Requested";
@@ -490,7 +490,10 @@ export default function CalendarPage() {
 
       if (error) {
         console.error("Error fetching events:", error.message);
+        setEventsError("Unable to load events. Retrying...");
+        setTimeout(() => fetchEvents(), 3000); // Auto-retry after 3s
       } else if (data) {
+        setEventsError(null);
         // Normalize fields for consumption
         const normalized = data.map((e: any) => ({
           ...e,
@@ -855,7 +858,10 @@ export default function CalendarPage() {
       events
         .filter(
           (e) =>
-            e.status === "confirmed" &&
+            (e.status === "confirmed" ||
+              e.status === "pending" ||
+              e.status === "tentative" ||
+              e.status === "requested_change") &&
             new Date(e.date_time || e.dateTime || "").getTime() < now.getTime(),
         )
         .sort((a, b) =>
@@ -1466,7 +1472,8 @@ export default function CalendarPage() {
             }
 
             const evtDate = new Date(e.date_time || e.dateTime || "");
-            return evtDate >= todayStart && evtDate < endOfTomorrow;
+            // Only remind for FUTURE events (today or tomorrow)
+            return evtDate > nowTs && evtDate < endOfTomorrow;
         });
 
         if (toRemind.length === 0) return;
@@ -1520,7 +1527,8 @@ export default function CalendarPage() {
         if (e.status === 'cancelled' || e.status === 'denied' || e.status === 'canceled') return false;
         if (e.lawyerAcknowledgedAt) return false;
         const evtDate = new Date(e.date_time || e.dateTime || "");
-        return evtDate >= todayStart && evtDate < endOfTomorrow;
+        // Only notify for FUTURE events (today or tomorrow)
+        return evtDate >= nowTs && evtDate < endOfTomorrow;
     });
 
     if (filterUnacked.length > 0) {
@@ -1653,7 +1661,7 @@ export default function CalendarPage() {
                       {MONTHS[viewMonth]} {selectedDay}, {viewYear}
                     </h2>
                     <p className="text-xs text-gray-400 font-medium">
-                      {selectedDayEvents.length} Events Scheduled
+                      {selectedDayEvents.length} Events {new Date(viewYear, viewMonth, selectedDay || 1) < new Date(now.getFullYear(), now.getMonth(), now.getDate()) ? "Logged" : "Scheduled"}
                     </p>
                   </div>
                 </div>
@@ -1704,7 +1712,12 @@ export default function CalendarPage() {
                           })}
                         </span>
                       </div>
-                      {evt.status && <StatusBadge status={evt.status} />}
+                      {evt.status && (
+                        <StatusBadge 
+                          status={evt.status} 
+                          isPast={new Date(evt.date_time || evt.dateTime || "") < now} 
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1886,15 +1899,26 @@ export default function CalendarPage() {
                       viewMonth === now.getMonth() &&
                       day < now.getDate());
 
-                  const dayEvents = events.filter((e) => {
-                    if (e.status === 'cancelled' || e.status === 'canceled' || e.status === 'denied') return false;
-                    const d = new Date(e.date_time || e.dateTime || "");
-                    return (
-                      d.getDate() === day &&
-                      d.getMonth() === viewMonth &&
-                      d.getFullYear() === viewYear
+                  const dayEvents = events
+                    .filter((e) => {
+                      if (
+                        e.status === "cancelled" ||
+                        e.status === "canceled" ||
+                        e.status === "denied"
+                      )
+                        return false;
+                      const d = new Date(e.date_time || e.dateTime || "");
+                      return (
+                        d.getDate() === day &&
+                        d.getMonth() === viewMonth &&
+                        d.getFullYear() === viewYear
+                      );
+                    })
+                    .sort((a, b) =>
+                      (a.date_time || a.dateTime || "").localeCompare(
+                        b.date_time || b.dateTime || "",
+                      ),
                     );
-                  });
 
                   return (
                     <div
@@ -1942,7 +1966,7 @@ export default function CalendarPage() {
                         {dayEvents.slice(0, 3).map((evt) => (
                           <div
                             key={evt.id}
-                            className={`px-1.5 py-0.5 rounded text-[9px] truncate font-medium leading-tight border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"} ${evt.status === "confirmed" && isPast ? "line-through opacity-60" : ""}`}
+                            className={`px-1.5 py-0.5 rounded text-[9px] truncate font-medium leading-tight border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"} ${new Date(evt.date_time || evt.dateTime || "").getTime() < now.getTime() ? "line-through decoration-white/30 opacity-40 italic" : ""}`}
                             title={evt.title}
                           >
                             {evt.title}
@@ -2190,7 +2214,8 @@ export default function CalendarPage() {
                               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-3">
                                   <h3
-                                    className={`font-medium text-white text-base truncate pr-4 leading-tight ${activeTab === "accomplished" ? "line-through opacity-50" : ""}`}
+                                    className={`font-medium text-base truncate pr-4 leading-tight ${new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? "text-white/30 italic" : "text-white"}`}
+                                    style={{ textDecoration: new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? 'line-through' : 'none' }}
                                   >
                                     {event.title}
                                   </h3>
@@ -2247,7 +2272,7 @@ export default function CalendarPage() {
                                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                   <StatusBadge
                                     status={event.status || "pending"}
-                                    isPast={activeTab === "accomplished"}
+                                    isPast={new Date(event.date_time || event.dateTime || "") < now}
                                   />
                                   <span
                                     className={`text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-md border ${EVENT_COLORS[event.type].badge}`}
@@ -2354,7 +2379,10 @@ export default function CalendarPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-3 mb-1">
-                            <h3 className="font-bold text-white text-base leading-tight">
+                            <h3 
+                              className={`font-bold text-base leading-tight ${new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? "text-white/30 italic" : "text-white"}`}
+                              style={{ textDecoration: new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? 'line-through' : 'none' }}
+                            >
                               {event.title}
                             </h3>
                             {(() => {
@@ -2401,11 +2429,17 @@ export default function CalendarPage() {
                             )}
                           </div>
                         </div>
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${EVENT_COLORS[event.type || "meeting"].badge}`}
-                        >
-                          {event.type}
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${EVENT_COLORS[event.type || "meeting"].badge}`}
+                          >
+                            {event.type}
+                          </span>
+                          <StatusBadge 
+                            status={event.status || "pending"} 
+                            isPast={new Date(event.date_time || event.dateTime || "") < now} 
+                          />
+                        </div>
                       </div>
 
                       {event.notes && (
