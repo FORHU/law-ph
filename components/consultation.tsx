@@ -53,6 +53,7 @@ import { useConsultationState } from "./consultation/use-consultation-state";
 import { useConsultationEffects } from "./consultation/use-consultation-effects";
 import { checkAuthStatus } from "@/lib/calendar-api";
 import { RecordingConflictModal } from "./consultation/recording-conflict-modal";
+import { synthesizeSpeech } from "@/lib/aws-polly-utils";
 
 export default function Consultation() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -83,7 +84,7 @@ export default function Consultation() {
     handleNewConsultation: coreHandleNewConsultation,
     handleRemoveConsultation,
     handleRenameConsultation,
-    handleSendMessage,
+    handleSendMessage: coreSendMessage,
     handleDeleteMessage,
     isSidebarOpen,
     setIsSidebarOpen,
@@ -105,6 +106,31 @@ export default function Consultation() {
     formatTime,
     conflictRecordingId
   } = useConversations();
+
+  const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
+    if (file || msg.trim()) {
+      handleSendMessage(msg, activeConversationId, null, file, skipAIResponse);
+      if (globalTab !== 'chat') handleTabChange('chat');
+    }
+  };
+
+  const handleSendMessage = async (
+    text: string,
+    conversationId?: string | number,
+    explicitDocumentContext?: string | null,
+    mediaFile?: File | null,
+    skipAIResponse?: boolean
+  ) => {
+    if (isLoading) {
+      console.warn("Blocking message send: AI is currently busy responding.");
+      return;
+    }
+
+    if (!text.trim() && !mediaFile) return;
+
+    // Call the original handler
+    return coreSendMessage(text, conversationId, explicitDocumentContext, mediaFile, skipAIResponse);
+  };
 
   const activeCase = activeConversationId
     ? cases.find((c) => c.id === activeConversationId)
@@ -262,6 +288,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     scheduleError, setScheduleError, getMinDateTime
   } = scheduleState;
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+
+
   // Email Validation Helper
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -326,6 +356,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     window.addEventListener("hashchange", handleHashScroll);
     return () => window.removeEventListener("hashchange", handleHashScroll);
   }, [messages.length, router]);
+
 
   // Sync state to URL for new consultations
   useEffect(() => {
@@ -392,19 +423,14 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
-  const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
-    if (file || msg.trim()) {
-      handleSendMessage(msg, activeConversationId, undefined, file, skipAIResponse);
-      if (globalTab !== 'chat') handleTabChange('chat');
-    }
-  };
+
 
   const handleAnalyzeFile = async (file: File): Promise<void> => {
     setIsAnalysisModalOpen(false); // Close modal as soon as file is accepted
 
     // Unified Flow: Start the message process immediately
     // filename as text satisfies the (text.trim() || file) check
-    handleSendMessage(file.name, activeConversationId, undefined, file, false, true);
+    handleSendMessage(file.name, activeConversationId, null, file, false);
   };
 
   const handleDocumentAnalyzed = (data: any) => {
@@ -1167,8 +1193,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             if (emailError) setEmailError(false);
                           }}
                           onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Tab') e.preventDefault();
                             if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
-                              if (e.key === 'Enter' || e.key === 'Tab') e.preventDefault();
                               handleAddEmail(emailInput);
                             }
                             if (e.key === 'Backspace' && !emailInput && scheduleEmails.length > 0) {

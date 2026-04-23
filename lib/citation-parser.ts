@@ -456,7 +456,7 @@ function safeJsonParse(str: string): any {
   if (!str) return null;
   
   try {
-    // 1. First pass: try to extract a JSON block if the string contains extra prose
+    // 1. Extract JSON block
     const firstBrace = str.indexOf('{');
     const firstBracket = str.indexOf('[');
     const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
@@ -470,16 +470,25 @@ function safeJsonParse(str: string): any {
       jsonPart = str.substring(start, end + 1);
     }
 
-    // 2. Initial parse attempt
+    // 2. Initial clean
+    let sanitized = jsonPart
+      .trim()
+      .replace(/^\uFEFF/, "") // Remove BOM
+      .replace(/\/\/.*$/gm, "") // Remove single line comments
+      .replace(/\/\*[\s\S]*?\*\//g, "") // Remove multi-line comments
+      .replace(/,\s*([}\]])/g, "$1"); // Remove trailing commas
+
+    // 3. Fix missing commas between elements (e.g. } {  or " " )
+    sanitized = sanitized
+      .replace(/\}\s*\{/g, "}, {")
+      .replace(/\]\s*\[/g, "], [")
+      .replace(/\"\s*\"/g, '", "');
+
+    // 4. Try parsing the semi-sanitized version
     try {
-      return JSON.parse(jsonPart);
-    } catch {
-      // 3. Robust sanitization pass
-      // Remove trailing commas which frequently break JSON.parse
-      let sanitized = jsonPart.replace(/,\s*([}\]])/g, "$1");
-      
-      // Remove or escape control characters that might break JSON parsing
-      // especially those inside double quotes
+      return JSON.parse(sanitized);
+    } catch (firstPassError) {
+      // 5. Deep sanitization for unescaped quotes and control chars
       let processed = "";
       let inQuote = false;
       let escaped = false;
@@ -488,6 +497,24 @@ function safeJsonParse(str: string): any {
         const char = sanitized[i];
         
         if (char === '"' && !escaped) {
+          // Check if this is likely a quote meant to be inside a string
+          // e.g. "He said "Hello"" 
+          // If we are inQuote and the NEXT non-whitespace char is NOT : , } or ]
+          // then this quote is likely internal and should be escaped.
+          if (inQuote) {
+            let nextChar = '';
+            for (let j = i + 1; j < sanitized.length; j++) {
+              if (!/\s/.test(sanitized[j])) {
+                nextChar = sanitized[j];
+                break;
+              }
+            }
+            if (nextChar && ![':', ',', '}', ']'].includes(nextChar)) {
+              processed += '\\"';
+              continue;
+            }
+          }
+          
           inQuote = !inQuote;
           processed += char;
         } else if (inQuote && !escaped) {
@@ -499,11 +526,8 @@ function safeJsonParse(str: string): any {
             processed += char;
           } else {
             const code = char.charCodeAt(0);
-            if (code < 32) {
-               // Skip non-printable control characters
-            } else {
-               processed += char;
-            }
+            if (code < 32) { /* skip */ }
+            else processed += char;
           }
         } else {
           if (escaped) escaped = false;
@@ -511,11 +535,26 @@ function safeJsonParse(str: string): any {
         }
       }
 
+      // 6. Final attempt with "Force Close" brackets for truncated JSON
       try {
         return JSON.parse(processed);
-      } catch (e) {
-        console.warn("safeJsonParse: All sanitization attempts failed.", e);
-        return null;
+      } catch (secondPassError) {
+        // One last ditch effort: try to close unbalanced brackets
+        let finalAttempt = processed;
+        const openBraces = (finalAttempt.match(/\{/g) || []).length;
+        const closeBraces = (finalAttempt.match(/\}/g) || []).length;
+        const openBrackets = (finalAttempt.match(/\[/g) || []).length;
+        const closeBrackets = (finalAttempt.match(/\]/g) || []).length;
+
+        for (let i = 0; i < openBraces - closeBraces; i++) finalAttempt += '}';
+        for (let i = 0; i < openBrackets - closeBrackets; i++) finalAttempt += ']';
+
+        try {
+          return JSON.parse(finalAttempt);
+        } catch (e) {
+          console.warn("safeJsonParse: All sanitization attempts failed.", e);
+          return null;
+        }
       }
     }
   } catch (globalError) {
