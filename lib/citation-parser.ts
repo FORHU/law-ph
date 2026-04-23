@@ -43,26 +43,26 @@ export interface MindMapItem {
  */
 export function extractLegalSources(text: string): LegalSource[] {
   const sources: LegalSource[] = [];
-  
+
   // Pattern 1: Article X, Section Y (with optional code name)
   const articlePattern = /(?:(?:the|of)\s+)?(?:(Civil Code|Family Code|Labor Code|Constitution|Revised Penal Code|RPC)\s+)?Article\s+([IVXLCDM\d]+)(?:,?\s+Section\s+(\d+))?/gi;
   let match;
-  
+
   while ((match = articlePattern.exec(text)) !== null) {
     const codeName = match[1] || 'Philippine law';
     const article = match[2];
     const section = match[3];
-    const reference = section 
-      ? `${codeName} Article ${article}, Section ${section}` 
+    const reference = section
+      ? `${codeName} Article ${article}, Section ${section}`
       : `${codeName} Article ${article}`;
-    
+
     sources.push({
       type: 'article',
       reference,
       description: `Reference to ${reference}`
     });
   }
-  
+
   // Pattern 2: RPC/Revised Penal Code references (standalone)
   const rpcPattern = /(?:RPC|Revised Penal Code)\s+(?:Article\s+)?(\d+)/gi;
   while ((match = rpcPattern.exec(text)) !== null) {
@@ -75,14 +75,14 @@ export function extractLegalSources(text: string): LegalSource[] {
       });
     }
   }
-  
+
   // Pattern 3: Section references with context
   const sectionPattern = /Section\s+(\d+)(?:\s+of\s+(?:the\s+)?(Civil Code|Family Code|Labor Code|Constitution|[^.,\n]{5,40}))?/gi;
   while ((match = sectionPattern.exec(text)) !== null) {
     const section = match[1];
     const context = match[2] || 'Philippine law';
     const ref = `Section ${section} of ${context}`;
-    
+
     if (!sources.some(s => s.reference === ref)) {
       sources.push({
         type: 'section',
@@ -91,7 +91,7 @@ export function extractLegalSources(text: string): LegalSource[] {
       });
     }
   }
-  
+
   // Pattern 4: Republic Act (RA) references
   const raPattern = /(?:Republic Act|R\.?A\.?)\s+(?:No\.\s+)?(\d+)/gi;
   while ((match = raPattern.exec(text)) !== null) {
@@ -104,7 +104,7 @@ export function extractLegalSources(text: string): LegalSource[] {
       });
     }
   }
-  
+
   // Pattern 5: Presidential Decree (PD) references
   const pdPattern = /(?:Presidential Decree|P\.?D\.?)\s+(?:No\.\s+)?(\d+)/gi;
   while ((match = pdPattern.exec(text)) !== null) {
@@ -117,7 +117,7 @@ export function extractLegalSources(text: string): LegalSource[] {
       });
     }
   }
-  
+
   // Pattern 6: Batas Pambansa (BP) references
   const bpPattern = /(?:Batas Pambansa|B\.?P\.?)\s+(?:Blg\.\s+)?(\d+)/gi;
   while ((match = bpPattern.exec(text)) !== null) {
@@ -130,12 +130,12 @@ export function extractLegalSources(text: string): LegalSource[] {
       });
     }
   }
-  
+
   // Remove duplicates based on reference
   const uniqueSources = sources.filter((source, index, self) =>
     index === self.findIndex((s) => s.reference === source.reference)
   );
-  
+
   return uniqueSources;
 }
 
@@ -149,29 +149,29 @@ export function extractLegalSources(text: string): LegalSource[] {
  */
 export function extractRelatedCases(text: string): RelatedCase[] {
   const cases: RelatedCase[] = [];
-  
+
   // Pattern 1: G.R. No. XXXXXX (with optional L- prefix)
   const grPattern = /G\.R\.?\s+(?:L-)?No\.?\s+(\d+(?:-\d+)?)/gi;
   let match;
-  
+
   while ((match = grPattern.exec(text)) !== null) {
     const caseNumber = `G.R. No. ${match[1]}`;
-    
+
     // Try to find case title nearby (within 150 characters before and after)
     const contextStart = Math.max(0, match.index - 150);
     const contextEnd = Math.min(text.length, match.index + 150);
     const context = text.substring(contextStart, contextEnd);
-    
+
     // Look for case title pattern: "Name v. Name" or "Name vs. Name"
     const titleMatch = context.match(/([A-Z][a-zA-Z\s.&,'-]+?)\s+v[s]?\.\s+([A-Z][a-zA-Z\s.&,'-]+?)(?:\s|,|\(|$)/);
     const title = titleMatch ? `${titleMatch[1].trim()} v. ${titleMatch[2].trim()}` : 'Supreme Court Case';
-    
+
     // Look for year
     const yearMatch = context.match(/\((\d{4})\)/);
     const year = yearMatch ? yearMatch[1] : null;
-    
+
     const description = year ? `${title} (${year}) - ${caseNumber}` : `${title} - ${caseNumber}`;
-    
+
     if (!cases.some(c => c.caseNumber === caseNumber)) {
       cases.push({
         caseNumber,
@@ -180,23 +180,23 @@ export function extractRelatedCases(text: string): RelatedCase[] {
       });
     }
   }
-  
+
   // Pattern 2: Case titles with "v." or "vs." (without G.R. numbers)
   const casePattern = /\b([A-Z][a-zA-Z\s.&,'-]{2,40}?)\s+v[s]?\.\s+([A-Z][a-zA-Z\s.&,'-]{2,40}?)(?:\s*\((\d{4})\))?/g;
   while ((match = casePattern.exec(text)) !== null) {
     const party1 = match[1].trim();
     const party2 = match[2].trim();
     const year = match[3];
-    
+
     // Filter out common false positives
     if (party1.length < 3 || party2.length < 3) continue;
     if (party1.includes('Article') || party2.includes('Article')) continue;
     if (party1.includes('Section') || party2.includes('Section')) continue;
-    
+
     const title = `${party1} v. ${party2}`;
     const caseNumber = year || 'N/A';
     const description = year ? `${title} (${year})` : title;
-    
+
     // Only add if we don't already have this case
     if (!cases.some(c => c.title.toLowerCase() === title.toLowerCase())) {
       cases.push({
@@ -206,19 +206,19 @@ export function extractRelatedCases(text: string): RelatedCase[] {
       });
     }
   }
-  
+
   // Pattern 3: "People of the Philippines v. [Name]" variations
   const peoplePattern = /(?:People of the Philippines|People)\s+v[s]?\.\s+([A-Z][a-zA-Z\s.&,'-]+?)(?:\s*\((\d{4})\))?(?:\s|,|;|\.|\n|$)/gi;
   while ((match = peoplePattern.exec(text)) !== null) {
     const defendant = match[1].trim();
     const year = match[2];
-    
+
     if (defendant.length < 3) continue;
-    
+
     const title = `People v. ${defendant}`;
     const caseNumber = year || 'N/A';
     const description = year ? `${title} (${year})` : title;
-    
+
     if (!cases.some(c => c.title.toLowerCase() === title.toLowerCase())) {
       cases.push({
         caseNumber,
@@ -227,14 +227,14 @@ export function extractRelatedCases(text: string): RelatedCase[] {
       });
     }
   }
-  
+
   // Remove duplicates
   const uniqueCases = cases.filter((caseItem, index, self) =>
-    index === self.findIndex((c) => 
+    index === self.findIndex((c) =>
       c.caseNumber === caseItem.caseNumber && c.title.toLowerCase() === caseItem.title.toLowerCase()
     )
   );
-  
+
   return uniqueCases;
 }
 
@@ -246,7 +246,7 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
   // 1. Try [TIMELINE]...[/TIMELINE] wrapper first
   const timelineRegex = /\[TIMELINE\]([\s\S]*?)\[\/TIMELINE\]/i;
   const match = text.match(timelineRegex);
-  
+
   let jsonStr = "";
   if (match) {
     jsonStr = match[1].trim();
@@ -305,7 +305,7 @@ function isMindMapShape(v: unknown): v is MindMapItem {
 export function extractMindMap(text: string): MindMapItem | undefined {
   const mindMapRegex = /\[MINDMAP\]([\s\S]*?)\[\/MINDMAP\]/i;
   const match = text.match(mindMapRegex);
-  
+
   let jsonStr = "";
   if (match) {
     jsonStr = match[1].trim();
@@ -343,10 +343,10 @@ export function extractMindMap(text: string): MindMapItem | undefined {
  */
 export function isGenericTitle(title: string): boolean {
   if (!title) return true;
-  
+
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidPattern.test(title)) return true;
-  
+
   const genericTerms = [
     'e-library',
     'information at your fingertips',
@@ -355,7 +355,7 @@ export function isGenericTitle(title: string): boolean {
     'supreme court case',
     'no content available',
   ];
-  
+
   const lowerTitle = title.toLowerCase();
   return genericTerms.some(term => lowerTitle.includes(term));
 }
@@ -365,13 +365,13 @@ export function isGenericTitle(title: string): boolean {
  */
 export function cleanLegalTitle(title: string): string {
   if (!title) return '';
-  
+
   let cleaned = title
     .replace(/E-Library\s*-?\s*Information at Your Fingertips:?\s*/gi, '')
     .replace(/:\s*Printer Friendly/gi, '')
     .replace(/Supreme Court Case\s*-\s*/gi, '')
     .trim();
-    
+
   return cleaned;
 }
 
@@ -380,26 +380,26 @@ export function cleanLegalTitle(title: string): string {
  */
 export function extractTitleFromContent(content: string, currentTitle: string): string {
   if (!isGenericTitle(currentTitle) && currentTitle.length > 10) return cleanLegalTitle(currentTitle);
-  
+
   // Try to find a G.R. No. or RA No. at the start of the content
   const firstLines = content.split('\n').slice(0, 10).join('\n');
-  
+
   // Look for G.R. No. patterns
   const grMatch = firstLines.match(/G\.R\.\s*No\.\s*[\w-]+/i);
   if (grMatch) return grMatch[0];
-  
+
   // Look for RA No. patterns
   const raMatch = firstLines.match(/Republic Act\s+No\.\s+\d+/i) || firstLines.match(/R\.A\.\s+No\.\s+\d+/i);
   if (raMatch) return raMatch[0];
-  
+
   // Look for Case Titles (Party v. Party)
   const caseMatch = firstLines.match(/([A-Z][A-Z\s.,&-]+?)\s+v[s]?\.\s+([A-Z][A-Z\s.,&-]+)/);
   if (caseMatch) return `${caseMatch[1].trim()} v. ${caseMatch[2].trim()}`;
-  
+
   // Look for Markdown headers
   const headerMatch = content.match(/^#\s+(.+)$/m);
   if (headerMatch && !isGenericTitle(headerMatch[1])) return cleanLegalTitle(headerMatch[1]);
-  
+
   return cleanLegalTitle(currentTitle);
 }
 
@@ -409,7 +409,7 @@ export function extractTitleFromContent(content: string, currentTitle: string): 
  */
 export function cleanAiText(text: string): string {
   if (!text) return text;
-  
+
   let cleaned = text;
 
   // 1. Strip bracketed standard structures
@@ -458,17 +458,17 @@ export function cleanMessageText(text: string): string {
  */
 function safeJsonParse(str: string): any {
   if (!str) return null;
-  
+
   try {
     // 1. Extract JSON block
     const firstBrace = str.indexOf('{');
     const firstBracket = str.indexOf('[');
     const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
-    
+
     const lastBrace = str.lastIndexOf('}');
     const lastBracket = str.lastIndexOf(']');
     const end = Math.max(lastBrace, lastBracket);
-    
+
     let jsonPart = str;
     if (start !== -1 && end !== -1 && end > start) {
       jsonPart = str.substring(start, end + 1);
@@ -496,10 +496,10 @@ function safeJsonParse(str: string): any {
       let processed = "";
       let inQuote = false;
       let escaped = false;
-      
+
       for (let i = 0; i < sanitized.length; i++) {
         const char = sanitized[i];
-        
+
         if (char === '"' && !escaped) {
           // Check if this is likely a quote meant to be inside a string
           // e.g. "He said "Hello"" 
@@ -518,7 +518,7 @@ function safeJsonParse(str: string): any {
               continue;
             }
           }
-          
+
           inQuote = !inQuote;
           processed += char;
         } else if (inQuote && !escaped) {
@@ -540,7 +540,6 @@ function safeJsonParse(str: string): any {
       }
 
       // 5. Fix missing commas between objects/arrays (common AI mistake)
-      // e.g. {"id":1} {"id":2}  -> {"id":1}, {"id":2}
       processed = processed
         .replace(/\}\s*\{/g, '}, {')
         .replace(/\]\s*\[/g, '], [')

@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
+    // Amazon Polly Neural voices have a limit of 3000 characters.
+    const limitedText = text.length > 3000 ? text.substring(0, 2990) + "..." : text;
+
     const command = new SynthesizeSpeechCommand({
-      Text: text,
+      Text: limitedText,
       OutputFormat: "mp3",
       VoiceId: voiceId,
       Engine: "neural",

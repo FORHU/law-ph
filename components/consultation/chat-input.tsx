@@ -113,7 +113,7 @@ export function ChatInput({
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [status, activeJobName]);
-  
+
   // Microphone Stream Cleanup on Unmount
   useEffect(() => {
     return () => {
