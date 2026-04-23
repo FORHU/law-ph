@@ -1,4 +1,6 @@
-import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { synthesizeSpeech } from '@/lib/aws-polly-utils';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import {
   DropdownMenu,
@@ -71,6 +73,11 @@ export function MessageItem({
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
   const { addBookmark, removeBookmark, isBookmarked } = useConversations();
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
 
   const bookmarkId = isBookmarked(message.id.toString());
   const bookmarked = !!bookmarkId;
@@ -93,6 +100,66 @@ export function MessageItem({
       });
     }
   };
+
+  const handleSpeak = async (voiceId: string = "Joanna") => {
+    if (isPlaying && currentAudio) {
+      currentAudio.pause();
+      setIsPlaying(false);
+      // If the same voice is clicked, just stop. If different, we continue below to play new voice
+    }
+
+    setIsSynthesizing(true);
+    try {
+      localStorage.setItem('preferred_voice', voiceId);
+      const audio = await synthesizeSpeech(message.text, voiceId);
+      if (audio) {
+        setCurrentAudio(audio);
+        setIsPlaying(true);
+        audio.play();
+        audio.onended = () => {
+          setIsPlaying(false);
+          setCurrentAudio(null);
+        };
+      }
+    } catch (err) {
+      console.error("Speech synthesis failed:", err);
+    } finally {
+      setIsSynthesizing(false);
+    }
+  };
+
+  const handlePreview = async (e: React.MouseEvent, voiceId: string, voiceName: string) => {
+    e.stopPropagation(); // Don't close the menu if we just want a preview
+    
+    if (isPreviewing === voiceId && previewAudio) {
+      previewAudio.pause();
+      setIsPreviewing(null);
+      return;
+    }
+
+    if (previewAudio) previewAudio.pause();
+    
+    setIsPreviewing(voiceId);
+    try {
+      const sampleText = `Hello, I am ${voiceName}. I will be your legal assistant today.`;
+      const audio = await synthesizeSpeech(sampleText, voiceId);
+      if (audio) {
+        setPreviewAudio(audio);
+        audio.play();
+        audio.onended = () => setIsPreviewing(null);
+      }
+    } catch (err) {
+      console.error("Preview failed:", err);
+      setIsPreviewing(null);
+    }
+  };
+
+  const voices = [
+    { id: 'Ruth', name: 'Ruth', desc: 'Professional & Authoritative' },
+    { id: 'Stephen', name: 'Stephen', desc: 'Trustworthy & Formal' },
+    { id: 'Joanna', name: 'Joanna', desc: 'Friendly & Clear' },
+    { id: 'Matthew', name: 'Matthew', desc: 'Reliable & Direct' },
+  ];
 
   if (message.sender === 'system') {
     return (
@@ -158,6 +225,77 @@ export function MessageItem({
                   </span>
                 </button>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={isSynthesizing}
+                    className={`p-1.5 rounded-md transition-all focus:outline-none ${isPlaying ? 'text-[#E0A7C2] bg-[#8B4564]/10' : 'text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10'}`}
+                    title={isPlaying ? "Stop Speaking / Change Voice" : "Read Aloud (Select Voice)"}
+                  >
+                    {isSynthesizing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : isPlaying ? (
+                      <VolumeX size={14} />
+                    ) : (
+                      <Volume2 size={14} />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 bg-[#252525]/95 backdrop-blur-xl border-white/5 text-gray-200">
+                  <div className="px-3 py-2 border-b border-white/5 mb-1">
+                    <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-widest flex items-center gap-2">
+                      <Volume2 size={12} />
+                      Select AI Voice
+                    </div>
+                  </div>
+                  {voices.map((voice) => (
+                    <DropdownMenuItem
+                      key={voice.id}
+                      className="group flex items-center justify-between px-3 py-2 text-sm hover:bg-[#8B4564]/20 cursor-pointer focus:bg-[#8B4564]/20"
+                      onClick={() => handleSpeak(voice.id)}
+                    >
+                      <div className="flex flex-col items-start flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white group-hover:text-[#E0A7C2]">{voice.name}</span>
+                          {typeof window !== 'undefined' && localStorage.getItem('preferred_voice') === voice.id && (
+                            <div className="w-1 h-1 rounded-full bg-[#E0A7C2]" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-500 group-hover:text-gray-300">{voice.desc}</span>
+                      </div>
+                      
+                      <button
+                        onClick={(e) => handlePreview(e, voice.id, voice.name)}
+                        className={`p-1.5 rounded-full transition-all hover:bg-white/10 ${isPreviewing === voice.id ? 'text-[#E0A7C2] animate-pulse' : 'text-gray-500 hover:text-white'}`}
+                        title="Play Sample"
+                      >
+                        {isPreviewing === voice.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <Volume2 size={12} />
+                        )}
+                      </button>
+                    </DropdownMenuItem>
+                  ))}
+                  {isPlaying && (
+                    <>
+                      <DropdownMenuSeparator className="bg-white/5" />
+                      <DropdownMenuItem
+                        className="flex items-center px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 cursor-pointer"
+                        onClick={() => {
+                          if (currentAudio) {
+                            currentAudio.pause();
+                            setIsPlaying(false);
+                          }
+                        }}
+                      >
+                        <VolumeX size={14} className="mr-2" />
+                        <span>Stop Playback</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 onClick={handleBookmarkToggle}
                 className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none"

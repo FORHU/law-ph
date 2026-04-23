@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles, Mic } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles, Mic, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { uploadToS3Direct } from '@/lib/s3-utils';
+import { startAWSBatchTranscription, getTranscriptionJobStatus, fetchTranscriptionText } from '@/lib/aws-transcribe-utils';
 import { COLORS } from '@/lib/constants';
 
 interface ChatInputProps {
@@ -16,10 +18,14 @@ interface ChatInputProps {
   onAnalyzeFile?: (file: File) => Promise<void>;
   onAnalyzeClick?: () => void;
   isAnalyzing?: boolean;
+  onVoiceModeToggle?: () => void;
+  isRecording?: boolean;
+  onRecordingChange?: (isRecording: boolean) => void;
+  status?: 'listening' | 'thinking' | 'idle';
+  onStatusChange?: (status: 'listening' | 'thinking' | 'idle') => void;
 }
 
 export function ChatInput({
-
   onSend,
   placeholder = "Ask ilovelawyer regarding legal matters...",
   disabled = false,
@@ -29,7 +35,12 @@ export function ChatInput({
   isCaseMode = false,
   onAnalyzeFile,
   onAnalyzeClick,
-  isAnalyzing = false
+  isAnalyzing = false,
+  onVoiceModeToggle,
+  isRecording: externalIsRecording = false,
+  onRecordingChange,
+  status: externalStatus = 'idle',
+  onStatusChange
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -40,6 +51,82 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDragRef = useRef(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Voice States
+  const [internalIsRecording, setInternalIsRecording] = useState(false);
+  const [internalStatus, setInternalStatus] = useState<'listening' | 'thinking' | 'idle'>('idle');
+  const [volume, setVolume] = useState(0);
+  const [activeJobName, setActiveJobName] = useState<string | null>(null);
+
+  const isRecording = onRecordingChange ? externalIsRecording : internalIsRecording;
+  const status = onStatusChange ? externalStatus : internalStatus;
+
+  const setIsRecording = (val: boolean) => {
+    if (onRecordingChange) onRecordingChange(val);
+    else setInternalIsRecording(val);
+  };
+
+  const setStatus = (val: 'listening' | 'thinking' | 'idle') => {
+    if (onStatusChange) onStatusChange(val);
+    else setInternalStatus(val);
+  };
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyzerRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Background Polling Logic for Transcription
+  useEffect(() => {
+    if (activeJobName && status === 'thinking') {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const job = await getTranscriptionJobStatus(activeJobName);
+          if (job?.TranscriptionJobStatus === 'COMPLETED') {
+            clearInterval(pollingRef.current!);
+            const text = await fetchTranscriptionText(job.Transcript!.TranscriptFileUri!);
+            const cleanText = text.replace(/\[TS:.*?\]\s*\[.*?\]:\s*/g, '').trim();
+
+            setActiveJobName(null);
+            setStatus('idle');
+
+            if (cleanText) {
+              onSend(cleanText);
+            }
+          } else if (job?.TranscriptionJobStatus === 'FAILED') {
+            clearInterval(pollingRef.current!);
+            setActiveJobName(null);
+            setStatus('idle');
+          }
+        } catch (err) {
+          console.error("Transcription Polling error:", err);
+        }
+      }, 1500);
+    }
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [status, activeJobName]);
+  
+  // Microphone Stream Cleanup on Unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -107,6 +194,97 @@ export function ChatInput({
     }
   };
 
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 128;
+      source.connect(analyzer);
+      analyzerRef.current = analyzer;
+
+      const bufferLength = analyzer.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const updateVolume = () => {
+        if (!analyzerRef.current) return;
+        analyzerRef.current.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+        const normalizedVolume = Math.min(100, Math.pow(average / 40, 0.7) * 100);
+        setVolume(normalizedVolume);
+        animationRef.current = requestAnimationFrame(updateVolume);
+      };
+
+      updateVolume();
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/mp3' });
+        const file = new File([audioBlob], `voice-note-${Date.now()}.mp3`, { type: 'audio/mp3' });
+
+        setStatus('thinking');
+
+        try {
+          const s3Data = await uploadToS3Direct(file, file.name);
+          if (!s3Data.file_url) throw new Error("Upload failed");
+
+          const jobName = `voice-chat-${Date.now()}`;
+          const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
+          const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
+
+          await startAWSBatchTranscription(s3Uri, jobName);
+          setActiveJobName(jobName);
+          // status is already 'thinking' from above
+        } catch (error) {
+          console.error("Integrated voice error:", error);
+          setStatus('idle');
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setStatus('listening');
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    setVolume(0);
+  };
+
+  const handleVoiceToggle = () => {
+    if (isRecording) {
+      stopVoiceRecording();
+    } else {
+      startVoiceRecording();
+    }
+  };
 
   return (
     <div className="relative z-10 border-t border-[#8B4564]/20 bg-[#1A1A1A]/90 backdrop-blur-sm landscape:border-t-0 landscape:bg-[#1A1A1A]/95">
@@ -227,19 +405,52 @@ export function ChatInput({
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5">
-                <textarea
-                  ref={textareaRef}
-                  id="chat-message-input"
-                  name="message"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={placeholder}
-                  rows={1}
-                  className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] md:min-h-[52px] max-h-[160px] overflow-y-auto font-inter"
-                  disabled={disabled}
-                />
+              <div className="flex items-center bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl focus-within:border-[#8B4564]/60 transition-all overflow-hidden p-1.5 min-h-[52px]">
+                <AnimatePresence mode="wait">
+                  {!isRecording && status === 'idle' ? (
+                    <motion.textarea
+                      key="input"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      ref={textareaRef}
+                      id="chat-message-input"
+                      name="message"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder={placeholder}
+                      rows={1}
+                      className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed max-h-[160px] overflow-y-auto font-inter"
+                      disabled={disabled}
+                    />
+                  ) : (
+                    <motion.div
+                      key="voice"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="flex-1 flex items-center px-4 gap-4"
+                    >
+                      <div className="flex-1 flex items-center gap-1 h-6">
+                        {Array.from({ length: 32 }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            animate={{
+                              height: status === 'listening' ? Math.max(2, (volume / 100) * 24 * (1 - Math.abs(i - 16) / 16)) : 2,
+                              opacity: status === 'listening' ? 0.8 : 0.2
+                            }}
+                            className="w-1 bg-[#E0A7C2] rounded-full"
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold tracking-widest text-[#E0A7C2] animate-pulse whitespace-nowrap">
+                        {status === 'listening' ? 'RECORDING...' : 'TRANSCRIBING...'}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Hidden File Input (attach) */}
                 <input
@@ -290,6 +501,23 @@ export function ChatInput({
 
                   </button>
                 )}
+
+                {/* Voice Mode button */}
+                <button
+                  type="button"
+                  title={isRecording ? "Stop Recording" : "Voice Mode (Talk to AI)"}
+                  onClick={handleVoiceToggle}
+                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'}`}
+                  disabled={disabled || status === 'thinking'}
+                >
+                  {isRecording ? (
+                    <Square size={16} fill="currentColor" className="md:size-3.5" />
+                  ) : status === 'thinking' ? (
+                    <Loader2 size={20} className="animate-spin text-[#E0A7C2] md:size-4" />
+                  ) : (
+                    <Mic size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
+                  )}
+                </button>
 
                 <button
                   className={`h-11 w-11 md:h-10 md:w-10 bg-gradient-to-r from-[#8B4564] to-[#7a3c58] rounded-lg hover:from-[#9D5373] hover:to-[#8B4564] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`}

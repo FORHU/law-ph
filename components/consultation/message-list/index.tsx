@@ -17,16 +17,16 @@ interface MessageListProps {
   onSendMessage?: (text: string) => void;
 }
 
-export function MessageList({ 
-  messages, 
-  onDelete, 
-  onSourceClick, 
+export function MessageList({
+  messages,
+  onDelete,
+  onSourceClick,
   onCaseClick,
   onSourceLinkClick,
-  onUpdateMessage, 
+  onUpdateMessage,
   onOpenNote,
   isLoading,
-  onSendMessage 
+  onSendMessage
 }: MessageListProps) {
   const { session } = useAuth();
   const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useConversations();
@@ -40,7 +40,7 @@ export function MessageList({
     const msgIndex = messages.findIndex(m => m.id === messageId);
     if (msgIndex === -1) return;
     const msg = messages[msgIndex];
-    
+
     const currentPage = isLoadMore ? (relatedCasesPage[messageId] || 1) + 1 : 1;
     const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
     const searchPrompt = precedingUserMsg?.text || msg.text;
@@ -79,10 +79,10 @@ export function MessageList({
             itemId: item.item_id,
           };
         });
-        
+
         let updatedCases: RelatedCase[] = newCases;
         if (isLoadMore && msg.relatedCases) {
-            updatedCases = [...msg.relatedCases, ...newCases];
+          updatedCases = [...msg.relatedCases, ...newCases];
         }
 
         onUpdateMessage?.(messageId, { relatedCases: updatedCases });
