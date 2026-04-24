@@ -23,6 +23,7 @@ export interface Message {
   hidden?: boolean;
   mindMap?: any;
   status?: 'pending' | 'processing' | 'done' | 'error';
+  rawContent?: string; // Stores uncleaned text with [MINDMAP]/[TIMELINE] tags
   fileAttachment?: {
     name: string;
     url?: string;

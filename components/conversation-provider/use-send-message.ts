@@ -277,6 +277,8 @@ Current System Date: ${new Date().toISOString().split('T')[0]}
 
 5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
 
+CRITICAL: NEVER mention "Mind Map", "Timeline", or that you are generating them in your prose/text response. The UI renders them automatically in a separate tab. Your prose must ONLY contain the direct legal consultation, then immediately output the tags.
+
 The tags MUST be at the very bottom and look like this:
 
 [MINDMAP]
@@ -416,6 +418,7 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
                     updated[lastIdx] = {
                       ...updated[lastIdx],
                       text: cleanText,
+                      rawContent: accumulatedText,
                       sources,
                       relatedCases,
                       timeline,

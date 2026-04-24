@@ -138,7 +138,7 @@ export default function TranscribeWorkspace({
   const [activeTranscriptionId, setActiveTranscriptionId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Unified duration for the entire UI
   const displayTotalDuration = isRecording ? activeDuration : (totalDuration > 0 ? totalDuration : (duration > 0 ? duration : 0.1));
 
@@ -234,7 +234,7 @@ export default function TranscribeWorkspace({
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioContextClass();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
+
       // Force totalDuration to match the actual decoded audio length to ensure visual sync
       if (audioBuffer.duration > 0) {
         setTotalDuration(audioBuffer.duration);
@@ -958,7 +958,7 @@ export default function TranscribeWorkspace({
                   / {formatTimelineTime(displayTotalDuration)}
                 </span>
               </div>
-              
+
               <button
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
                 className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${isHistoryOpen ? 'bg-[#8B4564] text-white border-[#8B4564]' : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400'}`}
@@ -1054,7 +1054,7 @@ export default function TranscribeWorkspace({
                 }}
               />
             )}
-            
+
             {/* Waveform Visualization */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex items-center gap-[2px] md:gap-1 w-full h-24 md:h-32 opacity-60">
@@ -1064,24 +1064,23 @@ export default function TranscribeWorkspace({
                     // Use a deterministic pattern (sine wave) for placeholder if no data, to avoid hydration mismatch
                     const placeholderHeight = 10 + (Math.sin(i * 0.5) * 5 + 5);
                     const peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
-                    
+
                     const timeAtBar = (i / 150) * displayTotalDuration;
                     const isPlayed = !isRecording && timeAtBar <= currentTime;
                     const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
 
-                  return (
-                    <div
-                      key={i}
-                      className={`flex-1 rounded-full ${
-                        isPlayed || isRecordingProgress
-                          ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
-                          : 'bg-white/10'
-                      }`}
-                      style={{ 
-                        height: `${Math.max(4, peakHeight).toFixed(2)}%`,
-                        opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
-                      }}
-                    />
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
+                            ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
+                            : 'bg-white/10'
+                          }`}
+                        style={{
+                          height: `${Math.max(4, peakHeight).toFixed(2)}%`,
+                          opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
+                        }}
+                      />
                     );
                   });
                 })()}
@@ -1090,10 +1089,10 @@ export default function TranscribeWorkspace({
 
             {/* Scrubber Line */}
             {!isRecording && audioUrl && (
-              <div 
+              <div
                 className="absolute top-0 bottom-0 w-[2px] bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] z-30 pointer-events-none"
-                style={{ 
-                  left: `${(currentTime / displayTotalDuration) * 100}%` 
+                style={{
+                  left: `${(currentTime / displayTotalDuration) * 100}%`
                 }}
               >
                 <div className="w-4 h-4 rounded-full bg-white absolute top-0 -left-[7px] shadow-lg border-4 border-[#111]" />
@@ -1119,11 +1118,11 @@ export default function TranscribeWorkspace({
       {isHistoryOpen && (
         <div className="fixed md:relative inset-0 md:inset-auto z-[60] flex justify-end md:flex-none overflow-hidden">
           {/* Backdrop (Mobile Only) */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in duration-300"
             onClick={() => setIsHistoryOpen(false)}
           />
-          
+
           <div className="w-[85%] md:w-80 h-full bg-[#111111]/95 backdrop-blur-2xl border-l border-white/10 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
               <div className="flex flex-col">
@@ -1132,8 +1131,8 @@ export default function TranscribeWorkspace({
                 </h3>
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Recently Transcribed</p>
               </div>
-              <button 
-                onClick={() => setIsHistoryOpen(false)} 
+              <button
+                onClick={() => setIsHistoryOpen(false)}
                 className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all active:scale-90"
               >
                 <X size={20} />
@@ -1182,14 +1181,14 @@ export default function TranscribeWorkspace({
                           {formatTimelineTime(item.duration)}
                         </div>
                       </div>
-                      
+
                       <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 ${isActive ? 'text-white' : 'text-gray-500'}`}>
                         <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
                       </div>
-                      
+
                       {item.transcript === "Transcription in progress..." && (
                         <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#E0A7C2]'}`}>
-                          <Loader2 size={10} className="animate-spin" /> 
+                          <Loader2 size={10} className="animate-spin" />
                           <span className="uppercase tracking-widest">Processing...</span>
                         </div>
                       )}
@@ -1198,7 +1197,7 @@ export default function TranscribeWorkspace({
                 })
               )}
             </div>
-            
+
             <div className="p-6 bg-[#111111] border-t border-white/5">
               <button
                 onClick={resetWorkspace}

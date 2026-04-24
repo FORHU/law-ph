@@ -382,15 +382,8 @@ export function ConversationProvider({
       }
     }
 
-    // Always clean the text for display, even if JSON parsing fails or metaMatch is null
-    text = cleanMessageText(text);
-
-    // Also strip hidden instructions (redundant but safe if cleanMessageText is expanded)
-    text = text
-      .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "")
-      .trim();
-
     // Auto-extract citations for AI messages on load/map
+    // CRITICAL: Extract from raw text BEFORE cleaning it for display
     const sources =
       sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
     const relatedCases =
@@ -399,6 +392,9 @@ export function ConversationProvider({
       sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
     const mindMap =
       sender === CHAT_SENDER.AI ? extractMindMap(text) : undefined;
+
+    // Now clean the text for display
+    text = cleanMessageText(text);
 
     const cleanText =
       sender === CHAT_SENDER.AI
