@@ -11,7 +11,7 @@ const pollyClient = new PollyClient({
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voiceId = "Joanna" } = await req.json();
+    const { text, voiceId = "Ruth" } = await req.json();
 
     if (!text) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -20,11 +20,15 @@ export async function POST(req: NextRequest) {
     // Amazon Polly Neural voices have a limit of 3000 characters.
     const limitedText = text.length > 3000 ? text.substring(0, 2990) + "..." : text;
 
+    // Use the highly expressive 'generative' engine if the voice supports it, otherwise fallback to 'neural'
+    const generativeVoices = ["Ruth", "Matthew", "Stephen", "Amy", "Brian", "Aria"];
+    const engine = generativeVoices.includes(voiceId) ? "generative" : "neural";
+
     const command = new SynthesizeSpeechCommand({
       Text: limitedText,
       OutputFormat: "mp3",
       VoiceId: voiceId,
-      Engine: "neural",
+      Engine: engine,
     });
 
     const response = await pollyClient.send(command);
