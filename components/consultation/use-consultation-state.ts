@@ -347,11 +347,45 @@ export function useConsultationState({
   };
 
 
+  const isRelevantTimeline = (timeline: any[]) => {
+    if (!timeline || timeline.length === 0) return false;
+    // A timeline is relevant if it has more than 2 steps OR its steps aren't just generic placeholders
+    if (timeline.length > 3) return true;
+    
+    const genericTitles = ["Case Created", "Initial Analysis", "Strategic Planning", "Assessment", "Consultation", "Case Assessment"];
+    const meaningfulSteps = timeline.filter(item => 
+      !genericTitles.some(gt => item.title.includes(gt)) && 
+      item.description && item.description.length > 15
+    );
+    return meaningfulSteps.length > 0;
+  };
+
+  const isRelevantMindMap = (mindMap: any) => {
+    if (!mindMap || !mindMap.children || mindMap.children.length === 0) return false;
+    
+    // Check if any of the main categories have actual data (not just "Extracting..." placeholders)
+    const hasMeaningfulContent = mindMap.children.some((child: any) => {
+      if (!child.children || child.children.length === 0) return false;
+      return child.children.some((grandchild: any) => {
+        const label = (grandchild.label || "").toLowerCase();
+        return !label.includes("extracting") && !label.includes("identifying") && !label.includes("awaiting");
+      });
+    });
+    
+    return hasMeaningfulContent;
+  };
+
   // Derived Data: Timeline
   const latestTimelineMessage = [...messages]
     .reverse()
+    .find((m) => m.timeline && m.timeline.length > 0 && isRelevantTimeline(m.timeline));
+  
+  // Fallback to latest available if no "relevant" one found yet, to at least show something
+  const fallbackTimelineMessage = latestTimelineMessage || [...messages]
+    .reverse()
     .find((m) => m.timeline && m.timeline.length > 0);
-  let activeTimeline = latestTimelineMessage?.timeline || [];
+
+  let activeTimeline = fallbackTimelineMessage?.timeline || [];
 
   const isBasicPlaceholder =
     activeTimeline.length === 1 &&
@@ -396,8 +430,13 @@ export function useConsultationState({
   // Derived Data: MindMap
   const latestMindMapMessage = [...messages]
     .reverse()
+    .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0 && isRelevantMindMap(m.mindMap));
+  
+  const fallbackMindMapMessage = latestMindMapMessage || [...messages]
+    .reverse()
     .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0);
-  let activeMindMap = latestMindMapMessage?.mindMap;
+
+  let activeMindMap = fallbackMindMapMessage?.mindMap;
 
   // Calculate briefcaseAttachments
   const briefcaseAttachments: any[] = [];

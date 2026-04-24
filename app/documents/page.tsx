@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, FileText, X, Briefcase, Scale, ChevronDown, Loader2, CheckCircle, AlertCircle
 } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function Documents() {
   const [recentDocuments, setRecentDocuments] = useState<StoredDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [caseDropdownOpen, setCaseDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load documents from Supabase (authenticated) or localStorage (guest)
@@ -210,18 +211,58 @@ export default function Documents() {
                   Apply to Case <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <select
-                    value={selectedCaseId}
-                    onChange={(e) => setSelectedCaseId(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 appearance-none cursor-pointer"
+                  <div
+                    onClick={() => setCaseDropdownOpen(!caseDropdownOpen)}
+                    className="w-full flex items-center bg-black/40 border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-gray-300 outline-none hover:border-[#E0A7C2]/50 cursor-pointer transition-all"
                   >
-                    <option value="" disabled>Select a case...</option>
-                    {cases.map(c => (
-                      <option key={c.id} value={c.id}>{c.case_name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    <Briefcase size={14} className="text-gray-500 mr-2.5" />
+                    <span className="flex-1 truncate">
+                      {selectedCaseId ? cases.find(c => c.id === selectedCaseId)?.case_name : "Select a case..."}
+                    </span>
+                    <ChevronDown size={14} className={`text-gray-500 transition-transform duration-200 ${caseDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  <AnimatePresence>
+                    {caseDropdownOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setCaseDropdownOpen(false)} 
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute left-0 right-0 top-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-sidebar-scrollbar"
+                        >
+                          <div
+                            className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 bg-white/[0.02]"
+                          >
+                            Active Cases
+                          </div>
+                          {cases.length === 0 ? (
+                            <div className="px-4 py-3 text-xs text-gray-500 italic">No cases found</div>
+                          ) : (
+                            cases.map(c => (
+                              <div
+                                key={c.id}
+                                onClick={() => {
+                                  setSelectedCaseId(c.id);
+                                  setCaseDropdownOpen(false);
+                                }}
+                                className={`px-4 py-3 text-xs cursor-pointer transition-colors flex items-center gap-3
+                                  ${selectedCaseId === c.id ? 'bg-[#8B4564]/20 text-[#E0A7C2]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
+                                `}
+                              >
+                                <div className={`w-1.5 h-1.5 rounded-full ${selectedCaseId === c.id ? 'bg-[#E0A7C2]' : 'bg-gray-600'}`} />
+                                <span className="truncate">{c.case_name}</span>
+                              </div>
+                            ))
+                          )}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 

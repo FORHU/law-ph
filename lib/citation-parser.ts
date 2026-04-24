@@ -251,10 +251,17 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
   if (match) {
     jsonStr = match[1].trim();
   } else {
-    // 2. Fallback: look for a bare JSON array
-    const fallbackMatch = text.match(/(\[\s*\{\s*"title"\s*:[\s\S]*?\}\s*\])/i);
-    if (fallbackMatch) {
-      jsonStr = fallbackMatch[1].trim();
+    // 2. If it was truncated and missing the closing tag, stop if we hit the next tag
+    const openTagRegex = /\[TIMELINE\]([\s\S]*?)(?:\[MINDMAP\]|\[ILM_META\]|$)/i;
+    const openMatch = text.match(openTagRegex);
+    if (openMatch) {
+      jsonStr = openMatch[1].trim();
+    } else {
+      // 3. Fallback: look for a bare JSON array
+      const fallbackMatch = text.match(/(\[\s*\{\s*"title"\s*:[\s\S]*?\}\s*\])/i);
+      if (fallbackMatch) {
+        jsonStr = fallbackMatch[1].trim();
+      }
     }
   }
 
@@ -310,13 +317,20 @@ export function extractMindMap(text: string): MindMapItem | undefined {
   if (match) {
     jsonStr = match[1].trim();
   } else {
-    const blocks = text.split(/[\r\n]{2,}/);
-    for (const block of blocks.reverse()) {
-      if (block.includes('"id"') && block.includes('"root"')) {
-        const fallbackMatch = block.match(/(\{[\s\S]*\})/);
-        if (fallbackMatch) {
-          jsonStr = fallbackMatch[1].trim();
-          break;
+    // If the AI hit a token limit and didn't close [/MINDMAP], look for [MINDMAP] and stop at the next tag
+    const openTagRegex = /\[MINDMAP\]([\s\S]*?)(?:\[TIMELINE\]|\[ILM_META\]|$)/i;
+    const openMatch = text.match(openTagRegex);
+    if (openMatch) {
+      jsonStr = openMatch[1].trim();
+    } else {
+      const blocks = text.split(/[\r\n]{2,}/);
+      for (const block of blocks.reverse()) {
+        if (block.includes('"id"') && block.includes('"root"')) {
+          const fallbackMatch = block.match(/(\{[\s\S]*\})/);
+          if (fallbackMatch) {
+            jsonStr = fallbackMatch[1].trim();
+            break;
+          }
         }
       }
     }
@@ -550,40 +564,64 @@ function safeJsonParse(str: string): any {
       try {
         return JSON.parse(processed);
       } catch (firstPassError) {
-        // Pass A: Try trimming trailing noise
-        let trimmed = processed;
-        const lastBrace = processed.lastIndexOf('}');
-        const lastBracket = processed.lastIndexOf(']');
-        const lastValid = Math.max(lastBrace, lastBracket);
-        
-        if (lastValid !== -1) {
-          trimmed = processed.substring(0, lastValid + 1);
-        }
-        
-        try {
-          return JSON.parse(trimmed);
-        } catch (trimError) {
-          // Pass B: Final effort - close unbalanced brackets/braces
-          let finalAttempt = trimmed;
-          const openBraces = (finalAttempt.match(/\{/g) || []).length;
-          const closeBraces = (finalAttempt.match(/\}/g) || []).length;
-          const openBrackets = (finalAttempt.match(/\[/g) || []).length;
-          const closeBrackets = (finalAttempt.match(/\]/g) || []).length;
+        // Try stack-based auto-repair on the raw processed string
+        let finalAttempt = processed.trim();
+        // Remove trailing comma if it exists before closing
+        finalAttempt = finalAttempt.replace(/,\s*$/, "");
+          
+          // Use a stack to track open structures and string state
+          let isStringOpen = false;
+          let isEscape = false;
+          const stack: string[] = [];
+          
+          for (let i = 0; i < finalAttempt.length; i++) {
+            const char = finalAttempt[i];
+            if (isEscape) {
+              isEscape = false;
+              continue;
+            }
+            if (char === '\\') {
+              isEscape = true;
+              continue;
+            }
+            if (char === '"') {
+              isStringOpen = !isStringOpen;
+              continue;
+            }
+            if (!isStringOpen) {
+              if (char === '{') stack.push('}');
+              else if (char === '[') stack.push(']');
+              else if (char === '}' || char === ']') {
+                if (stack.length > 0 && stack[stack.length - 1] === char) {
+                  stack.pop();
+                }
+              }
+            }
+          }
 
-          for (let i = 0; i < openBraces - closeBraces; i++) finalAttempt += '}';
-          for (let i = 0; i < openBrackets - closeBrackets; i++) finalAttempt += ']';
+          if (isStringOpen) finalAttempt += '"';
+          while (stack.length > 0) {
+            finalAttempt += stack.pop();
+          }
+
+          // 6b. Final emergency repair: if we have a trailing colon or incomplete key, remove it
+          finalAttempt = finalAttempt.trim()
+            .replace(/,\s*$/, "")
+            .replace(/:\s*$/, "")
+            .replace(/,\s*"\w*"\s*$/, "")
+            .replace(/\{\s*"\w*"\s*$/, "{");
 
           try {
             return JSON.parse(finalAttempt);
           } catch (finalError) {
-            console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
+            // Silence noisy warnings during streaming; only log if actually needed for debugging
+            // console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
             return null;
           }
         }
       }
-    }
   } catch (globalError) {
-    console.error("safeJsonParse: Critical failure during parsing logic", globalError);
+    // console.error("safeJsonParse: Critical failure during parsing logic", globalError);
     return null;
   }
 }

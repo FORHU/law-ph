@@ -299,6 +299,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   const [emailInput, setEmailInput] = useState("");
   const [emailError, setEmailError] = useState(false);
   const [scheduleTypeDropdownOpen, setScheduleTypeDropdownOpen] = useState(false);
+  const [emailFindingsDropdownOpen, setEmailFindingsDropdownOpen] = useState(false);
   const [scheduleValidationErrors, setScheduleValidationErrors] = useState<string[]>([]);
 
   const handleAddEmail = (val: string) => {
@@ -989,20 +990,58 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Auto-fill from AI Findings (Optional)</label>
                       <div className="relative">
-                        <select
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all appearance-none cursor-pointer"
-                          onChange={(e) => {
-                            setEmailBody(e.target.value);
-                          }}
+                        <div
+                          onClick={() => setEmailFindingsDropdownOpen(!emailFindingsDropdownOpen)}
+                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none hover:border-[#E0A7C2]/50 cursor-pointer transition-all"
                         >
-                          <option value="">-- Select an AI finding to insert --</option>
-                          {messages.filter(m => m.sender === 'ai' && m.text.length > 20).map((m, idx) => (
-                            <option key={idx} value={m.text}>{m.text.substring(0, 60)}...</option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 flex items-center px-1 text-gray-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                          <span className="truncate pr-4">
+                            {emailBody ? emailBody.replace(/[#*]/g, '').trim().substring(0, 50) + (emailBody.length > 50 ? "..." : "") : "-- Select an AI finding to insert --"}
+                          </span>
+                          <ChevronDown size={16} className={`transition-transform duration-200 text-white/60 ${emailFindingsDropdownOpen ? 'rotate-180' : ''}`} />
                         </div>
+                        
+                        <AnimatePresence>
+                          {emailFindingsDropdownOpen && (
+                            <>
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                className="absolute z-50 w-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar"
+                              >
+                                <div
+                                  onClick={() => {
+                                    setEmailBody("");
+                                    setEmailFindingsDropdownOpen(false);
+                                  }}
+                                  className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5
+                                    ${!emailBody ? "bg-[#E0A7C2]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
+                                  `}
+                                >
+                                  -- Select an AI finding to insert --
+                                </div>
+                                {messages.filter(m => m.sender === 'ai' && m.text.length > 20).map((m, idx) => (
+                                  <div
+                                    key={idx}
+                                    onClick={() => {
+                                      setEmailBody(m.text);
+                                      setEmailFindingsDropdownOpen(false);
+                                    }}
+                                    className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5 last:border-none
+                                      ${emailBody === m.text ? "bg-[#E0A7C2]/20 text-white font-semibold" : "text-white/60 hover:bg-white/5 hover:text-white"}
+                                    `}
+                                  >
+                                    <div className="line-clamp-2 leading-relaxed">
+                                      {m.text.replace(/[#*]/g, '').trim()}
+                                    </div>
+                                  </div>
+                                ))}
+                              </motion.div>
+                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setEmailFindingsDropdownOpen(false); }} />
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
