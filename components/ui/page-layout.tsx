@@ -43,18 +43,18 @@ export function PageLayout({
   const { isSidebarOpen, setIsSidebarOpen } = useConversations();
 
   return (
-    <div className="flex h-screen bg-[#1A1A1A] text-white overflow-hidden relative" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="flex h-screen bg-[#131314] text-white overflow-hidden relative font-body-md">
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0">
         <motion.img
           src={ASSETS.LADY_JUSTICE_IMAGE}
           alt="Lady Justice"
-          className="w-full h-full object-cover opacity-30 grayscale"
+          className="w-full h-full object-cover opacity-20 grayscale contrast-125"
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/80 via-[#1A1A1A]/70 to-[#1A1A1A]/95"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131314]/80 via-[#131314]/70 to-[#131314]"></div>
       </div>
 
       {showSidebar && (

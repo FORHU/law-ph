@@ -62,13 +62,13 @@ export function AppSidebar({
   const sidebarContent = (
     <div className={SIDEBAR_STYLES.container}>
       {/* Logo */}
-      <div className="p-6 border-b border-[#8B4564]/20 flex items-center justify-between flex-shrink-0">
+      <div className="p-6 border-b border-primary/20 flex items-center justify-between flex-shrink-0">
         <button
           onClick={() => router.push('/')}
           className="text-2xl font-semibold hover:opacity-80 transition-opacity"
         >
           <span className="text-white">{BRAND.NAME_PART1}</span>
-          <span className="text-[#8B4564]">{BRAND.NAME_PART2}</span>
+          <span className="text-primary">{BRAND.NAME_PART2}</span>
         </button>
         {onClose && (
           <button
@@ -90,7 +90,7 @@ export function AppSidebar({
         <ScrollToTop isVisible={showScrollToTop} onClick={scrollToTop} />
 
         {/* Action Buttons & Primary Nav (NOW IN SCROLLABLE AREA) */}
-        <div className="p-4 space-y-2 border-b border-[#8B4564]/10 flex-shrink-0">
+        <div className="p-4 space-y-2 border-b border-primary/10 flex-shrink-0">
           {isDocumentsOrCalendarOrTranscribe ? (
             <>
               {/* Chat button (moves to top when in non-chat views) */}
@@ -104,7 +104,7 @@ export function AppSidebar({
 
               <button
                 onClick={() => router.push('/documents')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'documents' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'documents' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
@@ -113,7 +113,7 @@ export function AppSidebar({
 
               <button
                 onClick={() => router.push('/transcribe')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'transcribe' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'transcribe' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <Mic size={16} className={activePage === 'transcribe' ? 'text-white' : 'text-gray-300'} />
@@ -122,7 +122,7 @@ export function AppSidebar({
 
               <button
                 onClick={() => router.push('/calendar')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'calendar' ? 'bg-[#8B4564]/20 text-white border border-[#8B4564]/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'calendar' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <CalendarIcon size={16} className={activePage === 'calendar' ? 'text-white' : 'text-gray-300'} />
@@ -288,7 +288,7 @@ export function AppSidebar({
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="hidden md:flex relative z-10 flex-col border-r border-[#8B4564]/30 bg-[#2A1F1A]/80 backdrop-blur-sm h-full min-h-screen overflow-hidden"
+            className="hidden md:flex relative z-10 flex-col border-r border-primary/30 bg-[#0B0B0C]/80 backdrop-blur-sm h-full min-h-screen overflow-hidden"
           >
             <div className="w-60 h-full flex flex-col">
               {sidebarContent}

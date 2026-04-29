@@ -4,202 +4,126 @@
    THEME TOKENS (Tailwind v4)
    ================================ */
 @theme {
-  /* Typography */
+  /* Typography Families */
+  --font-label-caps: "Public Sans", sans-serif;
+  --font-h1: "Newsreader", serif;
+  --font-h2: "Newsreader", serif;
+  --font-h3: "Newsreader", serif;
+  --font-body-md: "Public Sans", sans-serif;
+  --font-body-lg: "Public Sans", sans-serif;
+  --font-data-mono: "Public Sans", monospace;
+
+  /* Font Sizes (Tailwind v4 syntax) */
+  --text-h1: 4rem;
+  --text-h2: 2.25rem;
+  --text-h3: 1.5rem;
+  --text-body-lg: 1.125rem;
+  --text-body-md: 1rem;
+  --text-label-caps: 0.75rem;
+  --text-data-mono: 0.875rem;
 
   /* Radius */
   --radius: 0.75rem;
 
-  /* Semantic colors (mapped from CSS vars below) */
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  /* Colors (Institutional Rose Theme) */
+  --color-primary: #ffb2b8;
+  --color-primary-container: #722f37;
+  --color-on-primary: #581b24;
+  --color-primary-fixed: #ffdadb;
+  --color-primary-fixed-dim: #ffb2b8;
+  
+  --color-secondary: #e9c176;
+  --color-secondary-container: #604403;
+  --color-on-secondary: #412d00;
+  --color-secondary-fixed: #ffdea5;
+  --color-secondary-fixed-dim: #e9c176;
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  --color-background: #131314;
+  --color-surface: #131314;
+  --color-on-background: #e5e2e3;
+  --color-on-surface: #e5e2e3;
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-surface-container-low: #1b1b1c;
+  --color-surface-container: #1f1f20;
+  --color-surface-container-high: #2a2a2b;
+  --color-surface-container-highest: #353436;
+  --color-surface-container-lowest: #0e0e0f;
+  
+  --color-surface-bright: #39393a;
+  --color-surface-dim: #131314;
+  --color-surface-variant: #353436;
+  --color-on-surface-variant: #d8c1c2;
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-tertiary: #c8c6c7;
+  --color-on-tertiary: #313031;
+  --color-error: #ffb4ab;
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  /* Legacy Semantic mapping */
+  --color-foreground: #e5e2e3;
+  --color-border: #353436;
 }
 
 /* ================================
-   LIGHT MODE VARIABLES
+   UTILITIES
    ================================ */
-:root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 3.9%;
+@layer utilities {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
 
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 3.9%;
+  .text-glow {
+    text-shadow: 0 0 15px rgba(255, 178, 184, 0.3);
+  }
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 3.9%;
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
 
-  /* PRIMARY BLUE */
-  --primary: 221 83% 53%;
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 220 9% 46%;
-
-  --muted: 220 14% 96%;
-  --muted-foreground: 220 9% 46%;
-
-  --accent: 220 14% 96%;
-  --accent-foreground: 220 9% 46%;
-
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 221 83% 53%;
-}
-
-/* ================================
-   DARK MODE VARIABLES
-   ================================ */
-.dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-
-  --card: 222 47% 11%;
-  --card-foreground: 210 40% 98%;
-
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
-
-  /* PRIMARY BLUE (DARK) */
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
-
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
-
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 0 0% 100%;
-
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 224 76% 48%;
-}
-
-/* ================================
-   GLOBAL LAYOUT FIXES
-   ================================ */
-html, body {
-  overflow-x: hidden;
-  position: relative;
-  width: 100%;
-  max-width: 100vw;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background-color: #0a0e17; /* Fallback for landing page theme */
-}
-
-/* Fix mobile browser backdrop-blur border rendering artifacts (green/color bands on scroll) */
-.backdrop-blur,
-[class*="backdrop-blur"] {
-  background-clip: padding-box;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* ================================
-   SLICK CAROUSEL CUSTOM STYLES
-   ================================ */
-.legal-resources-carousel .slick-dots {
-  bottom: -40px;
-}
-
-.legal-resources-carousel .slick-dots li {
-  margin: 0 4px;
-}
-
-.legal-resources-carousel .slick-dots li button:before {
-  content: "" !important;
-  width: 10px;
-  height: 10px;
-  background-color: #8B4564 !important;
-  border-radius: 50%;
-  opacity: 0.25 !important;
-  transition: all 0.3s ease;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.legal-resources-carousel .slick-dots li.slick-active button:before {
-  opacity: 1 !important;
-  transform: translate(-50%, -50%) scale(1.3);
-  box-shadow: 0 0 10px rgba(139, 69, 100, 0.4);
-}
-
-.legal-resources-carousel .slick-dots li button:hover:before {
-  opacity: 0.6 !important;
-}
-
-/* Global Glass Panel Utility */
-.glass-panel {
-  background: rgba(42, 42, 42, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-}
-
-/* Page Container Padding */
-.page-container-padding {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 768px) {
-  .page-container-padding {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 }
 
-/* Sidebar Scrollbar */
-.custom-sidebar-scrollbar::-webkit-scrollbar {
-  width: 4px;
+/* ================================
+   BASE STYLES
+   ================================ */
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-body-md);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.custom-sidebar-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-h1);
+  letter-spacing: -0.02em;
 }
 
-.custom-sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(139, 69, 100, 0.2);
-  border-radius: 10px;
+h1 { font-size: var(--text-h1); font-weight: 600; }
+h2 { font-size: var(--text-h2); font-weight: 500; }
+h3 { font-size: var(--text-h3); font-weight: 500; }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 69, 100, 0.4);
+::-webkit-scrollbar-track {
+  background: #131314;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #39393a;
 }

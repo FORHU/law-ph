@@ -1,134 +1,92 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, Eye, ShieldCheck, ExternalLink } from 'lucide-react';
-import { COLORS } from '@/lib/constants';
+import { Shield, Lock, EyeOff, ShieldCheck, ExternalLink, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
-export function TrustSection() {
+interface TrustSectionProps {
+  setActiveAngle?: (angle: number) => void;
+}
+
+export function TrustSection({ setActiveAngle }: TrustSectionProps) {
   const trustItems = [
     { 
-      icon: <Shield size={24} />, 
+      icon: <Lock className="w-8 h-8 text-secondary" />, 
       title: 'AES-256 Encryption', 
       desc: 'Military-grade encryption protects all your data in transit and at rest.' 
     },
     { 
-      icon: <Lock size={24} />, 
+      icon: <EyeOff className="w-8 h-8 text-secondary" />, 
       title: 'Zero Knowledge Architecture', 
       desc: 'Your conversations and documents are encrypted end-to-end.' 
     },
     { 
-      icon: <Eye size={24} />, 
+      icon: <ShieldAlert className="w-8 h-8 text-secondary" />, 
       title: 'No Third-Party Sharing', 
       desc: 'We never share your data with third parties without explicit consent.' 
     },
     { 
-      icon: <ShieldCheck size={24} />, 
+      icon: <CheckCircle2 className="w-8 h-8 text-secondary" />, 
       title: 'DPA Compliant', 
       desc: 'Fully compliant with the Philippine Data Privacy Act of 2012 (R.A. 10173).' 
     }
   ];
 
   return (
-    <section className="relative py-20 px-6 z-10">
-      <div className="max-w-5xl mx-auto">
+    <section 
+      className="py-48 px-12 bg-background"
+      onMouseEnter={() => setActiveAngle?.(2)}
+    >
+      <div className="max-w-[1200px] mx-auto">
         <motion.div 
-          className="backdrop-blur border rounded-xl p-6 sm:p-12"
-          style={{ 
-            backgroundColor: `${COLORS.BG_CARD}80`, 
-            borderColor: `${COLORS.PRIMARY}4D` 
-          }}
+          className="glass-panel rounded-[3rem] p-24 border border-white/10 text-center shadow-2xl bg-white/[0.01]"
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <div className="text-center mb-12">
-            <motion.h2 
-              className="text-3xl sm:text-4xl md:text-5xl mb-4"
-              style={{ fontFamily: 'Playfair Display, serif' }}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              Built on Trust & Security
-            </motion.h2>
-            <motion.p 
-              className="text-gray-400 mb-6 text-sm sm:text-base px-2"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
+          <div className="text-center mb-24">
+            <h2 className="text-8xl font-serif text-white mb-12 leading-tight">Built on Trust & Security</h2>
+            <p className="text-on-surface/50 text-2xl mb-16 max-w-3xl mx-auto leading-relaxed font-light">
               Legal matters require absolute confidentiality. We prioritize your data security and privacy above all else.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              whileHover={{ scale: 1.05 }}
-            >
+            </p>
+            <motion.div whileHover={{ scale: 1.05 }}>
               <a 
                 href="#" 
-                className="inline-flex items-center gap-2 transition-colors font-bold"
-                style={{ color: COLORS.PRIMARY }}
-                onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY_LIGHT}
-                onMouseLeave={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
+                className="text-secondary text-xl font-bold border-b-2 border-secondary/20 pb-2 inline-flex items-center gap-3 hover:border-secondary transition-all"
               >
-                Read Our Privacy Policy <ExternalLink size={16} />
+                Read Our Privacy Policy <ExternalLink size={24} />
               </a>
             </motion.div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
             {trustItems.map((item, index) => (
               <motion.div 
                 key={index} 
-                className="border rounded-lg p-6 transition-all duration-300 transform"
-                style={{ 
-                  backgroundColor: `${COLORS.BG_DARK}80`, 
-                  borderColor: `${COLORS.PRIMARY}33` 
-                }}
+                className="bg-white/5 border border-white/5 rounded-[2rem] p-12 group hover:border-secondary/20 transition-all shadow-lg"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                whileHover={{ 
-                  y: -5, 
-                  borderColor: `${COLORS.PRIMARY}80`,
-                  boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}26`
-                }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+                whileHover={{ y: -8 }}
               >
-                <motion.div 
-                  className="mb-3"
-                  style={{ color: COLORS.PRIMARY }}
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.6 + index * 0.1, type: "spring" }}
-                >
-                  {item.icon}
-                </motion.div>
-                <h3 className="text-lg mb-2 text-white">{item.title}</h3>
-                <p className="text-gray-400 text-sm">{item.desc}</p>
+                <div className="mb-10">{item.icon}</div>
+                <h4 className="text-3xl font-bold text-white mb-4 leading-tight">{item.title}</h4>
+                <p className="text-on-surface/40 text-lg leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
           </div>
 
           <motion.div 
-            className="border rounded-lg p-4 text-center"
-            style={{ 
-              backgroundColor: `${COLORS.PRIMARY}1A`, 
-              borderColor: `${COLORS.PRIMARY}4D` 
-            }}
+            className="mt-16 p-10 bg-primary-container/5 rounded-[2rem] border border-primary-container/10 inline-flex items-center gap-6 text-lg text-on-surface/40 font-medium"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.9 }}
+            transition={{ delay: 0.8 }}
           >
-            <p className="text-sm text-gray-300">
-              🔒 Your privacy is our priority. We use industry-standard security measures to protect your information.
-            </p>
+            <Shield className="w-10 h-10 text-primary-container shrink-0" /> 
+            <span className="max-w-2xl text-left">Your privacy is our priority. We use industry-standard security measures to protect your information.</span>
           </motion.div>
         </motion.div>
       </div>

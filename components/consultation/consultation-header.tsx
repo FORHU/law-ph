@@ -58,7 +58,7 @@ export function ConsultationHeader({
   };
 
   return (
-    <header className="relative z-10 border-b border-[#8B4564]/10 bg-[#1A1A1A]/60 backdrop-blur-md">
+    <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/80 backdrop-blur-md">
       <div className="flex items-center px-2 md:px-4 py-2 md:py-4 gap-2">
         {/* Left: Action Group (Menu + Back) */}
         <div className="flex items-center gap-3.5 md:gap-2 shrink-0">
@@ -69,18 +69,18 @@ export function ConsultationHeader({
           {showMenuButton && onMenuClick && (
             <button 
               onClick={onMenuClick}
-              className="p-2.5 md:p-2 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group shrink-0"
+              className="p-2.5 md:p-2 hover:bg-primary/10 rounded-xl transition-all border border-transparent hover:border-primary/30 group shrink-0"
               title="Open Sidebar"
             >
-              <Menu size={22} className="text-gray-400 group-hover:text-[#E0A7C2] md:size-5" />
+              <Menu size={22} className="text-gray-400 group-hover:text-primary md:size-5" />
             </button>
           )}
           <button 
             onClick={onBack || (() => router.push('/consultation'))}
-            className="p-2.5 md:p-1.5 hover:bg-[#8B4564]/10 rounded-xl transition-all border border-transparent hover:border-[#8B4564]/30 group shrink-0 relative flex items-center justify-center w-10 h-10 md:w-8 md:h-8"
+            className="p-2.5 md:p-1.5 hover:bg-primary/10 rounded-xl transition-all border border-transparent hover:border-primary/30 group shrink-0 relative flex items-center justify-center w-10 h-10 md:w-8 md:h-8"
           >
-            <ArrowLeft size={18} className="hidden md:block text-gray-400 group-hover:text-[#E0A7C2] absolute" />
-            <ChevronLeft size={24} strokeWidth={2.5} className="md:hidden block text-gray-300 group-hover:text-[#E0A7C2] absolute" />
+            <ArrowLeft size={18} className="hidden md:block text-gray-400 group-hover:text-primary absolute" />
+            <ChevronLeft size={24} strokeWidth={2.5} className="md:hidden block text-gray-300 group-hover:text-primary absolute" />
           </button>
 
 
@@ -96,7 +96,7 @@ export function ConsultationHeader({
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-transparent text-base md:text-lg font-bold text-white tracking-tight focus:outline-none border-b border-[#8B4564]/50 pb-0.5"
+                className="w-full bg-transparent text-base md:text-lg font-bold text-white tracking-tight focus:outline-none border-b border-primary/50 pb-0.5"
               />
             ) : (
               <div 

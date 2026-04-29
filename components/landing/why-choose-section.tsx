@@ -1,31 +1,28 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, Zap, BookOpen, DollarSign, Timer } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { COLORS, ASSETS } from '@/lib/constants';
+import { Clock, Zap, FileText, LayoutGrid } from 'lucide-react';
 
-interface TimerCardProps {
-  navigate: (path: string) => void;
+interface WhyChooseSectionProps {
+  setActiveAngle?: (angle: number) => void;
 }
 
-const TimerCard = ({ navigate }: TimerCardProps) => {
+export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
   const [time, setTime] = useState('0:00.00');
-  
-  // Clock animation
+
   useEffect(() => {
     let frame = 0;
-    const targetMs = 6000; //  6 seconds
+    const targetMs = 6000;
     const startTime = Date.now();
 
     const animate = () => {
       const now = Date.now();
       const elapsed = (now - startTime) % targetMs;
-      
       const totalSeconds = Math.floor(elapsed / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = (totalSeconds % 60).toString().padStart(2, '0');
       const centiseconds = Math.floor((elapsed % 1000) / 10).toString().padStart(2, '0');
-      
       setTime(`${minutes}:${seconds}.${centiseconds}`);
       frame = requestAnimationFrame(animate);
     };
@@ -35,156 +32,71 @@ const TimerCard = ({ navigate }: TimerCardProps) => {
   }, []);
 
   return (
-    <motion.div 
-      className="relative w-full max-w-[500px] aspect-[4/3] mx-auto lg:ml-auto group"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+    <section 
+      className="py-48 overflow-hidden bg-background"
+      onMouseEnter={() => setActiveAngle?.(2)}
     >
-      <div 
-        className="absolute inset-0 backdrop-blur-xl rounded-2xl overflow-hidden flex flex-col items-center justify-center p-8 md:p-10 transition-all duration-500 shadow-2xl"
-        style={{ 
-          background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}1A, ${COLORS.BG_CARD}66, transparent)`,
-          borderColor: `${COLORS.PRIMARY}4D`,
-          borderWidth: '2px',
-          boxShadow: `0 25px 50px -12px ${COLORS.PRIMARY}1A`
-        }}
+      <motion.div 
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="max-w-[1440px] mx-auto px-12 grid grid-cols-12 gap-24 items-center"
       >
-        {/* Decorative gradient orb like in CapabilitiesSection */}
-        <div 
-          className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl transition-all duration-500"
-          style={{ backgroundColor: `${COLORS.PRIMARY}0D` }}
-        />
-        
-        {/* Stopwatch Icon - Updated to rounded-xl */}
-        <div 
-          className="w-16 h-16 rounded-xl flex items-center justify-center mb-6 relative z-10"
-          style={{ backgroundColor: `${COLORS.PRIMARY}33` }}
-        >
-          <Timer size={32} style={{ color: COLORS.PRIMARY }} strokeWidth={1.5} />
-        </div>
+        <div className="col-span-12 lg:col-span-7">
+          <h2 className="text-8xl font-serif text-white mb-16 leading-[1.1]">
+            Why Choose <br/>
+            <span className="text-[#ffb2b8]">ilovelawyer?</span>
+          </h2>
+          <p className="text-2xl text-on-surface/50 mb-20 leading-relaxed max-w-2xl font-light">
+            Traditional legal consultations can be expensive and time-consuming. ilovelawyer provides immediate, accessible legal guidance when you need it most.
+          </p>
 
-        {/* Timer Text */}
-        <div className="text-center mb-6 relative z-10">
-          <div 
-            className="text-5xl sm:text-6xl md:text-7xl font-serif text-white tracking-tight mb-2"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >
-            {time}
-          </div>
-          <div className="text-gray-400 text-sm md:text-base font-medium">Average response time</div>
-        </div>
-
-        {/* Action Button */}
-        <button 
-          onClick={() => navigate('/consultation')}
-          className="relative z-10 w-full py-4 px-8 font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
-          style={{ 
-            backgroundColor: COLORS.PRIMARY,
-            color: COLORS.BG_DARK,
-            boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}4D`
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY_LIGHT}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY}
-        >
-          Try It Now
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-export function WhyChooseSection() {
-  const router = useRouter();
-  const navigate = (path: string) => router.push(path);
-
-  const benefits = [
-    { 
-      icon: <Clock size={20} />, 
-      title: '24/7 Availability', 
-      desc: 'Get legal guidance anytime, anywhere' 
-    },
-    { 
-      icon: <Zap size={20} />, 
-      title: 'Instant Responses', 
-      desc: 'No waiting for appointments or callbacks' 
-    },
-    { 
-      icon: <BookOpen size={20} />, 
-      title: 'Comprehensive Knowledge', 
-      desc: 'Based on current legal codes and precedents' 
-    },
-    { 
-      icon: <DollarSign size={20} />, 
-      title: 'Affordable Access', 
-      desc: 'Quality legal information at a fraction of traditional costs' 
-    }
-  ];
-
-  return (
-    <section className="relative py-12 md:py-20 px-6 overflow-hidden">
-      <div className="relative z-10 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <motion.div
-              className="text-center lg:text-left"
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 
-                className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl mb-8 leading-[1.1]"
-                style={{ fontFamily: 'Playfair Display, serif' }}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {[
+              { title: '24/7 Availability', desc: 'Get legal guidance anytime, anywhere', icon: <Clock className="w-6 h-6" /> },
+              { title: 'Instant Responses', desc: 'No waiting for appointments or callbacks', icon: <Zap className="w-6 h-6" /> },
+              { title: 'Comprehensive Knowledge', desc: 'Based on current legal codes and precedents', icon: <FileText className="w-6 h-6" /> },
+              { title: 'Affordable Access', desc: 'Quality legal information at a fraction of costs', icon: <LayoutGrid className="w-6 h-6" /> },
+            ].map((item, i) => (
+              <motion.div 
+                key={item.title} 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 * i }}
+                className="flex gap-8 items-start"
               >
-                Why Choose <span className="text-white italic">ilove</span><span style={{ color: COLORS.PRIMARY }}>lawyer</span>?
-              </h2>
-              <p className="text-gray-400 text-base sm:text-lg md:text-xl mb-12 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Traditional legal consultations can be expensive and time-consuming. ilovelawyer provides immediate, accessible legal guidance when you need it most.
-              </p>
-            </motion.div>
-
-            <div className="space-y-8">
-              {benefits.map((item, index) => (
-                <motion.div 
-                  key={index} 
-                  className="flex items-start gap-5 group/item"
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 0.5, delay: 0.1 * index }}
-                >
-                  <div 
-                    className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover/item:scale-110 transition-transform duration-300"
-                    style={{ 
-                      background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
-                      color: COLORS.BG_DARK,
-                      boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}4D`
-                    }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div className="pt-1">
-                    <h4 
-                      className="text-xl font-bold text-white mb-1 transition-colors group-hover/item:text-opacity-80"
-                      onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'white'}
-                    >
-                      {item.title}
-                    </h4>
-                    <p className="text-gray-400 text-sm md:text-base leading-relaxed">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-center items-center">
-            <TimerCard navigate={navigate} />
+                <div className="w-14 h-14 rounded-2xl bg-primary-container/20 flex items-center justify-center text-primary-container border border-primary-container/20 mt-1 shrink-0">
+                  {item.icon}
+                </div>
+                <div>
+                  <h4 className="text-2xl font-bold text-white mb-2">{item.title}</h4>
+                  <p className="text-on-surface/40 text-lg leading-relaxed">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
+
+        <div className="col-span-12 lg:col-span-5 flex justify-center">
+          <motion.div 
+            whileHover={{ scale: 1.02, rotate: 1 }}
+            className="glass-panel rounded-3xl p-20 border border-white/10 w-full max-w-xl text-center relative overflow-hidden group shadow-2xl bg-white/[0.02]"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-12 text-on-surface/30">
+              <Clock className="w-8 h-8" />
+            </div>
+            <div className="text-8xl font-serif text-white mb-6 tracking-tighter tabular-nums">
+              {time}
+            </div>
+            <p className="text-on-surface/40 text-sm tracking-[0.3em] uppercase mb-16 font-bold">Average response time</p>
+            <button className="w-full bg-[#722f37] hover:bg-[#8b3d46] text-white py-6 rounded-lg text-xl font-bold transition-all shadow-xl shadow-[#722f37]/20">
+              Try It Now
+            </button>
+          </motion.div>
+        </div>
+      </motion.div>
     </section>
   );
 }
