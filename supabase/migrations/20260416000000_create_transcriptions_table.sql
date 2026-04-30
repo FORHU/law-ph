@@ -1,5 +1,5 @@
 -- Create the transcriptions table
-CREATE TABLE IF NOT EXISTS public.transcriptions (
+CREATE TABLE IF NOT EXISTS law_ph.transcriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL DEFAULT 'Untitled Transcription',
@@ -11,24 +11,24 @@ CREATE TABLE IF NOT EXISTS public.transcriptions (
 );
 
 -- Enable Row Level Security
-ALTER TABLE public.transcriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE law_ph.transcriptions ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 CREATE POLICY "Users can create their own transcriptions" 
-    ON public.transcriptions FOR INSERT 
+    ON law_ph.transcriptions FOR INSERT 
     WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can view their own transcriptions" 
-    ON public.transcriptions FOR SELECT 
+    ON law_ph.transcriptions FOR SELECT 
     USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own transcriptions" 
-    ON public.transcriptions FOR UPDATE 
+    ON law_ph.transcriptions FOR UPDATE 
     USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own transcriptions" 
-    ON public.transcriptions FOR DELETE 
+    ON law_ph.transcriptions FOR DELETE 
     USING (auth.uid() = user_id);
 
 -- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS transcriptions_user_id_idx ON public.transcriptions(user_id);
+CREATE INDEX IF NOT EXISTS transcriptions_user_id_idx ON law_ph.transcriptions(user_id);

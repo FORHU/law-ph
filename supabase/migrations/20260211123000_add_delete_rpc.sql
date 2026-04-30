@@ -8,7 +8,7 @@ as $$
 begin
   -- Validate that the user owns the conversation (Double check for safety)
   if not exists (
-    select 1 from public.conversations 
+    select 1 from law_ph.conversations 
     where id = target_id 
     and user_id = auth.uid()
   ) then
@@ -16,6 +16,6 @@ begin
   end if;
 
   -- Perform the deletion
-  delete from public.conversations where id = target_id;
+  delete from law_ph.conversations where id = target_id;
 end;
 $$;

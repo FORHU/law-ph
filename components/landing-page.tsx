@@ -1,7 +1,6 @@
-
 import React from 'react';
-import FAQSection from './faq-section';
-import ResourcesSection from './resources-section';
+import { FAQSection } from './faq-section';
+import { ResourcesSection } from './resources-section';
 import { HeroSection } from './landing/hero-section';
 import { HowItWorksSection } from './landing/how-it-works-section';
 import { DemoSection } from './landing/demo-section';
@@ -14,18 +13,20 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onStartConsultation } : LandingPageProps ) {
+  const setActiveAngle = () => {};
+
   return (
     <div className="space-y-0">
-      <HeroSection onStartConsultation={onStartConsultation} />
+      <HeroSection onStartConsultation={onStartConsultation} setActiveAngle={setActiveAngle} />
       <div id="how-it-works">
-        <HowItWorksSection />
+        <HowItWorksSection setActiveAngle={setActiveAngle} />
       </div>
-      <DemoSection />
-      <CapabilitiesSection />
-      <WhyChooseSection />
-      <ResourcesSection />
-      <TrustSection />
-      <FAQSection />
+      <DemoSection setActiveAngle={setActiveAngle} />
+      <CapabilitiesSection setActiveAngle={setActiveAngle} />
+      <WhyChooseSection setActiveAngle={setActiveAngle} />
+      <ResourcesSection setActiveAngle={setActiveAngle} />
+      <TrustSection setActiveAngle={setActiveAngle} />
+      <FAQSection setActiveAngle={setActiveAngle} />
     </div>
   );
 };

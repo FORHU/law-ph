@@ -58,32 +58,25 @@ export function ConsultationHeader({
   };
 
   return (
-    <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/80 backdrop-blur-md">
-      <div className="flex items-center px-2 md:px-4 py-2 md:py-4 gap-2">
+    <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/40 backdrop-blur-2xl">
+      <div className="flex items-center px-4 md:px-5 py-1 gap-2.5">
         {/* Left: Action Group (Menu + Back) */}
-        <div className="flex items-center gap-3.5 md:gap-2 shrink-0">
-
-
-
-
+        <div className="flex items-center gap-1.5 shrink-0">
           {showMenuButton && onMenuClick && (
             <button 
               onClick={onMenuClick}
-              className="p-2.5 md:p-2 hover:bg-primary/10 rounded-xl transition-all border border-transparent hover:border-primary/30 group shrink-0"
+              className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0"
               title="Open Sidebar"
             >
-              <Menu size={22} className="text-gray-400 group-hover:text-primary md:size-5" />
+              <Menu size={16} className="text-gray-500 group-hover:text-white" />
             </button>
           )}
           <button 
             onClick={onBack || (() => router.push('/consultation'))}
-            className="p-2.5 md:p-1.5 hover:bg-primary/10 rounded-xl transition-all border border-transparent hover:border-primary/30 group shrink-0 relative flex items-center justify-center w-10 h-10 md:w-8 md:h-8"
+            className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0 relative flex items-center justify-center w-8 h-8"
           >
-            <ArrowLeft size={18} className="hidden md:block text-gray-400 group-hover:text-primary absolute" />
-            <ChevronLeft size={24} strokeWidth={2.5} className="md:hidden block text-gray-300 group-hover:text-primary absolute" />
+            <ArrowLeft size={14} className="text-gray-500 group-hover:text-white" />
           </button>
-
-
         </div>
 
         {/* Center: Title Region */}
@@ -96,24 +89,24 @@ export function ConsultationHeader({
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-transparent text-base md:text-lg font-bold text-white tracking-tight focus:outline-none border-b border-primary/50 pb-0.5"
+                className="w-full bg-transparent text-lg md:text-xl font-serif font-medium text-white tracking-tight focus:outline-none border-b border-[#722f37]/50 pb-0.5"
               />
             ) : (
               <div 
                 className={`flex items-center gap-2 ${isEditable ? 'cursor-pointer group/title' : ''}`}
                 onClick={() => isEditable && setIsEditing(true)}
               >
-                <h1 className="text-base md:text-lg font-bold text-white tracking-tight truncate">
+                <span className="text-lg md:text-xl font-serif font-medium text-white tracking-tight truncate antialiased">
                   {title}
-                </h1>
+                </span>
                 {isEditable && (
-                  <Edit2 size={14} className="text-gray-600 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                  <Edit2 size={10} className="text-gray-600 opacity-0 group-hover/title:opacity-100 transition-opacity" />
                 )}
               </div>
             )}
             
             {showSubtitle && (
-              <p className="hidden md:block text-[10px] text-gray-400 uppercase tracking-widest font-medium mt-0.5">
+              <p className="hidden md:block text-[8px] text-gray-600 uppercase tracking-[0.2em] font-black mt-0">
                 {subtitle}
               </p>
             )}

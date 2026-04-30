@@ -60,23 +60,41 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
             </motion.div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.15
+                }
+              }
+            }}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left"
+          >
             {trustItems.map((item, index) => (
               <motion.div 
                 key={index} 
-                className="bg-white/5 border border-white/5 rounded-[2rem] p-12 group hover:border-secondary/20 transition-all shadow-lg"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+                }}
+                initial="hidden"
+                whileInView="show"
                 viewport={{ once: true }}
-                transition={{ delay: 0.4 + index * 0.1 }}
-                whileHover={{ y: -8 }}
+                animate={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
+                className="border border-white/5 rounded-[2rem] p-12 group transition-all shadow-lg cursor-default"
+                whileHover={{ y: -8, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'rgba(233, 193, 118, 0.2)' }}
               >
-                <div className="mb-10">{item.icon}</div>
-                <h4 className="text-3xl font-bold text-white mb-4 leading-tight">{item.title}</h4>
+                <div className="mb-10 transition-transform group-hover:scale-110">{item.icon}</div>
+                <h4 className="text-3xl font-bold text-white mb-4 leading-tight group-hover:text-secondary transition-colors">{item.title}</h4>
                 <p className="text-on-surface/40 text-lg leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           <motion.div 
             className="mt-16 p-10 bg-primary-container/5 rounded-[2rem] border border-primary-container/10 inline-flex items-center gap-6 text-lg text-on-surface/40 font-medium"

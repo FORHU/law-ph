@@ -1,9 +1,9 @@
 -- Create messages table in public schema
-create table if not exists public.messages (
+create table if not exists law_ph.messages (
   id uuid primary key default gen_random_uuid(),
 
   conversation_id uuid not null
-    references public.conversations(id)
+    references law_ph.conversations(id)
     on delete cascade,
 
   role text not null
@@ -16,19 +16,19 @@ create table if not exists public.messages (
 
 -- Index for faster message lookup per conversation
 create index if not exists messages_conversation_id_idx
-on public.messages(conversation_id);
+on law_ph.messages(conversation_id);
 
 -- Enable Row Level Security
-alter table public.messages enable row level security;
+alter table law_ph.messages enable row level security;
 
 -- Allow users to read messages from their own conversations
 create policy "Users can read messages from own conversations"
-on public.messages
+on law_ph.messages
 for select
 using (
   exists (
     select 1
-    from public.conversations c
+    from law_ph.conversations c
     where c.id = messages.conversation_id
       and c.user_id = auth.uid()
   )
@@ -36,12 +36,12 @@ using (
 
 -- Allow users to insert messages into their own conversations
 create policy "Users can create messages in own conversations"
-on public.messages
+on law_ph.messages
 for insert
 with check (
   exists (
     select 1
-    from public.conversations c
+    from law_ph.conversations c
     where c.id = messages.conversation_id
       and c.user_id = auth.uid()
   )

@@ -37,7 +37,7 @@ export function FAQSection({ setActiveAngle }: FAQSectionProps) {
   return (
     <section 
       id="faq" 
-      className="py-48 px-12 bg-background"
+      className="py-48 px-12 bg-transparent"
       onMouseEnter={() => setActiveAngle?.(1)}
     >
       <div className="max-w-[1000px] mx-auto text-center">

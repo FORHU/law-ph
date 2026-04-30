@@ -55,13 +55,13 @@ interface CalendarEvent {
   google_event_id?: string;
   isGoogleEvent?: boolean;
   status:
-    | "pending"
-    | "confirmed"
-    | "requested_change"
-    | "denied"
-    | "tentative"
-    | "cancelled"
-    | "canceled";
+  | "pending"
+  | "confirmed"
+  | "requested_change"
+  | "denied"
+  | "tentative"
+  | "cancelled"
+  | "canceled";
   client_feedback?: string;
   iCalUID?: string;
   lawyerAcknowledgedAt?: string;
@@ -323,11 +323,10 @@ export default function CalendarPage() {
         >
           <div className="bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 overflow-hidden">
             <div
-              className={`p-2.5 rounded-xl flex-shrink-0 ${
-                successModal.type === "info"
-                  ? "bg-blue-500/20 text-blue-400"
-                  : "bg-[#8B4564]/20 text-[#E0A7C2]"
-              }`}
+              className={`p-2.5 rounded-xl flex-shrink-0 ${successModal.type === "info"
+                ? "bg-blue-500/20 text-blue-400"
+                : "bg-[#8B4564]/20 text-[#E0A7C2]"
+                }`}
             >
               {successModal.type === "info" ? (
                 <Calendar size={24} />
@@ -357,9 +356,8 @@ export default function CalendarPage() {
               initial={{ width: "100%" }}
               animate={{ width: "0%" }}
               transition={{ duration: 3.5, ease: "linear" }}
-              className={`h-[3px] absolute bottom-0 left-0 right-0 rounded-b-2xl ${
-                successModal.type === "info" ? "bg-blue-500" : "bg-[#8B4564]"
-              }`}
+              className={`h-[3px] absolute bottom-0 left-0 right-0 rounded-b-2xl ${successModal.type === "info" ? "bg-blue-500" : "bg-[#8B4564]"
+                }`}
             />
           </div>
         </motion.div>
@@ -437,9 +435,9 @@ export default function CalendarPage() {
     if (validateEmail(email)) {
       const currentList = form.clientEmail
         ? form.clientEmail
-            .split(",")
-            .map((e) => e.trim())
-            .filter(Boolean)
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean)
         : [];
       if (!currentList.includes(email)) {
         setForm((f) => ({
@@ -457,9 +455,9 @@ export default function CalendarPage() {
   const removeEmail = (index: number) => {
     const currentList = form.clientEmail
       ? form.clientEmail
-          .split(",")
-          .map((e) => e.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean)
       : [];
     currentList.splice(index, 1);
     setForm((f) => ({ ...f, clientEmail: currentList.join(", ") }));
@@ -503,7 +501,7 @@ export default function CalendarPage() {
           lawyerAcknowledgedAt: e.lawyer_acknowledged_at,
           lastReminderSentAt: e.last_reminder_sent_at,
         }));
-        
+
         // Smart merge: if we already have Google-enriched events, keep their extra data
         setEvents((prev) => {
           const googleMap = new Map();
@@ -628,7 +626,7 @@ export default function CalendarPage() {
           // Combine and ensure absolute uniqueness
           const combined = [...remainingSb, ...newGoogleEvents];
           const uniqueMap = new Map();
-          
+
           combined.forEach((e) => {
             // Priority: keep the one with google_event_id, then the one with notes
             const key = e.id;
@@ -649,7 +647,7 @@ export default function CalendarPage() {
             const rounded = Math.round(t / 60000) * 60000; // Round to minute
             const title = (e.title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
             const dedupKey = `${title}|${rounded}`;
-            
+
             const existing = finalMap.get(dedupKey);
             if (!existing) {
               finalMap.set(dedupKey, e);
@@ -732,7 +730,7 @@ export default function CalendarPage() {
         "postgres_changes",
         {
           event: "*",
-          schema: "public",
+          schema: "law_ph",
           table: "events",
           filter: `user_id=eq.${userId}`,
         },
@@ -812,7 +810,7 @@ export default function CalendarPage() {
           (e) =>
             e.status === "confirmed" &&
             new Date(e.date_time || e.dateTime || "").getTime() >=
-              now.getTime(),
+            now.getTime(),
         )
         .sort((a, b) =>
           (a.date_time || a.dateTime || "").localeCompare(
@@ -831,7 +829,7 @@ export default function CalendarPage() {
               e.status === "requested_change" ||
               e.status === "tentative") &&
             new Date(e.date_time || e.dateTime || "").getTime() >=
-              now.getTime(),
+            now.getTime(),
         )
         .sort((a, b) =>
           (a.date_time || a.dateTime || "").localeCompare(
@@ -885,15 +883,15 @@ export default function CalendarPage() {
     () =>
       searchQuery.trim()
         ? activeList.filter(
-            (e) =>
-              e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (e.type || "")
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()) ||
-              (e.client_email || e.clientEmail || "")
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()),
-          )
+          (e) =>
+            e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (e.type || "")
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            (e.client_email || e.clientEmail || "")
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()),
+        )
         : activeList,
     [activeList, searchQuery],
   );
@@ -953,9 +951,9 @@ export default function CalendarPage() {
 
     const emails = form.clientEmail
       ? form.clientEmail
-          .split(",")
-          .map((e) => e.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean)
       : [];
     if (emails.length === 0) {
       errors.push("At least one client email is required.");
@@ -1103,34 +1101,34 @@ export default function CalendarPage() {
               client_email: form.clientEmail,
             });
             if (gResult.success) {
-               gLink = gResult.link || "";
-               iCalUID = gResult.iCalUID;
-               googleEventId = gResult.event_id;
+              gLink = gResult.link || "";
+              iCalUID = gResult.iCalUID;
+              googleEventId = gResult.event_id;
             } else if (gResult.needs_auth) {
-               setIsGoogleConnected(false);
-               setCreateError("Google Calendar session expired. Please reconnect.");
-               console.error("[Calendar] Google session expired.");
+              setIsGoogleConnected(false);
+              setCreateError("Google Calendar session expired. Please reconnect.");
+              console.error("[Calendar] Google session expired.");
             } else {
-               console.error("[Calendar] Google Calendar sync failed:", gResult.error);
+              console.error("[Calendar] Google Calendar sync failed:", gResult.error);
             }
           } else {
-             const existingGoogleId = typeof editingEventId === 'string' && editingEventId.length > 20 && !editingEventId.includes('-') ? editingEventId : googleEventId;
-             if (existingGoogleId) {
-                const gResult = await updateCalendarEvent(userId, existingGoogleId, {
-                   title: form.title,
-                   start_datetime: start.toISOString(),
-                   end_datetime: end.toISOString(),
-                   description: form.notes,
-                   type: form.type,
-                   client_email: form.clientEmail,
-                });
-                if (gResult.needs_auth) {
-                   setIsGoogleConnected(false);
-                   setCreateError("Google session expired.");
-                } else if (!gResult.success) {
-                   console.error("[Calendar] Google update failed:", gResult.error);
-                }
-             }
+            const existingGoogleId = typeof editingEventId === 'string' && editingEventId.length > 20 && !editingEventId.includes('-') ? editingEventId : googleEventId;
+            if (existingGoogleId) {
+              const gResult = await updateCalendarEvent(userId, existingGoogleId, {
+                title: form.title,
+                start_datetime: start.toISOString(),
+                end_datetime: end.toISOString(),
+                description: form.notes,
+                type: form.type,
+                client_email: form.clientEmail,
+              });
+              if (gResult.needs_auth) {
+                setIsGoogleConnected(false);
+                setCreateError("Google session expired.");
+              } else if (!gResult.success) {
+                console.error("[Calendar] Google update failed:", gResult.error);
+              }
+            }
           }
         }
         // Trigger Email API — send 'reschedule' when editing an existing event, 'schedule' for new ones
@@ -1177,7 +1175,7 @@ export default function CalendarPage() {
                 finalError.message,
               );
             }
-            
+
             // CLEANUP REDUNDANCY: If we have a google_event_id, make sure NO OTHER 
             // record in our DB exists for this ID. This removes "residue" from 
             // failed syncs or duplicate inserts during rescheduling.
@@ -1188,7 +1186,7 @@ export default function CalendarPage() {
                 .eq("user_id", userId)
                 .eq("google_event_id", googleEventId)
                 .neq("id", createdEventId); // Don't delete our currently saved record!
-              
+
               if (!cleanupError) {
                 console.log("[Calendar] Cleaned up redundant duplicate records.");
               }
@@ -1254,57 +1252,57 @@ export default function CalendarPage() {
     const eventToCancel = events.find((e) => e.id === actionEventId);
 
     const isGoogleId =
-        typeof actionEventId === "string" &&
-        actionEventId.length > 20 &&
-        !actionEventId.includes("-");
+      typeof actionEventId === "string" &&
+      actionEventId.length > 20 &&
+      !actionEventId.includes("-");
 
     try {
       // 1. Sync to Google Calendar first (Delete the event)
       if (isGoogleConnected) {
-         const gId = isGoogleId ? actionEventId : eventToCancel?.google_event_id;
-         if (gId) {
-            try {
-                await deleteCalendarEvent(userId, gId);
-            } catch (gErr) {
-                console.warn("[CalendarSync] Google delete failed (might be already gone):", gErr);
-                // We continue anyway since we want to update our local record
-            }
-         }
+        const gId = isGoogleId ? actionEventId : eventToCancel?.google_event_id;
+        if (gId) {
+          try {
+            await deleteCalendarEvent(userId, gId);
+          } catch (gErr) {
+            console.warn("[CalendarSync] Google delete failed (might be already gone):", gErr);
+            // We continue anyway since we want to update our local record
+          }
+        }
       }
 
       // 2. Update status to 'cancelled' in Supabase
       const getNote = () => `${eventToCancel?.notes || ""}\n\n[Cancelled: ${actionReason}]`;
-      
+
       const updateData = {
         status: "cancelled",
         notes: getNote(),
       };
 
       let query = supabase.from("events").update(updateData);
-      
+
       if (isGoogleId) {
-          query = query.eq("google_event_id", actionEventId);
+        query = query.eq("google_event_id", actionEventId);
       } else {
-          query = query.eq("id", actionEventId);
+        query = query.eq("id", actionEventId);
       }
 
       const { error } = await query;
-      
+
       // Fallback: If DB rejected 'cancelled' (2 Ls), try 'canceled' (1 L)
       if (error && error.message.includes("event_status")) {
-          console.log("[Calendar] DB rejected 'cancelled', trying 'canceled' fallback...");
-          const fallbackQuery = supabase.from("events").update({ 
-               status: 'canceled' as any, 
-               notes: getNote() 
-          });
-          
-          if (isGoogleId) fallbackQuery.eq("google_event_id", actionEventId);
-          else fallbackQuery.eq("id", actionEventId);
-          
-          const { error: error2 } = await fallbackQuery;
-          if (error2) throw error2;
+        console.log("[Calendar] DB rejected 'cancelled', trying 'canceled' fallback...");
+        const fallbackQuery = supabase.from("events").update({
+          status: 'canceled' as any,
+          notes: getNote()
+        });
+
+        if (isGoogleId) fallbackQuery.eq("google_event_id", actionEventId);
+        else fallbackQuery.eq("id", actionEventId);
+
+        const { error: error2 } = await fallbackQuery;
+        if (error2) throw error2;
       } else if (error) {
-          throw error;
+        throw error;
       }
 
       // 3. Update local state
@@ -1321,7 +1319,7 @@ export default function CalendarPage() {
 
       // 4. Send cancellation email to client
       const clientEmail = eventToCancel?.client_email || eventToCancel?.clientEmail;
-      
+
       if (clientEmail) {
         console.log(`[Calendar] Sending cancellation email to ${clientEmail}...`);
         const emailRes = await fetch("/api/send-email", {
@@ -1351,11 +1349,11 @@ export default function CalendarPage() {
         });
 
         if (!emailRes.ok) {
-           const errBody = await emailRes.json().catch(() => ({}));
-           console.error("[Calendar] Email sending failed:", errBody);
-           // We don't throw here to ensure the UI success still shows for the cancellation itself
+          const errBody = await emailRes.json().catch(() => ({}));
+          console.error("[Calendar] Email sending failed:", errBody);
+          // We don't throw here to ensure the UI success still shows for the cancellation itself
         } else {
-           console.log("[Calendar] Cancellation email sent successfully.");
+          console.log("[Calendar] Cancellation email sent successfully.");
         }
       } else {
         console.warn("[Calendar] No client email found to send cancellation notice.");
@@ -1441,7 +1439,7 @@ export default function CalendarPage() {
   // ── Automated Reminders (Today / Tomorrow) ─────────────────────────────────
   const autoRemindProcessed = useRef<Set<string>>(new Set());
   const isProcessingReminders = useRef(false);
-  
+
   useEffect(() => {
     if (!loggedIn || !userId || events.length === 0 || isLoading || isProcessingReminders.current) return;
 
@@ -1458,37 +1456,37 @@ export default function CalendarPage() {
 
         // Find events for today or tomorrow that haven't been reminded yet today
         const toRemind = events.filter(e => {
-            if (e.status === 'cancelled' || e.status === 'denied') return false;
-            if (autoRemindProcessed.current.has(e.id)) return false;
-            
-            // Skip if already sent today
-            if (e.lastReminderSentAt) {
-               const lastSent = new Date(e.lastReminderSentAt);
-               if (lastSent.getFullYear() === nowTs.getFullYear() && 
-                   lastSent.getMonth() === nowTs.getMonth() && 
-                   lastSent.getDate() === nowTs.getDate()) {
-                 return false;
-               }
-            }
+          if (e.status === 'cancelled' || e.status === 'denied') return false;
+          if (autoRemindProcessed.current.has(e.id)) return false;
 
-            const evtDate = new Date(e.date_time || e.dateTime || "");
-            // Only remind for FUTURE events (today or tomorrow)
-            return evtDate > nowTs && evtDate < endOfTomorrow;
+          // Skip if already sent today
+          if (e.lastReminderSentAt) {
+            const lastSent = new Date(e.lastReminderSentAt);
+            if (lastSent.getFullYear() === nowTs.getFullYear() &&
+              lastSent.getMonth() === nowTs.getMonth() &&
+              lastSent.getDate() === nowTs.getDate()) {
+              return false;
+            }
+          }
+
+          const evtDate = new Date(e.date_time || e.dateTime || "");
+          // Only remind for FUTURE events (today or tomorrow)
+          return evtDate > nowTs && evtDate < endOfTomorrow;
         });
 
         if (toRemind.length === 0) return;
 
         console.log(`[Calendar] Found ${toRemind.length} events needing automated reminders.`);
-        
+
         for (const event of toRemind) {
-            // Check again inside loop in case state updated during previous iterations
-            if (autoRemindProcessed.current.has(event.id)) continue;
-            
-            autoRemindProcessed.current.add(event.id);
-            await handleRemindEvent(event, { silent: true });
-            
-            // Small delay to avoid API rate limits
-            await new Promise(r => setTimeout(r, 1000));
+          // Check again inside loop in case state updated during previous iterations
+          if (autoRemindProcessed.current.has(event.id)) continue;
+
+          autoRemindProcessed.current.add(event.id);
+          await handleRemindEvent(event, { silent: true });
+
+          // Small delay to avoid API rate limits
+          await new Promise(r => setTimeout(r, 1000));
         }
       } finally {
         isProcessingReminders.current = false;
@@ -1524,11 +1522,11 @@ export default function CalendarPage() {
     todayStart.setHours(0, 0, 0, 0);
 
     const filterUnacked = events.filter(e => {
-        if (e.status === 'cancelled' || e.status === 'denied' || e.status === 'canceled') return false;
-        if (e.lawyerAcknowledgedAt) return false;
-        const evtDate = new Date(e.date_time || e.dateTime || "");
-        // Only notify for FUTURE events (today or tomorrow)
-        return evtDate >= nowTs && evtDate < endOfTomorrow;
+      if (e.status === 'cancelled' || e.status === 'denied' || e.status === 'canceled') return false;
+      if (e.lawyerAcknowledgedAt) return false;
+      const evtDate = new Date(e.date_time || e.dateTime || "");
+      // Only notify for FUTURE events (today or tomorrow)
+      return evtDate >= nowTs && evtDate < endOfTomorrow;
     });
 
     if (filterUnacked.length > 0) {
@@ -1542,30 +1540,30 @@ export default function CalendarPage() {
   const handleAcknowledgeEvents = async () => {
     if (!userId || unacknowledgedEvents.length === 0) return;
     hasHandledModal.current = true;
-    
+
     const ids = unacknowledgedEvents.map(e => e.id);
     const nowStr = new Date().toISOString();
 
     try {
-        const { error } = await supabase
-            .from('events')
-            .update({ lawyer_acknowledged_at: nowStr })
-            .in('id', ids);
+      const { error } = await supabase
+        .from('events')
+        .update({ lawyer_acknowledged_at: nowStr })
+        .in('id', ids);
 
-        if (error) {
-            console.warn("[Calendar] Could not save acknowledgment to DB. Ensure you have run the migration to add the lawyer_acknowledged_at column.", error);
-            // Fallback: Clear locally for this session so the user isn't stuck
-            setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
-            setShowLawyerModal(false);
-            return;
-        }
-
+      if (error) {
+        console.warn("[Calendar] Could not save acknowledgment to DB. Ensure you have run the migration to add the lawyer_acknowledged_at column.", error);
+        // Fallback: Clear locally for this session so the user isn't stuck
         setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
         setShowLawyerModal(false);
+        return;
+      }
+
+      setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
+      setShowLawyerModal(false);
     } catch (err) {
-        console.error("Failed to acknowledge events:", err);
-        // Instant fallback for UX
-        setShowLawyerModal(false);
+      console.error("Failed to acknowledge events:", err);
+      // Instant fallback for UX
+      setShowLawyerModal(false);
     }
   };
 
@@ -1574,70 +1572,70 @@ export default function CalendarPage() {
   return (
     <>
       <SuccessNotification />
-      
+
       {/* Lawyer Notification Modal */}
       <AnimatePresence>
         {showLawyerModal && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="w-full max-w-md bg-[#1A1A1A] border border-[#8B4564]/30 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-md bg-[#1A1A1A] border border-[#8B4564]/30 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+            >
+              <div className="p-6 border-b border-white/5 bg-gradient-to-r from-[#8B4564]/20 to-transparent">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#8B4564] flex items-center justify-center shadow-lg shadow-[#8B4564]/20">
+                    <Bell className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white leading-tight">Upcoming Events</h2>
+                    <p className="text-xs text-[#E0A7C2] font-medium opacity-80 uppercase tracking-wider">Today & Tomorrow</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-h-[350px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                {unacknowledgedEvents.map((evt) => (
+                  <div key={evt.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-sm font-bold text-white truncate pr-2">{evt.title}</h3>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${EVENT_COLORS[evt.type].badge}`}>
+                        {evt.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <Clock size={12} className="text-[#E0A7C2]" />
+                      <span>{formatDT(evt.date_time || evt.dateTime)}</span>
+                    </div>
+                    {evt.notes && (
+                      <p className="mt-2 text-[11px] text-gray-500 line-clamp-2 leading-relaxed italic border-l-2 border-white/10 pl-3">
+                        "{evt.notes}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-6 bg-black/20 border-t border-white/5 flex gap-3">
+                <button
+                  onClick={handleAcknowledgeEvents}
+                  className="flex-1 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 active:scale-[0.98]"
                 >
-                    <div className="p-6 border-b border-white/5 bg-gradient-to-r from-[#8B4564]/20 to-transparent">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-[#8B4564] flex items-center justify-center shadow-lg shadow-[#8B4564]/20">
-                                <Bell className="text-white" size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-white leading-tight">Upcoming Events</h2>
-                                <p className="text-xs text-[#E0A7C2] font-medium opacity-80 uppercase tracking-wider">Today & Tomorrow</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="max-h-[350px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {unacknowledgedEvents.map((evt) => (
-                            <div key={evt.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="text-sm font-bold text-white truncate pr-2">{evt.title}</h3>
-                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${EVENT_COLORS[evt.type].badge}`}>
-                                        {evt.type}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-400">
-                                    <Clock size={12} className="text-[#E0A7C2]" />
-                                    <span>{formatDT(evt.date_time || evt.dateTime)}</span>
-                                </div>
-                                {evt.notes && (
-                                    <p className="mt-2 text-[11px] text-gray-500 line-clamp-2 leading-relaxed italic border-l-2 border-white/10 pl-3">
-                                        "{evt.notes}"
-                                    </p>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="p-6 bg-black/20 border-t border-white/5 flex gap-3">
-                        <button 
-                            onClick={handleAcknowledgeEvents}
-                            className="flex-1 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 active:scale-[0.98]"
-                        >
-                            Mark as Read
-                        </button>
-                        <button 
-                            onClick={() => {
-                                hasHandledModal.current = true;
-                                setShowLawyerModal(false);
-                            }}
-                            className="px-6 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all border border-white/5"
-                        >
-                            Remind Me Later
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
+                  Mark as Read
+                </button>
+                <button
+                  onClick={() => {
+                    hasHandledModal.current = true;
+                    setShowLawyerModal(false);
+                  }}
+                  className="px-6 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all border border-white/5"
+                >
+                  Remind Me Later
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1713,9 +1711,9 @@ export default function CalendarPage() {
                         </span>
                       </div>
                       {evt.status && (
-                        <StatusBadge 
-                          status={evt.status} 
-                          isPast={new Date(evt.date_time || evt.dateTime || "") < now} 
+                        <StatusBadge
+                          status={evt.status}
+                          isPast={new Date(evt.date_time || evt.dateTime || "") < now}
                         />
                       )}
                     </div>
@@ -1774,21 +1772,19 @@ export default function CalendarPage() {
             <div className="bg-[#2A2A2A] p-1 rounded-xl flex items-center gap-1">
               <button
                 onClick={() => setActiveMobileTab("calendar")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
-                  activeMobileTab === "calendar"
-                    ? "bg-[#8B4564] text-white shadow-lg"
-                    : "text-gray-400 hover:text-white"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeMobileTab === "calendar"
+                  ? "bg-[#8B4564] text-white shadow-lg"
+                  : "text-gray-400 hover:text-white"
+                  }`}
               >
                 <Calendar size={14} /> Calendar
               </button>
               <button
                 onClick={() => setActiveMobileTab("agenda")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
-                  activeMobileTab === "agenda"
-                    ? "bg-[#8B4564] text-white shadow-lg"
-                    : "text-gray-400 hover:text-white"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeMobileTab === "agenda"
+                  ? "bg-[#8B4564] text-white shadow-lg"
+                  : "text-gray-400 hover:text-white"
+                  }`}
               >
                 <Clock size={14} /> Events
               </button>
@@ -1938,23 +1934,21 @@ export default function CalendarPage() {
                         }
                       }}
                       className={`min-h-[80px] lg:min-h-[100px] flex flex-col items-stretch p-1.5 rounded-xl text-xs transition-all border
-                                            ${
-                                              isPast
-                                                ? dayEvents.length > 0
-                                                  ? "opacity-40 cursor-pointer border-white/5"
-                                                  : "opacity-30 cursor-not-allowed border-transparent"
-                                                : "cursor-pointer"
-                                            }
-                                            ${
-                                              isToday && !isPast
-                                                ? "bg-[#8B4564]/10 border-[#8B4564]/40"
-                                                : !isPast &&
-                                                    dayEvents.length > 0
-                                                  ? "bg-white/[0.02] border-white/5 hover:bg-white/5"
-                                                  : !isPast
-                                                    ? "hover:bg-white/5 border-transparent"
-                                                    : ""
-                                            }`}
+                                            ${isPast
+                          ? dayEvents.length > 0
+                            ? "opacity-40 cursor-pointer border-white/5"
+                            : "opacity-30 cursor-not-allowed border-transparent"
+                          : "cursor-pointer"
+                        }
+                                            ${isToday && !isPast
+                          ? "bg-[#8B4564]/10 border-[#8B4564]/40"
+                          : !isPast &&
+                            dayEvents.length > 0
+                            ? "bg-white/[0.02] border-white/5 hover:bg-white/5"
+                            : !isPast
+                              ? "hover:bg-white/5 border-transparent"
+                              : ""
+                        }`}
                     >
                       <span
                         className={`text-[10px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0
@@ -2031,11 +2025,10 @@ export default function CalendarPage() {
                         setActiveTab("pending");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                        activeTab === "pending"
-                          ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-lg"
-                          : "text-gray-400 hover:bg-white/5"
-                      }`}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "pending"
+                        ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-lg"
+                        : "text-gray-400 hover:bg-white/5"
+                        }`}
                     >
                       <AlertCircle size={14} /> Pending{" "}
                       <span className="text-xs bg-amber-500/20 px-1.5 py-0.5 rounded-full text-amber-400 ml-1">
@@ -2047,11 +2040,10 @@ export default function CalendarPage() {
                         setActiveTab("upcoming");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                        activeTab === "upcoming"
-                          ? "bg-[#8B4564] text-white shadow-lg"
-                          : "text-gray-400 hover:bg-white/5"
-                      }`}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "upcoming"
+                        ? "bg-[#8B4564] text-white shadow-lg"
+                        : "text-gray-400 hover:bg-white/5"
+                        }`}
                     >
                       <Clock size={14} /> Upcoming{" "}
                       <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded-full ml-1">
@@ -2063,11 +2055,10 @@ export default function CalendarPage() {
                         setActiveTab("accomplished");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                        activeTab === "accomplished"
-                          ? "text-emerald-400 font-bold"
-                          : "text-gray-400 hover:bg-white/5"
-                      }`}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "accomplished"
+                        ? "text-emerald-400 font-bold"
+                        : "text-gray-400 hover:bg-white/5"
+                        }`}
                     >
                       <History size={14} /> Accomplished{" "}
                       <span className="text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded-full text-emerald-400 ml-1">
@@ -2079,11 +2070,10 @@ export default function CalendarPage() {
                         setActiveTab("denied");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                        activeTab === "denied"
-                          ? "bg-red-500/20 border border-red-500/30 text-red-300"
-                          : "text-gray-400 hover:bg-white/5"
-                      }`}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "denied"
+                        ? "bg-red-500/20 border border-red-500/30 text-red-300"
+                        : "text-gray-400 hover:bg-white/5"
+                        }`}
                     >
                       <XCircle size={14} /> Denied{" "}
                       <span className="text-xs bg-red-500/20 px-1.5 py-0.5 rounded-full text-red-400 ml-1">
@@ -2192,11 +2182,10 @@ export default function CalendarPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ delay: idx * 0.04 }}
-                            className={`bg-[#2A2A2A]/70 backdrop-blur border rounded-2xl p-4 hover:border-white/10 transition-all group cursor-pointer ${
-                              activeTab === "accomplished"
-                                ? "border-white/5 opacity-75"
-                                : "border-white/5"
-                            }`}
+                            className={`bg-[#2A2A2A]/70 backdrop-blur border rounded-2xl p-4 hover:border-white/10 transition-all group cursor-pointer ${activeTab === "accomplished"
+                              ? "border-white/5 opacity-75"
+                              : "border-white/5"
+                              }`}
                             onClick={() => {
                               setSelectedDayEvents([event]);
                               setSelectedDay(
@@ -2229,7 +2218,7 @@ export default function CalendarPage() {
                                       evtDate.getDate() === now.getDate() &&
                                       evtDate.getMonth() === now.getMonth() &&
                                       evtDate.getFullYear() ===
-                                        now.getFullYear();
+                                      now.getFullYear();
 
                                     if (isToday && diff > 0) {
                                       const hours = Math.floor(
@@ -2254,11 +2243,11 @@ export default function CalendarPage() {
                                     tomorrow.setDate(now.getDate() + 1);
                                     const isTomorrow =
                                       evtDate.getDate() ===
-                                        tomorrow.getDate() &&
+                                      tomorrow.getDate() &&
                                       evtDate.getMonth() ===
-                                        tomorrow.getMonth() &&
+                                      tomorrow.getMonth() &&
                                       evtDate.getFullYear() ===
-                                        tomorrow.getFullYear();
+                                      tomorrow.getFullYear();
                                     return (
                                       isTomorrow && (
                                         <span className="flex-shrink-0 bg-amber-500/10 text-amber-500 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
@@ -2293,14 +2282,14 @@ export default function CalendarPage() {
                                   </p>
                                   {(event.client_email ||
                                     event.clientEmail) && (
-                                    <p className="text-[13px] flex items-center gap-1.5">
-                                      <User
-                                        size={13}
-                                        className="opacity-70 text-[#E0A7C2]"
-                                      />{" "}
-                                      {event.client_email || event.clientEmail}
-                                    </p>
-                                  )}
+                                      <p className="text-[13px] flex items-center gap-1.5">
+                                        <User
+                                          size={13}
+                                          className="opacity-70 text-[#E0A7C2]"
+                                        />{" "}
+                                        {event.client_email || event.clientEmail}
+                                      </p>
+                                    )}
                                 </div>
                               </div>
                               {activeTab === "pending" && (
@@ -2379,7 +2368,7 @@ export default function CalendarPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-3 mb-1">
-                            <h3 
+                            <h3
                               className={`font-bold text-base leading-tight ${new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? "text-white/30 italic" : "text-white"}`}
                               style={{ textDecoration: new Date(event.date_time || event.dateTime || "").getTime() < now.getTime() ? 'line-through' : 'none' }}
                             >
@@ -2435,9 +2424,9 @@ export default function CalendarPage() {
                           >
                             {event.type}
                           </span>
-                          <StatusBadge 
-                            status={event.status || "pending"} 
-                            isPast={new Date(event.date_time || event.dateTime || "") < now} 
+                          <StatusBadge
+                            status={event.status || "pending"}
+                            isPast={new Date(event.date_time || event.dateTime || "") < now}
                           />
                         </div>
                       </div>
@@ -2485,18 +2474,16 @@ export default function CalendarPage() {
                       <div className="pt-3 border-t border-white/5">
                         {pendingAction && actionEventId === event.id ? (
                           <div
-                            className={`space-y-3 p-3 rounded-xl border animate-in fade-in zoom-in-95 ${
-                              pendingAction === "cancel"
-                                ? "bg-red-500/5 border-red-500/20"
-                                : "bg-amber-500/5 border-amber-500/20"
-                            }`}
+                            className={`space-y-3 p-3 rounded-xl border animate-in fade-in zoom-in-95 ${pendingAction === "cancel"
+                              ? "bg-red-500/5 border-red-500/20"
+                              : "bg-amber-500/5 border-amber-500/20"
+                              }`}
                           >
                             <label
-                              className={`text-[10px] font-bold uppercase tracking-widest ${
-                                pendingAction === "cancel"
-                                  ? "text-red-400"
-                                  : "text-amber-400"
-                              }`}
+                              className={`text-[10px] font-bold uppercase tracking-widest ${pendingAction === "cancel"
+                                ? "text-red-400"
+                                : "text-amber-400"
+                                }`}
                             >
                               {`Reason for ${pendingAction === "cancel" ? "Cancellation" : "Rescheduling"}`}
                             </label>
@@ -2506,11 +2493,10 @@ export default function CalendarPage() {
                               value={actionReason}
                               onChange={(e) => setActionReason(e.target.value)}
                               placeholder={`Enter reason...`}
-                              className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-xs text-white outline-none resize-none h-16 transition-all ${
-                                pendingAction === "cancel"
-                                  ? "border-red-500/20 focus:border-red-500/50"
-                                  : "border-amber-500/20 focus:border-amber-500/50"
-                              }`}
+                              className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-xs text-white outline-none resize-none h-16 transition-all ${pendingAction === "cancel"
+                                ? "border-red-500/20 focus:border-red-500/50"
+                                : "border-amber-500/20 focus:border-amber-500/50"
+                                }`}
                             />
 
                             <div className="flex items-center gap-2 justify-end">
@@ -2563,13 +2549,12 @@ export default function CalendarPage() {
                                   }
                                 }}
                                 disabled={!actionReason || submitting}
-                                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-lg ${
-                                  !actionReason
-                                    ? "bg-white/5 text-gray-600 cursor-not-allowed"
-                                    : pendingAction === "cancel"
-                                      ? "bg-red-500 text-white hover:bg-red-600 active:scale-95"
-                                      : "bg-amber-500 text-black hover:bg-amber-600 active:scale-95"
-                                }`}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-lg ${!actionReason
+                                  ? "bg-white/5 text-gray-600 cursor-not-allowed"
+                                  : pendingAction === "cancel"
+                                    ? "bg-red-500 text-white hover:bg-red-600 active:scale-95"
+                                    : "bg-amber-500 text-black hover:bg-amber-600 active:scale-95"
+                                  }`}
                               >
                                 {submitting ? "..." : `Confirm`}
                               </button>
@@ -2617,16 +2602,16 @@ export default function CalendarPage() {
                                       evtDate.getDate() === now.getDate() &&
                                       evtDate.getMonth() === now.getMonth() &&
                                       evtDate.getFullYear() ===
-                                        now.getFullYear();
+                                      now.getFullYear();
                                     const tomorrow = new Date(now);
                                     tomorrow.setDate(now.getDate() + 1);
                                     const isTomorrow =
                                       evtDate.getDate() ===
-                                        tomorrow.getDate() &&
+                                      tomorrow.getDate() &&
                                       evtDate.getMonth() ===
-                                        tomorrow.getMonth() &&
+                                      tomorrow.getMonth() &&
                                       evtDate.getFullYear() ===
-                                        tomorrow.getFullYear();
+                                      tomorrow.getFullYear();
                                     const isUrgent = isToday || isTomorrow;
 
                                     if (
@@ -2838,9 +2823,9 @@ export default function CalendarPage() {
                         <AnimatePresence>
                           {(form.clientEmail
                             ? form.clientEmail
-                                .split(",")
-                                .map((e) => e.trim())
-                                .filter(Boolean)
+                              .split(",")
+                              .map((e) => e.trim())
+                              .filter(Boolean)
                             : []
                           ).map((email, idx) => (
                             <motion.div

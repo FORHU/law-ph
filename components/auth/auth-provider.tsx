@@ -7,7 +7,7 @@ import { Session, SupabaseClient } from '@supabase/supabase-js';
 type AuthContextType = { 
   loggedIn: boolean; 
   session: Session | null;
-  supabase: SupabaseClient;
+  supabase: ReturnType<typeof createClient>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);

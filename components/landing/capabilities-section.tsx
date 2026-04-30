@@ -14,7 +14,8 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
 
   return (
     <section 
-      className="relative py-48 px-12 bg-background"
+      id="capabilities"
+      className="relative py-48 px-12 bg-transparent"
       onMouseEnter={() => setActiveAngle?.(1)}
     >
       <div className="max-w-[1440px] mx-auto">
@@ -61,23 +62,25 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 ].map((item, idx) => (
                   <motion.li 
                     key={idx} 
-                    className="flex items-center gap-4 text-on-surface/60 text-lg"
+                    className="flex items-center gap-4 text-on-surface/60 text-lg group/item"
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
-                    transition={{ delay: 0.4 + idx * 0.1 }}
+                    transition={{ delay: 0.4 + idx * 0.1, duration: 0.8 }}
                   >
-                    <div className="w-2 h-2 rounded-full bg-secondary shrink-0" />
-                    <span className="font-medium">{item}</span>
+                    <div className="w-2 h-2 rounded-full bg-secondary shrink-0 transition-transform group-hover/item:scale-150" />
+                    <span className="font-medium group-hover/item:text-white transition-colors">{item}</span>
                   </motion.li>
                 ))}
               </ul>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(114, 47, 55, 0.3)" }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => router.push('/documents')}
-                className="bg-primary-container text-white px-12 py-6 rounded-xl text-xl font-bold flex items-center gap-4 hover:brightness-110 transition-all shadow-xl shadow-primary-container/20"
+                className="bg-[#722f37] text-white px-12 py-6 rounded-xl text-xl font-bold flex items-center gap-4 transition-all cursor-pointer"
               >
                 Try Document Review <ArrowRight size={24} />
-              </button>
+              </motion.button>
             </div>
             
             {/* Animated Visual Element */}
@@ -116,13 +119,33 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
         </motion.div>
 
         {/* Secondary Capabilities Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12">
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.2
+              }
+            }
+          }}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12"
+        >
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              show: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+            }}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
-            whileHover={{ y: -15, borderColor: 'rgba(233, 193, 118, 0.4)' }}
-            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all bg-white/[0.01] shadow-xl hover:shadow-2xl"
+            animate={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
+            whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            onClick={() => router.push('/consultation')}
+            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all shadow-xl hover:shadow-2xl cursor-pointer"
           >
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
               <Search size={36} />
@@ -131,18 +154,23 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             <p className="text-xl text-on-surface/50 leading-relaxed mb-12 font-light">
               Get instant citations from Republic Acts and Batas Pambansa. Our AI searches through decades of legal documentation in seconds.
             </p>
-            <button className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
+            <div className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
               Explore Research Tools <ArrowRight size={28} />
-            </button>
+            </div>
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              show: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+            }}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ y: -15, borderColor: 'rgba(233, 193, 118, 0.4)' }}
-            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all bg-white/[0.01] shadow-xl hover:shadow-2xl"
+            animate={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
+            whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            onClick={() => router.push('/cases')}
+            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all shadow-xl hover:shadow-2xl cursor-pointer"
           >
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
               <Scale size={36} />
@@ -151,11 +179,11 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             <p className="text-xl text-on-surface/50 leading-relaxed mb-12 font-light">
               Simplify complex jurisprudence with AI-generated summaries of landmark SC decisions, making legal precedents accessible.
             </p>
-            <button className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
+            <div className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
               Browse Case Library <ArrowRight size={28} />
-            </button>
+            </div>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -14,25 +14,29 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
       title: 'Official Gazette', 
       desc: 'The official journal of the Republic of the Philippines featuring newly enacted laws, executive orders, and proclamations.', 
       badge: 'OFFICIAL', 
-      icon: <FileText className="w-8 h-8" /> 
+      icon: <FileText className="w-8 h-8" />,
+      url: 'https://www.officialgazette.gov.ph/'
     },
     { 
       title: 'Integrated Bar of the Philippines', 
       desc: 'Find accredited lawyers, legal resources, and information about the Philippine legal profession.', 
       badge: 'PROFESSIONAL', 
-      icon: <Scale className="w-8 h-8" /> 
+      icon: <Scale className="w-8 h-8" />,
+      url: 'https://ibp.ph/'
     },
     { 
       title: 'Security and Exchange Commission', 
       desc: 'Responsible for the oversight and regulation of the financial services industry within the Philippines.', 
       badge: 'OFFICIAL', 
-      icon: <ShieldCheck className="w-8 h-8" /> 
+      icon: <ShieldCheck className="w-8 h-8" />,
+      url: 'https://www.sec.gov.ph/'
     },
   ];
 
   return (
     <section 
-      className="py-48 px-12 bg-background"
+      id="resources"
+      className="py-48 px-12 bg-transparent"
       onMouseEnter={() => setActiveAngle?.(3)}
     >
       <div className="max-w-[1440px] mx-auto">
@@ -56,6 +60,7 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
               viewport={{ once: true }}
               transition={{ delay: 0.1 * i }}
               whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)' }}
+              onClick={() => window.open(item.url, '_blank')}
               className="glass-panel p-16 rounded-[3rem] border border-white/5 group transition-all cursor-pointer shadow-lg hover:shadow-secondary/5 bg-white/[0.01]"
             >
               <div className="flex justify-between items-start mb-12">

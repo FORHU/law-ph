@@ -33,6 +33,7 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
 
   return (
     <section 
+      id="why-choose"
       className="py-48 overflow-hidden bg-background"
       onMouseEnter={() => setActiveAngle?.(2)}
     >
@@ -52,7 +53,21 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             Traditional legal consultations can be expensive and time-consuming. ilovelawyer provides immediate, accessible legal guidance when you need it most.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.15
+                }
+              }
+            }}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-12"
+          >
             {[
               { title: '24/7 Availability', desc: 'Get legal guidance anytime, anywhere', icon: <Clock className="w-6 h-6" /> },
               { title: 'Instant Responses', desc: 'No waiting for appointments or callbacks', icon: <Zap className="w-6 h-6" /> },
@@ -61,22 +76,22 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             ].map((item, i) => (
               <motion.div 
                 key={item.title} 
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 * i }}
-                className="flex gap-8 items-start"
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+                }}
+                className="flex gap-8 items-start group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-primary-container/20 flex items-center justify-center text-primary-container border border-primary-container/20 mt-1 shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-primary-container/10 flex items-center justify-center text-[#ffb2b8] border border-white/5 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#722f37]/30">
                   {item.icon}
                 </div>
                 <div>
-                  <h4 className="text-2xl font-bold text-white mb-2">{item.title}</h4>
+                  <h4 className="text-2xl font-bold text-white mb-2 group-hover:text-[#ffb2b8] transition-colors">{item.title}</h4>
                   <p className="text-on-surface/40 text-lg leading-relaxed">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
         <div className="col-span-12 lg:col-span-5 flex justify-center">

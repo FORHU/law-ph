@@ -23,12 +23,18 @@ export function OnboardingPage() {
   const [activeAngle, setActiveAngle] = useState(1);
 
   const getAngleImage = (angle: number) => {
-    switch(angle) {
-      case 2: return '/images/onboarding/angle2.png';
-      case 3: return '/images/onboarding/angle3.png';
-      default: return '/images/onboarding/angle1.png';
-    }
+    return '/assets/auth-bg.jpg';
   };
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="bg-background text-on-background font-body-md overflow-x-hidden min-h-screen relative flex flex-col">
@@ -45,88 +51,156 @@ export function OnboardingPage() {
             style={{ backgroundImage: `url(${getAngleImage(activeAngle)})` }}
           />
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#131314]/90 via-transparent to-[#131314]" />
+        <div className="absolute inset-0 bg-[#131314]/60 backdrop-blur-[2px]" />
+
+        {/* Ambient "Sovereign" Glows */}
+        <div className="absolute -bottom-1/4 -left-1/4 w-full h-full bg-[#722f37]/10 blur-[160px] rounded-full pointer-events-none" />
+        <div className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-[#e9c176]/5 blur-[160px] rounded-full pointer-events-none" />
+
+        {/* Deep Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
+          style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
+
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131314] via-transparent to-[#131314] opacity-90" />
       </div>
 
       {/* TopNavBar */}
-      <header className="sticky top-0 z-50 flex justify-between items-center w-full px-8 py-3 bg-[#0B0B0C]/80 backdrop-blur-xl border-b border-white/10 shadow-none">
-        <div className="flex items-center gap-8">
-          <span className="text-3xl font-semibold text-white tracking-widest font-serif antialiased tracking-tight cursor-pointer" onClick={() => router.push('/')}>ilovelawyer</span>
-          <nav className="hidden md:flex gap-6">
-            <button onMouseEnter={() => setActiveAngle(1)} onClick={() => router.push('/')} className="text-white border-b-2 border-[#722f37] pb-1 text-lg cursor-pointer">Home</button>
-            <button onMouseEnter={() => setActiveAngle(2)} onClick={() => router.push('/consultation')} className="text-gray-400 hover:text-white transition-colors text-lg cursor-pointer">AI Consultation</button>
-            <button onMouseEnter={() => setActiveAngle(3)} onClick={() => router.push('/cases')} className="text-gray-400 hover:text-white transition-colors text-lg cursor-pointer">Case Management</button>
-            <button onMouseEnter={() => setActiveAngle(3)} onClick={() => router.push('/transcribe')} className="text-gray-400 hover:text-white transition-colors text-lg cursor-pointer">TSN Transcription</button>
+      <motion.header
+        initial={{ backgroundColor: 'rgba(11, 11, 12, 0)', backdropFilter: 'blur(0px)', borderBottomColor: 'rgba(255, 255, 255, 0.01)' }}
+        animate={{
+          backgroundColor: isScrolled ? 'rgba(11, 11, 12, 0.8)' : 'rgba(11, 11, 12, 0)',
+          backdropFilter: isScrolled ? 'blur(24px)' : 'blur(0px)',
+          borderBottomColor: isScrolled ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.01)',
+          paddingTop: isScrolled ? '12px' : '24px',
+          paddingBottom: isScrolled ? '12px' : '24px',
+        }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className="sticky top-0 z-50 flex justify-between items-center w-full px-12 border-b shadow-none"
+      >
+        <div className="flex items-center gap-12">
+          <motion.span
+            whileHover={{ scale: 1.02 }}
+            className="text-3xl font-serif text-white antialiased cursor-pointer flex items-center gap-0.5"
+            onClick={() => router.push('/')}
+          >
+            <span className="font-light tracking-tight opacity-70">ilove</span>
+            <span className="font-bold tracking-tighter text-secondary italic">lawyer</span>
+          </motion.span>
+          <nav className="hidden md:flex gap-10 items-center">
+            {[
+              { label: 'Why Choose', id: 'why-choose' },
+              { label: 'How It Works', id: 'how-it-works' },
+              { label: 'Capabilities', id: 'capabilities' },
+              { label: 'Resources', id: 'resources' },
+              { label: 'FAQ', id: 'faq' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  const el = document.getElementById(tab.id);
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-on-surface/40 hover:text-white transition-all text-sm font-bold uppercase tracking-widest cursor-pointer relative group"
+              >
+                {tab.label}
+                <span className="absolute -bottom-2 left-0 w-0 h-0.5 bg-secondary transition-all group-hover:w-full" />
+              </button>
+            ))}
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <div className="h-8 w-8 rounded-full bg-white/5 overflow-hidden border border-white/10">
-            <img alt="Profile" className="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8EY39Zq5rT78j-9WLvOV_OWueCpYW0vIVSwA6qP1P3mJXXdmNbYskk-67GCWiqX3xHpSaozK19Fidiy4-udLPYiDF43ncMGieO3l56KDI8a_f_KHWePGed-hsMwC5tlhFJ0MhduiFT2NhZpKok7TcvBa2HpMYwkuq35RUAPn7snfHmiizDhfWUU8O8sQJNP_3OPpJYw7I4appIlCXpzOdEADs5m15rucssoUggiZJK5wRMjP_8WxywZefFd63VE4l793c-l2udQ" />
-          </div>
+          {/* Profile removed */}
         </div>
-      </header>
+      </motion.header>
 
       <main className="relative z-10 flex-1 flex flex-col">
-        {/* Latest Updates News Ticker */}
-        <section className="bg-black/40 py-2 border-b border-white/5 overflow-hidden">
-          <div className="max-w-[1280px] mx-auto px-8 flex items-center gap-4">
-            <span className="text-sm font-bold tracking-widest text-secondary whitespace-nowrap uppercase">Latest Updates</span>
-            <div className="flex-1 overflow-hidden">
-              <div className="flex gap-12 animate-marquee whitespace-nowrap text-base font-medium text-on-surface/70">
-                <span>SC Ruling: En Banc Resolution on Rule 138-A ...</span>
-                <span>SEC Memorandum Circular No. 12: New Sustainability Reporting Guidelines ...</span>
-                <span>G.R. No. 256789: Landmark Privacy Case Decision Released ...</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Latest Updates News Ticker Removed */}
 
         {/* Section Assembly */}
-        <div className="flex-1">
-          <HeroSection 
-            onStartConsultation={() => router.push('/consultation')} 
-            setActiveAngle={setActiveAngle} 
-          />
-          
-          <WhyChooseSection setActiveAngle={setActiveAngle} />
-          
-          <HowItWorksSection setActiveAngle={setActiveAngle} />
-          
-          <DemoSection setActiveAngle={setActiveAngle} />
-          
-          <CapabilitiesSection setActiveAngle={setActiveAngle} />
-          
-          <TrustSection setActiveAngle={setActiveAngle} />
-          
-          <ResourcesSection setActiveAngle={setActiveAngle} />
-          
-          <FAQSection setActiveAngle={setActiveAngle} />
+        <div className="flex-1 space-y-0">
+          {[
+            { 
+              component: <HeroSection onStartConsultation={() => router.push('/consultation')} setActiveAngle={setActiveAngle} />, 
+              id: 'hero',
+              animation: {
+                initial: { opacity: 0, scale: 1.1, y: 0 },
+                whileInView: { opacity: 1, scale: 1, y: 0 }
+              }
+            },
+            { 
+              component: <WhyChooseSection setActiveAngle={setActiveAngle} />, 
+              id: 'why-choose',
+              animation: {
+                initial: { opacity: 0, rotateX: 30, scale: 0.8, y: 100 },
+                whileInView: { opacity: 1, rotateX: 0, scale: 1, y: 0 }
+              }
+            },
+            { 
+              component: <HowItWorksSection setActiveAngle={setActiveAngle} />, 
+              id: 'how-it-works',
+              animation: {
+                initial: { opacity: 0, x: -100, skewX: -5 },
+                whileInView: { opacity: 1, x: 0, skewX: 0 }
+              }
+            },
+            { 
+              component: <DemoSection setActiveAngle={setActiveAngle} />, 
+              id: 'demo',
+              animation: {
+                initial: { opacity: 0, filter: 'blur(20px)', scale: 0.95 },
+                whileInView: { opacity: 1, filter: 'blur(0px)', scale: 1 }
+              }
+            },
+            { 
+              component: <CapabilitiesSection setActiveAngle={setActiveAngle} />, 
+              id: 'capabilities',
+              animation: {
+                initial: { opacity: 0, scale: 1.8, filter: 'blur(30px)', z: 500 },
+                whileInView: { opacity: 1, scale: 1, filter: 'blur(0px)', z: 0 }
+              }
+            },
+            { 
+              component: <TrustSection setActiveAngle={setActiveAngle} />, 
+              id: 'trust',
+              animation: {
+                initial: { opacity: 0, y: 50, filter: 'blur(10px)' },
+                whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' }
+              }
+            },
+            { 
+              component: <ResourcesSection setActiveAngle={setActiveAngle} />, 
+              id: 'resources',
+              animation: {
+                initial: { opacity: 0, scale: 0.9 },
+                whileInView: { opacity: 1, scale: 1 }
+              }
+            },
+            { 
+              component: <FAQSection setActiveAngle={setActiveAngle} />, 
+              id: 'faq',
+              animation: {
+                initial: { opacity: 0, y: 20 },
+                whileInView: { opacity: 1, y: 0 }
+              }
+            }
+          ].map((section) => (
+            <div key={section.id} className="perspective-[2000px] overflow-hidden">
+              <motion.div
+                initial={section.animation.initial}
+                whileInView={section.animation.whileInView}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ 
+                  duration: 1.2, 
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="w-full transform-gpu"
+              >
+                {section.component}
+              </motion.div>
+            </div>
+          ))}
         </div>
 
-        {/* Persistent Sticky Search Bar */}
-        <div className="fixed bottom-12 left-0 right-0 z-50 px-6 pointer-events-none">
-          <div className="max-w-3xl mx-auto glass-panel rounded-2xl px-6 py-4 flex items-center justify-between shadow-2xl border border-white/10 pointer-events-auto">
-            <div className="flex items-center gap-4 flex-1">
-              <span className="material-symbols-outlined text-secondary">auto_awesome</span>
-              <input 
-                className="bg-transparent border-none text-on-surface focus:ring-0 w-full placeholder:text-on-surface/30 text-lg" 
-                placeholder="Ask ilovelawyer anything about PH Law..." 
-                type="text"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    router.push('/consultation?q=' + encodeURIComponent(e.currentTarget.value));
-                  }
-                }}
-              />
-            </div>
-            <button 
-              onClick={() => router.push('/consultation')}
-              className="bg-[#722f37] text-white p-3 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined">send</span>
-            </button>
-          </div>
-        </div>
 
         <Footer />
       </main>

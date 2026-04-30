@@ -61,7 +61,7 @@ export async function updateSession(request: NextRequest) {
         { status: 401, headers: { 'content-type': 'application/json' } }
       );
     }
-    
+
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
