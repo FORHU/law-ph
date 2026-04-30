@@ -37,7 +37,7 @@ export function AuthInput({
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay }}
     >
-      <label htmlFor={id} className="block text-white/80 mb-2 text-sm">
+      <label htmlFor={id} className="block text-white/60 mb-2.5 text-xs font-bold uppercase tracking-[0.2em] ml-1">
         {label}
       </label>
       <div className="relative">
@@ -47,7 +47,7 @@ export function AuthInput({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className={`w-full px-4 py-3 bg-[#1A1A1A]/60 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:border-[#8B4564] focus:ring-1 focus:ring-[#8B4564] transition-all ${isPassword ? 'pr-12' : ''}`}
+          className={`w-full px-6 py-4 bg-[rgba(255,255,255,0.05)] border border-white/5 rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:border-secondary/40 focus:bg-[rgba(255,255,255,0.08)] transition-all duration-300 ${isPassword ? 'pr-14' : ''}`}
           required={required}
           minLength={minLength}
         />

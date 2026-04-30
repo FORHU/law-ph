@@ -30,13 +30,13 @@ const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string; 
 
   return (
     <div className="flex flex-col mb-1">
-      <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
+      <div className="text-[10px] font-bold text-[#ffb2b8]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
         Voice Identity
       </div>
       {isEditing ? (
         <input
           autoFocus
-          className="bg-[#2A1F1A]/80 border border-[#8B4564]/30 text-white px-3 py-1.5 rounded-xl text-xs font-bold outline-none ring-1 ring-[#8B4564]/50 w-full max-w-[130px] shadow-lg"
+          className="bg-[#1a1a1a]/80 border border-[#722f37]/30 text-white px-3 py-1.5 rounded-xl text-xs font-bold outline-none ring-1 ring-[#722f37]/50 w-full max-w-[130px] shadow-lg"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={() => {
@@ -53,13 +53,13 @@ const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string; 
       ) : (
         <div
           onClick={() => setIsEditing(true)}
-          className="group cursor-pointer flex items-center gap-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/20 border border-[#8B4564]/20 hover:border-[#8B4564]/40 px-3 py-1.5 rounded-xl transition-all duration-300"
+          className="group cursor-pointer flex items-center gap-2 bg-[#722f37]/10 hover:bg-[#722f37]/20 border border-[#722f37]/20 hover:border-[#722f37]/40 px-3 py-1.5 rounded-xl transition-all duration-300"
           title="Click to rename"
         >
-          <span className="text-xs font-bold text-[#E0A7C2] tracking-wide truncate max-w-[120px]">
+          <span className="text-xs font-bold text-[#ffb2b8] tracking-wide truncate max-w-[120px]">
             {originalName.toUpperCase()}
           </span>
-          <PenTool size={10} className="text-[#E0A7C2]/40 group-hover:text-[#E0A7C2] transition-colors" />
+          <PenTool size={10} className="text-[#ffb2b8]/40 group-hover:text-[#ffb2b8] transition-colors" />
         </div>
       )}
     </div>
@@ -733,25 +733,25 @@ export default function TranscribeWorkspace({
         <div className="flex-1 overflow-y-auto p-8 md:p-12 pr-12 md:pr-24 relative custom-sidebar-scrollbar">
           {!transcript && !isRecording && !isPolling && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-              <div className="w-20 h-20 bg-[#8B4564]/20 rounded-3xl flex items-center justify-center mb-8 text-[#E0A7C2] shadow-sm border border-[#8B4564]/30">
+              <div className="w-20 h-20 bg-[#722f37]/20 rounded-3xl flex items-center justify-center mb-8 text-[#ffb2b8] shadow-sm border border-[#722f37]/30">
                 <Mic size={40} strokeWidth={1.5} />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-4 tracking-tight">Transcribe your voice.</h1>
-              <p className="text-gray-400 mb-10 leading-relaxed text-lg">
-                Record or upload audio to generate AI transcripts.
+              <h1 className="text-4xl font-serif text-white mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
+              <p className="text-gray-400 mb-10 leading-relaxed text-lg font-medium">
+                Record or upload audio to generate high-fidelity legal transcripts.
               </p>
               <div className="flex gap-4 w-full">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#8B4564] hover:bg-[#8B4564]/80 text-white px-6 py-4 rounded-xl font-semibold shadow-lg shadow-[#8B4564]/10 transition-all active:scale-[0.98]"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white px-6 py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                 >
                   <Upload size={20} /> Upload File
                 </button>
                 <button
                   onClick={toggleRecording}
-                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all active:scale-[0.98] border shadow-lg ${isRecording
-                    ? 'bg-[#8B4564] border-[#8B4564]/50 text-white shadow-[#8B4564]/20'
-                    : 'bg-[#2A1F1A]/50 hover:bg-[#2A1F1A]/80 text-white border-white/10'
+                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-all active:scale-[0.98] border shadow-lg ${isRecording
+                    ? 'bg-[#722f37] border-[#722f37]/50 text-white shadow-black/40'
+                    : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
                     }`}
                 >
                   {isRecording ? (
@@ -783,10 +783,10 @@ export default function TranscribeWorkspace({
           {(isUploading || uploadStatus) && (
             <div className="absolute inset-0 z-50 bg-[#1A1A1A]/90 backdrop-blur-md flex flex-col items-center justify-center text-center px-4 rounded-tl-2xl rounded-bl-2xl">
               <div className="mb-4">
-                {isUploading ? <Loader2 size={48} className="animate-spin text-[#E0A7C2]" /> : <CheckCircle size={48} className="text-green-400" />}
+                {isUploading ? <Loader2 size={48} className="animate-spin text-[#ffb2b8]" /> : <CheckCircle size={48} className="text-emerald-400" />}
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Done'}</h2>
-              <p className="text-gray-400 font-medium text-lg">{uploadStatus || 'Preparing your transcription'}</p>
+              <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Success'}</h2>
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">{uploadStatus || 'Preparing your transcription'}</p>
             </div>
           )}
 
@@ -1073,8 +1073,8 @@ export default function TranscribeWorkspace({
                       <div
                         key={i}
                         className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
-                            ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
-                            : 'bg-white/10'
+                          ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
+                          : 'bg-white/10'
                           }`}
                         style={{
                           height: `${Math.max(4, peakHeight).toFixed(2)}%`,

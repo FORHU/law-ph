@@ -1,5 +1,5 @@
 -- Create conversations table in public schema
-create table if not exists public.conversations (
+create table if not exists law_ph.conversations (
   id uuid primary key default gen_random_uuid(),
 
   user_id uuid not null
@@ -13,19 +13,19 @@ create table if not exists public.conversations (
 
 -- Index for faster user lookups
 create index if not exists conversations_user_id_idx
-on public.conversations(user_id);
+on law_ph.conversations(user_id);
 
 -- Enable Row Level Security
-alter table public.conversations enable row level security;
+alter table law_ph.conversations enable row level security;
 
 -- Allow users to read their own conversations
 create policy "Users can read own conversations"
-on public.conversations
+on law_ph.conversations
 for select
 using (auth.uid() = user_id);
 
 -- Allow users to create their own conversations
 create policy "Users can create conversations"
-on public.conversations
+on law_ph.conversations
 for insert
 with check (auth.uid() = user_id);

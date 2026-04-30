@@ -90,101 +90,101 @@ export function AppSidebar({
         <ScrollToTop isVisible={showScrollToTop} onClick={scrollToTop} />
 
         {/* Action Buttons & Primary Nav (NOW IN SCROLLABLE AREA) */}
-        <div className="p-4 space-y-2 border-b border-primary/10 flex-shrink-0">
+        <div className="p-4 space-y-2 border-b border-[rgba(255,255,255,0.05)] flex-shrink-0">
           {isDocumentsOrCalendarOrTranscribe ? (
             <>
               {/* Chat button (moves to top when in non-chat views) */}
               <button
                 onClick={() => router.push('/consultation')}
-                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-200 hover:text-white hover:bg-white/5"
+                className="w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
-                <MessageSquare size={16} className="text-gray-300" />
-                <span className="text-sm font-medium text-white">Chat</span>
+                <MessageSquare size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Chat</span>
               </button>
 
               <button
                 onClick={() => router.push('/documents')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'documents' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'documents' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <FileText size={16} className={activePage === 'documents' ? 'text-white' : 'text-gray-300'} />
-                <span className="text-sm font-medium text-white">Documents</span>
+                <FileText size={18} className={activePage === 'documents' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-sm font-medium">Documents</span>
               </button>
 
               <button
                 onClick={() => router.push('/transcribe')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'transcribe' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'transcribe' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <Mic size={16} className={activePage === 'transcribe' ? 'text-white' : 'text-gray-300'} />
-                <span className="text-sm font-medium text-white">Transcribe</span>
+                <Mic size={18} className={activePage === 'transcribe' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-sm font-medium">Transcribe</span>
               </button>
 
               <button
                 onClick={() => router.push('/calendar')}
-                className={`w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 ${activePage === 'calendar' ? 'bg-primary/20 text-white border border-primary/30' : 'text-gray-200 hover:text-white hover:bg-white/5'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'calendar' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <CalendarIcon size={16} className={activePage === 'calendar' ? 'text-white' : 'text-gray-300'} />
-                <span className="text-sm font-medium text-white">Calendar</span>
+                <CalendarIcon size={18} className={activePage === 'calendar' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-sm font-medium">Calendar</span>
               </button>
             </>
           ) : (
             <>
               <button
                 onClick={() => onNewItem?.()}
-                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+                className="w-full px-4 py-3 bg-[rgba(114,47,55,0.15)] border border-[rgba(114,47,55,0.4)] rounded-xl hover:bg-[rgba(114,47,55,0.25)] hover:shadow-[0_0_15px_rgba(114,47,55,0.3)] transition-all duration-300 flex items-center gap-3 text-white group"
               >
-                <MessageSquare size={16} className="text-white transition-colors" />
-                <span className="text-sm font-medium text-white">New Consultation</span>
+                <MessageSquare size={18} className="text-[rgba(233,193,118,1)] transition-colors" />
+                <span className="text-sm font-medium">New Consultation</span>
               </button>
 
               <button
                 onClick={() => router.push('/documents')}
-                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+                className="w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
-                <FileText size={16} className="text-gray-300" />
-                <span className="text-sm font-medium text-white">Documents</span>
+                <FileText size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Documents</span>
               </button>
 
               <button
                 onClick={() => router.push('/transcribe')}
-                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+                className="w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
-                <Mic size={16} className="text-gray-300" />
-                <span className="text-sm font-medium text-white">Transcribe</span>
+                <Mic size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Transcribe</span>
               </button>
 
               <button
                 onClick={() => router.push('/calendar')}
-                className="w-full px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-white/5"
+                className="w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
-                <CalendarIcon size={16} className="text-gray-300" />
-                <span className="text-sm font-medium text-white">Calendar</span>
+                <CalendarIcon size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Calendar</span>
               </button>
 
               <button
                 onClick={() => setIsCaseModalOpen(true)}
-                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+                className="w-full px-4 py-3 bg-transparent border border-transparent rounded-xl hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white group"
               >
-                <Briefcase size={16} className="text-white transition-colors" />
-                <span className="text-sm font-medium text-white">Create Case</span>
+                <Briefcase size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Create Case</span>
               </button>
 
               <button
                 onClick={() => setIsViewCasesModalOpen(true)}
-                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+                className="w-full px-4 py-3 bg-transparent border border-transparent rounded-xl hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white group"
               >
-                <Binoculars size={16} className="text-white transition-colors" />
-                <span className="text-sm font-medium text-white">View Cases</span>
+                <Binoculars size={18} className="transition-colors" />
+                <span className="text-sm font-medium">View Cases</span>
               </button>
 
               <button
                 onClick={() => setIsBookmarksModalOpen(true)}
-                className="w-full px-3 py-2.5 bg-transparent border border-transparent rounded-xl hover:bg-white/5 transition-all flex items-center gap-2.5 text-white group"
+                className="w-full px-4 py-3 bg-transparent border border-transparent rounded-xl hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white group"
               >
-                <Bookmark size={16} className="text-white transition-colors" />
-                <span className="text-sm font-medium text-white">Bookmarks</span>
+                <Bookmark size={18} className="transition-colors" />
+                <span className="text-sm font-medium">Bookmarks</span>
               </button>
             </>
           )}

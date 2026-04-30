@@ -89,38 +89,38 @@ const LoginScreen = () => {
             <button
               type="button"
               onClick={() => router.push(AUTH_ROUTES.FORGOT_PASSWORD)}
-              className="text-[#8B4564] hover:text-[#a85678] transition-colors text-sm cursor-pointer"
+              className="text-[#e9c176]/60 hover:text-[#e9c176] transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
             >
               Forgot password?
             </button>
           </div>
 
-          <AuthButton isLoading={isLoading} loadingText="Signing In...">
-            Sign In
+          <AuthButton isLoading={isLoading} loadingText="Verifying Credentials...">
+            Sign In to ilovelawyer
           </AuthButton>
         </form>
 
-        <div className="relative my-8">
+        <div className="relative my-10">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-white/10" />
+            <span className="w-full border-t border-white/5" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[#242424] px-2 text-white/40">Or continue with</span>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-[0.2em]">
+            <span className="bg-[#131314] px-4 text-white/20">Institutional Access</span>
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-8">
           <GoogleLoginButton />
         </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-white/60 text-sm">
-            No account yet?{' '}
+        <div className="mt-8 text-center border-t border-white/5 pt-8">
+          <p className="text-white/30 text-xs font-medium uppercase tracking-widest">
+            New to the platform?{' '}
             <button
               onClick={() => router.push(AUTH_ROUTES.SIGN_UP)}
-              className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
+              className="text-[#e9c176] hover:text-white transition-colors cursor-pointer ml-2"
             >
-              Sign up
+              Request Access
             </button>
           </p>
         </div>

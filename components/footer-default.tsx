@@ -20,7 +20,10 @@ export function Footer() {
               viewport={{ once: true }}
               className="mb-8"
             >
-              <span className="text-3xl font-serif text-white tracking-tight">ilovelawyer</span>
+              <span className="text-3xl font-serif text-white antialiased cursor-pointer flex items-center gap-0.5" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <span className="font-light tracking-tight opacity-70">ilove</span>
+                <span className="font-bold tracking-tighter text-secondary italic">lawyer</span>
+              </span>
             </motion.div>
             <p className="text-on-surface/40 text-sm leading-relaxed max-w-sm mb-10">
               The definitive digital workspace for the Philippine legal profession. Bridging centuries of jurisprudence with cutting-edge artificial intelligence.
@@ -49,19 +52,19 @@ export function Footer() {
             <div>
               <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-8">Resources</h4>
               <ul className="space-y-4 text-sm text-on-surface/40">
-                <li><a href="#" className="hover:text-secondary transition-colors">Official Gazette</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">SC Jurisprudence</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">Legal Templates</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">Research Tools</a></li>
+                <li><a href="https://www.officialgazette.gov.ph/" target="_blank" className="hover:text-secondary transition-colors">Official Gazette</a></li>
+                <li><a href="https://sc.judiciary.gov.ph/" target="_blank" className="hover:text-secondary transition-colors">SC Jurisprudence</a></li>
+                <li><a href="/consultation" className="hover:text-secondary transition-colors">Legal Templates</a></li>
+                <li><a href="/consultation" className="hover:text-secondary transition-colors">Research Tools</a></li>
               </ul>
             </div>
             <div className="col-span-2 md:col-span-1">
               <h4 className="text-white font-bold text-xs tracking-widest uppercase mb-8">Legal</h4>
               <ul className="space-y-4 text-sm text-on-surface/40">
-                <li><a href="#" className="hover:text-secondary transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">Ethical AI Charter</a></li>
-                <li><a href="#" className="hover:text-secondary transition-colors">Compliance</a></li>
+                <li><a href="/" className="hover:text-secondary transition-colors">Privacy Policy</a></li>
+                <li><a href="/" className="hover:text-secondary transition-colors">Terms of Service</a></li>
+                <li><a href="/" className="hover:text-secondary transition-colors">Ethical AI Charter</a></li>
+                <li><a href="/" className="hover:text-secondary transition-colors">Compliance</a></li>
               </ul>
             </div>
           </div>

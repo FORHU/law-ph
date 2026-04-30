@@ -43,18 +43,21 @@ export function PageLayout({
   const { isSidebarOpen, setIsSidebarOpen } = useConversations();
 
   return (
-    <div className="flex h-screen bg-[#131314] text-white overflow-hidden relative font-body-md">
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 z-0">
-        <motion.img
-          src={ASSETS.LADY_JUSTICE_IMAGE}
-          alt="Lady Justice"
-          className="w-full h-full object-cover opacity-20 grayscale contrast-125"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
+    <div className="flex h-screen bg-[#131314] text-on-background overflow-hidden relative font-body-md">
+      {/* Cinematic Background Layer */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, scale: 1.05, filter: 'grayscale(80%) blur(10px)' }}
+          animate={{ opacity: 0.15, scale: 1, filter: 'grayscale(80%) blur(0px)' }}
           transition={{ duration: 1.5, ease: "easeOut" }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat brightness-[0.4] contrast-125"
+          style={{ backgroundImage: `url(${ASSETS.HERO_BG})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#131314]/80 via-[#131314]/70 to-[#131314]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#131314]/95 via-[#131314]/70 to-[#131314]" />
+        
+        {/* Ambient Glows */}
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[rgba(233,193,118,0.03)] blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-[rgba(114,47,55,0.04)] blur-[120px] rounded-full pointer-events-none" />
       </div>
 
       {showSidebar && (
@@ -83,9 +86,14 @@ export function PageLayout({
         />
 
         <div className="flex-1 relative z-10 flex flex-col overflow-hidden">
-          <div className={`${maxWidth} mx-auto h-full w-full flex flex-col`}>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className={`${maxWidth} mx-auto h-full w-full flex flex-col`}
+          >
             {children}
-          </div>
+          </motion.div>
         </div>
       </main>
     </div>

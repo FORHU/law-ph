@@ -1,5 +1,5 @@
 -- Create bookmarks table
-create table if not exists public.bookmarks (
+create table if not exists law_ph.bookmarks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   item_id text not null,
@@ -15,24 +15,24 @@ create table if not exists public.bookmarks (
 );
 
 -- Ensure columns exist if table was already created earlier
-alter table public.bookmarks add column if not exists ai_summary text;
-alter table public.bookmarks add column if not exists doctrine text;
-alter table public.bookmarks add column if not exists facts text;
+alter table law_ph.bookmarks add column if not exists ai_summary text;
+alter table law_ph.bookmarks add column if not exists doctrine text;
+alter table law_ph.bookmarks add column if not exists facts text;
 
-create index if not exists bookmarks_user_id_idx on public.bookmarks(user_id);
-alter table public.bookmarks enable row level security;
+create index if not exists bookmarks_user_id_idx on law_ph.bookmarks(user_id);
+alter table law_ph.bookmarks enable row level security;
 
 -- Drop existing policies if they exist (to allow re-running the script)
-drop policy if exists "Users can read own bookmarks" on public.bookmarks;
-drop policy if exists "Users can insert own bookmarks" on public.bookmarks;
-drop policy if exists "Users can delete own bookmarks" on public.bookmarks;
+drop policy if exists "Users can read own bookmarks" on law_ph.bookmarks;
+drop policy if exists "Users can insert own bookmarks" on law_ph.bookmarks;
+drop policy if exists "Users can delete own bookmarks" on law_ph.bookmarks;
 
 -- RLS Policies
-create policy "Users can read own bookmarks" on public.bookmarks
+create policy "Users can read own bookmarks" on law_ph.bookmarks
   for select using (auth.uid() = user_id);
 
-create policy "Users can insert own bookmarks" on public.bookmarks
+create policy "Users can insert own bookmarks" on law_ph.bookmarks
   for insert with check (auth.uid() = user_id);
 
-create policy "Users can delete own bookmarks" on public.bookmarks
+create policy "Users can delete own bookmarks" on law_ph.bookmarks
   for delete using (auth.uid() = user_id);
