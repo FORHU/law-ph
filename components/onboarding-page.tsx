@@ -117,88 +117,50 @@ export function OnboardingPage() {
         {/* Latest Updates News Ticker Removed */}
 
         {/* Section Assembly */}
-        <div className="flex-1 space-y-0">
-          {[
-            { 
-              component: <HeroSection onStartConsultation={() => router.push('/consultation')} setActiveAngle={setActiveAngle} />, 
-              id: 'hero',
-              animation: {
-                initial: { opacity: 0, scale: 1.1, y: 0 },
-                whileInView: { opacity: 1, scale: 1, y: 0 }
-              }
-            },
-            { 
-              component: <WhyChooseSection setActiveAngle={setActiveAngle} />, 
-              id: 'why-choose',
-              animation: {
-                initial: { opacity: 0, rotateX: 30, scale: 0.8, y: 100 },
-                whileInView: { opacity: 1, rotateX: 0, scale: 1, y: 0 }
-              }
-            },
-            { 
-              component: <HowItWorksSection setActiveAngle={setActiveAngle} />, 
-              id: 'how-it-works',
-              animation: {
-                initial: { opacity: 0, x: -100, skewX: -5 },
-                whileInView: { opacity: 1, x: 0, skewX: 0 }
-              }
-            },
-            { 
-              component: <DemoSection setActiveAngle={setActiveAngle} />, 
-              id: 'demo',
-              animation: {
-                initial: { opacity: 0, filter: 'blur(20px)', scale: 0.95 },
-                whileInView: { opacity: 1, filter: 'blur(0px)', scale: 1 }
-              }
-            },
-            { 
-              component: <CapabilitiesSection setActiveAngle={setActiveAngle} />, 
-              id: 'capabilities',
-              animation: {
-                initial: { opacity: 0, scale: 1.8, filter: 'blur(30px)', z: 500 },
-                whileInView: { opacity: 1, scale: 1, filter: 'blur(0px)', z: 0 }
-              }
-            },
-            { 
-              component: <TrustSection setActiveAngle={setActiveAngle} />, 
-              id: 'trust',
-              animation: {
-                initial: { opacity: 0, y: 50, filter: 'blur(10px)' },
-                whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' }
-              }
-            },
-            { 
-              component: <ResourcesSection setActiveAngle={setActiveAngle} />, 
-              id: 'resources',
-              animation: {
-                initial: { opacity: 0, scale: 0.9 },
-                whileInView: { opacity: 1, scale: 1 }
-              }
-            },
-            { 
-              component: <FAQSection setActiveAngle={setActiveAngle} />, 
-              id: 'faq',
-              animation: {
-                initial: { opacity: 0, y: 20 },
-                whileInView: { opacity: 1, y: 0 }
-              }
-            }
-          ].map((section) => (
-            <div key={section.id} className="perspective-[2000px] overflow-hidden">
-              <motion.div
-                initial={section.animation.initial}
-                whileInView={section.animation.whileInView}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ 
-                  duration: 1.2, 
-                  ease: [0.22, 1, 0.36, 1],
+        <div className="flex-1">
+          <HeroSection
+            onStartConsultation={() => router.push('/consultation')}
+            setActiveAngle={setActiveAngle}
+          />
+
+          <WhyChooseSection setActiveAngle={setActiveAngle} />
+
+          <HowItWorksSection setActiveAngle={setActiveAngle} />
+
+          <DemoSection setActiveAngle={setActiveAngle} />
+
+          <CapabilitiesSection setActiveAngle={setActiveAngle} />
+
+          <TrustSection setActiveAngle={setActiveAngle} />
+
+          <ResourcesSection setActiveAngle={setActiveAngle} />
+
+          <FAQSection setActiveAngle={setActiveAngle} />
+        </div>
+
+        {/* Persistent Sticky Search Bar */}
+        <div className="fixed bottom-12 left-0 right-0 z-50 px-6 pointer-events-none">
+          <div className="max-w-3xl mx-auto glass-panel rounded-2xl px-6 py-4 flex items-center justify-between shadow-2xl border border-white/10 pointer-events-auto">
+            <div className="flex items-center gap-4 flex-1">
+              <span className="material-symbols-outlined text-secondary">auto_awesome</span>
+              <input
+                className="bg-transparent border-none text-on-surface focus:ring-0 w-full placeholder:text-on-surface/30 text-lg"
+                placeholder="Ask ilovelawyer anything about PH Law..."
+                type="text"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    router.push('/consultation?q=' + encodeURIComponent(e.currentTarget.value));
+                  }
                 }}
-                className="w-full transform-gpu"
-              >
-                {section.component}
-              </motion.div>
+              />
             </div>
-          ))}
+            <button
+              onClick={() => router.push('/consultation')}
+              className="bg-[#722f37] text-white p-3 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined">send</span>
+            </button>
+          </div>
         </div>
 
 
