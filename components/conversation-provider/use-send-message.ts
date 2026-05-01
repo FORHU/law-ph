@@ -192,17 +192,7 @@ export function useSendMessage({
 
           if (skipAIResponse) {
             // Send the "receipt" response with more professional phrases
-            const receiptText = `I’ve received your file “${currentFileAttachment?.name || 'document'}.” What would you like me to do with it?
-
-Here are a few things I can help you with:
-
-- **Comprehensive Document Analysis**: Perform a deep-dive analysis of the file's legal implications and core findings.
-- **Key Data Extraction**: Identify and extract critical dates, parties, and legal obligations from the document.
-- **Synthesize Case Facts**: Extract a clear, plain-language summary of the core facts and legal issues.
-- **Generate Professional Brief**: Produce a structured case brief including the issue, ruling, and legal reasoning.
-- **Deconstruct Legal Reasoning**: Provide a step-by-step breakdown of the court's logic and the specific laws applied.
-
-Just tell me 👍`;
+            const receiptText = `I've received your file "${currentFileAttachment?.name || 'document'}." What would you like me to do with it?\n\nHere are a few things I can help you with:\n\n- **Comprehensive Document Analysis**: Perform a deep-dive analysis of the file's legal implications and core findings.\n- **Key Data Extraction**: Identify and extract critical dates, parties, and legal obligations from the document.\n- **Synthesize Case Facts**: Extract a clear, plain-language summary of the core facts and legal issues.\n- **Generate Professional Brief**: Produce a structured case brief including the issue, ruling, and legal reasoning.\n- **Deconstruct Legal Reasoning**: Provide a step-by-step breakdown of the court's logic and the specific laws applied.\n\nJust tell me 👍`;
 
 
             // Save the receipt response to Supabase
@@ -261,61 +251,7 @@ Just tell me 👍`;
                 console.error("Failed to get session for provider token", e);
               }
             }
-            const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. 
-             Do NOT write it as a numbered list, bullet points, or any other Markdown format.
-
----
-[SYSTEM INSTRUCTION - RESPONSE FORMAT]:
-Current System Date: ${new Date().toISOString().split('T')[0]}
-
-4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:
-   - "Key Parties": Separate Names and Roles into distinct nested levels. 
-     Structure: "Key Parties" -> [Role (e.g. "Plaintiff")] -> [Full Name (e.g. "Engr. Marcus T. Torres")]. 
-     CRITICAL: NEVER combine the role and name in a single label (e.g., Do NOT use "Plaintiff: Marcus Torres"). They MUST be separate nodes.
-     Include Attorneys, Witnesses, and specific experts.
-
-
-5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.
-
-CRITICAL: NEVER mention "Mind Map", "Timeline", or that you are generating them in your prose/text response. The UI renders them automatically in a separate tab. Your prose must ONLY contain the direct legal consultation, then immediately output the tags.
-
-The tags MUST be at the very bottom and look like this:
-
-[MINDMAP]
-{
-  "id": "root",
-  "label": "Case Analysis",
-  "description": "Comprehensive mapping of legal elements for the specific dispute regarding [Case Subject].",
-  "children": [
-    {
-      "id": "c1",
-      "label": "Key Parties",
-      "description": "Inventory of case-specific stakeholders, featuring their unique identifiers and precise legal standing.",
-      "children": [
-        { "id": "p1_role", "label": "Plaintiff", "description": "The primary initiator [Name] who is seeking recovery of [Specific Property/Amount].", "children": [{ "id": "p1_name", "label": "Sofia Santos", "description": " Sofia Santos, owner of OCT No. 12345, claiming a 50sqm encroachment in Brgy. San Jose.", "children": [] }] },
-        { "id": "atty_root", "label": "Legal Team", "description": "The specific attorneys managing the procedural strategy for this case.", "children": [{ "id": "a1", "label": "Counsel", "description": "Lead legal representation focused on the Accion Reivindicatoria strategy.", "children": [{"id": "a1_name", "label": "Atty. Gabriel Cruz", "description": "Atty. Cruz, specializing in land disputes, currently preparing the complaint for the Pasig RTC.", "children": []}] }] }
-      ]
-    }
-  ]
-}
-[/MINDMAP]
-
-7. CRITICAL: Every node in the [MINDMAP] MUST have a unique "description" and you MUST deconstruct technical details into subnodes. 
-   - DESCRIPTION FORMATTING: If the information is a narrative role or strategy, use a concise sentence. If the information is a short technical fact (e.g., license, measurements, serial numbers, specific dates), use bulleted form (e.g. "- License: 008922").
-   - QUANTITIES & IDENTIFIERS: If a measurement (e.g., "38.5sqm"), license number, or serial number is mentioned, it MUST be its own distinct node.
-   - For example: "Evidence" -> "Relocation Survey" -> "38.5sqm Encroachment (North-West)".
-
-8. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: "completed", "pending". 
-CRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories.
-CRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above. NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.
-
-[TIMELINE]
-[
-  {"title":"Case Assessment","date":"[YYYY-MM-DD]","description":"- Initial review of [Party's Name] documentation.\n- Document inventory.","status":"completed", "requires_previous": false},
-  {"title":"Technical Survey Verification","date":"","description":"- Conduct on-site boundary verification.\n- Confirm 50sqm encroachment.","status":"pending", "requires_previous": false}
-]
-[/TIMELINE]
-CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names are ALWAYS nested UNDER their Titles/Roles as separate child nodes. (e.g. "Geodetic Engineer" (parent) -> "Engr. Miguel Gomez" (child) -> "License No. 008922" (grandchild)). NEVER use a colon ":" to join a role and a name in one label. Do not include these tags in the prose.`;
+            const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}\n\n[SYSTEM RULE - CRITICAL]: If your response includes any form of step-by-step legal plan, strategy, or action timeline, you MUST append it EXCLUSIVELY in the following machine-readable format below your prose answer. \n             Do NOT write it as a numbered list, bullet points, or any other Markdown format.\n\n---\n[SYSTEM INSTRUCTION - RESPONSE FORMAT]:\nCurrent System Date: ${new Date().toISOString().split('T')[0]}\n\n4. IMPORTANT: Always include these 4 specific main branches in the mind map if the information is available:\n   - "Key Parties": Separate Names and Roles into distinct nested levels. \n     Structure: "Key Parties" -> [Role (e.g. "Plaintiff")] -> [Full Name (e.g. "Engr. Marcus T. Torres")]. \n     CRITICAL: NEVER combine the role and name in a single label (e.g., Do NOT use "Plaintiff: Marcus Torres"). They MUST be separate nodes.\n     Include Attorneys, Witnesses, and specific experts.\n\n\n5. If the user's inquiry relates to filing a case, you MUST add a "Filing Requirements" branch including: (a) Jurisdiction and Venue, (b) Verification and Certification Against Forum Shopping, and (c) Reliefs Demanded.\n\nCRITICAL: NEVER mention "Mind Map", "Timeline", or that you are generating them in your prose/text response. The UI renders them automatically in a separate tab. Your prose must ONLY contain the direct legal consultation, then immediately output the tags.\n\nThe tags MUST be at the very bottom and look like this:\n\n[MINDMAP]\n{\n  "id": "root",\n  "label": "Case Analysis",\n  "description": "Comprehensive mapping of legal elements for the specific dispute regarding [Case Subject].",\n  "children": [\n    {\n      "id": "c1",\n      "label": "Key Parties",\n      "description": "Inventory of case-specific stakeholders, featuring their unique identifiers and precise legal standing.",\n      "children": [\n        { "id": "p1_role", "label": "Plaintiff", "description": "The primary initiator [Name] who is seeking recovery of [Specific Property/Amount].", "children": [{ "id": "p1_name", "label": "Sofia Santos", "description": " Sofia Santos, owner of OCT No. 12345, claiming a 50sqm encroachment in Brgy. San Jose.", "children": [] }] },\n        { "id": "atty_root", "label": "Legal Team", "description": "The specific attorneys managing the procedural strategy for this case.", "children": [{ "id": "a1", "label": "Counsel", "description": "Lead legal representation focused on the Accion Reivindicatoria strategy.", "children": [{"id": "a1_name", "label": "Atty. Gabriel Cruz", "description": "Atty. Cruz, specializing in land disputes, currently preparing the complaint for the Pasig RTC.", "children": []}] }] }\n      ]\n    }\n  ]\n}\n[/MINDMAP]\n\n7. CRITICAL: Every node in the [MINDMAP] MUST have a unique \"description\" and you MUST deconstruct technical details into subnodes. \n   - DESCRIPTION FORMATTING: If the information is a narrative role or strategy, use a concise sentence. If the information is a short technical fact (e.g., license, measurements, serial numbers, specific dates), use bulleted form (e.g. \"- License: 008922\").\n   - QUANTITIES & IDENTIFIERS: If a measurement (e.g., \"38.5sqm\"), license number, or serial number is mentioned, it MUST be its own distinct node.\n   - For example: \"Evidence\" -> \"Relocation Survey\" -> \"38.5sqm Encroachment (North-West)\".\n\n8. You MUST provide a comprehensive, chronological [TIMELINE] array of the case. It MUST include past completed steps and future pending steps. Only use these exact statuses: \"completed\", \"pending\". \nCRITICAL RULE 1: Break down simultaneous or independent tasks into separate, granular micro-steps. Do NOT group them into broad categories.\nCRITICAL RULE 2: Calculate past dates mathematically using the Current System Date provided above. NEVER copy the example dates or tasks verbatim. Generate original tasks and mathematically accurate dates based entirely on the user's transcript.\n\n[TIMELINE]\n[\n  {\"title\":\"Case Assessment\",\"date\":\"[YYYY-MM-DD]\",\"description\":\"- Initial review of [Party's Name] documentation.\\n- Document inventory.\",\"status\":\"completed\", \"requires_previous\": false},\n  {\"title\":\"Technical Survey Verification\",\"date\":\"\",\"description\":\"- Conduct on-site boundary verification.\\n- Confirm 50sqm encroachment.\",\"status\":\"pending\", \"requires_previous\": false}\n]\n[/TIMELINE]\nCRITICAL: The mind map JSON MUST use \"label\" for the display text. Ensure Names are ALWAYS nested UNDER their Titles/Roles as separate child nodes. (e.g. \"Geodetic Engineer\" (parent) -> \"Engr. Miguel Gomez\" (child) -> \"License No. 008922\" (grandchild)). NEVER use a colon \":\" to join a role and a name in one label. Do not include these tags in the prose.`;
 
 
             return fetch('/api/chat/stream', {
@@ -492,7 +428,9 @@ CRITICAL: The mind map JSON MUST use "label" for the display text. Ensure Names 
       }
 
       if (sessionId) {
-        processMessage(sessionId);
+        processMessage(sessionId).catch((err) => {
+          console.error("[processMessage] Unhandled rejection:", err);
+        });
       }
 
       return sessionId ?? undefined;

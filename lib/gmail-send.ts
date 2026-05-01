@@ -1,5 +1,6 @@
+import { refreshGoogleAccessToken } from './google-token';
+
 const GMAIL_SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
-const TOKEN_REFRESH_URL = 'https://oauth2.googleapis.com/token';
 
 // RFC 2822 messages must be base64url-encoded (no padding, - instead of +, _ instead of /)
 function base64url(input: string | Buffer): string {
@@ -65,26 +66,6 @@ function buildMimeMessage({ from, to, subject, html, attachments }: MimeParams):
 
   parts.push(`--${boundary}--`);
   return parts.join('\r\n');
-}
-
-export async function refreshGoogleAccessToken(refreshToken: string): Promise<string | null> {
-  try {
-    const res = await fetch(TOKEN_REFRESH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token',
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.access_token ?? null;
-  } catch {
-    return null;
-  }
 }
 
 export interface GmailSendParams extends MimeParams {

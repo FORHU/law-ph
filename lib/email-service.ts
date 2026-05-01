@@ -41,7 +41,12 @@ export async function sendEmail({
   const displayTimezone = timezone || 'UTC';
 
   const recipients = Array.isArray(to) ? to : [to];
-  const cleanRecipients = recipients.map(r => r.replace(/\s+/g, '.').toLowerCase());
+  const cleanRecipients = recipients.map(r => r.trim().toLowerCase());
+  // Extract just the email address from "Display Name <email>" format for ICS ATTENDEE fields
+  const extractEmail = (addr: string): string => {
+    const m = addr.match(/<([^>]+)>/);
+    return m ? m[1] : addr;
+  };
 
   let emailContent = body || '';
   let emailSubject = subject || 'Update from Legal Consultation';
@@ -89,7 +94,7 @@ export async function sendEmail({
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${extractEmail(cleanRecipients[0])}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       `SEQUENCE:${sequence}`, 'TRANSP:OPAQUE',
@@ -130,7 +135,7 @@ export async function sendEmail({
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${extractEmail(cleanRecipients[0])}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:1', 'TRANSP:OPAQUE',
@@ -171,7 +176,7 @@ export async function sendEmail({
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${extractEmail(cleanRecipients[0])}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:2', 'TRANSP:OPAQUE',
@@ -214,7 +219,7 @@ export async function sendEmail({
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:CANCEL', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=FALSE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Participant";RSVP=FALSE:mailto:${extractEmail(cleanRecipients[0])}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${eventType}`, 'STATUS:CANCELLED',
       'SEQUENCE:3', 'TRANSP:TRANSPARENT',

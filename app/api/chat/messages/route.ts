@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: Request) {
   const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const { conversation_id, role, content, imagePreview, created_at } = await req.json()
 
   if (!conversation_id || !role || !content) {
