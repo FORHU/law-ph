@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Upload, FileText, X, Briefcase, Scale, ChevronDown, Loader2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { PageLayout } from '@/components/ui/page-layout';
@@ -65,12 +65,12 @@ export default function Documents() {
         // Guest fallback
         const saved = localStorage.getItem('lawph_documents');
         if (saved) {
-          try { setRecentDocuments(JSON.parse(saved)); } catch {}
+          try { setRecentDocuments(JSON.parse(saved)); } catch { }
         }
       }
     };
     loadDocuments();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, userId, cases]);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -102,16 +102,16 @@ export default function Documents() {
 
     // Redirect immediately to the consultation
     router.push(`/consultation/${selectedCaseId}`);
-    
+
     // Trigger background upload and linking
     analyzeDocuments(selectedFiles, selectedCaseId);
-    
+
     // Clear local selection
     setSelectedFiles([]);
     setSelectedCaseId('');
   };
 
-  
+
 
   const formatTimeAgo = (ts: number) => {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -158,17 +158,16 @@ export default function Documents() {
               <div
                 onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer ${
-                  dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
-                }`}
+                className={`relative border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer ${dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
+                  }`}
               >
-                <input ref={fileInputRef} type="file" className="hidden" 
-                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*" 
+                <input ref={fileInputRef} type="file" className="hidden"
+                  accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
                   multiple
 
-                  onChange={(e) => { 
+                  onChange={(e) => {
                     if (e.target.files?.length) {
-                      setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]); 
+                      setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                     }
                   }}
                 />
@@ -183,10 +182,10 @@ export default function Documents() {
                           <div key={idx} className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
                             <FileText size={14} className="text-[#E0A7C2]" />
                             <span className="text-sm font-medium truncate max-w-[150px]">{file.name}</span>
-                            <button onClick={(e) => { 
-                                e.stopPropagation(); 
-                                setSelectedFiles(prev => prev.filter((_, i) => i !== idx)); 
-                              }}
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+                            }}
                               className="text-gray-500 hover:text-white ml-1">
                               <X size={12} />
                             </button>
@@ -225,9 +224,9 @@ export default function Documents() {
                   <AnimatePresence>
                     {caseDropdownOpen && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-40" 
-                          onClick={() => setCaseDropdownOpen(false)} 
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setCaseDropdownOpen(false)}
                         />
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
@@ -269,22 +268,21 @@ export default function Documents() {
               <button
                 onClick={handleLinkToChat}
                 disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
-                className={`w-full mt-5 px-6 py-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                  selectedFiles.length > 0 && !isUploading && selectedCaseId
+                className={`w-full mt-5 px-6 py-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${selectedFiles.length > 0 && !isUploading && selectedCaseId
                     ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
                     : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed shadow-inner'
-                }`}
+                  }`}
 
               >
-                {isUploading ? <Loader2 size={20} className="animate-spin md:size-4 stroke-[2.5] md:stroke-2" /> : <Scale size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />} 
- 
-                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case'}
-            </button>
+                {isUploading ? <Loader2 size={20} className="animate-spin md:size-4 stroke-[2.5] md:stroke-2" /> : <Scale size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />}
 
+                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case'}
+              </button>
+
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </PageLayout>
-);
+    </PageLayout>
+  );
 }

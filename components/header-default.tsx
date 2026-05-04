@@ -54,20 +54,21 @@ export function Header({ isLoggedIn }: HeaderProps) {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b"
-      style={{ 
+      style={{
         backgroundColor: `${COLORS.BG_DARK}F2`, // 95% opacity
-        borderColor: `${COLORS.PRIMARY}33` 
+        borderColor: `${COLORS.PRIMARY}33`
       }}
     >
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="text-2xl font-semibold">
-            <button onClick={navigateToHome}>
-              <span className="text-white">{BRAND.NAME_PART1}</span>
-              <span style={{ color: COLORS.PRIMARY }}>{BRAND.NAME_PART2}</span>
-            </button>
-          </div>
+          <button
+            onClick={navigateToHome}
+            className="flex items-center"
+          >
+            <span className="font-serif italic lowercase text-2xl" style={{ color: COLORS.SECONDARY }}>ilove</span>
+            <span className="font-serif text-white font-medium lowercase text-2xl">lawyer</span>
+          </button>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
@@ -102,7 +103,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                   router.refresh();
                 }}
                 className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
-                style={{ 
+                style={{
                   borderColor: COLORS.PRIMARY,
                   backgroundColor: 'transparent'
                 }}
@@ -160,7 +161,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               <button
                 onClick={navigateToLogin}
                 className="px-6 py-2 border-2 rounded-md transition-all w-full text-center font-medium"
-                style={{ 
+                style={{
                   borderColor: COLORS.PRIMARY,
                   color: COLORS.PRIMARY
                 }}
@@ -183,7 +184,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
                   setMobileMenuOpen(false);
                 }}
                 className="px-6 py-2 border-2 rounded-md transition-all w-full text-center font-medium"
-                style={{ 
+                style={{
                   borderColor: COLORS.PRIMARY,
                   color: COLORS.PRIMARY
                 }}

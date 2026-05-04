@@ -1,78 +1,79 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, ArrowRight } from 'lucide-react';
-import { COLORS } from '@/lib/constants';
-import ChatConversationDemo from '../chat-conversation-demo';
+import { MessageSquare, ArrowRight, Scale } from 'lucide-react';
 
-export function DemoSection() {
+interface DemoSectionProps {
+  setActiveAngle?: (angle: number) => void;
+}
+
+export function DemoSection({ setActiveAngle }: DemoSectionProps) {
   const router = useRouter();
-  const navigate = (path: string) => router.push(path);
 
   return (
-    <section className="relative py-20 px-6 z-10">
-      <div className="max-w-4xl mx-auto">
-        <motion.div 
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
-        >
-          <div 
-            className="text-xs sm:text-sm uppercase tracking-wider mb-3"
-            style={{ color: COLORS.PRIMARY }}
-          >LIVE PREVIEW</div>
-          <h2 
-            className="text-4xl md:text-5xl mb-4"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >
-            AI Legal Consultation in Action
-          </h2>
-          <p className="text-gray-400">See how our AI provides instant, accurate legal guidance based on Philippine law.</p>
-        </motion.div>
+    <section 
+      className="py-48 bg-background"
+      onMouseEnter={() => setActiveAngle?.(3)}
+    >
+      <motion.div 
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="max-w-[1200px] mx-auto px-12 text-center"
+      >
+        <span className="text-secondary text-sm tracking-[0.4em] font-bold uppercase mb-8 block">Live Preview</span>
+        <h2 className="text-5xl font-serif text-white mb-8 leading-[1.1]">AI Legal Consultation in Action</h2>
+        <p className="text-on-surface/50 text-lg mb-16 max-w-3xl mx-auto font-light">See how our AI provides instant, accurate legal guidance based on Philippine law.</p>
+        
+        <div className="glass-panel rounded-[3rem] p-16 md:p-24 border border-white/10 text-left relative overflow-hidden shadow-2xl bg-white/[0.01]">
+          <div className="space-y-12 max-w-4xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-end"
+            >
+              <div className="bg-[#2A1F1A]/80 rounded-[2rem] rounded-tr-none p-8 text-on-surface/90 text-base md:text-lg max-w-2xl border border-white/5 shadow-xl leading-relaxed">
+                What are my rights as a tenant if my landlord wants to terminate my lease early?
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.8 }}
+              className="flex gap-8"
+            >
+              <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center shrink-0 border border-secondary/20 shadow-lg shadow-secondary/5">
+                <Scale className="w-8 h-8 text-secondary" />
+              </div>
+              <div className="bg-white/5 rounded-[2rem] rounded-tl-none p-10 text-on-surface/80 text-base md:text-lg leading-relaxed border border-white/5 shadow-xl font-light">
+                Under Philippine law, particularly the Civil Code, a landlord cannot arbitrarily terminate a lease agreement before the agreed period ends. According to Article 1673, you have the right to continue occupying the property...
+              </div>
+            </motion.div>
+          </div>
 
-        <motion.div 
-          className="backdrop-blur border rounded-xl p-6 md:p-8"
-          style={{ backgroundColor: `${COLORS.BG_CARD}B3`, borderColor: `${COLORS.PRIMARY}4D` }}
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <ChatConversationDemo />
-
-          {/* Start Consultation Button - Centered and Enhanced */}
           <motion.div 
-            className="flex justify-center pt-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.5, delay: 8 }}
+            viewport={{ once: true }}
+            transition={{ delay: 1.2 }}
+            className="mt-20 flex justify-center"
           >
-            <motion.button 
-              onClick={() => navigate('/consultation')}
-              className="group relative px-8 py-4 text-[#1A1A1A] rounded-lg transition-all duration-300 transform hover:scale-105 overflow-hidden font-bold"
-              style={{ 
-                background: `linear-gradient(to right, ${COLORS.PRIMARY}, ${COLORS.PRIMARY_LIGHT})`,
-                boxShadow: `0 20px 25px -5px ${COLORS.PRIMARY}33`
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+            <button 
+              onClick={() => router.push('/consultation')}
+              className="bg-[#722f37] text-white px-8 py-4 rounded-xl flex items-center gap-4 text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#722f37]/20"
             >
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: `linear-gradient(to right, ${COLORS.PRIMARY_LIGHT}, ${COLORS.PRIMARY})` }}
-              ></div>
-              <span className="relative flex items-center gap-2 font-medium">
-                <MessageSquare size={20} />
-                Start Your Consultation
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </span>
-            </motion.button>
+              <MessageSquare className="w-5 h-5" />
+              Start Your Consultation <ArrowRight className="w-5 h-5" />
+            </button>
           </motion.div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </section>
   );
 }

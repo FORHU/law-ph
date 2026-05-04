@@ -8,7 +8,9 @@ interface AuthCardProps {
 
 export function AuthCard({ children }: AuthCardProps) {
   return (
-    <div className="bg-[#242424]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl mt-12 sm:mt-0">
+    <div className="glass-panel backdrop-blur-2xl bg-[rgba(0,0,0,0.4)] border border-white/5 rounded-[2.5rem] p-8 sm:p-12 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] relative overflow-hidden">
+      {/* Subtle top light effect */}
+      <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       {children}
     </div>
   );

@@ -1,234 +1,99 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Search, FileText, ArrowRight } from 'lucide-react';
-import { COLORS } from '@/lib/constants';
 
-export function HowItWorksSection() {
-  const steps = [
-    { 
-      icon: <MessageSquare size={24} />, 
-      step: '1', 
-      title: 'Ask Your Question', 
-      desc: 'Type your legal question in plain language. No legal jargon required.' 
-    },
-    { 
-      icon: <Search size={24} />, 
-      step: '2', 
-      title: 'AI Analysis', 
-      desc: 'Our AI searches through Philippine legal codes, jurisprudence, and regulations.' 
-    },
-    { 
-      icon: <FileText size={24} />, 
-      step: '3', 
-      title: 'Receive Guidance', 
-      desc: 'Receive cited legal information with references to specific laws and cases.' 
-    },
-    { 
-      icon: <ArrowRight size={24} />, 
-      step: '4', 
-      title: 'Take Action', 
-      desc: 'Use insights to make informed decisions or consult with a licensed attorney.' 
-    }
-  ];
+interface HowItWorksSectionProps {
+  setActiveAngle?: (angle: number) => void;
+}
 
+export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
   return (
-    <section id="about" className="relative py-12 md:py-20 px-6 z-10">
-      <div className="max-w-6xl mx-auto">
-        <motion.div 
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+    <section 
+      className="py-48 bg-black/20" 
+      id="how-it-works"
+      onMouseEnter={() => setActiveAngle?.(3)}
+    >
+      <div className="max-w-[1440px] mx-auto px-12 text-center">
+        <motion.span 
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="text-secondary text-sm tracking-[0.3em] font-bold uppercase mb-8 block"
         >
-          <div 
-            className="uppercase tracking-wider mb-3 text-xs sm:text-sm font-bold"
-            style={{ color: COLORS.PRIMARY }}
-          >SIMPLE PROCESS</div>
-          <h2 
-            className="text-3xl sm:text-4xl md:text-5xl mb-4"
-            style={{ fontFamily: 'Playfair Display, serif' }}
-          >How It Works</h2>
-          <p className="text-gray-300 text-sm sm:text-base">Getting legal guidance has never been easier. Follow these simple steps.</p>
-        </motion.div>
+          Simple Process
+        </motion.span>
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-5xl font-serif text-white mb-6"
+        >
+          How It Works
+        </motion.h2>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+          className="text-on-surface/50 text-lg max-w-3xl mx-auto mb-16 font-light leading-relaxed"
+        >
+          Getting legal guidance has never been easier. Follow these simple steps to start your consultation.
+        </motion.p>
 
-        {/* Desktop View - Horizontal with connecting lines */}
-        <div className="hidden lg:block relative">
-          {/* Connecting Line - Animated */}
-          <motion.div 
-            className="absolute top-[50px] left-0 right-0 h-0.5"
-            style={{ background: `linear-gradient(to right, transparent, ${COLORS.PRIMARY}80, transparent)` }}
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 1.5, delay: 0.5 }}
-          />
-          
-          <div className="grid grid-cols-4 gap-6 relative">
-            {steps.map((item, index) => (
-              <motion.div 
-                key={index} 
-                className="relative group"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ 
-                  duration: 0.6, 
-                  delay: index * 0.2,
-                  ease: "easeOut"
-                }}
-              >
-                {/* Step Number Circle */}
-                <div className="flex justify-center mb-8">
-                  <div className="relative">
-                    <motion.div 
-                      className="w-[100px] h-[100px] rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 relative z-10"
-                      style={{ 
-                        background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
-                        boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}33`
-                      }}
-                      initial={{ scale: 0 }}
-                      whileInView={{ scale: 1 }}
-                      viewport={{ once: true, margin: "-100px" }}
-                      transition={{ 
-                        duration: 0.5, 
-                        delay: index * 0.2 + 0.2,
-                        type: "spring",
-                        stiffness: 200
-                      }}
-                    >
-                      <motion.span 
-                        className="text-3xl font-semibold" 
-                        style={{ fontFamily: 'Playfair Display, serif', color: COLORS.BG_DARK }}
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true, margin: "-100px" }}
-                        transition={{ delay: index * 0.2 + 0.4 }}
-                      >
-                        {item.step}
-                      </motion.span>
-                    </motion.div>
-                  </div>
-                </div>
-
-                {/* Card */}
-                <motion.div 
-                  className="backdrop-blur border rounded-xl p-6 transition-all duration-300 hover:-translate-y-2 min-h-[240px]"
-                  style={{ 
-                    backgroundColor: `${COLORS.BG_CARD}80`, 
-                    borderColor: `${COLORS.PRIMARY}33`,
-                    boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}99`}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = `${COLORS.PRIMARY}33`}
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ delay: index * 0.2 + 0.3 }}
-                >
-                  <div className="mb-4 flex justify-center" style={{ color: COLORS.PRIMARY }}>
-                    {item.icon}
-                  </div>
-                  <h3 className="text-2xl mb-3 text-center text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-400 text-sm text-center leading-relaxed">
-                    {item.desc}
-                  </p>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Mobile View - Vertical with timeline */}
-        <div className="lg:hidden space-y-8">
-          {steps.map((item, index) => (
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.2
+              }
+            }
+          }}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-4 gap-16 relative"
+        >
+          <div className="absolute top-20 left-0 w-full h-px bg-white/10 hidden md:block" />
+          {[
+            { step: '1', title: 'Ask Your Question', desc: 'Type your legal question in plain language.', icon: <MessageSquare className="w-8 h-8" /> },
+            { step: '2', title: 'AI Analysis', desc: 'Our AI searches through Philippine legal codes.', icon: <Search className="w-8 h-8" /> },
+            { step: '3', title: 'Receive Guidance', desc: 'Receive cited legal information with references.', icon: <FileText className="w-8 h-8" /> },
+            { step: '4', title: 'Take Action', desc: 'Use insights to make informed decisions.', icon: <ArrowRight className="w-8 h-8" /> },
+          ].map((item, i) => (
             <motion.div 
-              key={index} 
-              className="flex gap-6"
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.2,
-                ease: "easeOut"
+              key={item.step} 
+              variants={{
+                hidden: { opacity: 0, y: 30 },
+                show: { opacity: 1, y: 0, transition: { duration: 1, ease: "easeOut" } }
               }}
+              className="flex flex-col items-center group relative z-10"
             >
-              {/* Timeline */}
-              <div className="flex flex-col items-center">
-                <motion.div 
-                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ 
-                    background: `linear-gradient(to bottom right, ${COLORS.PRIMARY}, ${COLORS.ACCENT_DARK})`,
-                    boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}33`
-                  }}
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ 
-                    duration: 0.5, 
-                    delay: index * 0.2 + 0.2,
-                    type: "spring",
-                    stiffness: 200
-                  }}
-                >
-                  <motion.span 
-                    className="text-2xl" 
-                    style={{ fontFamily: 'Playfair Display, serif', color: COLORS.BG_DARK }}
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ delay: index * 0.2 + 0.4 }}
-                  >
-                    {item.step}
-                  </motion.span>
-                </motion.div>
-                {index < 3 && (
-                  <motion.div 
-                    className="w-0.5 h-24 mt-2"
-                    style={{ 
-                      background: `linear-gradient(to bottom, ${COLORS.PRIMARY}, ${COLORS.PRIMARY}33)`,
-                      transformOrigin: "top"
-                    }}
-                    initial={{ scaleY: 0 }}
-                    whileInView={{ scaleY: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ 
-                      duration: 0.4, 
-                      delay: index * 0.2 + 0.5
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Content */}
               <motion.div 
-                className="flex-1 backdrop-blur border rounded-xl p-6"
-                style={{ 
-                  backgroundColor: `${COLORS.BG_CARD}80`, 
-                  borderColor: `${COLORS.PRIMARY}33`,
-                  boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}1A`
-                }}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: index * 0.2 + 0.3 }}
+                whileHover={{ scale: 1.05, backgroundColor: '#8b3d46' }}
+                className="w-24 h-24 rounded-full bg-[#722f37] text-white flex items-center justify-center text-2xl font-bold mb-8 shadow-2xl transition-all ring-4 ring-transparent group-hover:ring-white/10"
               >
-                <div className="mb-3" style={{ color: COLORS.PRIMARY }}>
-                  {item.icon}
-                </div>
-                <h3 className="text-xl mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                  {item.title}
-                </h3>
-                <p className="text-gray-400 text-sm leading-relaxed">
-                  {item.desc}
-                </p>
+                {item.step}
+              </motion.div>
+              <motion.div 
+                initial={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
+                whileHover={{ 
+                  y: -10, 
+                  backgroundColor: "rgba(255, 255, 255, 0.03)",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
+                }}
+                className="glass-panel p-12 rounded-[2.5rem] border border-white/5 w-full min-h-[320px] flex flex-col items-center shadow-lg transition-all"
+              >
+                <div className="text-secondary mb-8 transition-transform group-hover:scale-110">{item.icon}</div>
+                <h4 className="text-xl font-bold text-white mb-4 leading-tight transition-colors group-hover:text-[#ffb2b8]">{item.title}</h4>
+                <p className="text-on-surface/50 text-base leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

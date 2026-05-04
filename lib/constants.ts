@@ -10,7 +10,9 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const ASSETS = {
-  LADY_JUSTICE_IMAGE: "https://images.unsplash.com/photo-1701267148058-9159d6642f79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsYWR5JTIwanVzdGljZSUyMHN0YXR1ZSUyMGRyYW1hdGljJTIwbGlnaHRpbmd8ZW58MXx8fHwxNzcwMTcyODAxfDA&ixlib=rb-4.1.0&q=80&w=1080"
+  HERO_BG: "/assets/auth-bg.jpg",
+  AUTH_BG: "/assets/auth-bg.jpg",
+  LADY_JUSTICE_IMAGE: "/assets/auth-bg.jpg"
 } as const;
 
 export const BRAND = {
@@ -19,11 +21,12 @@ export const BRAND = {
 } as const;
 
 export const COLORS = {
-  PRIMARY: '#8B4564',
-  PRIMARY_LIGHT: '#9D5373',
-  ACCENT_DARK: '#6D3650',
-  BG_DARK: '#0a0e17', // Match the deep dark navy
-  BG_CARD: '#242424', // Match the glassmorphism card base
+  PRIMARY: '#722f37', // Deep wine red
+  PRIMARY_LIGHT: '#ffb2b8', // Soft rose
+  SECONDARY: '#e9c176', // Sovereign gold
+  ACCENT_DARK: '#4a1d23', // Darker wine for gradients/depth
+  BG_DARK: '#131314', // Institutional dark
+  BG_CARD: 'rgba(255, 255, 255, 0.03)', 
 } as const;
 
 export const AUTH_ROUTES = {

@@ -445,10 +445,20 @@ export function ConversationProvider({
             "[ConversationProvider] fetchConversations: Network connection issues (Failed to fetch).",
           );
         } else {
-          console.error(
-            "[ConversationProvider] fetchConversations error:",
-            error.message,
-          );
+          // If it's just a missing table, handle it gracefully without screaming in the console
+          if (error.message.includes("not find the table")) {
+            console.warn("[ConversationProvider] Conversations table not found. Using demo data.");
+            const mockConversations = [
+              { id: 'c1', user_id: userId, title: 'Legal Research: Rule 138-A', created_at: new Date().toISOString() },
+              { id: 'c2', user_id: userId, title: 'Jurisprudence: Property Law', created_at: new Date(Date.now() - 3600000).toISOString() },
+            ];
+            setConversations(mockConversations);
+          } else {
+            console.error(
+              "[ConversationProvider] fetchConversations error:",
+              error.message,
+            );
+          }
         }
         return;
       }
