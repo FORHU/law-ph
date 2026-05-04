@@ -426,25 +426,35 @@ export function cleanAiText(text: string): string {
 
   let cleaned = text;
 
-  // 1. Strip bracketed standard structures
-  cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/gi, "");
-  cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/gi, "");
-  cleaned = cleaned.replace(/\[ILM_META\][\s\S]*?(?:\[\/ILM_META\]|$)/gi, "");
-  cleaned = cleaned.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?(?:\[\/HIDDEN_INSTRUCTION\]|$)/gi, "");
+  // 1. Remove the __END__ signal if present
+  cleaned = cleaned.replace(/__END__$/g, "");
 
-  // 2. Find fallback structures starting with TIMELINE or MINDMAP
-  const timelineIdx = cleaned.search(/\bTIMELINE\b\s*\[/i);
-  const mindmapIdx = cleaned.search(/\bMINDMAP\b\s*\{/i);
+  // 2. Strip standard structures ONLY if they have a closing tag OR if we're not streaming (best effort)
+  // We use a non-greedy match to avoid eating text between tags.
+  // The '|$' is removed to prevent hiding the whole response during streaming.
+  cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "");
+  cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "");
+  cleaned = cleaned.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/gi, "");
+  cleaned = cleaned.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "");
 
-  if (timelineIdx !== -1 && mindmapIdx !== -1) {
-    cleaned = cleaned.substring(0, Math.min(timelineIdx, mindmapIdx));
-  } else if (timelineIdx !== -1) {
-    cleaned = cleaned.substring(0, timelineIdx);
-  } else if (mindmapIdx !== -1) {
-    cleaned = cleaned.substring(0, mindmapIdx);
+  // 3. Handle the case where the tag started but hasn't closed yet (streaming)
+  // We hide only from the start tag onwards to keep the UI clean, 
+  // but we only do this for the specific tags we extract elsewhere.
+  const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
+  let firstTagIdx = -1;
+  
+  for (const tag of startTags) {
+    const match = cleaned.search(tag);
+    if (match !== -1) {
+      if (firstTagIdx === -1 || match < firstTagIdx) firstTagIdx = match;
+    }
   }
 
-  // 3. Strip any weird introductory timeline prose the AI likes to add at the end
+  if (firstTagIdx !== -1) {
+    cleaned = cleaned.substring(0, firstTagIdx);
+  }
+
+  // 4. Strip any weird introductory timeline prose the AI likes to add at the end
   cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, "");
   cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, "");
 
@@ -458,10 +468,13 @@ export function cleanAiText(text: string): string {
 export function cleanMessageText(text: string): string {
   if (!text) return "";
   return text
-    .replace(/\[ILM_META\][\s\S]*?(?:\[\/ILM_META\]|$)/gi, "")
-    .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?(?:\[\/HIDDEN_INSTRUCTION\]|$)/gi, "")
-    .replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/gi, "")
-    .replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/gi, "")
+    .replace(/__END__$/g, "")
+    .replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/gi, "")
+    .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "")
+    .replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "")
+    .replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "")
+    // Handle unclosed tags at end of string
+    .replace(/\[(ILM_META|HIDDEN_INSTRUCTION|TIMELINE|MINDMAP)\][\s\S]*$/gi, "")
     .trim();
 }
 

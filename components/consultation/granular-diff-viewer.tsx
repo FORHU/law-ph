@@ -81,7 +81,15 @@ export function GranularDiffViewer({
         ul: ({children}) => <ul className="list-disc ml-5 mb-2.5 space-y-1 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</ul>,
         ol: ({children}) => <ol className="list-decimal ml-5 mb-2.5 space-y-1 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</ol>,
         li: ({children}) => <li className="text-gray-200 mb-1 last:mb-0 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</li>,
-        h3: ({children}) => <h3 className="text-lg md:text-xl font-bold mb-3 mt-5 text-white tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
+        h1: ({children}) => <h1 className="text-3xl md:text-4xl font-serif font-bold mb-6 mt-8 text-white tracking-tight border-b border-white/5 pb-2">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h1>,
+        h2: ({children}) => <h2 className="text-2xl md:text-3xl font-serif font-bold mb-4 mt-7 text-white tracking-tight">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h2>,
+        h3: ({children}) => <h3 className="text-xl md:text-2xl font-serif font-bold mb-3 mt-6 text-[#E0A7C2] tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
+        blockquote: ({children}) => (
+          <blockquote className="border-l-4 border-[#722f37] bg-[#722f37]/5 px-6 py-4 my-6 italic text-gray-300 font-serif leading-relaxed rounded-r-lg relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-[#722f37]/10 to-transparent pointer-events-none" />
+            {hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}
+          </blockquote>
+        ),
         strong: ({children}) => <strong className="font-bold text-white">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</strong>,
         em: ({children}) => <em className="italic">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</em>,
         a: ({node, children, href, ...props}) => {
