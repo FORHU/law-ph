@@ -5,13 +5,15 @@
    ================================ */
 @theme {
   /* Typography Families */
-  --font-label-caps: "Public Sans", sans-serif;
-  --font-h1: "Newsreader", serif;
-  --font-h2: "Newsreader", serif;
-  --font-h3: "Newsreader", serif;
-  --font-body-md: "Public Sans", sans-serif;
-  --font-body-lg: "Public Sans", sans-serif;
-  --font-data-mono: "Public Sans", monospace;
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "EB Garamond", serif;
+  --font-label-caps: var(--font-sans);
+  --font-h1: var(--font-serif);
+  --font-h2: var(--font-serif);
+  --font-h3: var(--font-serif);
+  --font-body-md: var(--font-sans);
+  --font-body-lg: var(--font-sans);
+  --font-data-mono: "Inter", monospace;
 
   /* Font Sizes (Tailwind v4 syntax) */
   --text-h1: 4rem;

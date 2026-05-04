@@ -21,11 +21,11 @@ export const BRAND = {
 } as const;
 
 export const COLORS = {
-  PRIMARY: '#8B4564',
-  PRIMARY_LIGHT: '#9D5373',
-  ACCENT_DARK: '#6D3650',
-  BG_DARK: '#0a0e17', // Match the deep dark navy
-  BG_CARD: '#242424', // Match the glassmorphism card base
+  PRIMARY: '#722f37', // Deep wine red
+  PRIMARY_LIGHT: '#ffb2b8', // Soft rose
+  SECONDARY: '#e9c176', // Sovereign gold
+  BG_DARK: '#131314', // Institutional dark
+  BG_CARD: 'rgba(255, 255, 255, 0.03)', 
 } as const;
 
 export const AUTH_ROUTES = {

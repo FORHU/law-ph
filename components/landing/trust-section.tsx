@@ -46,16 +46,16 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
           transition={{ duration: 0.7 }}
         >
           <div className="text-center mb-24">
-            <h2 className="text-8xl font-serif text-white mb-12 leading-tight">Built on Trust & Security</h2>
-            <p className="text-on-surface/50 text-2xl mb-16 max-w-3xl mx-auto leading-relaxed font-light">
+            <h2 className="text-6xl font-serif text-white mb-8 leading-tight">Built on Trust & Security</h2>
+            <p className="text-on-surface/50 text-lg mb-12 max-w-3xl mx-auto leading-relaxed font-light">
               Legal matters require absolute confidentiality. We prioritize your data security and privacy above all else.
             </p>
             <motion.div whileHover={{ scale: 1.05 }}>
               <a 
                 href="#" 
-                className="text-secondary text-xl font-bold border-b-2 border-secondary/20 pb-2 inline-flex items-center gap-3 hover:border-secondary transition-all"
+                className="text-secondary text-lg font-bold border-b-2 border-secondary/20 pb-2 inline-flex items-center gap-3 hover:border-secondary transition-all"
               >
-                Read Our Privacy Policy <ExternalLink size={24} />
+                Read Our Privacy Policy <ExternalLink size={20} />
               </a>
             </motion.div>
           </div>
@@ -90,8 +90,8 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
                 whileHover={{ y: -8, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'rgba(233, 193, 118, 0.2)' }}
               >
                 <div className="mb-10 transition-transform group-hover:scale-110">{item.icon}</div>
-                <h4 className="text-3xl font-bold text-white mb-4 leading-tight group-hover:text-secondary transition-colors">{item.title}</h4>
-                <p className="text-on-surface/40 text-lg leading-relaxed font-medium">{item.desc}</p>
+                <h4 className="text-xl font-bold text-white mb-4 leading-tight group-hover:text-secondary transition-colors">{item.title}</h4>
+                <p className="text-on-surface/40 text-base leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>

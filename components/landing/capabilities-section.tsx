@@ -26,8 +26,8 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           viewport={{ once: true }}
         >
           <span className="text-secondary text-sm tracking-[0.4em] font-bold uppercase mb-8 block">POWERFUL FEATURES</span>
-          <h2 className="text-8xl font-serif text-white mb-10 leading-[1.1]">Comprehensive Legal Capabilities</h2>
-          <p className="text-on-surface/50 text-2xl max-w-3xl mx-auto font-light leading-relaxed">Empowering you with tools designed for the complexities of the Philippine legal system.</p>
+          <h2 className="text-6xl font-serif text-white mb-8 leading-[1.1]">Comprehensive Legal Capabilities</h2>
+          <p className="text-on-surface/50 text-xl max-w-3xl mx-auto font-light leading-relaxed">Empowering you with tools designed for the complexities of the Philippine legal system.</p>
         </motion.div>
 
         {/* Main Featured Capability */}
@@ -49,8 +49,8 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               >
                 <FileCheck size={48} />
               </motion.div>
-              <h3 className="text-6xl font-serif text-white mb-10 leading-tight">AI-Powered Document Review</h3>
-              <p className="text-2xl text-on-surface/70 leading-relaxed mb-12 font-light">
+              <h3 className="text-4xl font-serif text-white mb-8 leading-tight">AI-Powered Document Review</h3>
+              <p className="text-xl text-on-surface/70 leading-relaxed mb-10 font-light">
                 Draft, analyze, and review contracts and legal documents with AI-driven precision. Our system identifies potential issues and ensures compliance.
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-16">
@@ -77,7 +77,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(114, 47, 55, 0.3)" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => router.push('/documents')}
-                className="bg-[#722f37] text-white px-12 py-6 rounded-xl text-xl font-bold flex items-center gap-4 transition-all cursor-pointer"
+                className="bg-[#722f37] text-white px-8 py-4 rounded-xl text-lg font-bold flex items-center gap-4 transition-all cursor-pointer"
               >
                 Try Document Review <ArrowRight size={24} />
               </motion.button>
@@ -150,11 +150,11 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
               <Search size={36} />
             </div>
-            <h3 className="text-5xl font-serif text-white mb-8">Advanced Legal Research</h3>
-            <p className="text-xl text-on-surface/50 leading-relaxed mb-12 font-light">
+            <h3 className="text-3xl font-serif text-white mb-6">Advanced Legal Research</h3>
+            <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
               Get instant citations from Republic Acts and Batas Pambansa. Our AI searches through decades of legal documentation in seconds.
             </p>
-            <div className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
+            <div className="text-secondary text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
               Explore Research Tools <ArrowRight size={28} />
             </div>
           </motion.div>
@@ -175,11 +175,11 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
               <Scale size={36} />
             </div>
-            <h3 className="text-5xl font-serif text-white mb-8">Supreme Court Case Summaries</h3>
-            <p className="text-xl text-on-surface/50 leading-relaxed mb-12 font-light">
+            <h3 className="text-3xl font-serif text-white mb-6">Supreme Court Case Summaries</h3>
+            <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
               Simplify complex jurisprudence with AI-generated summaries of landmark SC decisions, making legal precedents accessible.
             </p>
-            <div className="text-secondary text-xl font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
+            <div className="text-secondary text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
               Browse Case Library <ArrowRight size={28} />
             </div>
           </motion.div>

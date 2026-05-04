@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Scale, Shield, FileText, LayoutGrid } from 'lucide-react';
+import { COLORS } from '@/lib/constants';
 
 export function Footer() {
   return (
@@ -20,9 +21,9 @@ export function Footer() {
               viewport={{ once: true }}
               className="mb-8"
             >
-              <span className="text-3xl font-serif text-white antialiased cursor-pointer flex items-center gap-0.5" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                <span className="font-light tracking-tight opacity-70">ilove</span>
-                <span className="font-bold tracking-tighter text-secondary italic">lawyer</span>
+              <span className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <span className="font-serif italic lowercase text-4xl" style={{ color: COLORS.SECONDARY }}>ilove</span>
+                <span className="font-serif text-white font-medium lowercase text-4xl">lawyer</span>
               </span>
             </motion.div>
             <p className="text-on-surface/40 text-sm leading-relaxed max-w-sm mb-10">

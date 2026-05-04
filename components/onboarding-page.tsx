@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
+import { COLORS } from '@/lib/constants';
 
 // Modular Landing Components
 import { HeroSection } from './landing/hero-section';
@@ -79,12 +80,11 @@ export function OnboardingPage() {
       >
         <div className="flex items-center gap-12">
           <motion.span
-            whileHover={{ scale: 1.02 }}
-            className="text-3xl font-serif text-white antialiased cursor-pointer flex items-center gap-0.5"
+            className="antialiased cursor-pointer flex items-center"
             onClick={() => router.push('/')}
           >
-            <span className="font-light tracking-tight opacity-70">ilove</span>
-            <span className="font-bold tracking-tighter text-secondary italic">lawyer</span>
+            <span className="font-serif italic lowercase text-3xl" style={{ color: COLORS.SECONDARY }}>ilove</span>
+            <span className="font-serif text-white font-medium lowercase text-3xl">lawyer</span>
           </motion.span>
           <nav className="hidden md:flex gap-10 items-center">
             {[
@@ -138,30 +138,6 @@ export function OnboardingPage() {
           <FAQSection setActiveAngle={setActiveAngle} />
         </div>
 
-        {/* Persistent Sticky Search Bar */}
-        <div className="fixed bottom-12 left-0 right-0 z-50 px-6 pointer-events-none">
-          <div className="max-w-3xl mx-auto glass-panel rounded-2xl px-6 py-4 flex items-center justify-between shadow-2xl border border-white/10 pointer-events-auto">
-            <div className="flex items-center gap-4 flex-1">
-              <span className="material-symbols-outlined text-secondary">auto_awesome</span>
-              <input
-                className="bg-transparent border-none text-on-surface focus:ring-0 w-full placeholder:text-on-surface/30 text-lg"
-                placeholder="Ask ilovelawyer anything about PH Law..."
-                type="text"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    router.push('/consultation?q=' + encodeURIComponent(e.currentTarget.value));
-                  }
-                }}
-              />
-            </div>
-            <button
-              onClick={() => router.push('/consultation')}
-              className="bg-[#722f37] text-white p-3 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined">send</span>
-            </button>
-          </div>
-        </div>
 
 
         <Footer />

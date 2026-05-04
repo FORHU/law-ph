@@ -36,7 +36,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-            className="font-serif text-8xl md:text-9xl text-white mb-10 leading-[1.05] tracking-tight"
+            className="font-serif text-6xl md:text-7xl text-white mb-8 leading-[1.1] tracking-tight"
           >
             Navigate <span className="text-secondary italic">Philippine Law</span> with AI Precision
           </motion.h1>
@@ -46,7 +46,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="text-2xl md:text-3xl text-on-surface/80 mb-16 max-w-3xl leading-relaxed font-light"
+            className="text-lg md:text-xl text-on-surface/80 mb-12 max-w-2xl leading-relaxed font-light"
           >
             The definitive digital workspace for the Philippine legal profession. ilovelawyer bridges centuries of jurisprudence with cutting-edge artificial intelligence.
           </motion.p>
@@ -62,7 +62,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
               whileTap={{ scale: 0.98 }}
               onClick={handleStartConsultation}
               onMouseEnter={() => setActiveAngle(2)}
-              className="bg-[#722f37] text-white px-12 py-6 text-2xl font-bold rounded-lg shadow-2xl transition-all cursor-pointer"
+              className="bg-[#722f37] text-white px-8 py-4 text-lg font-bold rounded-lg shadow-2xl transition-all cursor-pointer"
             >
               Start Quick Consultation
             </motion.button>
@@ -78,7 +78,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
               onMouseEnter={() => setActiveAngle(3)}
-              className="bg-white/5 text-white px-12 py-6 text-2xl font-medium rounded-lg border border-white/10 transition-all cursor-pointer"
+              className="bg-white/5 text-white px-8 py-4 text-lg font-medium rounded-lg border border-white/10 transition-all cursor-pointer"
             >
               Learn How It Works
             </motion.button>
