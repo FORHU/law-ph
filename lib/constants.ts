@@ -24,6 +24,7 @@ export const COLORS = {
   PRIMARY: '#722f37', // Deep wine red
   PRIMARY_LIGHT: '#ffb2b8', // Soft rose
   SECONDARY: '#e9c176', // Sovereign gold
+  ACCENT_DARK: '#4a1d23', // Darker wine for gradients/depth
   BG_DARK: '#131314', // Institutional dark
   BG_CARD: 'rgba(255, 255, 255, 0.03)', 
 } as const;
