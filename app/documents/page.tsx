@@ -149,6 +149,7 @@ export default function Documents() {
         },
       }))}
       maxWidth="max-w-7xl"
+      backgroundAngle={2}
     >
       <div className="relative z-10 flex-1 flex overflow-hidden h-full">
         <div className="flex-1 overflow-y-auto p-6 transition-all duration-300 w-full">

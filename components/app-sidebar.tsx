@@ -65,10 +65,10 @@ export function AppSidebar({
       <div className="p-6 border-b border-primary/20 flex items-center justify-between flex-shrink-0">
         <button
           onClick={() => router.push('/')}
-          className="text-2xl font-semibold hover:opacity-80 transition-opacity"
+          className="hover:opacity-80 transition-opacity flex items-center"
         >
-          <span className="text-white">{BRAND.NAME_PART1}</span>
-          <span className="text-primary">{BRAND.NAME_PART2}</span>
+          <span className="font-serif italic lowercase text-2xl" style={{ color: '#e9c176' }}>{BRAND.NAME_PART1}</span>
+          <span className="font-serif text-white font-medium lowercase text-2xl">{BRAND.NAME_PART2}</span>
         </button>
         {onClose && (
           <button

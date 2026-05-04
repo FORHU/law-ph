@@ -803,6 +803,26 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   }
   const isDefaultTitle = !activeConversation && !isCaseMode;
 
+  const getAngleFromTab = (tab: string) => {
+    switch (tab) {
+      case 'chat':
+      case 'email':
+        return 1;
+      case 'documents':
+        return 2;
+      case 'transcribe':
+        return 3;
+      case 'schedule':
+      case 'calendar':
+        return 4;
+      case 'mindmap':
+      case 'timeline':
+        return 5;
+      default:
+        return 1;
+    }
+  };
+
   return (
     <PageLayout
       activePage="chat"
@@ -813,6 +833,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       newItemLabel="New Consultation"
       recentItems={sidebarRecentItems}
       isEditable={!isDefaultTitle}
+      backgroundAngle={getAngleFromTab(globalTab)}
       onTitleChange={(newTitle) => {
         if (currentConsultationId) {
           handleRenameConsultation(currentConsultationId, newTitle);

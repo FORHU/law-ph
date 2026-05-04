@@ -11,6 +11,7 @@ export default function TranscribePage() {
       title="Transcription Workspace"
       subtitle="Record or upload audio to generate AI transcripts."
       maxWidth="max-w-6xl"
+      backgroundAngle={3}
     >
       <div className="flex-1 min-w-0 h-full relative z-10 flex flex-col pb-[env(safe-area-inset-bottom)] px-2 md:px-0 pt-2">
         <TranscribeWorkspace />

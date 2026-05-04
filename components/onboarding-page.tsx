@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
-import { COLORS } from '@/lib/constants';
+import { COLORS, ASSETS } from '@/lib/constants';
 
 // Modular Landing Components
 import { HeroSection } from './landing/hero-section';
@@ -24,7 +24,12 @@ export function OnboardingPage() {
   const [activeAngle, setActiveAngle] = useState(1);
 
   const getAngleImage = (angle: number) => {
-    return '/assets/auth-bg.jpg';
+    switch (angle) {
+      case 2: return ASSETS.HALL_ANGLE_2;
+      case 3: return ASSETS.HALL_ANGLE_3;
+      case 4: return ASSETS.HALL_ANGLE_4;
+      default: return ASSETS.HALL_ANGLE_1;
+    }
   };
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -38,33 +43,9 @@ export function OnboardingPage() {
   }, []);
 
   return (
-    <div className="bg-background text-on-background font-body-md overflow-x-hidden min-h-screen relative flex flex-col">
-      {/* Cinematic Background Layer */}
-      <div className="fixed inset-0 z-0 overflow-hidden">
-        <AnimatePresence>
-          <motion.div
-            key={activeAngle}
-            initial={{ opacity: 0, scale: 1.05, filter: 'grayscale(100%) blur(10px)' }}
-            animate={{ opacity: 0.4, scale: 1, filter: 'grayscale(100%) blur(0px)' }}
-            exit={{ opacity: 0, scale: 0.95, filter: 'grayscale(100%) blur(10px)' }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat contrast-125 brightness-[0.4]"
-            style={{ backgroundImage: `url(${getAngleImage(activeAngle)})` }}
-          />
-        </AnimatePresence>
-        <div className="absolute inset-0 bg-[#131314]/60 backdrop-blur-[2px]" />
-
-        {/* Ambient "Sovereign" Glows */}
-        <div className="absolute -bottom-1/4 -left-1/4 w-full h-full bg-[#722f37]/10 blur-[160px] rounded-full pointer-events-none" />
-        <div className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-[#e9c176]/5 blur-[160px] rounded-full pointer-events-none" />
-
-        {/* Deep Texture Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
-          style={{ backgroundImage: `url('https://www.transparenttextures.com/patterns/carbon-fibre.png')` }} />
-
-        <div className="absolute inset-0 bg-gradient-to-b from-[#131314] via-transparent to-[#131314] opacity-90" />
-      </div>
-
+    <div className="bg-transparent text-on-background font-body-md overflow-x-hidden min-h-screen relative flex flex-col">
+      {/* 3D Model is rendered globally behind this component */}
+      
       {/* TopNavBar */}
       <motion.header
         initial={{ backgroundColor: 'rgba(11, 11, 12, 0)', backdropFilter: 'blur(0px)', borderBottomColor: 'rgba(255, 255, 255, 0.01)' }}
@@ -107,9 +88,6 @@ export function OnboardingPage() {
               </button>
             ))}
           </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Profile removed */}
         </div>
       </motion.header>
 

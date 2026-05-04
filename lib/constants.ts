@@ -12,7 +12,11 @@ export const STORAGE_KEYS = {
 export const ASSETS = {
   HERO_BG: "/assets/auth-bg.jpg",
   AUTH_BG: "/assets/auth-bg.jpg",
-  LADY_JUSTICE_IMAGE: "/assets/auth-bg.jpg"
+  LADY_JUSTICE_IMAGE: "/assets/auth-bg.jpg",
+  HALL_ANGLE_1: "/assets/hall-angle-1.png",
+  HALL_ANGLE_2: "/assets/hall-angle-2.png",
+  HALL_ANGLE_3: "/assets/hall-angle-3.png",
+  HALL_ANGLE_4: "/assets/hall-angle-4.png",
 } as const;
 
 export const BRAND = {

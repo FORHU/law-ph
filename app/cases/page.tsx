@@ -65,7 +65,7 @@ export default function CasesPage() {
   );
 
   return (
-    <PageLayout activePage="cases" title="Case Management" subtitle="Organize and track your legal matters">
+    <PageLayout activePage="cases" title="Case Management" subtitle="Organize and track your legal matters" backgroundAngle={2}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         {/* Header Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
