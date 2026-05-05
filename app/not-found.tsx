@@ -10,14 +10,7 @@ export default function NotFound() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#1A1A1A] relative overflow-hidden text-white font-sans">
       {/* Background with Lady Justice */}
       <div className="absolute inset-0 z-0">
-        <motion.img 
-          src={ASSETS.LADY_JUSTICE_IMAGE}
-          alt="Lady Justice"
-          className="w-full h-full object-cover opacity-20 grayscale"
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-        />
+
         <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/90 via-[#1A1A1A]/80 to-[#1A1A1A]/95"></div>
       </div>
 

@@ -803,6 +803,26 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   }
   const isDefaultTitle = !activeConversation && !isCaseMode;
 
+  const getAngleFromTab = (tab: string) => {
+    switch (tab) {
+      case 'chat':
+      case 'email':
+        return 1;
+      case 'documents':
+        return 2;
+      case 'transcribe':
+        return 3;
+      case 'schedule':
+      case 'calendar':
+        return 4;
+      case 'mindmap':
+      case 'timeline':
+        return 5;
+      default:
+        return 1;
+    }
+  };
+
   return (
     <PageLayout
       activePage="chat"
@@ -813,6 +833,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       newItemLabel="New Consultation"
       recentItems={sidebarRecentItems}
       isEditable={!isDefaultTitle}
+      backgroundAngle={getAngleFromTab(globalTab)}
       onTitleChange={(newTitle) => {
         if (currentConsultationId) {
           handleRenameConsultation(currentConsultationId, newTitle);
@@ -841,7 +862,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         </div>
       }
     >
-      <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
+      <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10 bg-transparent">
         <div
           ref={scrollContainerRef}
           className={`flex-1 ${globalTab === "mindmap" || globalTab === "transcribe" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : globalTab === "transcribe" ? "p-0" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}

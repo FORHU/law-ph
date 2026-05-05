@@ -71,21 +71,7 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="text-[10px] font-bold tracking-widest text-on-surface/20 uppercase">
-            © 2024 ILOVELAWYER PHILIPPINES. BUILT FOR THE FILIPINO PEOPLE.
-          </p>
-          <div className="flex gap-8 items-center">
-            <span className="flex items-center gap-2 text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Systems Operational
-            </span>
-            <span className="text-[10px] font-bold text-on-surface/20 uppercase tracking-widest">
-              v1.0.4-PRO
-            </span>
-          </div>
-        </div>
+
       </div>
     </footer>
   );

@@ -10,9 +10,10 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const ASSETS = {
-  HERO_BG: "/assets/auth-bg.jpg",
-  AUTH_BG: "/assets/auth-bg.jpg",
-  LADY_JUSTICE_IMAGE: "/assets/auth-bg.jpg"
+  HALL_ANGLE_1: "/assets/hall-angle-1.jpg",
+  HALL_ANGLE_2: "/assets/hall-angle-2.jpg",
+  HALL_ANGLE_3: "/assets/hall-angle-3.jpg",
+  HALL_ANGLE_4: "/assets/hall-angle-4.jpg",
 } as const;
 
 export const BRAND = {
@@ -26,7 +27,7 @@ export const COLORS = {
   SECONDARY: '#e9c176', // Sovereign gold
   ACCENT_DARK: '#4a1d23', // Darker wine for gradients/depth
   BG_DARK: '#131314', // Institutional dark
-  BG_CARD: 'rgba(255, 255, 255, 0.03)', 
+  BG_CARD: 'rgba(255, 255, 255, 0.03)',
 } as const;
 
 export const AUTH_ROUTES = {

@@ -8,6 +8,9 @@ import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
 import AuthLoading from "@/components/auth/auth-loading";
 import { GlobalRecorder } from "@/components/global-recorder";
+import { PersistentBackground } from "@/components/ui/persistent-background";
+import { PageTransition } from "@/components/ui/page-transition";
+import { PersistentSidebar } from "@/components/persistent-sidebar";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -68,7 +71,15 @@ export default async function RootLayout({
           <Suspense fallback={<AuthLoading />}>
             <AuthProvider initialSession={session}>
               <ConversationProvider>
-                {children}
+                <PersistentBackground />
+                <div className="flex h-screen w-full relative overflow-hidden bg-transparent">
+                  <PersistentSidebar />
+                  <div className="flex-1 flex flex-col relative h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+                    <PageTransition>
+                      {children}
+                    </PageTransition>
+                  </div>
+                </div>
                 <GlobalRecorder />
               </ConversationProvider>
             </AuthProvider>

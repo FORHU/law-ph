@@ -28,13 +28,7 @@ export function AuthLayout({
     <div className="min-h-screen w-full flex flex-col bg-[#0a0a0a] relative overflow-hidden text-white font-sans">
       {/* Cinematic Background Layer */}
       <div className="fixed inset-0 z-0 overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 0.4, scale: 1 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${ASSETS.AUTH_BG})` }}
-        />
+
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-[#0a0a0a]/60 to-[#0a0a0a]" />
         <div className="absolute inset-0 bg-[#722f37]/10 mix-blend-overlay" />
       </div>

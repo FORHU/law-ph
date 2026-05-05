@@ -1765,6 +1765,7 @@ export default function CalendarPage() {
           </div>
         }
         maxWidth="max-w-7xl"
+        backgroundAngle={4}
       >
         <div className="flex flex-col md:flex-row flex-1 h-full relative z-10 overflow-hidden">
           {/* Mobile View Toggle */}
