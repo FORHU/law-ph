@@ -9,14 +9,7 @@ import { ASSETS } from '@/lib/constants';
 export function AuthBackground() {
   return (
     <div className="fixed inset-0 z-0">
-      <motion.img 
-        src={ASSETS.LADY_JUSTICE_IMAGE}
-        alt="Lady Justice"
-        className="w-full h-full object-cover opacity-40 grayscale"
-        initial={{ scale: 1.1 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-      />
+
       <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/70 via-[#1A1A1A]/50 to-[#1A1A1A]/90"></div>
       {/* Static gradient orbs instead of animated to reduce lag */}
       <div 
