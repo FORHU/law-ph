@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark, Mic } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +18,7 @@ import { FileText, Calendar as CalendarIcon } from 'lucide-react';
 import { useConversations } from './conversation-provider/conversation-context';
 
 interface AppSidebarProps {
-  activePage: SidebarPage;
+  activePage?: SidebarPage;
   recentItems?: RecentItem[];
   onNewItem?: () => void;
   newItemLabel?: string;
@@ -35,14 +35,26 @@ export function AppSidebar({
   isOpen = false,
   onClose,
 }: AppSidebarProps) {
+  const pathname = usePathname();
   const router = useRouter();
+
+  // Determine active page from pathname if not explicitly provided
+  const resolvedActivePage = activePage || (
+    pathname?.startsWith('/consultation') ? 'chat' :
+    pathname?.startsWith('/documents') ? 'documents' :
+    pathname?.startsWith('/transcribe') ? 'transcribe' :
+    pathname?.startsWith('/calendar') ? 'calendar' :
+    pathname?.startsWith('/cases') ? 'cases' :
+    'chat'
+  );
+
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
   const [isCaseModalOpen, setIsCaseModalOpen] = useState(false);
   const [isViewCasesModalOpen, setIsViewCasesModalOpen] = useState(false);
   const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const isDocumentsOrCalendarOrTranscribe = activePage === 'documents' || activePage === 'calendar' || activePage === 'transcribe';
+  const isDocumentsOrCalendarOrTranscribe = resolvedActivePage === 'documents' || resolvedActivePage === 'calendar' || resolvedActivePage === 'transcribe';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { openSourceByItemId } = useConversations() || {};
 
@@ -104,28 +116,28 @@ export function AppSidebar({
 
               <button
                 onClick={() => router.push('/documents')}
-                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'documents' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'documents' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <FileText size={18} className={activePage === 'documents' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <FileText size={18} className={resolvedActivePage === 'documents' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-sm font-medium">Documents</span>
               </button>
 
               <button
                 onClick={() => router.push('/transcribe')}
-                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'transcribe' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'transcribe' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <Mic size={18} className={activePage === 'transcribe' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <Mic size={18} className={resolvedActivePage === 'transcribe' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-sm font-medium">Transcribe</span>
               </button>
 
               <button
                 onClick={() => router.push('/calendar')}
-                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${activePage === 'calendar' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'calendar' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
                   }`}
               >
-                <CalendarIcon size={18} className={activePage === 'calendar' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <CalendarIcon size={18} className={resolvedActivePage === 'calendar' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-sm font-medium">Calendar</span>
               </button>
             </>
@@ -225,7 +237,7 @@ export function AppSidebar({
         {/* Bottom Navigation (Conditional Chat tab) */}
         {!isDocumentsOrCalendarOrTranscribe && (
           <div className="flex-shrink-0">
-            <SidebarNav activePage={activePage} />
+            <SidebarNav activePage={resolvedActivePage} />
           </div>
         )}
       </div>
@@ -271,7 +283,7 @@ export function AppSidebar({
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 180 }}
               className="fixed inset-y-0 left-0 z-50 w-60 md:hidden"
             >
               {sidebarContent}
@@ -287,7 +299,7 @@ export function AppSidebar({
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 240, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 180 }}
             className="hidden md:flex relative z-10 flex-col border-r border-primary/30 bg-[#0B0B0C]/80 backdrop-blur-sm h-full min-h-screen overflow-hidden"
           >
             <div className="w-60 h-full flex flex-col">

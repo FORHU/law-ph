@@ -51,25 +51,13 @@ export function PageLayout({
   }, [backgroundAngle]);
 
   return (
-    <div className="flex h-screen bg-transparent text-on-background overflow-hidden relative font-body-md">
-      {showSidebar && (
-        <AppSidebar
-          activePage={activePage}
-          onNewItem={onNewItem}
-          newItemLabel={newItemLabel}
-          recentItems={recentItems}
-          recentLabel={recentLabel}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      <main className="flex-1 flex flex-col relative w-full overflow-hidden">
+    <div className="flex-1 flex flex-col relative w-full overflow-hidden font-body-md bg-transparent text-on-background">
+      <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         <ConsultationHeader
           title={title}
           subtitle={subtitle}
           onMenuClick={() => setIsSidebarOpen(true)}
-          showMenuButton={!isSidebarOpen && showSidebar}
+          showMenuButton={!isSidebarOpen}
           isEditable={isEditable}
           onTitleChange={onTitleChange}
           showSubtitle={!!subtitle}
@@ -87,7 +75,7 @@ export function PageLayout({
             {children}
           </motion.div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

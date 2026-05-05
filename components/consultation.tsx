@@ -862,7 +862,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         </div>
       }
     >
-      <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10">
+      <div className="flex-1 flex flex-col min-h-0 relative pb-6 md:pb-10 bg-transparent">
         <div
           ref={scrollContainerRef}
           className={`flex-1 ${globalTab === "mindmap" || globalTab === "transcribe" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : globalTab === "transcribe" ? "p-0" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}

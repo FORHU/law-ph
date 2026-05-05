@@ -58,7 +58,7 @@ export function ConsultationHeader({
   };
 
   return (
-    <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/40 backdrop-blur-2xl">
+    <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/40 backdrop-blur-lg">
       <div className="flex items-center px-4 md:px-5 py-1 gap-2.5">
         {/* Left: Action Group (Menu + Back) */}
         <div className="flex items-center gap-1.5 shrink-0">

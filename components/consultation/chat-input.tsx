@@ -287,7 +287,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="relative z-10 border-t border-white/5 bg-[#131314]/90 backdrop-blur-xl landscape:border-t-0 landscape:bg-[#131314]/95">
+    <div className="relative z-10 bg-transparent flex-shrink-0">
 
       {/* Input Box */}
       <div className="px-4 md:px-6 py-3 md:py-4 landscape:py-1.5 md:pt-4 pt-2">
@@ -405,7 +405,7 @@ export function ChatInput({
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[56px] shadow-2xl">
+              <div className="flex items-center bg-transparent backdrop-blur-sm border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[56px] shadow-none">
                 <AnimatePresence mode="wait">
                   {!isRecording && status === 'idle' ? (
                     <motion.textarea
