@@ -3,7 +3,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start"
   },
   "dependencies": {
     "@aws-sdk/client-polly": "^3.1035.0",
