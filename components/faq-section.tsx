@@ -66,14 +66,14 @@ export function FAQSection({ setActiveAngle }: FAQSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.05 }}
-              className="glass-panel rounded-[2rem] border border-white/5 overflow-hidden transition-all hover:border-white/10 bg-white/[0.01]"
+              className="glass-panel rounded-[2rem] border border-white/5 overflow-hidden transition-all hover:border-[#722f37]/30 bg-[#0B0B0C]/40 backdrop-blur-3xl"
             >
               <button 
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full px-12 py-10 flex justify-between items-center text-white hover:bg-white/5 transition-colors text-left"
+                className="w-full px-12 py-10 flex justify-between items-center text-white hover:bg-[#722f37]/5 transition-colors text-left group"
               >
-                <span className="font-bold text-2xl pr-8 leading-tight">{faq.question}</span>
-                {openFaq === idx ? <ChevronUp className="w-8 h-8 text-secondary shrink-0" /> : <ChevronDown className="w-8 h-8 text-on-surface/30 shrink-0" />}
+                <span className="font-bold text-2xl pr-8 leading-tight group-hover:text-[#e9c176] transition-colors">{faq.question}</span>
+                {openFaq === idx ? <ChevronUp className="w-8 h-8 text-[#e9c176] shrink-0" /> : <ChevronDown className="w-8 h-8 text-on-surface/20 shrink-0" />}
               </button>
               <AnimatePresence>
                 {openFaq === idx && (
@@ -82,7 +82,7 @@ export function FAQSection({ setActiveAngle }: FAQSectionProps) {
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="px-12 pb-10 text-on-surface/60 leading-relaxed text-xl font-light"
+                    className="px-12 pb-10 text-on-surface/60 leading-relaxed text-lg font-light border-t border-white/5 pt-8 mx-12 mb-2"
                   >
                     {faq.answer}
                   </motion.div>

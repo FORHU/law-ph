@@ -94,7 +94,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
         }`}
       onClick={() => {
         if (editingId !== item.id) {
-          item.onClick();
+          item.onClick?.();
         }
       }}
     >
@@ -112,15 +112,15 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                   if (e.key === 'Enter') handleSaveRename();
                   if (e.key === 'Escape') setEditingId(null);
                 }}
-                className="flex-1 bg-black/40 border border-[#8B4564]/30 rounded-lg px-2 py-1.5 text-xs text-white font-medium outline-none focus:border-[#8B4564] focus:ring-1 focus:ring-[#8B4564]/50 transition-all font-inter"
-                placeholder="Rename consultation..."
+                className="flex-1 bg-[#0B0B0C] border border-[#722f37]/40 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all font-inter"
+                placeholder="Institutional Record Title..."
               />
             </div>
           </div>
         ) : (
           <>
-            <div className={`truncate font-medium ${isActive ? 'text-white' : ''}`}>{item.title}</div>
-            <div className={`text-[10px] ${isActive ? 'text-[#E0A7C2]' : 'text-gray-500'} mt-0.5 truncate uppercase tracking-wider`}>{item.subtitle || 'CONSULTATION'}</div>
+            <div className={`truncate font-serif text-[13px] tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
+            <div className={`text-[9px] font-bold ${isActive ? 'text-gray-400' : 'text-gray-600'} mt-0.5 truncate uppercase tracking-[0.2em]`}>{item.subtitle || 'CONSULTATION'}</div>
           </>
         )}
       </div>
@@ -131,7 +131,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
             ref={buttonRef}
             type="button"
             onClick={handleMenuClick}
-            className={`p-1.5 text-gray-500 hover:text-white rounded-lg transition-all menu-trigger outline-none focus:outline-none ${isOpen ? 'opacity-100 bg-[#8B4564]/40 text-white ring-1 ring-[#8B4564]/50' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
+            className={`p-1.5 text-gray-500 hover:text-white rounded-lg transition-all menu-trigger outline-none focus:outline-none ${isOpen ? 'opacity-100 bg-[#722f37]/40 text-white ring-1 ring-[#722f37]/50' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
           >
             <MoreHorizontal size={14} />
           </button>
@@ -151,7 +151,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                     left: menuPosition.left,
                     zIndex: 9999
                   }}
-                  className={`${isConfirmingDelete ? 'w-40' : 'w-32'} bg-[#1A1A1A] border border-[#8B4564]/30 rounded-xl shadow-2xl p-1.5 portal-menu`}
+                  className={`${isConfirmingDelete ? 'w-48' : 'w-40'} bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-xl shadow-2xl p-1.5 portal-menu`}
                   onClick={e => e.stopPropagation()}
                 >
                   <AnimatePresence mode="wait">
@@ -161,14 +161,14 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="space-y-1.5"
+                        className="p-2 space-y-3"
                       >
-                        <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-tight">Confirm Delete?</div>
-                        <div className="flex gap-1.5">
+                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Terminate Archive?</div>
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => setIsConfirmingDelete(false)}
-                            className="flex-1 py-1.5 text-[10px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                            className="flex-1 py-2 text-[10px] font-bold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all uppercase tracking-widest"
                           >
                             Cancel
                           </button>
@@ -179,9 +179,9 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                               onToggle?.();
                               setIsConfirmingDelete(false);
                             }}
-                            className="flex-1 py-1.5 text-[10px] font-bold text-white bg-red-500/80 hover:bg-red-500 rounded-lg transition-all shadow-lg shadow-red-500/10"
+                            className="flex-1 py-2 text-[10px] font-bold text-white bg-red-500/80 hover:bg-red-500 rounded-lg transition-all shadow-lg shadow-red-500/20 uppercase tracking-widest"
                           >
-                            Delete
+                            Confirm
                           </button>
                         </div>
                       </motion.div>
@@ -197,9 +197,9 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                           onClick={() => {
                             handleStartRename();
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-gray-300 hover:text-white hover:bg-[#8B4564]/20 rounded-lg transition-all"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-[#722f37]/20 rounded-lg transition-all"
                         >
-                          <Edit3 size={14} />
+                          <Edit3 size={14} className="text-gray-500" />
                           Rename
                         </button>
                         <button
@@ -207,7 +207,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                           onClick={() => {
                             setIsConfirmingDelete(true);
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
                           Delete

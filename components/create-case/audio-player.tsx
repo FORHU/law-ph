@@ -51,17 +51,17 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 bg-black/20 border border-[#8B4564]/20 rounded-xl mt-3 animate-in fade-in slide-in-from-top-2">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#8B4564]/20 rounded-full text-[#E0A7C2]">
+    <div className="flex flex-col gap-2 p-4 bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl mt-3 animate-in fade-in slide-in-from-top-2">
+      <div className="flex items-center gap-4">
+        <div className="p-2.5 bg-[#722f37]/20 rounded-xl text-[#e9c176] border border-[#722f37]/30">
           <Volume2 size={16} />
         </div>
         
         <div className="flex-1">
-          <p className="text-[11px] font-medium text-gray-300">{STRINGS.recordingLabel}</p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-gray-400 tabular-nums">{formatTime(currentTime)}</span>
-            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden relative">
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{STRINGS.recordingLabel}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] text-gray-400 font-mono tabular-nums">{formatTime(currentTime)}</span>
+            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden relative">
               <input
                 type="range"
                 min="0"
@@ -72,11 +72,11 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
                 className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
               />
               <div 
-                className="absolute top-0 left-0 h-full bg-[#8B4564] transition-all duration-100" 
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#722f37] to-[#8b3a44] transition-all duration-100 shadow-[0_0_8px_rgba(114,47,55,0.5)]" 
                 style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
               />
             </div>
-            <span className="text-[10px] text-gray-400 tabular-nums">{formatTime(duration)}</span>
+            <span className="text-[10px] text-gray-400 font-mono tabular-nums">{formatTime(duration)}</span>
           </div>
         </div>
 
@@ -84,7 +84,7 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
           <button
             type="button"
             onClick={togglePlay}
-            className="p-2 bg-[#8B4564]/20 text-[#E0A7C2] hover:bg-[#8B4564]/40 rounded-lg transition-all"
+            className="p-2.5 bg-[#722f37] text-white hover:bg-[#8b3a44] rounded-xl transition-all shadow-lg shadow-[#722f37]/20 active:scale-95"
           >
             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
           </button>
@@ -92,8 +92,8 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
           <button
             type="button"
             onClick={onDiscard}
-            className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-            title="Discard Recording"
+            className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/20"
+            title="Discard Evidence"
           >
             <Trash2 size={14} />
           </button>

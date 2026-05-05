@@ -39,15 +39,15 @@ function BookmarkCard({
   };
 
   const isAIResponse = bookmark.reference === 'AI_RESPONSE';
-  
+
   // Check if consultation exists for AI response bookmarks
   const getConsultationStatus = () => {
     if (!isAIResponse || !bookmark.url) return { exists: true, id: null };
-    
+
     // Extract conversation ID from URL: /consultation/uuid
     const parts = bookmark.url.split('/');
     const id = parts[parts.length - 1];
-    
+
     // Ensure id is a valid UUID-like string before checking
     const exists = conversations.some(c => c.id.toString() === id) || (currentConsultationId && currentConsultationId.toString() === id);
     return { exists, id };
@@ -59,14 +59,14 @@ function BookmarkCard({
     if (isAIResponse) {
       if (consultationExists && bookmark.url) {
         const targetUrl = `${bookmark.url}#message-${bookmark.item_id}`;
-        
+
         if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
-            // If already on the page, natively set the hash to trigger the hashchange event reliably
-            window.location.hash = `message-${bookmark.item_id}`;
+          // If already on the page, natively set the hash to trigger the hashchange event reliably
+          window.location.hash = `message-${bookmark.item_id}`;
         } else {
-            router.push(targetUrl);
+          router.push(targetUrl);
         }
-        
+
         onOpen('__NAVIGATE__'); // Signal navigation to close sidebar
       }
       return;
@@ -81,26 +81,26 @@ function BookmarkCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="group relative bg-[#0A0C10] border border-white/10 rounded-xl overflow-hidden shadow-lg transition-all hover:bg-white/[0.02]"
+      className="group relative bg-black/40 border border-[#722f37]/20 rounded-xl overflow-hidden shadow-lg transition-all hover:bg-white/[0.02]"
     >
       {/* Header Info */}
       <div className="p-4">
         <div className="flex items-start justify-between mb-1.5">
           <div className="flex flex-col gap-0.5">
             {bookmark.reference && bookmark.reference !== 'No Reference' ? (
-              <span className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
                 {bookmark.reference}
               </span>
             ) : <div />}
             {isAIResponse && !consultationExists && (
-              <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest flex items-center gap-1">
-                Consultation Deleted
+              <span className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest flex items-center gap-1">
+                Consultation Archive Deleted
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Bookmark size={16} className="text-[#8B4564] fill-[#8B4564]" />
-            <button 
+            <Bookmark size={16} className="text-[#722f37] fill-[#722f37]/40" />
+            <button
               onClick={handleRemove}
               disabled={removing}
               className="p-1.5 hover:bg-white/5 rounded-md text-gray-600 hover:text-red-400 transition-colors"
@@ -110,15 +110,14 @@ function BookmarkCard({
           </div>
         </div>
 
-        <h3 
+        <h3
           onClick={handleOpenLink}
-          className={`text-[15px] font-bold mb-3 leading-snug transition-colors ${
-            isAIResponse 
-              ? consultationExists 
-                ? "text-white cursor-pointer hover:text-[#E0A7C2]" 
-                : "text-gray-500 cursor-default"
-              : "text-white cursor-pointer hover:text-[#E0A7C2]"
-          }`}
+          className={`text-lg font-serif mb-3 tracking-tight transition-colors ${isAIResponse
+            ? consultationExists
+              ? "text-white cursor-pointer hover:text-[#e9c176]"
+              : "text-gray-500 cursor-default"
+            : "text-white cursor-pointer hover:text-[#e9c176]"
+            }`}
         >
           {bookmark.title}
         </h3>
@@ -126,41 +125,37 @@ function BookmarkCard({
         {/* AI Summary Section */}
         <div className="flex gap-3 mb-3">
           <div className="mt-0.5 flex-shrink-0">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center border ${
-               isAIResponse && !consultationExists ? 'bg-white/[0.02] border-white/5' : 'bg-white/5 border border-white/10'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${isAIResponse && !consultationExists ? 'bg-white/[0.02] border-white/5' : 'bg-[#722f37]/10 border border-[#722f37]/20'
+              }`}>
               {isAIResponse ? (
-                <MessageSquare size={14} className={consultationExists ? "text-[#E0A7C2]" : "text-gray-600"} />
+                <MessageSquare size={14} className={consultationExists ? "text-gray-300" : "text-gray-600"} />
               ) : (
                 <CheckCircle2 size={14} className="text-white" />
               )}
             </div>
           </div>
           <div className="flex-1">
-            <h4 className={`text-[12px] font-bold mb-0.5 ${
-              isAIResponse && !consultationExists ? "text-gray-500" : "text-white"
-            }`}>
-              {isAIResponse ? 'Response Content' : 'AI Summary'}
+            <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isAIResponse && !consultationExists ? "text-gray-500" : "text-gray-400"
+              }`}>
+              {isAIResponse ? 'Response Intelligence' : 'Institutional Summary'}
             </h4>
             <div className="relative">
-              <p className={`text-[13px] leading-relaxed font-medium ${
-                isAIResponse && !isExpanded ? 'line-clamp-4' : ''
-              } ${isAIResponse && !consultationExists ? "text-gray-400" : "text-gray-300"}`}>
+              <p className={`text-[13px] leading-relaxed italic ${isAIResponse && !isExpanded ? 'line-clamp-4' : ''
+                } ${isAIResponse && !consultationExists ? "text-gray-400" : "text-gray-400"}`}>
                 {bookmark.ai_summary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
               </p>
-              
+
               {isAIResponse && bookmark.ai_summary && bookmark.ai_summary.length > 200 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
                   }}
-                  className={`flex items-center gap-1.5 text-[12px] font-semibold transition-colors mt-2 ${
-                    consultationExists ? "text-[#E0A7C2] hover:text-white" : "text-[#8B4564] hover:text-[#E0A7C2]"
-                  }`}
+                  className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest transition-colors mt-2 ${consultationExists ? "text-gray-400 hover:text-white" : "text-[#722f37] hover:text-white"
+                    }`}
                 >
                   {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  {isExpanded ? 'Read less' : 'Read more'}
+                  {isExpanded ? 'Collapse' : 'Expand Insight'}
                 </button>
               )}
             </div>
@@ -178,16 +173,16 @@ function BookmarkCard({
               className="overflow-hidden"
             >
               {bookmark.doctrine && (
-                <div className="mb-3 pl-10">
-                  <h4 className="text-[12px] font-bold text-white mb-0.5">Doctrine</h4>
-                  <p className="text-[13px] text-gray-400 leading-relaxed italic">
+                <div className="mb-3 pl-11">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Legal Doctrine</h4>
+                  <p className="text-[13px] text-gray-400 leading-relaxed font-serif italic">
                     {bookmark.doctrine}
                   </p>
                 </div>
               )}
               {bookmark.facts && (
-                <div className="mb-3 pl-10">
-                  <h4 className="text-[12px] font-bold text-white mb-0.5">Facts</h4>
+                <div className="mb-3 pl-11">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Case Facts</h4>
                   <p className="text-[13px] text-gray-400 leading-relaxed">
                     {bookmark.facts}
                   </p>
@@ -201,10 +196,10 @@ function BookmarkCard({
         {(bookmark.doctrine || bookmark.facts) && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-white/50 hover:text-white transition-colors mt-2"
+            className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-600 hover:text-white transition-colors mt-2"
           >
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {isExpanded ? 'See less' : 'See more'}
+            {isExpanded ? 'Hide Details' : 'View Full Brief'}
           </button>
         )}
       </div>
@@ -246,7 +241,7 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md"
+              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl"
             />
 
             {/* Modal panel */}
@@ -258,33 +253,36 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed z-[101] inset-0 flex items-center justify-center p-6 pointer-events-none"
             >
-              <div className="relative w-full max-w-3xl bg-[#020508] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] pointer-events-auto">
+              <div className="relative w-full max-w-3xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] pointer-events-auto">
                 {/* Header */}
-                <div className="px-8 py-5 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Bookmarks</h2>
+                <div className="px-8 py-6 border-b border-[#722f37]/20 flex items-center justify-between flex-shrink-0">
+                  <div className="flex flex-col">
+                    <h2 className="text-3xl font-serif text-white tracking-tight">Bookmarks</h2>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.3em] mt-1">Stored Insights & Bookmarks</p>
+                  </div>
                   <button
                     onClick={onClose}
-                    className="p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-full transition-all"
+                    className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-full transition-all"
                   >
-                    <X size={20} />
+                    <X size={24} />
                   </button>
                 </div>
 
                 {/* Bookmark list */}
-                <div className="overflow-y-auto flex-1 p-6 space-y-4 scroll-smooth scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                <div className="overflow-y-auto flex-1 p-6 space-y-5 custom-scrollbar">
                   <AnimatePresence mode="popLayout">
                     {bookmarks.length === 0 ? (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="flex flex-col items-center justify-center py-20 text-center"
+                        className="flex flex-col items-center justify-center py-24 text-center"
                       >
-                        <div className="w-16 h-16 bg-[#8B4564]/10 rounded-full flex items-center justify-center mb-4">
-                          <Bookmark size={32} className="text-[#8B4564]" />
+                        <div className="w-20 h-20 bg-[#722f37]/10 rounded-full flex items-center justify-center mb-6 border border-[#722f37]/20 shadow-inner">
+                          <Bookmark size={40} className="text-[#722f37]" strokeWidth={1.5} />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-1">No bookmarks saved yet</h3>
-                        <p className="text-sm text-gray-500 max-w-sm">
-                          Items you bookmark while researching will be saved and appear here for quick access.
+                        <h3 className="text-2xl font-serif text-white mb-2">Bookmarks empty.</h3>
+                        <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest max-w-sm">
+                          Items you bookmark during research will be preserved here.
                         </p>
                       </motion.div>
                     ) : (
@@ -303,7 +301,7 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
                 </div>
 
                 {/* Footer Gradient */}
-                <div className="h-4 bg-gradient-to-t from-[#020508] to-transparent pointer-events-none" />
+                <div className="h-6 bg-gradient-to-t from-[#0B0B0C] to-transparent pointer-events-none" />
               </div>
             </motion.div>
           </>

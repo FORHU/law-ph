@@ -154,12 +154,12 @@ export default function Documents() {
       <div className="relative z-10 flex-1 flex overflow-hidden h-full">
         <div className="flex-1 overflow-y-auto p-6 transition-all duration-300 w-full">
           <div className="max-w-xl mx-auto space-y-6">
-            <div className="bg-[#2A2A2A]/70 backdrop-blur border border-[#8B4564]/30 rounded-2xl p-6">
-              <h2 className="text-lg font-bold mb-4">Upload Document</h2>
+            <div className="bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl p-6 shadow-2xl">
+              <h2 className="text-2xl font-serif text-white mb-6 tracking-tight">Upload Document</h2>
               <div
                 onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer ${dragActive ? 'border-[#E0A7C2] bg-[#8B4564]/10' : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#3A2F2A]/20'
+                className={`relative border-2 border-dashed rounded-xl p-10 transition-all cursor-pointer ${dragActive ? 'border-[#e9c176] bg-[#722f37]/10' : 'border-[#722f37]/20 hover:border-[#722f37]/40 bg-black/20'
                   }`}
               >
                 <input ref={fileInputRef} type="file" className="hidden"
@@ -173,16 +173,16 @@ export default function Documents() {
                   }}
                 />
                 <div className="flex flex-col items-center text-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-[#8B4564]/20 flex items-center justify-center">
-                    <Upload size={28} className="text-[#E0A7C2]" />
+                  <div className="w-16 h-16 rounded-full bg-[#722f37]/20 flex items-center justify-center border border-[#722f37]/30">
+                    <Upload size={32} className="text-[#e9c176]" strokeWidth={1.5} />
                   </div>
                   {selectedFiles.length > 0 ? (
                     <div className="flex flex-col items-center gap-2 w-full">
-                      <div className="flex flex-wrap gap-2 justify-center max-h-[120px] overflow-y-auto">
+                      <div className="flex flex-wrap gap-2 justify-center max-h-[120px] overflow-y-auto custom-scrollbar">
                         {selectedFiles.map((file, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-[#1A1A1A]/60 border border-[#8B4564]/40 px-3 py-1.5 rounded-lg">
-                            <FileText size={14} className="text-[#E0A7C2]" />
-                            <span className="text-sm font-medium truncate max-w-[150px]">{file.name}</span>
+                          <div key={idx} className="flex items-center gap-2 bg-black/40 border border-[#722f37]/30 px-3 py-1.5 rounded-lg shadow-sm">
+                            <FileText size={14} className="text-[#e9c176]" />
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-white/80 truncate max-w-[150px]">{file.name}</span>
                             <button onClick={(e) => {
                               e.stopPropagation();
                               setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
@@ -193,33 +193,32 @@ export default function Documents() {
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-[#E0A7C2] mt-2">
-                        {selectedFiles.length} file(s) selected ({(selectedFiles.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB total)
+                      <p className="text-[10px] font-bold text-[#e9c176] uppercase tracking-widest mt-2">
+                        {selectedFiles.length} file(s) · ({(selectedFiles.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2)} MB)
                       </p>
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-500">PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Select multiple to synthesize.</p>
-
+                      <p className="text-[11px] font-bold text-[#e9c176]/60 uppercase tracking-widest leading-relaxed max-w-xs">PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Select multiple to synthesize.</p>
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+              <div className="mt-6">
+                <label className="block text-[10px] font-bold text-[#e9c176]/80 uppercase tracking-[0.2em] mb-2 ml-1">
                   Apply to Case <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div
                     onClick={() => setCaseDropdownOpen(!caseDropdownOpen)}
-                    className="w-full flex items-center bg-black/40 border border-white/10 rounded-xl pl-4 pr-4 py-3 text-sm text-gray-300 outline-none hover:border-[#E0A7C2]/50 cursor-pointer transition-all"
+                    className="w-full flex items-center bg-black/40 border border-[#722f37]/20 rounded-xl pl-4 pr-4 py-3.5 text-sm text-gray-300 outline-none hover:border-[#e9c176]/40 cursor-pointer transition-all shadow-inner"
                   >
-                    <Briefcase size={14} className="text-gray-500 mr-2.5" />
-                    <span className="flex-1 truncate">
-                      {selectedCaseId ? cases.find(c => c.id === selectedCaseId)?.case_name : "Select a case..."}
+                    <Briefcase size={16} className="text-[#e9c176]/50 mr-3" />
+                    <span className="flex-1 truncate font-medium">
+                      {selectedCaseId ? cases.find(c => c.id === selectedCaseId)?.case_name : "Select a case archive..."}
                     </span>
-                    <ChevronDown size={14} className={`text-gray-500 transition-transform duration-200 ${caseDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={14} className={`text-gray-500 transition-transform duration-300 ${caseDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
 
                   <AnimatePresence>
@@ -233,15 +232,15 @@ export default function Documents() {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-sidebar-scrollbar"
+                          className="absolute left-0 right-0 top-full mt-2 bg-[#0B0B0C] border border-[#722f37]/30 rounded-xl shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-scrollbar"
                         >
                           <div
-                            className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 bg-white/[0.02]"
+                            className="px-4 py-2 text-[10px] font-bold text-[#e9c176]/40 uppercase tracking-[0.2em] border-b border-[#722f37]/10 bg-white/[0.01]"
                           >
-                            Active Cases
+                            Active Archives
                           </div>
                           {cases.length === 0 ? (
-                            <div className="px-4 py-3 text-xs text-gray-500 italic">No cases found</div>
+                            <div className="px-4 py-4 text-[11px] font-bold text-gray-600 uppercase tracking-widest text-center">No cases found</div>
                           ) : (
                             cases.map(c => (
                               <div
@@ -250,11 +249,11 @@ export default function Documents() {
                                   setSelectedCaseId(c.id);
                                   setCaseDropdownOpen(false);
                                 }}
-                                className={`px-4 py-3 text-xs cursor-pointer transition-colors flex items-center gap-3
-                                  ${selectedCaseId === c.id ? 'bg-[#8B4564]/20 text-[#E0A7C2]' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
+                                className={`px-4 py-3.5 text-[11px] font-bold uppercase tracking-widest cursor-pointer transition-colors flex items-center gap-3
+                                  ${selectedCaseId === c.id ? 'bg-[#722f37]/20 text-[#e9c176]' : 'text-gray-500 hover:bg-white/[0.03] hover:text-white'}
                                 `}
                               >
-                                <div className={`w-1.5 h-1.5 rounded-full ${selectedCaseId === c.id ? 'bg-[#E0A7C2]' : 'bg-gray-600'}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full ${selectedCaseId === c.id ? 'bg-[#e9c176]' : 'bg-gray-700'}`} />
                                 <span className="truncate">{c.case_name}</span>
                               </div>
                             ))
@@ -269,15 +268,13 @@ export default function Documents() {
               <button
                 onClick={handleLinkToChat}
                 disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
-                className={`w-full mt-5 px-6 py-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${selectedFiles.length > 0 && !isUploading && selectedCaseId
-                    ? 'bg-[#8B4564] hover:bg-[#9D5373] text-white'
-                    : 'bg-[#8B4564]/20 text-gray-600 cursor-not-allowed shadow-inner'
+                className={`w-full mt-8 px-6 py-4 rounded-xl font-bold uppercase tracking-[0.15em] text-[11px] flex items-center justify-center gap-3 transition-all shadow-xl ${selectedFiles.length > 0 && !isUploading && selectedCaseId
+                    ? 'bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-[#722f37]/20'
+                    : 'bg-[#722f37]/10 text-gray-600 cursor-not-allowed border border-[#722f37]/10'
                   }`}
-
               >
-                {isUploading ? <Loader2 size={20} className="animate-spin md:size-4 stroke-[2.5] md:stroke-2" /> : <Scale size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />}
-
-                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case'}
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Scale size={16} />}
+                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case Archive'}
               </button>
 
             </div>

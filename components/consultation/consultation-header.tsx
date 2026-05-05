@@ -89,14 +89,14 @@ export function ConsultationHeader({
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-transparent text-lg md:text-xl font-serif font-medium text-white tracking-tight focus:outline-none border-b border-[#722f37]/50 pb-0.5"
+                className="w-full bg-transparent text-2xl md:text-3xl font-serif font-medium text-white tracking-tight focus:outline-none border-b border-[#722f37]/50 pb-0.5"
               />
             ) : (
               <div 
                 className={`flex items-center gap-2 ${isEditable ? 'cursor-pointer group/title' : ''}`}
                 onClick={() => isEditable && setIsEditing(true)}
               >
-                <span className="text-lg md:text-xl font-serif font-medium text-white tracking-tight truncate antialiased">
+                <span className="text-2xl md:text-3xl font-serif font-medium text-white tracking-tight truncate antialiased">
                   {title}
                 </span>
                 {isEditable && (
@@ -106,7 +106,7 @@ export function ConsultationHeader({
             )}
             
             {showSubtitle && (
-              <p className="hidden md:block text-[8px] text-gray-600 uppercase tracking-[0.2em] font-black mt-0">
+              <p className="hidden md:block text-[11px] text-gray-600 uppercase tracking-[0.25em] font-black mt-1">
                 {subtitle}
               </p>
             )}

@@ -489,14 +489,14 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+          className="bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#E0A7C2]" />
-                Upload Document
+              <h2 className="text-2xl font-serif text-white flex items-center gap-2 tracking-tight">
+                <Sparkles className="w-5 h-5 text-[#e9c176]" />
+                Upload Evidence
               </h2>
               <button
                 onClick={() => setIsAnalysisModalOpen(false)}
@@ -513,8 +513,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               onDrop={handleDrop}
               onClick={() => modalFileInputRef.current?.click()}
               className={`relative border-2 border-dashed rounded-xl p-12 transition-all cursor-pointer group ${dragActive
-                ? 'border-[#E0A7C2] bg-[#8B4564]/10 scale-[1.02]'
-                : 'border-[#8B4564]/30 hover:border-[#8B4564]/60 bg-[#2A2A2A]/40'
+                ? 'border-[#e9c176] bg-[#722f37]/10 scale-[1.02]'
+                : 'border-[#722f37]/20 hover:border-[#722f37]/40 bg-black/20'
                 }`}
             >
               <input
@@ -530,14 +530,14 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 }}
               />
               <div className="flex flex-col items-center text-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#8B4564]/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Upload size={32} className="text-[#E0A7C2]" />
+                <div className="w-20 h-20 rounded-full bg-[#722f37]/20 flex items-center justify-center border border-[#722f37]/30 group-hover:scale-110 transition-transform duration-300">
+                  <Upload size={40} className="text-[#e9c176]" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <p className="text-lg font-medium text-white mb-1">
-                    Drop documents here or click to browse
+                  <p className="text-xl font-serif text-white mb-1 tracking-tight">
+                    Drop evidence here or click to browse
                   </p>
-                  <p className="text-sm text-gray-500 max-w-[280px] mx-auto">
+                  <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] max-w-[280px] mx-auto leading-relaxed">
                     PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Analysis will start automatically.
                   </p>
 
@@ -671,16 +671,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
-          className="bg-[#141414] border border-[#8B4564]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+          className="bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-8">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <div className="p-2 bg-[#8B4564]/20 rounded-lg">
-                  <Send className="w-5 h-5 text-[#E0A7C2]" />
+              <h2 className="text-2xl font-serif text-white flex items-center gap-3">
+                <div className="p-2.5 bg-[#722f37]/20 rounded-xl border border-[#722f37]/30">
+                  <Send className="w-5 h-5 text-[#e9c176]" />
                 </div>
-                Review Email
+                Review Institutional Correspondence
               </h2>
               <button
                 onClick={() => setIsEmailPreviewOpen(false)}
@@ -705,7 +705,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               <div className="bg-white/5 p-5 rounded-2xl border border-white/5 max-h-[35vh] overflow-y-auto w-full">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Message Body</p>
                 <div className="text-gray-300 text-sm">
-                  <div className="prose prose-invert prose-sm max-w-none text-gray-300 prose-p:leading-relaxed prose-a:text-[#E0A7C2] hover:prose-a:text-white">
+                  <div className="prose prose-invert prose-sm max-w-none text-gray-300 prose-p:leading-relaxed prose-a:text-[#e9c176] hover:prose-a:text-white font-bold">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {emailBody}
                     </ReactMarkdown>
@@ -723,14 +723,14 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
               )}
 
-              <div className="pt-4 flex flex-col gap-3">
+              <div className="pt-6 flex flex-col gap-3">
                 <button
                   onClick={handleConfirmSendEmail}
                   disabled={isSendingEmail}
-                  className="w-full py-4 bg-[#E0A7C2] hover:bg-white text-black font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#E0A7C2]/20"
+                  className="w-full py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#722f37]/20 uppercase tracking-[0.2em] text-[11px]"
                 >
-                  {isSendingEmail ? <Loader2 className="w-5 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
-                  {isSendingEmail ? "Sending Secure Email..." : "Approve & Send Email"}
+                  {isSendingEmail ? <Loader2 className="w-5 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isSendingEmail ? "Ratifying Transmission..." : "Approve & Dispatch"}
                 </button>
                 <button
                   onClick={() => setIsEmailPreviewOpen(false)}
@@ -797,7 +797,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       ? recentConsultations.find((c: any) => c.id === activeConversationId)
       : null);
 
-  let headerTitle = activeConversation?.title || "New Consultation";
+  let headerTitle = activeConversation?.title || "Consultation";
+  let headerSubtitle = activeConversation ? "Institutional Consultation Session" : "Immediate guidance based on Philippine law";
   if (isCaseMode && activeCase) {
     headerTitle = activeCase.case_name;
   }
@@ -827,10 +828,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     <PageLayout
       activePage="chat"
       title={headerTitle}
-      subtitle={undefined}
+      subtitle={headerSubtitle}
       maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"}
       onNewItem={handleNewConsultation}
-      newItemLabel="New Consultation"
+      newItemLabel="Consultation"
       recentItems={sidebarRecentItems}
       isEditable={!isDefaultTitle}
       backgroundAngle={getAngleFromTab(globalTab)}
@@ -853,7 +854,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               <CaseInviteButton caseId={activeCase.id.toString()} />
               <button
                 onClick={handleViewCaseDetails}
-                className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
+                className="text-[#e9c176] hover:text-white flex items-center gap-2 transition-all text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 rounded-full shadow-lg"
               >
                 <Briefcase size={13} /> View Case Details
               </button>
@@ -882,7 +883,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       exit={{ opacity: 0 }}
                       className="h-full flex flex-col items-center justify-center py-20"
                     >
-                      <Loader2 size={40} className="text-[#8B4564] animate-spin mb-4" />
+                      <Loader2 size={40} className="text-[#722f37] animate-spin mb-4" />
                       <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
                     </motion.div>
                   ) : (messages.length === 0) && !isLoading && casesLoaded && (
@@ -895,8 +896,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     >
                       {isCaseMode && activeCase ? (
                         <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
-                          <div className="bg-[#8B4564]/10 p-4 rounded-full">
-                            <MessageSquare className="w-8 h-8 text-[#E0A7C2]" />
+                          <div className="bg-[#722f37]/10 p-4 rounded-full border border-[#722f37]/30">
+                            <MessageSquare className="w-8 h-8 text-[#e9c176]" />
                           </div>
                           <div className="space-y-2">
                             <h2 className="text-2xl font-bold">
@@ -910,10 +911,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           </div>
                           <button
                             onClick={handleGetCaseInsight}
-                            className="bg-[#8B4564] hover:bg-[#7a3c58] text-white px-8 py-3 rounded-full font-medium transition-colors shadow-lg shadow-[#8B4564]/20 flex items-center gap-2"
+                            className="bg-[#722f37] hover:bg-[#8b3a44] text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest text-[11px] transition-all shadow-xl shadow-[#722f37]/20 flex items-center gap-3 active:scale-95"
                           >
-                            <Sparkles size={18} />
-                            Get AI Insight
+                            <Sparkles size={18} className="text-[#e9c176]" />
+                            Solicit AI Insight
                           </button>
                         </div>
                       ) : (
@@ -936,7 +937,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
                             className="relative z-10 text-4xl md:text-5xl font-serif text-white mb-4 tracking-tight"
                           >
-                            Start a New <span className="text-[rgba(233,193,118,1)] italic">Consultation</span>
+                            Start a <span className="text-[rgba(233,193,118,1)] italic">Consultation</span>
                           </motion.h2>
 
                           <motion.p 
@@ -998,11 +999,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <Timeline data={activeTimeline} />
                 ) : (
                   <div className="py-20 text-center">
-                    <div className="inline-flex p-5 bg-[#8B4564]/10 rounded-full mb-4">
-                      <GitGraph size={32} className="text-[#E0A7C2]" />
+                    <div className="inline-flex p-5 bg-[#722f37]/10 rounded-full mb-6 border border-[#722f37]/30 shadow-xl shadow-[#722f37]/10">
+                      <GitGraph size={32} className="text-[#e9c176]" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">
-                      Consultation Timeline
+                    <h2 className="text-3xl font-serif mb-3 tracking-tight">
+                      Procedural <span className="text-[#e9c176] italic">Timeline</span>
                     </h2>
                     <p className="text-gray-400 max-w-md mx-auto">
                       Chronological overview of the legal proceedings and
@@ -1016,7 +1017,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden w-full">
                   <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-[#E0A7C2]/10 text-[#E0A7C2] rounded-xl flex-shrink-0">
+                      <div className="p-2.5 bg-[#722f37]/20 text-[#e9c176] rounded-xl flex-shrink-0 border border-[#722f37]/30">
                         <Mail size={20} />
                       </div>
                       <div>
@@ -1032,7 +1033,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       <div className="relative">
                         <div
                           onClick={() => setEmailFindingsDropdownOpen(!emailFindingsDropdownOpen)}
-                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none hover:border-[#E0A7C2]/50 cursor-pointer transition-all"
+                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none hover:border-[#e9c176]/50 cursor-pointer transition-all"
                         >
                           <span className="truncate pr-4">
                             {emailBody ? emailBody.replace(/[#*]/g, '').trim().substring(0, 50) + (emailBody.length > 50 ? "..." : "") : "-- Select an AI finding to insert --"}
@@ -1056,7 +1057,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                     setEmailFindingsDropdownOpen(false);
                                   }}
                                   className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5
-                                    ${!emailBody ? "bg-[#E0A7C2]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
+                                    ${!emailBody ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/80 hover:bg-white/5 hover:text-white"}
                                   `}
                                 >
                                   -- Select an AI finding to insert --
@@ -1069,7 +1070,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                       setEmailFindingsDropdownOpen(false);
                                     }}
                                     className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5 last:border-none
-                                      ${emailBody === m.text ? "bg-[#E0A7C2]/20 text-white font-semibold" : "text-white/60 hover:bg-white/5 hover:text-white"}
+                                      ${emailBody === m.text ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/60 hover:bg-white/5 hover:text-white"}
                                     `}
                                   >
                                     <div className="line-clamp-2 leading-relaxed">
@@ -1092,7 +1093,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         placeholder="client@example.com"
                         value={emailTo}
                         onChange={(e) => setEmailTo(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/50 transition-all placeholder:text-gray-600 shadow-inner"
                       />
                     </div>
 
@@ -1103,7 +1104,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         placeholder="Update on Case Findings"
                         value={emailSubject}
                         onChange={(e) => setEmailSubject(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/50 transition-all placeholder:text-gray-600 shadow-inner"
                       />
                     </div>
 
@@ -1116,13 +1117,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         placeholder="Hello, I am writing to share the latest AI findings regarding..."
                         value={emailBody}
                         onChange={(e) => setEmailBody(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#E0A7C2]/50 focus:ring-1 focus:ring-[#E0A7C2]/50 transition-all placeholder:text-gray-600 resize-none"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/50 transition-all placeholder:text-gray-600 resize-none shadow-inner leading-relaxed"
                       ></textarea>
                     </div>
 
                     <div className="pt-2 flex flex-col items-end gap-2">
                       <button
-                        className={`bg-[#E0A7C2] text-black font-semibold px-6 py-2.5 rounded-xl transition-all flex items-center gap-2 ${emailSentStatus === 'success' ? '!bg-green-500 !text-white' :
+                        className={`bg-[#e9c176] text-black font-bold uppercase tracking-widest text-[10px] px-8 py-3 rounded-xl transition-all flex items-center gap-2 ${emailSentStatus === 'success' ? '!bg-green-500 !text-white' :
                           emailSentStatus === 'error' ? '!bg-red-500 !text-white' :
                             'hover:bg-white'
                           }`}
@@ -1165,7 +1166,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative w-full">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-[#10B981]/10 text-[#10B981] rounded-xl flex-shrink-0">
+                    <div className="p-3 bg-[#722f37]/10 text-[#722f37] rounded-xl flex-shrink-0">
                       <Calendar size={24} />
                     </div>
                     <div>
@@ -1180,7 +1181,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Event Type</label>
                         <div
                           onClick={() => setScheduleTypeDropdownOpen(!scheduleTypeDropdownOpen)}
-                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#10B981]/50 cursor-pointer transition-all"
+                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#722f37]/50 cursor-pointer transition-all"
                         >
                           <span>{scheduleType}</span>
                           <ChevronDown size={16} className={`transition-transform duration-200 text-white/60 ${scheduleTypeDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1203,11 +1204,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                       setScheduleTypeDropdownOpen(false);
                                     }}
                                     className={`px-4 py-3 text-sm cursor-pointer transition-all capitalize flex items-center justify-between
-                                      ${scheduleType === t ? "bg-[#10B981]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
+                                      ${scheduleType === t ? "bg-[#722f37]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
                                     `}
                                   >
                                     {t}
-                                    {scheduleType === t && <Check size={14} strokeWidth={2} className="text-[#10B981]" />}
+                                    {scheduleType === t && <Check size={14} strokeWidth={2} className="text-[#722f37]" />}
                                   </div>
                                 ))}
                               </motion.div>
@@ -1238,7 +1239,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                               }
                             }
                           }}
-                          className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all [color-scheme:dark]`}
+                          className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 focus:ring-1 focus:ring-[#722f37]/50 transition-all [color-scheme:dark]`}
                         />
                       </div>
                     </div>
@@ -1246,7 +1247,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     {/* Client Emails */}
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Client Email(s)</label>
-                      <div className={`flex flex-wrap gap-2 p-2 bg-black/40 border ${emailError ? 'border-red-500/50' : 'border-white/10'} rounded-xl min-h-[46px] focus-within:border-[#10B981]/50 transition-all`}>
+                      <div className={`flex flex-wrap gap-2 p-2 bg-black/40 border ${emailError ? 'border-red-500/50' : 'border-white/10'} rounded-xl min-h-[46px] focus-within:border-[#722f37]/50 transition-all`}>
                         <AnimatePresence>
                           {scheduleEmails.map((email, index) => (
                             <motion.div
@@ -1254,7 +1255,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
-                              className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] px-2 py-1 rounded-lg text-xs font-medium"
+                              className="flex items-center gap-1.5 bg-[#722f37]/10 border border-[#722f37]/30 text-[#ffb2b8] px-2 py-1 rounded-lg text-xs font-medium"
                             >
                               <span>{email}</span>
                               <button onClick={() => removeEmail(index)} className="hover:text-white transition-colors">
@@ -1302,7 +1303,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           setScheduleNotes(e.target.value);
                           setScheduleValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('notes')));
                         }}
-                        className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('notes')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#10B981]/50 focus:ring-1 focus:ring-[#10B981]/50 transition-all placeholder:text-gray-600 resize-none`}
+                        className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('notes')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 focus:ring-1 focus:ring-[#722f37]/50 transition-all placeholder:text-gray-600 resize-none`}
                       />
                     </div>
 
@@ -1346,7 +1347,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         )}
 
                         <button
-                          className={`bg-[#10B981] text-black text-sm font-bold w-full py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' : 'hover:bg-emerald-400'}`}
+                          className={`bg-[#722f37] text-white text-sm font-bold w-full py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${scheduleStatus === 'error' ? '!bg-red-500 !text-white' : 'hover:bg-[#8b3a44]'}`}
                           onClick={() => {
                             // Collect ALL validation errors at once
                             const errors: string[] = [];
@@ -1427,10 +1428,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   <div className="mt-4 flex justify-center">
                     <button
                       onClick={() => handleSendMessage("Please generate a visual strategy map for this case.")}
-                      className="bg-[#8B4564]/20 hover:bg-[#8B4564]/40 border border-[#8B4564]/50 text-[#E0A7C2] px-6 py-3 rounded-xl flex items-center gap-2 transition-all group"
+                      className="bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/50 text-[#e9c176] px-8 py-4 rounded-2xl flex items-center gap-3 transition-all group shadow-xl shadow-[#722f37]/10 uppercase tracking-[0.2em] text-[11px] font-bold"
                     >
                       <Layout className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      <span className="font-semibold text-sm">Generate Strategy Map</span>
+                      Generate Strategy Map
                     </button>
                   </div>
                 )}
@@ -1468,7 +1469,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     style={{ animationDelay: "300ms" }}
                   ></span>
                 </div>
-                <span>ilovelawyer is thinking...</span>
+                <span>Institutional Intelligence is thinking...</span>
               </motion.div>
             )}
           </div>

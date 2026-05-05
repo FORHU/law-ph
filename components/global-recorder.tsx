@@ -21,14 +21,14 @@ export function GlobalRecorder() {
         initial={{ opacity: 0, x: 20, scale: 0.95 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
         exit={{ opacity: 0, x: 20, scale: 0.95 }}
-        className="fixed bottom-28 right-4 md:right-8 z-[9999] flex items-center gap-2.5 bg-[#1A1A1A]/95 border border-[#8B4564]/30 px-3 py-1.5 rounded-lg shadow-2xl backdrop-blur-xl cursor-grab active:cursor-grabbing select-none"
+        className="fixed bottom-28 right-4 md:right-8 z-[9999] flex items-center gap-2.5 bg-[#0B0B0C]/95 border border-[#722f37]/30 px-3 py-1.5 rounded-lg shadow-2xl backdrop-blur-xl cursor-grab active:cursor-grabbing select-none"
       >
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping absolute inset-0" />
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full relative z-10" />
           </div>
-          <span className="text-[#E0A7C2] font-mono text-sm font-bold min-w-[45px]">
+          <span className="text-[#e9c176] font-mono text-sm font-bold min-w-[45px] tracking-widest uppercase">
             {formatTime(recordingTime[activeId] || 0)}
           </span>
         </div>

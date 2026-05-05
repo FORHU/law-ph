@@ -71,30 +71,24 @@ export function Header({ isLoggedIn }: HeaderProps) {
           </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-10">
             <button
               onClick={handleAboutClick}
-              className="text-gray-200 hover:text-white transition-colors"
-              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
+              className="text-gray-400 hover:text-[#e9c176] transition-all text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer"
             >
-              ABOUT
+              Institutional Narrative
             </button>
             <button
               onClick={handleFaqClick}
-              className="text-gray-200 hover:text-white transition-colors"
-              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
+              className="text-gray-400 hover:text-[#e9c176] transition-all text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer"
             >
-              FAQS
+              Faq Protocols
             </button>
             <button
               onClick={handleResourcesClick}
-              className="text-gray-200 hover:text-white transition-colors"
-              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#e5e7eb'}
+              className="text-gray-400 hover:text-[#e9c176] transition-all text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer"
             >
-              RESOURCES
+              Ratified Resources
             </button>
             {isLoggedIn && (
               <LogoutButton
@@ -102,21 +96,17 @@ export function Header({ isLoggedIn }: HeaderProps) {
                   router.push('/');
                   router.refresh();
                 }}
-                className="px-6 py-2 border-2 rounded-md transition-all text-white font-medium"
-                style={{
-                  borderColor: COLORS.PRIMARY,
-                  backgroundColor: 'transparent'
-                }}
+                className="px-6 py-2 border border-[#722f37]/50 rounded-xl transition-all text-white font-bold text-[10px] uppercase tracking-[0.2em]"
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = COLORS.PRIMARY;
-                  e.currentTarget.style.color = COLORS.BG_DARK;
+                  e.currentTarget.style.backgroundColor = '#722f37';
+                  e.currentTarget.style.borderColor = '#e9c176';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.borderColor = 'rgba(114, 47, 55, 0.5)';
                 }}
               >
-                LOGOUT
+                Sign Out
               </LogoutButton>
             )}
           </div>

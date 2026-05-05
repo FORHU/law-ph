@@ -20,7 +20,7 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="text-secondary text-sm tracking-[0.3em] font-bold uppercase mb-8 block"
+          className="text-gray-500 text-sm tracking-[0.3em] font-bold uppercase mb-8 block"
         >
           Simple Process
         </motion.span>
@@ -73,22 +73,23 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
               className="flex flex-col items-center group relative z-10"
             >
               <motion.div 
-                whileHover={{ scale: 1.05, backgroundColor: '#8b3d46' }}
-                className="w-24 h-24 rounded-full bg-[#722f37] text-white flex items-center justify-center text-2xl font-bold mb-8 shadow-2xl transition-all ring-4 ring-transparent group-hover:ring-white/10"
+                whileHover={{ scale: 1.05, backgroundColor: '#8b3a44' }}
+                className="w-24 h-24 rounded-full bg-[#722f37] text-white flex items-center justify-center text-2xl font-bold mb-8 shadow-2xl transition-all ring-4 ring-transparent group-hover:ring-[#e9c176]/20"
               >
                 {item.step}
               </motion.div>
               <motion.div 
-                initial={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
+                initial={{ backgroundColor: "rgba(11, 11, 12, 0.4)" }}
                 whileHover={{ 
                   y: -10, 
-                  backgroundColor: "rgba(255, 255, 255, 0.03)",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
+                  backgroundColor: "rgba(11, 11, 12, 0.6)",
+                  boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
+                  borderColor: "rgba(233, 193, 118, 0.3)"
                 }}
-                className="glass-panel p-12 rounded-[2.5rem] border border-white/5 w-full min-h-[320px] flex flex-col items-center shadow-lg transition-all"
+                className="glass-panel p-12 rounded-[2.5rem] border border-white/5 w-full min-h-[320px] flex flex-col items-center shadow-lg transition-all backdrop-blur-xl"
               >
-                <div className="text-secondary mb-8 transition-transform group-hover:scale-110">{item.icon}</div>
-                <h4 className="text-xl font-bold text-white mb-4 leading-tight transition-colors group-hover:text-[#ffb2b8]">{item.title}</h4>
+                <div className="text-gray-500 mb-8 transition-transform group-hover:scale-110 group-hover:text-[#e9c176]">{item.icon}</div>
+                <h4 className="text-xl font-bold text-white mb-4 leading-tight transition-colors group-hover:text-[#e9c176]">{item.title}</h4>
                 <p className="text-on-surface/50 text-base leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             </motion.div>

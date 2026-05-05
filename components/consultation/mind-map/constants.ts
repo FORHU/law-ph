@@ -22,8 +22,8 @@ export const MIND_MAP_THEMES: Record<MindMapThemeType, {
     name: 'Premium Dark',
     bg: '#111111',
     gridColor: '#333',
-    edgeColor: '#8B4564',
-    rootClass: 'bg-[#8B4564]/30 border-[#8B4564] text-white font-bold shadow-[0_0_15px_rgba(139,69,100,0.4)]',
+    edgeColor: '#722f37',
+    rootClass: 'bg-[#722f37]/30 border-[#722f37] text-white font-bold shadow-[0_0_15px_rgba(114,47,55,0.4)]',
     nodeClass: (i) => MIND_MAP_COLORS[i % MIND_MAP_COLORS.length]
   }
 };

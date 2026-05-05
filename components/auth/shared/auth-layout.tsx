@@ -25,12 +25,10 @@ export function AuthLayout({
   }, []);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#0a0a0a] relative overflow-hidden text-white font-sans">
-      {/* Cinematic Background Layer */}
-      <div className="fixed inset-0 z-0 overflow-hidden">
-
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-[#0a0a0a]/60 to-[#0a0a0a]" />
-        <div className="absolute inset-0 bg-[#722f37]/10 mix-blend-overlay" />
+    <div className="min-h-screen w-full flex flex-col bg-transparent relative overflow-y-auto text-white font-sans scroll-smooth">
+      {/* Ambient overlay to ensure text readability over the global background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0B0B0C]/20 to-[#0B0B0C]/60" />
       </div>
       
       <BackButton
@@ -39,7 +37,7 @@ export function AuthLayout({
         fallbackHref={backButtonHref}
       />
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 z-10">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-4 z-10">
         {mounted && (
           <motion.div
             className={`w-full ${maxWidth}`}

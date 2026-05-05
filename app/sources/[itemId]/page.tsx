@@ -63,97 +63,99 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
   })();
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-gray-100">
-      <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+    <div className="min-h-screen bg-[#0B0B0C] text-gray-100">
+      <div className="max-w-4xl mx-auto px-6 py-12 md:py-16">
         <Link
           href="/consultation"
-          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-8 transition-colors"
+          className="inline-flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-white mb-12 transition-all uppercase tracking-[0.2em]"
         >
-          <ArrowLeft size={16} />
-          Back to consultation
+          <ArrowLeft size={14} />
+          Return to Consultation
         </Link>
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="animate-spin text-[#E0A7C2]" size={40} />
-            <p className="mt-4 text-gray-400">Loading source...</p>
+          <div className="flex flex-col items-center justify-center py-24 gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
+              <Loader2 className="animate-spin text-[#e9c176]" size={32} />
+            </div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Ratifying Institutional Source...</p>
           </div>
         )}
 
         {error && !loading && (
-          <div className="text-center py-24">
-            <p className="text-gray-400 mb-6">{error}</p>
+          <div className="text-center py-24 space-y-8">
+            <p className="text-gray-400 font-serif italic text-lg">"{error}"</p>
             <Link
               href="/consultation"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#722f37] text-white text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-xl shadow-[#722f37]/20"
             >
               <ArrowLeft size={16} />
-              Back to consultation
+              Return to Repository
             </Link>
           </div>
         )}
 
         {data && !loading && (
-          <article className="space-y-6">
-            <div className="flex flex-wrap items-center gap-2">
+          <article className="space-y-8">
+            <div className="flex flex-wrap items-center gap-3">
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold text-white ${
-                  isLaw ? 'bg-[#c2185b]' : 'bg-[#03a9f4]'
+                className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest ${
+                  isLaw ? 'bg-[#722f37] border border-[#e9c176]/30' : 'bg-[#e9c176] !text-black shadow-lg shadow-[#e9c176]/10'
                 }`}
               >
                 {isLaw ? <BookOpen size={12} /> : <Gavel size={12} />}
-                {isLaw ? 'Law' : 'Jurisprudence'}
+                {isLaw ? 'Institutional Law' : 'Jurisprudence'}
               </span>
               {data.gr_number && (
-                <span className="text-xs text-gray-500">{data.gr_number}</span>
+                <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.gr_number}</span>
               )}
               {data.law_number && (
-                <span className="text-xs text-gray-500">{data.law_number}</span>
+                <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.law_number}</span>
               )}
               {data.year && (
-                <span className="text-xs text-gray-500">({data.year})</span>
+                <span className="text-[10px] font-mono text-[#e9c176] font-bold uppercase tracking-wider">Ratified {data.year}</span>
               )}
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+            <h1 className="text-3xl md:text-5xl font-serif text-white leading-tight tracking-tight">
               {data.title}
             </h1>
 
-            <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-gray-300 prose-li:text-gray-300 prose-strong:text-white border-t border-white/10 pt-6">
+            <div className="prose prose-invert max-w-none prose-headings:text-[#e9c176] prose-headings:font-serif prose-p:text-gray-300 prose-p:leading-relaxed prose-li:text-gray-300 prose-strong:text-white border-t border-white/10 pt-8 mt-8">
               <ReactMarkdown
                 components={{
                   h1: ({ children }) => (
-                    <h1 className="text-2xl font-bold text-white mb-4 mt-6">
+                    <h1 className="text-3xl font-serif text-[#e9c176] mb-6 mt-10 tracking-tight">
                       {children}
                     </h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="text-xl font-bold text-white mb-3 mt-5">
+                    <h2 className="text-2xl font-serif text-[#e9c176] mb-4 mt-8 tracking-tight">
                       {children}
                     </h2>
                   ),
                   h3: ({ children }) => (
-                    <h3 className="text-lg font-semibold text-white mb-2 mt-4">
+                    <h3 className="text-xl font-serif text-[#e9c176] mb-3 mt-6">
                       {children}
                     </h3>
                   ),
                   p: ({ children }) => (
-                    <p className="text-gray-300 mb-4 leading-relaxed">
+                    <p className="text-gray-300 mb-6 leading-relaxed text-lg">
                       {children}
                     </p>
                   ),
                   ul: ({ children }) => (
-                    <ul className="list-disc ml-5 mb-4 space-y-2 text-gray-300">
+                    <ul className="list-disc ml-6 mb-6 space-y-3 text-gray-300">
                       {children}
                     </ul>
                   ),
                   ol: ({ children }) => (
-                    <ol className="list-decimal ml-5 mb-4 space-y-2 text-gray-300">
+                    <ol className="list-decimal ml-6 mb-6 space-y-3 text-gray-300">
                       {children}
                     </ol>
                   ),
                   strong: ({ children }) => (
-                    <strong className="text-white font-semibold">
+                    <strong className="text-white font-bold border-b border-[#e9c176]/30">
                       {children}
                     </strong>
                   ),
@@ -164,25 +166,20 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
             </div>
 
             {data.url && (
-              <div className="pt-6 border-t border-white/10">
+              <div className="pt-10 border-t border-white/10">
                 <a
                   href={data.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: `${COLORS.PRIMARY}20`,
-                    color: COLORS.PRIMARY_LIGHT || '#E0A7C2',
-                  }}
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all bg-[#722f37] text-white hover:bg-[#8b3a44] shadow-xl shadow-[#722f37]/20 active:scale-95"
                 >
                   <ExternalLink size={16} />
-                  Open original source
+                  Solicit Original Document
                 </a>
               </div>
             )}
           </article>
         )}
-      </div>
     </div>
   );
 }

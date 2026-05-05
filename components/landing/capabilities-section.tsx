@@ -25,7 +25,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <span className="text-secondary text-sm tracking-[0.4em] font-bold uppercase mb-8 block">POWERFUL FEATURES</span>
+          <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-8 block">POWERFUL FEATURES</span>
           <h2 className="text-6xl font-serif text-white mb-8 leading-[1.1]">Comprehensive Legal Capabilities</h2>
           <p className="text-on-surface/50 text-xl max-w-3xl mx-auto font-light leading-relaxed">Empowering you with tools designed for the complexities of the Philippine legal system.</p>
         </motion.div>
@@ -41,7 +41,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           <div className="glass-panel rounded-[3rem] p-24 border border-white/10 flex flex-col lg:flex-row gap-24 items-center shadow-2xl bg-white/[0.01]">
             <div className="flex-1">
               <motion.div 
-                className="w-24 h-24 rounded-3xl bg-primary-container/20 flex items-center justify-center mb-12 border border-primary-container/30 text-primary-container shadow-xl shadow-primary-container/10"
+                className="w-24 h-24 rounded-3xl bg-[#722f37]/10 flex items-center justify-center mb-12 border border-[#722f37]/20 text-[#e9c176] shadow-xl shadow-[#722f37]/20"
                 initial={{ scale: 0, rotate: -10 }}
                 whileInView={{ scale: 1, rotate: 0 }}
                 viewport={{ once: true }}
@@ -49,9 +49,9 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               >
                 <FileCheck size={48} />
               </motion.div>
-              <h3 className="text-4xl font-serif text-white mb-8 leading-tight">AI-Powered Document Review</h3>
+              <h3 className="text-4xl font-serif text-white mb-8 leading-tight tracking-tight">Institutional <span className="text-[#e9c176] italic">Review</span></h3>
               <p className="text-xl text-on-surface/70 leading-relaxed mb-10 font-light">
-                Draft, analyze, and review contracts and legal documents with AI-driven precision. Our system identifies potential issues and ensures compliance.
+                Analyze, and ratify contracts and legal documents with AI-driven precision. Our system identifies potential protocol risks and ensures institutional compliance.
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-16">
                 {[
@@ -68,7 +68,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                     viewport={{ once: true }}
                     transition={{ delay: 0.4 + idx * 0.1, duration: 0.8 }}
                   >
-                    <div className="w-2 h-2 rounded-full bg-secondary shrink-0 transition-transform group-hover/item:scale-150" />
+                    <div className="w-2 h-2 rounded-full bg-[#722f37] shrink-0 transition-transform group-hover/item:scale-150" />
                     <span className="font-medium group-hover/item:text-white transition-colors">{item}</span>
                   </motion.li>
                 ))}
@@ -106,12 +106,12 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                   viewport={{ once: true }}
                   transition={{ delay: 1 }}
                 >
-                  <div className="flex items-center gap-4 text-xs text-on-surface/40 mb-6 tracking-[0.3em] uppercase font-black">
-                    <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                    AI Analysis Complete
+                  <div className="flex items-center gap-4 text-[10px] text-gray-500 mb-6 tracking-[0.2em] uppercase font-bold">
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                    Protocol Analysis Complete
                   </div>
-                  <div className="h-3 w-full bg-secondary/10 rounded mb-4" />
-                  <div className="h-3 w-2/3 bg-secondary/10 rounded" />
+                  <div className="h-1.5 w-full bg-[#e9c176]/20 rounded-full mb-4" />
+                  <div className="h-1.5 w-2/3 bg-[#e9c176]/20 rounded-full" />
                 </motion.div>
               </div>
             </div>
@@ -142,20 +142,20 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            animate={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
-            whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            animate={{ backgroundColor: "#ffffff03" }}
+            whileHover={{ y: -10, borderColor: '#e9c17666', backgroundColor: '#ffffff08' }}
             onClick={() => router.push('/consultation')}
-            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all shadow-xl hover:shadow-2xl cursor-pointer"
+            className="glass-panel p-20 rounded-[3rem] border border-white/5 group transition-all shadow-xl hover:shadow-2xl cursor-pointer bg-[#0B0B0C]/40 backdrop-blur-3xl"
           >
-            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
+            <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mb-12 text-[#e9c176]/40 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20 group-hover:border-[#e9c176]/30">
               <Search size={36} />
             </div>
-            <h3 className="text-3xl font-serif text-white mb-6">Advanced Legal Research</h3>
+            <h3 className="text-3xl font-serif text-white mb-6">Institutional <span className="text-[#e9c176] italic">Research</span></h3>
             <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
-              Get instant citations from Republic Acts and Batas Pambansa. Our AI searches through decades of legal documentation in seconds.
+              Access instant citations from Republic Acts and Batas Pambansa. Our AI synthesizes decades of legal documentation with millisecond precision.
             </p>
-            <div className="text-secondary text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
-              Explore Research Tools <ArrowRight size={28} />
+            <div className="text-[#e9c176] text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
+              Explore Protocol Tools <ArrowRight size={24} />
             </div>
           </motion.div>
 
@@ -167,20 +167,20 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            animate={{ backgroundColor: "rgba(255, 255, 255, 0.01)" }}
-            whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            animate={{ backgroundColor: "#ffffff03" }}
+            whileHover={{ y: -10, borderColor: '#e9c17666', backgroundColor: '#ffffff08' }}
             onClick={() => router.push('/cases')}
-            className="glass-panel p-20 rounded-[3rem] border border-white/10 group transition-all shadow-xl hover:shadow-2xl cursor-pointer"
+            className="glass-panel p-20 rounded-[3rem] border border-white/5 group transition-all shadow-xl hover:shadow-2xl cursor-pointer bg-[#0B0B0C]/40 backdrop-blur-3xl"
           >
-            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-12 text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
+            <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mb-12 text-[#e9c176]/40 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20 group-hover:border-[#e9c176]/30">
               <Scale size={36} />
             </div>
-            <h3 className="text-3xl font-serif text-white mb-6">Supreme Court Case Summaries</h3>
+            <h3 className="text-3xl font-serif text-white mb-6">Jurisprudential <span className="text-[#e9c176] italic">Archives</span></h3>
             <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
-              Simplify complex jurisprudence with AI-generated summaries of landmark SC decisions, making legal precedents accessible.
+              Simplify complex jurisprudence with AI-generated summaries of landmark SC decisions, making institutional precedents immediately accessible.
             </p>
-            <div className="text-secondary text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
-              Browse Case Library <ArrowRight size={28} />
+            <div className="text-[#e9c176] text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
+              Browse Case Library <ArrowRight size={24} />
             </div>
           </motion.div>
         </motion.div>

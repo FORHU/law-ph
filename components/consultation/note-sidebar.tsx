@@ -119,12 +119,12 @@ export function NoteSidebar({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 z-[200000] w-full sm:w-[520px] bg-[#1A1A1A] border-l border-[#8B4564]/30 shadow-2xl flex flex-col"
+            className="fixed inset-y-0 right-0 z-[200000] w-full sm:w-[520px] bg-[#0B0B0C] border-l border-[#722f37]/30 shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-[#8B4564]/20 bg-[#252525]/80 backdrop-blur-md">
+            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-[#722f37]/20 bg-[#0B0B0C]/80 backdrop-blur-md">
               <div className="flex items-center gap-2">
-                <PenTool size={18} className="text-[#E0A7C2]" />
+                <PenTool size={18} className="text-[#e9c176]" />
                 <h3 className="text-sm font-semibold text-white">Create Case Notes</h3>
               </div>
 
@@ -141,7 +141,7 @@ export function NoteSidebar({
               <div ref={containerRef} className="p-6 pb-24">
                 
                 {/* Instruction */}
-                <div className="mb-8 p-4 bg-[#8B4564]/10 border border-[#8B4564]/20 rounded-xl text-xs text-[#E0A7C2] leading-relaxed flex items-center gap-3">
+                <div className="mb-8 p-5 bg-[#722f37]/10 border border-[#722f37]/20 rounded-2xl text-[10px] text-[#e9c176] leading-relaxed flex items-center gap-4 font-bold uppercase tracking-widest">
                   <Highlighter size={16} className="flex-shrink-0" />
                   <span>Select any text in the legal response below to create a persistent sticky note attached to that snippet.</span>
                 </div>
@@ -181,7 +181,7 @@ export function NoteSidebar({
                   ) : (
                     <div className="space-y-6">
                       {highlights.map((h) => (
-                        <div key={h.id} className="bg-[#1A1A1A] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-all hover:border-[#8B4564]/30">
+                        <div key={h.id} className="bg-[#0B0B0C] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-all hover:border-[#722f37]/30">
                           <div className="p-4 bg-white/[0.02] border-b border-white/5 flex items-start gap-3">
                             <div className="w-1 h-full min-h-[40px] bg-yellow-500/50 rounded-full flex-shrink-0" />
                             <div className="flex-1">
@@ -199,19 +199,19 @@ export function NoteSidebar({
                               <div className="flex flex-col gap-3">
                                 <textarea 
                                   autoFocus
-                                  className="w-full bg-black/40 border border-[#8B4564]/30 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#8B4564] min-h-[100px] resize-none"
+                                  className="w-full bg-black/40 border border-[#722f37]/30 rounded-xl p-4 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-[#722f37] min-h-[120px] resize-none leading-relaxed"
                                   value={noteInput}
                                   onChange={(e) => setNoteInput(e.target.value)}
                                   placeholder="What's your takeaway from this part?"
                                 />
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => setActiveNoteId(null)} className="px-3 py-1.5 text-xs text-gray-400 font-medium hover:text-white transition-colors">Cancel</button>
-                                  <button onClick={() => saveNote(h.id)} className="px-5 py-1.5 text-xs bg-[#8B4564] text-white rounded-lg font-semibold shadow-lg shadow-[#8B4564]/20 hover:bg-[#A35276] transition-all">Save Note</button>
+                                  <button onClick={() => saveNote(h.id)} className="px-6 py-2 text-[10px] bg-[#722f37] text-white rounded-xl font-bold shadow-xl shadow-[#722f37]/20 hover:bg-[#8b3a44] transition-all uppercase tracking-widest">Save Note</button>
                                 </div>
                               </div>
                             ) : (
                               <div 
-                                className="text-sm text-gray-200 cursor-pointer min-h-[24px] hover:text-[#E0A7C2] transition-colors leading-relaxed"
+                                className="text-sm text-gray-200 cursor-pointer min-h-[24px] hover:text-[#e9c176] transition-colors leading-relaxed"
                                 onClick={() => {
                                   setActiveNoteId(h.id);
                                   setNoteInput(h.note);
@@ -242,7 +242,7 @@ export function NoteSidebar({
                       e.stopPropagation();
                       addHighlight();
                     }}
-                    className="pointer-events-auto p-2.5 bg-[#8B4564] text-white rounded-full shadow-2xl shadow-[#8B4564]/50 hover:bg-[#A35276] transition-transform hover:scale-110 flex items-center justify-center border-2 border-white/20"
+                    className="pointer-events-auto p-3.5 bg-[#722f37] text-white rounded-full shadow-2xl shadow-[#722f37]/50 hover:bg-[#8b3a44] transition-transform hover:scale-110 flex items-center justify-center border-2 border-white/20"
                     title="Add Note"
                   >
                     <PenTool size={20} />

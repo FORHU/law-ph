@@ -102,19 +102,19 @@ export default function ChatConversationDemo() {
                     >
                         <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                             {/* Avatar */}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border border-[#722f37]/30 ${
                                 msg.role === 'user' 
-                                    ? 'bg-[#8B4564]/20' 
-                                    : 'bg-[#8B4564]/20'
+                                    ? 'bg-[#722f37]/20' 
+                                    : 'bg-[#722f37]/20'
                             }`}>
-                                {msg.role === 'user' ? <User size={14} className="text-white" /> : <Scale size={14} className="text-[#8B4564]" />}
+                                {msg.role === 'user' ? <User size={14} className="text-white" /> : <Scale size={14} className="text-[#e9c176]" />}
                             </div>
 
                             {/* Bubble */}
-                            <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
+                            <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-lg ${
                                 msg.role === 'user' 
-                                    ? 'bg-[#8B4564]/20 border border-[#8B4564]/40 text-gray-200 rounded-tr-sm' 
-                                    : 'bg-[#2A2A2A]/70 border border-[#8B4564]/30 text-gray-200 rounded-tl-sm'
+                                    ? 'bg-[#722f37]/20 border border-[#722f37]/40 text-gray-200 rounded-tr-sm shadow-[#722f37]/5' 
+                                    : 'bg-[#0B0B0C]/70 border border-[#722f37]/30 text-gray-200 rounded-tl-sm shadow-black/20'
                             }`}>
                                 {msg.role === 'assistant' ? (
                                     <motion.span
@@ -153,13 +153,13 @@ export default function ChatConversationDemo() {
                     className="flex justify-start"
                 >
                     <div className="flex gap-3 max-w-[85%]">
-                        <div className="w-8 h-8 rounded-full bg-[#8B4564]/20 flex items-center justify-center flex-shrink-0">
-                            <Scale size={14} className="text-[#8B4564]" />
+                        <div className="w-8 h-8 rounded-full bg-[#722f37]/20 flex items-center justify-center flex-shrink-0 border border-[#722f37]/30">
+                            <Scale size={14} className="text-[#e9c176]" />
                         </div>
-                        <div className="bg-[#2A2A2A]/70 border border-[#8B4564]/30 p-3 rounded-2xl rounded-tl-sm flex gap-1 items-center h-10">
-                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                        <div className="bg-[#0B0B0C]/70 border border-[#722f37]/30 p-3 rounded-2xl rounded-tl-sm flex gap-1 items-center h-10 shadow-lg shadow-black/20">
+                            <span className="w-1.5 h-1.5 bg-[#e9c176]/50 rounded-full animate-bounce"></span>
+                            <span className="w-1.5 h-1.5 bg-[#e9c176]/50 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#e9c176]/50 rounded-full animate-bounce [animation-delay:0.4s]"></span>
                         </div>
                     </div>
                 </motion.div>

@@ -146,7 +146,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
         media: getMedia(item),
         isRoot,
         fx: x, fy: y, fz: z,
-        color: isRoot ? '#8B4564' : colors[paletteIndex % colors.length]
+        color: isRoot ? '#722f37' : colors[paletteIndex % colors.length]
       });
 
       const children = item.children || [];

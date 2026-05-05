@@ -72,20 +72,20 @@ interface CalendarEvent {
 
 const EVENT_COLORS: Record<string, { badge: string; dot: string }> = {
   meeting: {
-    badge: "bg-blue-500/10 text-white border-blue-500/30",
-    dot: "bg-blue-400",
+    badge: "bg-[#4338ca]/10 text-[#818cf8] border-[#4338ca]/30",
+    dot: "bg-[#4338ca]",
   },
   appointment: {
-    badge: "bg-purple-500/10 text-white border-purple-500/30",
-    dot: "bg-purple-400",
+    badge: "bg-[#d97706]/10 text-[#fbbf24] border-[#d97706]/30",
+    dot: "bg-[#d97706]",
   },
   hearing: {
-    badge: "bg-amber-500/10 text-white border-amber-500/30",
-    dot: "bg-amber-400",
+    badge: "bg-[#722f37]/10 text-[#ffb2b8] border-[#722f37]/30",
+    dot: "bg-[#722f37]",
   },
   deposition: {
-    badge: "bg-red-500/10 text-white border-red-500/30",
-    dot: "bg-red-400",
+    badge: "bg-[#059669]/10 text-[#34d399] border-[#059669]/30",
+    dot: "bg-[#059669]",
   },
 };
 const MONTHS = [
@@ -144,10 +144,10 @@ const StatusBadge = ({
   const configs = {
     pending: isPast
       ? "bg-red-500/10 text-red-400 border-red-500/20"
-      : "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    confirmed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      : "bg-[#e9c176]/10 text-[#e9c176] border-[#e9c176]/20",
+    confirmed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     requested_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    denied: "bg-red-900/40 text-red-400 border-red-500/30",
+    denied: "bg-red-500/10 text-red-400 border-red-500/20",
     tentative: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
     canceled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
@@ -164,7 +164,7 @@ const StatusBadge = ({
 
   return (
     <span
-      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${configs[status || "pending"]}`}
+      className={`inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.1em] px-2 h-5 rounded-md border ${configs[status || "pending"]}`}
     >
       {label}
     </span>
@@ -321,11 +321,11 @@ export default function CalendarPage() {
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4"
         >
-          <div className="bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-center gap-4 overflow-hidden">
+          <div className="bg-[#0B0B0C]/90 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl p-4 shadow-2xl flex items-center gap-4 overflow-hidden">
             <div
               className={`p-2.5 rounded-xl flex-shrink-0 ${successModal.type === "info"
                 ? "bg-blue-500/20 text-blue-400"
-                : "bg-[#8B4564]/20 text-[#E0A7C2]"
+                : "bg-[#722f37]/20 text-[#e9c176]"
                 }`}
             >
               {successModal.type === "info" ? (
@@ -335,10 +335,10 @@ export default function CalendarPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-white text-sm truncate">
+              <h3 className="font-serif text-white text-sm truncate">
                 {successModal.title}
               </h3>
-              <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">
+              <p className="text-gray-400 text-[11px] font-medium mt-0.5 line-clamp-2 leading-tight uppercase tracking-wider">
                 {successModal.message}
               </p>
             </div>
@@ -356,7 +356,7 @@ export default function CalendarPage() {
               initial={{ width: "100%" }}
               animate={{ width: "0%" }}
               transition={{ duration: 3.5, ease: "linear" }}
-              className={`h-[3px] absolute bottom-0 left-0 right-0 rounded-b-2xl ${successModal.type === "info" ? "bg-blue-500" : "bg-[#8B4564]"
+              className={`h-[3px] absolute bottom-0 left-0 right-0 rounded-b-2xl ${successModal.type === "info" ? "bg-blue-500" : "bg-[#722f37]"
                 }`}
             />
           </div>
@@ -1581,16 +1581,16 @@ export default function CalendarPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="w-full max-w-md bg-[#1A1A1A] border border-[#8B4564]/30 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+              className="w-full max-w-md bg-[#0B0B0C] border border-[#722f37]/30 rounded-3xl overflow-hidden shadow-2xl"
             >
-              <div className="p-6 border-b border-white/5 bg-gradient-to-r from-[#8B4564]/20 to-transparent">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#8B4564] flex items-center justify-center shadow-lg shadow-[#8B4564]/20">
-                    <Bell className="text-white" size={20} />
+              <div className="p-8 border-b border-white/5 bg-gradient-to-r from-[#722f37]/20 to-transparent">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#722f37] flex items-center justify-center shadow-xl shadow-[#722f37]/20">
+                    <Bell className="text-white" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white leading-tight">Upcoming Events</h2>
-                    <p className="text-xs text-[#E0A7C2] font-medium opacity-80 uppercase tracking-wider">Today & Tomorrow</p>
+                    <h2 className="text-xl font-serif text-white leading-tight">Institutional <span className="text-[#e9c176] italic">Alerts</span></h2>
+                    <p className="text-[10px] font-bold text-[#e9c176]/80 uppercase tracking-[0.2em] mt-1">Pending Acknowledgement</p>
                   </div>
                 </div>
               </div>
@@ -1605,7 +1605,7 @@ export default function CalendarPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <Clock size={12} className="text-[#E0A7C2]" />
+                      <Clock size={12} className="text-[#e9c176]" />
                       <span>{formatDT(evt.date_time || evt.dateTime)}</span>
                     </div>
                     {evt.notes && (
@@ -1617,12 +1617,12 @@ export default function CalendarPage() {
                 ))}
               </div>
 
-              <div className="p-6 bg-black/20 border-t border-white/5 flex gap-3">
+              <div className="p-6 bg-black/40 border-t border-white/5 flex gap-3">
                 <button
                   onClick={handleAcknowledgeEvents}
-                  className="flex-1 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 active:scale-[0.98]"
+                  className="flex-1 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl transition-all shadow-xl shadow-[#722f37]/20 active:scale-[0.98] uppercase tracking-widest text-[11px]"
                 >
-                  Mark as Read
+                  Ratify Alerts
                 </button>
                 <button
                   onClick={() => {
@@ -1647,12 +1647,12 @@ export default function CalendarPage() {
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
-              className="w-full max-w-lg bg-[#1A1A1A] border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+              className="w-full max-w-lg bg-[#0B0B0C] border-t sm:border border-[#722f37]/30 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
             >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#8B4564]/10 to-transparent">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#8B4564]/20 flex items-center justify-center text-[#E0A7C2]">
-                    <Calendar size={20} />
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-[#722f37]/10 to-transparent">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#722f37]/20 flex items-center justify-center text-[#e9c176] border border-[#722f37]/30">
+                    <Calendar size={24} />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-white">
@@ -1681,14 +1681,14 @@ export default function CalendarPage() {
                       setActiveMobileTab("agenda");
                       setShowMobileEventModal(false);
                     }}
-                    className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#8B4564]/30 transition-all cursor-pointer group"
+                    className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-[#722f37]/30 transition-all cursor-pointer group"
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-2">
                         <span
                           className={`w-2 h-2 rounded-full ${EVENT_COLORS[evt.type].dot}`}
                         />
-                        <h3 className="text-sm font-bold text-white group-hover:text-[#E0A7C2] transition-colors">
+                        <h3 className="text-sm font-bold text-white group-hover:text-[#e9c176] transition-colors">
                           {evt.title}
                         </h3>
                       </div>
@@ -1700,7 +1700,7 @@ export default function CalendarPage() {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-400">
                       <div className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-[#E0A7C2]" />
+                        <Clock size={12} className="text-[#e9c176]" />
                         <span>
                           {new Date(
                             evt.date_time || evt.dateTime || "",
@@ -1721,15 +1721,15 @@ export default function CalendarPage() {
                 ))}
               </div>
 
-              <div className="p-6 bg-black/20 border-t border-white/5">
+              <div className="p-8 bg-black/40 border-t border-white/5">
                 <button
                   onClick={() => {
                     openCreateModal(selectedDay || undefined);
                     setShowMobileEventModal(false);
                   }}
-                  className="w-full bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-[#8B4564]/20 flex items-center justify-center gap-2"
+                  className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl transition-all shadow-xl shadow-[#722f37]/20 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px]"
                 >
-                  <Plus size={18} /> Schedule New Event
+                  <Plus size={18} /> Initiate Schedule
                 </button>
               </div>
             </motion.div>
@@ -1758,7 +1758,7 @@ export default function CalendarPage() {
             )}
             <button
               onClick={() => openCreateModal()}
-              className="flex items-center gap-2 bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold px-4 py-2 rounded-xl text-sm transition-all"
+              className="flex items-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold px-4 py-2 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-[#722f37]/20"
             >
               <Plus size={16} /> Create Schedule
             </button>
@@ -1770,11 +1770,11 @@ export default function CalendarPage() {
         <div className="flex flex-col md:flex-row flex-1 h-full relative z-10 overflow-hidden">
           {/* Mobile View Toggle */}
           <div className="md:hidden flex-shrink-0 px-5 pt-4 pb-2 border-b border-white/5 bg-black/20">
-            <div className="bg-[#2A2A2A] p-1 rounded-xl flex items-center gap-1">
+            <div className="bg-[#0B0B0C] p-1 rounded-xl flex items-center gap-1 border border-white/5">
               <button
                 onClick={() => setActiveMobileTab("calendar")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeMobileTab === "calendar"
-                  ? "bg-[#8B4564] text-white shadow-lg"
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeMobileTab === "calendar"
+                  ? "bg-[#722f37] text-white shadow-lg"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
@@ -1782,8 +1782,8 @@ export default function CalendarPage() {
               </button>
               <button
                 onClick={() => setActiveMobileTab("agenda")}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeMobileTab === "agenda"
-                  ? "bg-[#8B4564] text-white shadow-lg"
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeMobileTab === "agenda"
+                  ? "bg-[#722f37] text-white shadow-lg"
                   : "text-gray-400 hover:text-white"
                   }`}
               >
@@ -1796,16 +1796,16 @@ export default function CalendarPage() {
           <div
             className={`${activeMobileTab === "calendar" ? "flex" : "hidden md:flex"} flex-col flex-1 border-r border-white/5 overflow-y-auto p-4 md:p-5`}
           >
-            <div className="bg-[#2A2A2A]/70 backdrop-blur border border-white/5 rounded-2xl p-5">
+            <div className="bg-[#0B0B0C]/70 backdrop-blur-xl border border-[#722f37]/20 rounded-2xl p-5">
               {/* Google Auth Banner */}
               {!isCheckingAuth && !isGoogleConnected && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 rounded-xl border border-[#8B4564]/40 bg-[#8B4564]/10 p-4 flex items-start gap-3"
+                  className="mb-4 rounded-xl border border-[#722f37]/40 bg-[#722f37]/10 p-4 flex items-start gap-3"
                 >
-                  <div className="p-1.5 bg-[#8B4564]/20 rounded-lg flex-shrink-0">
-                    <Calendar size={16} className="text-[#E0A7C2]" />
+                  <div className="p-1.5 bg-[#722f37]/20 rounded-lg flex-shrink-0">
+                    <Calendar size={16} className="text-[#e9c176]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white">
@@ -1818,7 +1818,7 @@ export default function CalendarPage() {
                   </div>
                   <button
                     onClick={handleConnectGoogle}
-                    className="flex-shrink-0 flex items-center gap-1.5 bg-[#8B4564] hover:bg-[#9D5373] text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                    className="flex-shrink-0 flex items-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg transition-all shadow-lg shadow-[#722f37]/20"
                   >
                     <LinkIcon size={12} /> Connect
                   </button>
@@ -1942,7 +1942,7 @@ export default function CalendarPage() {
                           : "cursor-pointer"
                         }
                                             ${isToday && !isPast
-                          ? "bg-[#8B4564]/10 border-[#8B4564]/40"
+                          ? "bg-[#722f37]/10 border-[#722f37]/40"
                           : !isPast &&
                             dayEvents.length > 0
                             ? "bg-white/[0.02] border-white/5 hover:bg-white/5"
@@ -1953,7 +1953,7 @@ export default function CalendarPage() {
                     >
                       <span
                         className={`text-[10px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0
-                                            ${isToday ? "bg-[#8B4564] text-white font-bold" : "text-gray-500"}`}
+                                            ${isToday ? "bg-[#722f37] text-white font-bold" : "text-gray-500"}`}
                       >
                         {day}
                       </span>
@@ -1961,7 +1961,7 @@ export default function CalendarPage() {
                         {dayEvents.slice(0, 3).map((evt) => (
                           <div
                             key={evt.id}
-                            className={`px-1.5 py-0.5 rounded text-[9px] truncate font-medium leading-tight border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"} ${new Date(evt.date_time || evt.dateTime || "").getTime() < now.getTime() ? "line-through decoration-white/30 opacity-40 italic" : ""}`}
+                            className={`px-1.5 h-4 flex items-center rounded text-[8px] truncate font-bold uppercase tracking-tighter border ${EVENT_COLORS[evt.type]?.badge || "bg-white/10 text-gray-300 border-white/10"} ${new Date(evt.date_time || evt.dateTime || "").getTime() < now.getTime() ? "line-through decoration-white/30 opacity-40 italic" : ""}`}
                             title={evt.title}
                           >
                             {evt.title}
@@ -2001,17 +2001,17 @@ export default function CalendarPage() {
               <>
                 {/* Mobile: Google auth banner */}
                 {!isCheckingAuth && !isGoogleConnected && (
-                  <div className="md:hidden mx-4 mt-4 rounded-xl border border-[#8B4564]/40 bg-[#8B4564]/10 p-3 flex items-center gap-3">
+                  <div className="md:hidden mx-4 mt-4 rounded-xl border border-[#722f37]/40 bg-[#722f37]/10 p-3 flex items-center gap-3">
                     <Calendar
                       size={14}
-                      className="text-[#E0A7C2] flex-shrink-0"
+                      className="text-[#e9c176] flex-shrink-0"
                     />
                     <p className="text-xs text-gray-300 flex-1">
                       Connect Google Calendar to sync events.
                     </p>
                     <button
                       onClick={handleConnectGoogle}
-                      className="text-xs font-bold text-[#E0A7C2] hover:text-white transition-colors flex-shrink-0"
+                      className="text-xs font-bold text-[#e9c176] hover:text-white transition-colors flex-shrink-0"
                     >
                       Connect →
                     </button>
@@ -2026,13 +2026,13 @@ export default function CalendarPage() {
                         setActiveTab("pending");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "pending"
-                        ? "bg-amber-500/20 border border-amber-500/30 text-amber-300 shadow-lg"
-                        : "text-gray-400 hover:bg-white/5"
+                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "pending"
+                        ? "bg-[#e9c176]/20 border border-[#e9c176]/30 text-[#e9c176] shadow-lg shadow-[#e9c176]/5"
+                        : "text-gray-500 hover:bg-white/5 border border-transparent"
                         }`}
                     >
                       <AlertCircle size={14} /> Pending{" "}
-                      <span className="text-xs bg-amber-500/20 px-1.5 py-0.5 rounded-full text-amber-400 ml-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "pending" ? "bg-[#e9c176]/20 text-[#e9c176]" : "bg-white/5 text-gray-500"}`}>
                         {pendingEvents.length}
                       </span>
                     </button>
@@ -2041,13 +2041,13 @@ export default function CalendarPage() {
                         setActiveTab("upcoming");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "upcoming"
-                        ? "bg-[#8B4564] text-white shadow-lg"
-                        : "text-gray-400 hover:bg-white/5"
+                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "upcoming"
+                        ? "bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-lg shadow-blue-500/5"
+                        : "text-gray-500 hover:bg-white/5 border border-transparent"
                         }`}
                     >
                       <Clock size={14} /> Upcoming{" "}
-                      <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded-full ml-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "upcoming" ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-gray-500"}`}>
                         {upcomingEvents.length}
                       </span>
                     </button>
@@ -2056,13 +2056,13 @@ export default function CalendarPage() {
                         setActiveTab("accomplished");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "accomplished"
-                        ? "text-emerald-400 font-bold"
-                        : "text-gray-400 hover:bg-white/5"
+                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "accomplished"
+                        ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/5"
+                        : "text-gray-500 hover:bg-white/5 border border-transparent"
                         }`}
                     >
                       <History size={14} /> Accomplished{" "}
-                      <span className="text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded-full text-emerald-400 ml-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "accomplished" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-gray-500"}`}>
                         {accomplishedEvents.length}
                       </span>
                     </button>
@@ -2071,13 +2071,13 @@ export default function CalendarPage() {
                         setActiveTab("denied");
                         setShowAll(false);
                       }}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === "denied"
-                        ? "bg-red-500/20 border border-red-500/30 text-red-300"
-                        : "text-gray-400 hover:bg-white/5"
+                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "denied"
+                        ? "bg-red-500/20 border border-red-500/30 text-red-400 shadow-lg shadow-red-500/5"
+                        : "text-gray-500 hover:bg-white/5 border border-transparent"
                         }`}
                     >
                       <XCircle size={14} /> Denied{" "}
-                      <span className="text-xs bg-red-500/20 px-1.5 py-0.5 rounded-full text-red-400 ml-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "denied" ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-500"}`}>
                         {deniedEvents.length}
                       </span>
                     </button>
@@ -2097,7 +2097,7 @@ export default function CalendarPage() {
                         setSearchQuery(e.target.value);
                         setShowAll(false);
                       }}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white outline-none focus:border-[#8B4564]/50 focus:ring-1 focus:ring-[#8B4564]/30 placeholder:text-gray-600 transition-all"
+                      className="w-full bg-black/40 border border-[#722f37]/20 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 placeholder:text-gray-600 transition-all font-body"
                     />
                     {searchQuery && (
                       <button
@@ -2139,7 +2139,7 @@ export default function CalendarPage() {
                         >
                           <Loader2
                             size={32}
-                            className="text-[#E0A7C2] animate-spin mx-auto mb-4"
+                            className="text-[#e9c176] animate-spin mx-auto mb-4"
                           />
                           <p className="text-sm text-gray-500">
                             Loading your schedule...
@@ -2152,14 +2152,14 @@ export default function CalendarPage() {
                           animate={{ opacity: 1 }}
                           className="text-center py-16"
                         >
-                          <div className="inline-flex p-4 bg-[#8B4564]/10 rounded-full mb-3">
+                          <div className="inline-flex p-5 bg-[#722f37]/10 rounded-full mb-4 border border-[#722f37]/20 shadow-inner">
                             {activeTab === "accomplished" ? (
                               <CheckCircle
                                 size={28}
                                 className="text-emerald-400"
                               />
                             ) : (
-                              <Calendar size={28} className="text-[#E0A7C2]" />
+                              <Calendar size={28} className="text-[#e9c176]" />
                             )}
                           </div>
                           <p className="text-sm text-gray-400 font-medium">
@@ -2259,13 +2259,13 @@ export default function CalendarPage() {
                                   })()}
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                <div className="flex items-center gap-2 mt-2">
                                   <StatusBadge
                                     status={event.status || "pending"}
                                     isPast={new Date(event.date_time || event.dateTime || "") < now}
                                   />
                                   <span
-                                    className={`text-[10px] uppercase font-semibold tracking-widest px-2 py-0.5 rounded-md border ${EVENT_COLORS[event.type].badge}`}
+                                    className={`inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.1em] px-2 h-5 rounded-md border ${EVENT_COLORS[event.type].badge}`}
                                   >
                                     {event.type}
                                   </span>
@@ -2275,7 +2275,7 @@ export default function CalendarPage() {
                                   <p className="text-[13px] flex items-center gap-1.5">
                                     <Clock
                                       size={13}
-                                      className="opacity-70 text-[#E0A7C2]"
+                                      className="opacity-70 text-[#e9c176]"
                                     />{" "}
                                     {formatDT(
                                       event.date_time || event.dateTime,
@@ -2286,7 +2286,7 @@ export default function CalendarPage() {
                                       <p className="text-[13px] flex items-center gap-1.5">
                                         <User
                                           size={13}
-                                          className="opacity-70 text-[#E0A7C2]"
+                                          className="opacity-70 text-[#e9c176]"
                                         />{" "}
                                         {event.client_email || event.clientEmail}
                                       </p>
@@ -2408,12 +2408,12 @@ export default function CalendarPage() {
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
                             <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                              <Clock size={13} className="text-[#E0A7C2]" />
+                              <Clock size={13} className="text-[#e9c176]" />
                               {formatDT(event.date_time || event.dateTime)}
                             </p>
                             {(event.client_email || event.clientEmail) && (
                               <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                                <User size={13} className="text-[#E0A7C2]" />
+                                <User size={13} className="text-[#e9c176]" />
                                 {event.client_email || event.clientEmail}
                               </p>
                             )}
@@ -2421,7 +2421,7 @@ export default function CalendarPage() {
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                           <span
-                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${EVENT_COLORS[event.type || "meeting"].badge}`}
+                            className={`inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.1em] px-2 h-5 rounded-md border ${EVENT_COLORS[event.type || "meeting"].badge}`}
                           >
                             {event.type}
                           </span>
@@ -2718,7 +2718,7 @@ export default function CalendarPage() {
                             ),
                           );
                         }}
-                        className={`w-full bg-black/40 border ${validationErrors.some((e) => e.toLowerCase().includes("title")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 transition-all`}
+                        className={`w-full bg-[#0B0B0C] border ${validationErrors.some((e) => e.toLowerCase().includes("title")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 placeholder:text-gray-600 transition-all`}
                       />
                     </div>
 
@@ -2729,7 +2729,7 @@ export default function CalendarPage() {
                         </label>
                         <div
                           onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-                          className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#8B4564]/50 cursor-pointer transition-all"
+                          className="w-full flex items-center justify-between bg-[#0B0B0C] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none hover:border-[#722f37]/50 cursor-pointer transition-all"
                         >
                           <span className="capitalize">{form.type}</span>
                           <ChevronDown
@@ -2764,7 +2764,7 @@ export default function CalendarPage() {
                                       setTypeDropdownOpen(false);
                                     }}
                                     className={`px-4 py-3 text-sm cursor-pointer transition-all capitalize flex items-center justify-between
-                                                                        ${form.type === t ? "bg-[#8B4564]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
+                                                                        ${form.type === t ? "bg-[#722f37]/20 text-white font-semibold" : "text-white/80 hover:bg-white/5 hover:text-white"}
                                                                     `}
                                   >
                                     {t}
@@ -2772,7 +2772,7 @@ export default function CalendarPage() {
                                       <Check
                                         size={14}
                                         strokeWidth={2}
-                                        className="text-[#E0A7C2]"
+                                        className="text-[#e9c176]"
                                       />
                                     )}
                                   </div>
@@ -2811,7 +2811,7 @@ export default function CalendarPage() {
                               ),
                             );
                           }}
-                          className={`w-full bg-black/40 border ${validationErrors.some((e) => e.toLowerCase().includes("date") || e.toLowerCase().includes("past")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 [color-scheme:dark] transition-all`}
+                          className={`w-full bg-[#0B0B0C] border ${validationErrors.some((e) => e.toLowerCase().includes("date") || e.toLowerCase().includes("past")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 [color-scheme:dark] transition-all`}
                         />
                       </div>
                     </div>
@@ -2820,7 +2820,7 @@ export default function CalendarPage() {
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                         Client Emails
                       </label>
-                      <div className="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/10 rounded-xl min-h-[50px] focus-within:border-[#8B4564]/50 transition-all">
+                      <div className="flex flex-wrap gap-2 p-3 bg-[#0B0B0C] border border-white/10 rounded-xl min-h-[50px] focus-within:border-[#722f37]/50 transition-all">
                         <AnimatePresence>
                           {(form.clientEmail
                             ? form.clientEmail
@@ -2834,7 +2834,7 @@ export default function CalendarPage() {
                               initial={{ opacity: 0, scale: 0.8 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
-                              className="flex items-center gap-1.5 bg-[#8B4564]/10 border border-[#8B4564]/30 text-[#E0A7C2] px-2.5 py-1 rounded-lg text-xs font-medium"
+                              className="flex items-center gap-1.5 bg-[#722f37]/10 border border-[#722f37]/30 text-[#e9c176] px-2.5 py-1 rounded-lg text-xs font-medium"
                             >
                               <span>{email}</span>
                               <button
@@ -2887,7 +2887,7 @@ export default function CalendarPage() {
                           );
                         }}
                         rows={3}
-                        className={`w-full bg-black/40 border ${validationErrors.some((e) => e.toLowerCase().includes("notes")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#8B4564]/50 placeholder:text-gray-600 resize-none transition-all`}
+                        className={`w-full bg-[#0B0B0C] border ${validationErrors.some((e) => e.toLowerCase().includes("notes")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 placeholder:text-gray-600 resize-none transition-all`}
                       />
                     </div>
 
@@ -2917,7 +2917,7 @@ export default function CalendarPage() {
                       <button
                         onClick={handleSave}
                         disabled={submitting}
-                        className="w-full bg-[#8B4564] hover:bg-[#9D5373] text-white font-bold py-4 rounded-xl shadow-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 group overflow-hidden relative"
+                        className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl shadow-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase tracking-widest text-[11px] group overflow-hidden relative"
                       >
                         {submitting ? (
                           <Loader2 size={18} className="animate-spin" />

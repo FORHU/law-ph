@@ -37,10 +37,10 @@ export const TranscriptionButton = ({ isRecording, onClick, duration = 0 }: Butt
   <button
     type="button"
     onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
       isRecording 
         ? 'bg-red-500/20 text-red-400' 
-        : 'bg-[#8B4564]/20 text-[#E0A7C2] hover:bg-[#8B4564]/30'
+        : 'bg-[#722f37]/20 text-[#e9c176]/80 hover:bg-[#722f37]/40 hover:text-[#e9c176]'
     }`}
   >
     {isRecording ? <RecordingPulse /> : <Mic size={14} />}
@@ -53,10 +53,10 @@ export const AudioRecordButton = ({ isRecording, onClick, duration = 0 }: Button
   <button
     type="button"
     onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
       isRecording 
         ? 'bg-red-500/20 text-red-400' 
-        : 'bg-[#8B4564]/20 text-[#E0A7C2] hover:bg-[#8B4564]/30'
+        : 'bg-[#722f37]/20 text-[#e9c176]/80 hover:bg-[#722f37]/40 hover:text-[#e9c176]'
     }`}
   >
     {isRecording ? <RecordingPulse /> : <Mic size={14} />}

@@ -40,7 +40,7 @@ const nodeTypes = {
 
 const getInitialNodes = (theme: MindMapThemeType): Node[] => {
   const config = MIND_MAP_THEMES[theme];
-  let hexColor = '#E0A7C2';
+  let hexColor = '#e9c176';
   const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
   if (match) hexColor = '#' + match[1];
   else if (config.rootClass.includes('bg-black')) hexColor = '#00F2FF';
@@ -145,7 +145,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       const id = item.id || `node-${Math.random().toString(36).substr(2, 9)}`;
       const isRoot = id === 'root' || !parentId;
 
-      let hexColor = '#E0A7C2';
+      let hexColor = '#e9c176';
       if (isRoot) {
         const match = config.rootClass.match(/bg-\[#([0-9A-Fa-f]{6})\]/);
         if (match) hexColor = '#' + match[1];
@@ -427,7 +427,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
     const id = Date.now().toString();
     const childIndex = edges.filter(e => e.source === parentId).length;
 
-    let hexColor = '#E0A7C2';
+    let hexColor = '#e9c176';
     if (theme === 'premium') {
       hexColor = MIND_MAP_HEX_COLORS[childIndex % MIND_MAP_HEX_COLORS.length];
     } else if (theme === 'classic') {
@@ -589,8 +589,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       <div className="absolute top-4 left-4 z-[100000] flex items-center gap-2">
         <button
           onClick={() => setIs3D(!is3D)}
-          className={`flex items-center gap-2 px-3 py-1 md:px-3.5 md:py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#1A1A1A]/80 text-[#E0A7C2] font-black border-[#E0A7C2]/30'
-            }`}
+          className={`flex items-center gap-2 px-3 py-1 md:px-3.5 md:py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${is3D ? 'bg-white text-black font-black' : 'bg-[#0B0B0C]/80 text-[#e9c176] font-black border-[#e9c176]/30'}`}
         >
           {is3D ? <Monitor size={14} /> : <Box size={14} />}
           <span className="text-[8px] md:text-[9px] uppercase tracking-widest leading-none">{is3D ? '2D' : '3D'}</span>
@@ -600,8 +599,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         <div className="relative">
           <button
             onClick={() => setIsThemeOpen(!isThemeOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 ${isThemeOpen ? 'bg-white text-black font-bold' : 'bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95'
-              }`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg transition-all border border-white/10 ${isThemeOpen ? 'bg-white text-black font-bold' : 'bg-[#e9c176] text-black font-bold shadow-[0_0_20px_rgba(233,193,118,0.4)] hover:scale-105 active:scale-95 uppercase tracking-widest text-[10px]'}`}
           >
             <Layout size={12} />
             <span className="text-[9px] uppercase tracking-wider leading-none">Structure</span>
@@ -623,7 +621,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   <button
                     key={item.id}
                     onClick={() => handleLayoutChange(item.id as any)}
-                    className={`w-full px-4 py-2.5 flex items-center justify-between rounded-md hover:bg-white/5 transition-all text-[11px] font-bold ${layout === item.id ? 'text-[#E0A7C2] bg-white/5 border border-white/5' : 'text-gray-400'}`}
+                    className={`w-full px-4 py-3 flex items-center justify-between rounded-xl hover:bg-white/5 transition-all text-[10px] font-bold uppercase tracking-widest ${layout === item.id ? 'text-[#e9c176] bg-[#722f37]/20 border border-[#722f37]/30' : 'text-gray-400'}`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="w-4 text-center opacity-50">{item.icon}</span>
@@ -641,7 +639,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
       <div className="absolute top-4 right-4 z-[100000] pointer-events-auto flex items-center gap-2">
         <button
           onClick={toggleFullScreen}
-          className="flex items-center gap-1.5 px-3 py-1 md:px-3 md:py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#E0A7C2] text-black font-bold shadow-[0_0_15px_rgba(224,167,194,0.3)] hover:scale-105 active:scale-95"
+          className="flex items-center gap-2 px-5 py-2 rounded-xl backdrop-blur-md shadow-lg transition-all border border-white/10 bg-[#e9c176] text-black font-bold shadow-[0_0_20px_rgba(233,193,118,0.4)] hover:scale-105 active:scale-95 uppercase tracking-[0.2em] text-[10px]"
         >
           <Maximize size={12} />
           <span className="hidden sm:inline text-[9px] uppercase tracking-wider">{isFullScreen ? 'Exit' : 'Full'}</span>
@@ -655,14 +653,14 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
         <div className="flex flex-col items-center gap-0.5 pb-1 border-b border-white/10">
           <button
             onClick={() => is3D ? mindMap3DRef.current?.zoomIn() : zoomIn()}
-            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            className="p-2 text-white/30 hover:text-[#e9c176] hover:bg-[#722f37]/20 rounded-full transition-all active:scale-95 border border-transparent hover:border-[#722f37]/30"
             title="Zoom In"
           >
             <Plus size={14} />
           </button>
           <button
             onClick={() => is3D ? mindMap3DRef.current?.zoomOut() : zoomOut()}
-            className="p-1.5 text-white/30 hover:text-[#E0A7C2] hover:bg-white/5 rounded-full transition-all active:scale-95"
+            className="p-2 text-white/30 hover:text-[#e9c176] hover:bg-[#722f37]/20 rounded-full transition-all active:scale-95 border border-transparent hover:border-[#722f37]/30"
             title="Zoom Out"
           >
             <Minus size={14} />
@@ -681,7 +679,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           <button
             onClick={() => setIsMemoryOpen(!isMemoryOpen)}
             className={`p-1.5 rounded-full transition-all active:scale-95 border ${isMemoryOpen
-              ? 'bg-[#E0A7C2]/20 text-[#E0A7C2] border-[#E0A7C2]/30'
+              ? 'bg-[#722f37]/30 text-[#e9c176] border-[#722f37]/50'
               : 'text-white/30 hover:bg-white/5 border-transparent'
               } flex items-center justify-center`}
             title="Snapshots"
@@ -692,18 +690,18 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
           {/* Pop-out Dropdown - Snug position */}
           {isMemoryOpen && (
             <div className="absolute left-[calc(100%+8px)] bottom-0 w-max min-w-[240px] p-2.5 rounded-2xl bg-[#0F0F0F]/99 backdrop-blur-3xl border border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.9)] animate-in fade-in slide-in-from-left-1">
-              <div className="text-[8px] font-black text-[#E0A7C2] uppercase tracking-[0.2em] mb-3 pb-1.5 border-b border-white/5 px-1">Saved Structures</div>
+              <div className="text-[10px] font-black text-[#e9c176] uppercase tracking-[0.25em] mb-4 pb-2 border-b border-[#722f37]/30 px-1">Saved Structures</div>
               <div className="flex flex-col gap-2">
                 {[0, 1, 2].map(idx => (
                   <div key={idx} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 group/item transition-all">
-                    <div className="w-5 h-5 flex items-center justify-center rounded-md bg-white/5 text-[9px] font-black text-white/20 border border-white/5 group-hover/item:text-[#E0A7C2] transition-colors">
+                    <div className="w-6 h-6 flex items-center justify-center rounded-lg bg-[#722f37]/10 text-[10px] font-bold text-white/30 border border-[#722f37]/20 group-hover/item:text-[#e9c176] group-hover/item:border-[#e9c176]/30 transition-all">
                       {idx + 1}
                     </div>
 
                     <div className="flex items-center gap-1.5 ml-4">
                       <button
                         onClick={() => { saveToSlot(idx); setIsMemoryOpen(false); }}
-                        className="px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#E0A7C2] hover:bg-[#E0A7C2]/10 rounded-lg transition-all"
+                        className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#e9c176] hover:bg-[#e9c176]/10 rounded-lg transition-all"
                       >
                         SAVE
                       </button>
@@ -765,15 +763,15 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                 style={{
                   background: selectedNodeData.color?.startsWith('#')
                     ? selectedNodeData.color
-                    : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')
+                    : (selectedNodeData.color?.replace('bg-', '') || '#e9c176')
                 }}
               />
 
               <div
                 className={`p-5 md:p-7 ${isAttachment ? 'flex-1 min-h-0 flex flex-col' : ''}`}
                 style={{
-                  borderTop: `2px solid ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}`,
-                  boxShadow: `0 18px 45px ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#E0A7C2')}40`,
+                  borderTop: `2px solid ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#e9c176')}`,
+                  boxShadow: `0 18px 45px ${selectedNodeData.color?.startsWith('#') ? selectedNodeData.color : (selectedNodeData.color?.replace('bg-', '') || '#e9c176')}40`,
                 }}
               >
                 <div className="flex items-start justify-between mb-4 gap-3 min-w-0">
@@ -797,11 +795,11 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                       const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
                       return (
                         <div className="flex flex-col gap-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Key Information</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Key Evidence Synthesis</span>
                           <ul className="space-y-2">
                             {lines.map((line: string, i: number) => (
                               <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#E0A7C2]/40 mt-1 shrink-0" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#e9c176]/40 mt-1 shrink-0" />
                                 <ReactMarkdown
                                   components={{
                                     p: ({ children }) => <span className="inline-block">{children}</span>,
@@ -834,7 +832,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
                   {selectedNodeData.media && selectedNodeData.media.length > 0 && (
                     <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4"}>
-                      {!isAttachment && <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E0A7C2]">Linked Evidence ({selectedNodeData.media.length})</span>}
+                      {!isAttachment && <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Ratified Evidence ({selectedNodeData.media.length})</span>}
                       <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "flex flex-col gap-3"}>
                         {selectedNodeData.media.map((item: any, idx: number) => {
                           if (item.type === 'image') return (
@@ -902,8 +900,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-2 mt-1">
                                         <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
-                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[11px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
-                                          Open Original ↗
+                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[11px] text-[#e9c176] hover:text-white uppercase tracking-[0.15em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
+                                          Open Original Source ↗
                                         </a>
                                       </div>
                                     </>
@@ -917,13 +915,13 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                               <details key={idx} className="group bg-[#0A0A0A] rounded-xl border border-white/10 overflow-hidden outline-none">
                                 <summary className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-white/5 transition-all list-none [&::-webkit-details-marker]:hidden">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-[#E0A7C2] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
+                                    <div className="w-8 h-8 bg-[#e9c176] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
                                     <div className="flex flex-col">
                                       <span className="text-[12px] font-bold text-white/90 truncate max-w-[160px]">{item.name}</span>
-                                      <span className="text-[9px] text-[#E0A7C2] font-black uppercase tracking-widest">Document</span>
+                                      <span className="text-[9px] text-[#e9c176] font-bold uppercase tracking-[0.2em]">Institutional Document</span>
                                     </div>
                                   </div>
-                                  <div className="text-[#E0A7C2] text-[10px] font-bold px-2.5 py-1 bg-[#E0A7C2]/10 rounded-md group-open:hidden uppercase tracking-wider">Expand</div>
+                                  <div className="text-[#e9c176] text-[9px] font-bold px-3 py-1 bg-[#722f37]/20 border border-[#722f37]/30 rounded-lg group-open:hidden uppercase tracking-[0.15em]">Expand</div>
                                   <div className="text-white/50 text-[10px] font-bold px-2.5 py-1 bg-white/5 rounded-md hidden group-open:block uppercase tracking-wider">Close</div>
                                 </summary>
                                 <div className="p-2 border-t border-white/5 bg-[#050505] flex flex-col gap-2">
@@ -942,8 +940,8 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-1">
                                         <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
-                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[10px] text-[#E0A7C2] hover:text-white uppercase tracking-wider font-bold transition-colors">
-                                          Open Original ↗
+                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[10px] text-[#e9c176] hover:text-white uppercase tracking-[0.2em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
+                                          Open Original Source ↗
                                         </a>
                                       </div>
                                     </>

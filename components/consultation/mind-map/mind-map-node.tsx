@@ -48,7 +48,7 @@ export function MindMapNode({
     >
       {/* The Node Box */}
       <div 
-        className={`relative group flex items-center gap-3 p-4 rounded-2xl border-2 backdrop-blur-xl min-w-[160px] max-w-[280px] transition-all duration-300 hover:scale-105 hover:z-20 cursor-grab active:cursor-grabbing ${isRoot ? 'ring-4 ring-[#8B4564]/30' : ''} ${node.color || MIND_MAP_COLORS[0]}`}
+        className={`relative group flex items-center gap-3 p-4 rounded-2xl border-2 backdrop-blur-xl min-w-[160px] max-w-[280px] transition-all duration-300 hover:scale-105 hover:z-20 cursor-grab active:cursor-grabbing ${isRoot ? 'ring-4 ring-[#722f37]/30' : ''} ${node.color || MIND_MAP_COLORS[0]}`}
       >
         {isEditing ? (
           <div className="flex items-center gap-1 w-full" onPointerDownCapture={(e) => e.stopPropagation()}>

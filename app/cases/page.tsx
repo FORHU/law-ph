@@ -141,10 +141,10 @@ export default function CasesPage() {
                 </div>
                 
                 <div className="flex items-center gap-8">
-                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
-                    c.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                    c.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                    'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                  <div className={`px-4 h-6 inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] border rounded-md ${
+                    c.status === 'active' ? 'bg-[#059669]/10 text-[#34d399] border-[#059669]/20' :
+                    c.status === 'pending' ? 'bg-[#e9c176]/10 text-[#e9c176] border-[#e9c176]/20' :
+                    'bg-white/5 text-gray-500 border-white/10'
                   }`}>
                     {c.status}
                   </div>

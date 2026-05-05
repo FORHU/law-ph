@@ -481,7 +481,7 @@ export function ConversationProvider({
         const mappedSessions: ConsultationSession[] = liveData.map((conv) => ({
           id: conv.id,
           title: conv.title,
-          subtitle: `Cloud Session`,
+          subtitle: '',
           messages: [], // Messages are fetched on demand
         }));
         setRecentConsultations(mappedSessions);
@@ -605,11 +605,11 @@ export function ConversationProvider({
       }
 
       if (!userId || !loggedIn) return;
-      
+
       // If we are looking for a specific conversation/case, we don't strictly need the full sidebar lists (loaded/casesLoaded)
       // to have finished. We can attempt to fetch the messages for that specific ID immediately.
       const isInitialFetchWithId = syncedConversationId && !loaded && !casesLoaded;
-      
+
       if (!isInitialFetchWithId && (!loaded && !casesLoaded)) return;
 
       // Prevent race condition: if we intentionally cleared the consultation ID but the URL hasn't updated yet,
@@ -851,7 +851,7 @@ export function ConversationProvider({
     async (id: string) => {
       // Optimistically remove from UI
       setCases((prev) => prev.filter((c) => c.id !== id));
-      
+
       try {
         const { data: dbCase } = await supabase.from("cases").select("*").eq("id", id).single();
         if (dbCase && dbCase.user_id !== userId) {
@@ -862,9 +862,9 @@ export function ConversationProvider({
         if (convRes.error) {
           alert(`Conv Delete Error: ${convRes.error.message}`);
         }
-        
+
         const caseRes = await supabase.from("cases").delete().eq("id", id).select();
-        
+
         if (caseRes.error) {
           alert(`Case Delete Error: ${caseRes.error.message}`);
           await fetchCases(); // Revert on failure
@@ -1082,21 +1082,21 @@ Please help me understand this document or answer questions based on it.`;
         const audioBlob = new Blob(chunks, { type: 'audio/webm' });
         const tempUrl = URL.createObjectURL(audioBlob);
         const tempId = Date.now().toString();
-        
-        updateMessage(messageId, { 
-          __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Uploading...' } 
+
+        updateMessage(messageId, {
+          __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Uploading...' }
         });
 
         try {
           const { uploadVoiceNote } = await import('@/lib/s3-utils');
           const { file_url, s3_key } = await uploadVoiceNote(audioBlob);
-          updateMessage(messageId, { 
-            __appendVoiceNote: { id: tempId, url: file_url, label: `Voice Note`, s3_key } 
+          updateMessage(messageId, {
+            __appendVoiceNote: { id: tempId, url: file_url, label: `Voice Note`, s3_key }
           });
         } catch (err) {
           console.error("Failed to upload recording to S3:", err);
-          updateMessage(messageId, { 
-            __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Upload Failed (Local Only)' } 
+          updateMessage(messageId, {
+            __appendVoiceNote: { id: tempId, url: tempUrl, label: 'Upload Failed (Local Only)' }
           });
         }
 
@@ -1107,7 +1107,7 @@ Please help me understand this document or answer questions based on it.`;
       mediaRecorder.start();
       setIsRecording(prev => ({ ...prev, [messageId]: true }));
       setRecordingTime(prev => ({ ...prev, [messageId]: 0 }));
-      
+
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => ({ ...prev, [messageId]: (prev[messageId] || 0) + 1 }));
@@ -1129,7 +1129,7 @@ Please help me understand this document or answer questions based on it.`;
     if (anyActiveId) {
       // Find the cached title for the active session
       const activeSessionTitle = recordingCaseNames[anyActiveId] || "Active Case";
-      
+
       setActiveRecordingTitle(activeSessionTitle);
       setConflictRecordingId(messageId);
       return; // HALT - wait for user choice
@@ -1141,7 +1141,7 @@ Please help me understand this document or answer questions based on it.`;
   const resolveRecordingConflict = useCallback(async (proceed: boolean) => {
     if (proceed && conflictRecordingId) {
       const targetId = conflictRecordingId;
-      
+
       // 1. Stop the OLD one
       const anyActiveId = Object.keys(isRecording).find(id => isRecording[id]);
       if (anyActiveId) {
@@ -1149,11 +1149,11 @@ Please help me understand this document or answer questions based on it.`;
         // Small delay to let the browser process the stop command
         await new Promise(resolve => setTimeout(resolve, 50));
       }
-      
+
       // 2. Clear conflict state
       setConflictRecordingId(null);
       setActiveRecordingTitle(null);
-      
+
       // 3. Start the NEW one directly (bypassing redundant check)
       await _internalStartRecording(targetId);
     } else {

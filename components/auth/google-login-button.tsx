@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
+import { AuthButton } from "./shared/auth-button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -45,17 +45,14 @@ export function GoogleLoginButton() {
     };
 
     return (
-        <Button
-            variant="outline"
+        <AuthButton
             type="button"
-            className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white"
             onClick={handleGoogleLogin}
-            disabled={isLoading}
+            isLoading={isLoading}
+            className="flex items-center justify-center !bg-white/5 hover:!bg-white/10 border border-white/10 !shadow-none"
         >
-            {isLoading ? (
-                <span className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+            {!isLoading && (
+                <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                     <path
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                         fill="#4285F4"
@@ -75,6 +72,6 @@ export function GoogleLoginButton() {
                 </svg>
             )}
             Continue with Google
-        </Button>
+        </AuthButton>
     );
 }

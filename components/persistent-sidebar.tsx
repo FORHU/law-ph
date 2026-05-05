@@ -3,17 +3,20 @@
 import React from 'react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function PersistentSidebar() {
   const { 
     isSidebarOpen, 
     setIsSidebarOpen, 
     recentConsultations, 
-    handleNewConsultation 
+    handleNewConsultation,
+    handleRemoveConsultation,
+    handleRenameConsultation
   } = useConversations();
   
   const pathname = usePathname();
+  const router = useRouter();
   
   // Hide sidebar on landing page or auth pages
   const isNoSidebarRoute = 
@@ -27,7 +30,12 @@ export function PersistentSidebar() {
     <AppSidebar
       isOpen={isSidebarOpen}
       onClose={() => setIsSidebarOpen(false)}
-      recentItems={recentConsultations as any}
+      recentItems={recentConsultations.map(item => ({
+        ...item,
+        onClick: () => router.push(`/consultation/${item.id}`),
+        onRemove: () => handleRemoveConsultation(item.id),
+        onRename: (newTitle: string) => handleRenameConsultation(item.id, newTitle)
+      }))}
       onNewItem={handleNewConsultation}
       recentLabel="RECENT"
     />

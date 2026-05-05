@@ -199,14 +199,14 @@ export function MessageItem({
           </div>
         )}
 
-        <div className={`backdrop-blur border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${isUser
-          ? `bg-[${COLORS.PRIMARY}]/20 border-` + COLORS.PRIMARY + `/40 rounded-tr-sm`
-          : `bg-[#2A2A2A]/40 ${message.originalText && message.text !== message.originalText ? 'border-[#E0A7C2]/60' : 'border-' + COLORS.PRIMARY + '/10'} rounded-tl-sm shadow-xl`
+        <div className={`backdrop-blur-xl border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${isUser
+          ? `bg-[${COLORS.PRIMARY}]/10 border-` + COLORS.PRIMARY + `/30 rounded-tr-sm shadow-lg`
+          : `bg-[#0B0B0C]/60 ${message.originalText && message.text !== message.originalText ? 'border-[#e9c176]/60' : 'border-[#722f37]/20'} rounded-tl-sm shadow-2xl`
           }`}>
           {message.isAnalysis && (
             <div className="flex items-center gap-1.5 mb-3 px-1">
-              <span className="bg-[#8B4564]/20 text-[#E0A7C2] text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded border border-[#8B4564]/30 flex items-center gap-1">
-                <FileText size={10} /> Document Analysis
+              <span className="bg-[#722f37]/20 text-gray-400 text-[10px] font-bold tracking-[0.2em] uppercase px-2.5 py-1 rounded border border-[#722f37]/30 flex items-center gap-2">
+                <FileText size={10} /> INSTITUTIONAL ANALYSIS
               </span>
             </div>
           )}
@@ -216,11 +216,11 @@ export function MessageItem({
               {message.highlights && message.highlights.length > 0 && (
                 <button
                   onClick={() => onOpenNote?.(message.id, message.text)}
-                  className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none flex items-center relative"
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#722f37]/10 rounded-md transition-all focus:outline-none flex items-center relative"
                   title={`View Notes (${message.highlights.length})`}
                 >
                   <BookOpen size={14} />
-                  <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold bg-[#8B4564] text-white px-0.5 rounded-full min-w-[10px] h-[10px] flex items-center justify-center border border-[#1A1A1A]">
+                  <span className="absolute -top-0.5 -right-0.5 text-[8px] font-bold bg-[#722f37] text-white px-0.5 rounded-full min-w-[10px] h-[10px] flex items-center justify-center border border-[#1A1A1A]">
                     {message.highlights.length}
                   </span>
                 </button>
@@ -229,7 +229,7 @@ export function MessageItem({
                 <DropdownMenuTrigger asChild>
                   <button
                     disabled={isSynthesizing}
-                    className={`p-1.5 rounded-md transition-all focus:outline-none ${isPlaying ? 'text-[#E0A7C2] bg-[#8B4564]/10' : 'text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10'}`}
+                    className={`p-1.5 rounded-md transition-all focus:outline-none ${isPlaying ? 'text-white bg-[#722f37]/20' : 'text-gray-400 hover:text-white hover:bg-[#722f37]/10'}`}
                     title={isPlaying ? "Stop Speaking / Change Voice" : "Read Aloud (Select Voice)"}
                   >
                     {isSynthesizing ? (
@@ -241,9 +241,9 @@ export function MessageItem({
                     )}
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 bg-[#252525]/95 backdrop-blur-xl border-white/5 text-gray-200">
-                  <div className="px-3 py-2 border-b border-white/5 mb-1">
-                    <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-widest flex items-center gap-2">
+                <DropdownMenuContent align="end" className="w-64 bg-[#0B0B0C]/95 backdrop-blur-xl border-[#722f37]/20 text-gray-200 shadow-2xl">
+                  <div className="px-3 py-2 border-b border-[#722f37]/10 mb-1">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                       <Volume2 size={12} />
                       Select AI Voice
                     </div>
@@ -251,14 +251,14 @@ export function MessageItem({
                   {voices.map((voice) => (
                     <DropdownMenuItem
                       key={voice.id}
-                      className="group flex items-center justify-between px-3 py-2 text-sm hover:bg-[#8B4564]/20 cursor-pointer focus:bg-[#8B4564]/20"
+                      className="group flex items-center justify-between px-3 py-2 text-sm hover:bg-[#722f37]/20 cursor-pointer focus:bg-[#722f37]/20"
                       onClick={() => handleSpeak(voice.id)}
                     >
                       <div className="flex flex-col items-start flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white group-hover:text-[#E0A7C2]">{voice.name}</span>
+                          <span className="font-bold text-white group-hover:text-gray-200">{voice.name}</span>
                           {typeof window !== 'undefined' && localStorage.getItem('preferred_voice') === voice.id && (
-                            <div className="w-1 h-1 rounded-full bg-[#E0A7C2]" />
+                            <div className="w-1 h-1 rounded-full bg-gray-400" />
                           )}
                         </div>
                         <span className="text-[10px] text-gray-500 group-hover:text-gray-300">{voice.desc}</span>
@@ -266,7 +266,7 @@ export function MessageItem({
                       
                       <button
                         onClick={(e) => handlePreview(e, voice.id, voice.name)}
-                        className={`p-1.5 rounded-full transition-all hover:bg-white/10 ${isPreviewing === voice.id ? 'text-[#E0A7C2] animate-pulse' : 'text-gray-500 hover:text-white'}`}
+                        className={`p-1.5 rounded-full transition-all hover:bg-white/10 ${isPreviewing === voice.id ? 'text-white animate-pulse' : 'text-gray-500 hover:text-white'}`}
                         title="Play Sample"
                       >
                         {isPreviewing === voice.id ? (
@@ -298,10 +298,10 @@ export function MessageItem({
               </DropdownMenu>
               <button
                 onClick={handleBookmarkToggle}
-                className="p-1.5 text-gray-400 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-md transition-all focus:outline-none"
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-[#722f37]/10 rounded-md transition-all focus:outline-none"
                 title={bookmarked ? "Remove Bookmark" : "Bookmark Response"}
               >
-                <Bookmark size={14} className={bookmarked ? "fill-[#E0A7C2] text-[#E0A7C2]" : ""} />
+                <Bookmark size={14} className={bookmarked ? "fill-white text-white" : ""} />
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -309,9 +309,9 @@ export function MessageItem({
                     <MoreHorizontal size={14} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-[#252525]/95 backdrop-blur-xl border-white/5 text-gray-200">
+                <DropdownMenuContent align="end" className="w-48 bg-[#0B0B0C]/95 backdrop-blur-xl border-[#722f37]/20 text-gray-200">
                   <DropdownMenuItem
-                    className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#8B4564]/20 focus:text-white"
+                    className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#722f37]/20 focus:text-white"
                     onClick={() => {
                       const activeTabToCopy = activeTab;
                       let textToCopy = '';
@@ -334,7 +334,7 @@ export function MessageItem({
                   <DropdownMenuSeparator className="bg-white/5" />
 
                   <DropdownMenuItem
-                    className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#8B4564]/20 focus:text-white"
+                    className="group flex items-center px-2 py-2 text-sm text-gray-300 hover:bg-white/5 cursor-pointer focus:bg-[#722f37]/20 focus:text-white"
                     onClick={() => onOpenNote?.(message.id, message.text)}
                   >
                     <PenTool size={14} className="mr-2 text-gray-400 group-hover:text-white" />
@@ -351,7 +351,7 @@ export function MessageItem({
               {!isLoading && (
                 <button
                   onClick={() => onUpdateMessage?.(message.id, { isEditing: true })}
-                  className="p-1.5 text-gray-500 hover:text-[#E0A7C2] transition-colors"
+                  className="p-1.5 text-gray-500 hover:text-white transition-colors"
                   title="Edit prompt"
                 >
                   <Edit2 size={14} />
@@ -389,8 +389,8 @@ export function MessageItem({
             )}
             {message.status === 'processing' ? (
               <div className="flex flex-col items-center justify-center py-4 space-y-3">
-                <Loader2 size={24} className="text-[#E0A7C2] animate-spin" />
-                <p className="text-sm font-medium text-[#E0A7C2] animate-pulse">ANALYZING...</p>
+                <Loader2 size={24} className="text-gray-500 animate-spin" />
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">ANALYZING ARCHIVES...</p>
               </div>
             ) : message.text === "" && isAI ? (
               <div className="flex gap-1 py-1">
@@ -406,14 +406,14 @@ export function MessageItem({
 
                   if (relatedCasesLoading && cases.length === 0) {
                     return (
-                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-                        <div className="p-4 bg-[#8B4564]/10 rounded-full">
-                          <Gavel size={32} className="text-[#E0A7C2] animate-pulse" />
+                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="p-5 bg-[#722f37]/10 rounded-full border border-[#722f37]/20 shadow-inner">
+                          <Gavel size={40} className="text-gray-600 animate-pulse" strokeWidth={1.5} />
                         </div>
                         <div>
-                          <h4 className="text-white font-bold text-lg">Searching Jurisprudence</h4>
-                          <p className="text-gray-400 text-sm max-w-xs mx-auto">
-                            ilovelawyer is searching for relevant Supreme Court cases...
+                          <h4 className="text-xl font-serif text-white mb-2">Searching Jurisprudence</h4>
+                          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest max-w-xs mx-auto">
+                            Browsing supreme court archives...
                           </p>
                         </div>
                       </div>
@@ -422,31 +422,31 @@ export function MessageItem({
 
                   return (
                     <div className="py-4 space-y-4">
-                      <h4 className="text-white font-bold flex items-center gap-2">
-                        <Gavel size={16} /> Related Jurisprudence
+                      <h4 className="text-lg font-serif text-white flex items-center gap-3 mb-6">
+                        <Gavel size={20} className="text-gray-400" /> Institutional Jurisprudence
                       </h4>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {cases.map((caseItem: RelatedCase, i: number) => (
                           <div
                             key={i}
-                            className="bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors cursor-pointer group"
+                            className="bg-black/20 border border-[#722f37]/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/[0.02] transition-all cursor-pointer group shadow-sm"
                             onClick={() => onCaseClick?.(caseItem, message.text)}
                           >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-xs font-bold text-[#E0A7C2]">SUPREME COURT CASE</span>
-                              <span className="text-[10px] text-gray-500">{caseItem.caseNumber}</span>
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">SUPREME COURT ARCHIVE</span>
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{caseItem.caseNumber}</span>
                             </div>
-                            <p className="text-sm text-gray-300 group-hover:text-white transition-colors">{caseItem.description}</p>
+                            <p className="text-sm text-gray-300 group-hover:text-white transition-colors leading-relaxed">{caseItem.description}</p>
                           </div>
                         ))}
                       </div>
 
                       {hasMoreRelatedCases && (
-                        <div className="pt-4 flex justify-center">
+                        <div className="pt-6 flex justify-center">
                           <button
                             onClick={onLoadMoreRelated}
                             disabled={relatedCasesLoading}
-                            className="bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-md px-6 py-2 text-sm font-semibold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 text-white rounded-xl px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
                           >
                             {relatedCasesLoading ? (
                               <>
@@ -454,13 +454,12 @@ export function MessageItem({
                                 {(() => {
                                   const ref = message.sources?.[0]?.reference ||
                                     message.relatedCases?.[0]?.caseNumber ||
-                                    message.text.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)?.[0] ||
                                     'Jurisprudence';
-                                  return `Loading ${ref}...`;
+                                  return `Scanning ${ref}...`;
                                 })()}
                               </>
                             ) : (
-                              'Load More Jurisprudence'
+                              'Expand Research Archive'
                             )}
                           </button>
                         </div>
@@ -481,7 +480,7 @@ export function MessageItem({
                     />
 
                     {message.originalText && message.text !== message.originalText && (
-                      <div className="mt-2 flex justify-end gap-2">
+                      <div className="mt-4 flex justify-end gap-3">
                         {showOriginal && (
                           <button
                             onClick={() => {
@@ -494,9 +493,9 @@ export function MessageItem({
                               onToggleOriginal();
                               scrollToMessage(message.id);
                             }}
-                            className="text-[11px] font-semibold tracking-wide text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md flex items-center gap-1.5"
+                            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-2"
                           >
-                            <RefreshCcw size={10} /> Reset to Original
+                            <RefreshCcw size={12} /> Revert to Original
                           </button>
                         )}
                         <button
@@ -504,9 +503,9 @@ export function MessageItem({
                             onToggleOriginal();
                             scrollToMessage(message.id);
                           }}
-                          className="text-[11px] font-semibold tracking-wide text-[#E0A7C2] hover:text-white transition-colors bg-[#8B4564]/10 hover:bg-[#8B4564]/30 px-2.5 py-1 rounded-md"
+                          className="text-[10px] font-bold uppercase tracking-widest text-white hover:bg-[#722f37]/40 border border-[#722f37]/20 px-3 py-1.5 rounded-lg bg-[#722f37]/20"
                         >
-                          {showOriginal ? "Show Edited" : "Show Original"}
+                          {showOriginal ? "View Final Version" : "View Original Input"}
                         </button>
                       </div>
                     )}
@@ -533,7 +532,7 @@ export function MessageItem({
               !message.isEditing ? (
                 message.isAnalysis && message.sender === 'user' && message.text.toUpperCase().includes('ANALYZING') ? (
                   isLoading ? (
-                    <span className="text-xs font-bold text-[#E0A7C2] animate-pulse italic">ANALYZING...</span>
+                    <span className="text-[10px] font-bold text-gray-400 animate-pulse italic uppercase tracking-[0.2em]">Synthesizing Institutional Analysis...</span>
                   ) : null
                 ) : (
                   <>
