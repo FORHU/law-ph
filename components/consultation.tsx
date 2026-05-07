@@ -921,8 +921,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                         <div className="py-24 text-center relative flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
                           {/* Ambient Backglow */}
                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[rgba(114,47,55,0.15)] blur-[80px] rounded-full pointer-events-none" />
-                          
-                          <motion.div 
+
+                          <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
@@ -931,7 +931,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             <MessageSquare size={48} className="text-[rgba(233,193,118,1)] stroke-[1.5]" />
                           </motion.div>
 
-                          <motion.h2 
+                          <motion.h2
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
@@ -940,7 +940,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             Start a <span className="text-[rgba(233,193,118,1)] italic">Consultation</span>
                           </motion.h2>
 
-                          <motion.p 
+                          <motion.p
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
@@ -1040,7 +1040,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           </span>
                           <ChevronDown size={16} className={`transition-transform duration-200 text-white/60 ${emailFindingsDropdownOpen ? 'rotate-180' : ''}`} />
                         </div>
-                        
+
                         <AnimatePresence>
                           {emailFindingsDropdownOpen && (
                             <>
