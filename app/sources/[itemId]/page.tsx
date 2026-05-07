@@ -99,9 +99,8 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
           <article className="space-y-8">
             <div className="flex flex-wrap items-center gap-3">
               <span
-                className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest ${
-                  isLaw ? 'bg-[#722f37] border border-[#e9c176]/30' : 'bg-[#e9c176] !text-black shadow-lg shadow-[#e9c176]/10'
-                }`}
+                className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest ${isLaw ? 'bg-[#722f37] border border-[#e9c176]/30' : 'bg-[#e9c176] !text-black shadow-lg shadow-[#e9c176]/10'
+                  }`}
               >
                 {isLaw ? <BookOpen size={12} /> : <Gavel size={12} />}
                 {isLaw ? 'Institutional Law' : 'Jurisprudence'}
@@ -180,6 +179,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
             )}
           </article>
         )}
+      </div>
     </div>
   );
 }
