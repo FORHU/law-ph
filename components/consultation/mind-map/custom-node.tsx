@@ -129,8 +129,8 @@ export const CustomNode = memo(({ data }: any) => {
                       key={idx}
                       className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg"
                     >
-                      <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">
-                        {item.name}
+                      <span className="text-[10px] font-bold text-[#e9c176] truncate uppercase tracking-widest leading-none mb-1">
+                        Institutional Audio
                       </span>
                       <div className="w-full h-8 rounded-md bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-[10px] text-white/50">
                         Preview Not Available
@@ -141,7 +141,7 @@ export const CustomNode = memo(({ data }: any) => {
 
                 return (
                   <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
-                    <span className="text-[11px] font-bold text-[#E0A7C2] truncate uppercase tracking-widest">{item.name}</span>
+                    <span className="text-[10px] font-bold text-[#e9c176] truncate uppercase tracking-widest leading-none mb-1">Institutional Audio</span>
                     <audio controls className="w-full h-9 rounded-md">
                       <source src={formatS3Url(url)} />
                     </audio>
@@ -156,15 +156,15 @@ export const CustomNode = memo(({ data }: any) => {
                       key={idx}
                       className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 shadow-lg"
                     >
-                      <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
+                      <div className="bg-[#e9c176] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
                       <span className="text-sm font-medium truncate text-white/60">{item.name} (URL expired)</span>
                     </div>
                   );
                 }
 
                 return (
-                  <a key={idx} href={formatS3Url(url)} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0A0A0A] p-2.5 rounded-xl border border-white/10 hover:bg-white/10 hover:border-[#E0A7C2]/50 transition-all shadow-lg">
-                    <div className="bg-[#E0A7C2] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0">📄</div>
+                  <a key={idx} href={formatS3Url(url)} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0B0B0C] p-3 rounded-xl border border-white/5 hover:bg-[#722f37]/10 hover:border-[#e9c176]/50 transition-all shadow-xl group/file">
+                    <div className="bg-[#e9c176] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0 shadow-lg group-hover/file:scale-110 transition-transform">📄</div>
                     <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
                   </a>
                 );

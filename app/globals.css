@@ -27,33 +27,33 @@
   /* Radius */
   --radius: 0.75rem;
 
-  /* Colors (Institutional Rose Theme) */
-  --color-primary: #ffb2b8;
-  --color-primary-container: #722f37;
+  /* Colors (Sovereign Modernist Theme) */
+  --color-primary: #f3d9a2; /* Golden parchment */
+  --color-primary-container: #722f37; /* Deep wine red */
   --color-on-primary: #581b24;
   --color-primary-fixed: #ffdadb;
-  --color-primary-fixed-dim: #ffb2b8;
+  --color-primary-fixed-dim: #f3d9a2;
   
-  --color-secondary: #e9c176;
+  --color-secondary: #e9c176; /* Sovereign gold */
   --color-secondary-container: #604403;
   --color-on-secondary: #412d00;
   --color-secondary-fixed: #ffdea5;
   --color-secondary-fixed-dim: #e9c176;
 
-  --color-background: #131314;
-  --color-surface: #131314;
+  --color-background: #0B0B0C; /* Institutional dark */
+  --color-surface: #0B0B0C;
   --color-on-background: #e5e2e3;
   --color-on-surface: #e5e2e3;
 
-  --color-surface-container-low: #1b1b1c;
-  --color-surface-container: #1f1f20;
-  --color-surface-container-high: #2a2a2b;
-  --color-surface-container-highest: #353436;
-  --color-surface-container-lowest: #0e0e0f;
+  --color-surface-container-low: #0e0e0f;
+  --color-surface-container: #131314;
+  --color-surface-container-high: #1b1b1c;
+  --color-surface-container-highest: #232324;
+  --color-surface-container-lowest: #050505;
   
-  --color-surface-bright: #39393a;
-  --color-surface-dim: #131314;
-  --color-surface-variant: #353436;
+  --color-surface-bright: #2a2a2b;
+  --color-surface-dim: #0B0B0C;
+  --color-surface-variant: #1b1b1c;
   --color-on-surface-variant: #d8c1c2;
 
   --color-tertiary: #c8c6c7;

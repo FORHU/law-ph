@@ -52,25 +52,27 @@ export async function sendEmail({
   const formatG = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
 
   const emailWrapper = (headerBg: string, headerLabel: string, bodyHtml: string) => `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: 'Georgia', serif; background-color: #0B0B0C; padding: 40px;">
       <tr><td align="center">
-        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-          <tr><td style="background-color: ${headerBg}; padding: 30px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${headerLabel}</h1>
+        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #111111; border-radius: 4px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid #722f37;">
+          <tr><td style="background-color: ${headerBg}; padding: 40px; text-align: center; border-bottom: 2px solid #e9c176;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 2px; text-transform: uppercase;">${headerLabel}</h1>
           </td></tr>
-          <tr><td style="padding: 40px; text-align: center;">${bodyHtml}</td></tr>
-          <tr><td style="background-color: #f9f9f9; padding: 20px; text-align: center; color: #999999; font-size: 12px;">This is an automated message from ILoveLawyer.</td></tr>
+          <tr><td style="padding: 50px 40px; text-align: center; color: #cccccc; font-size: 16px; line-height: 1.6;">${bodyHtml}</td></tr>
+          <tr><td style="background-color: #0B0B0C; padding: 30px; text-align: center; color: #666666; font-size: 11px; border-top: 1px solid #333333; text-transform: uppercase; letter-spacing: 1px;">
+            Institutional Legal Consultation Service • Confidential & Privileged
+          </td></tr>
         </table>
       </td></tr>
     </table>
   `;
 
   const detailsTable = (rows: { label: string; value: string; accent?: boolean }[]) => `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-radius: 12px; padding: 24px; margin-bottom: 30px; text-align: left;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0B0B0C; border-radius: 0px; padding: 30px; margin-bottom: 30px; text-align: left; border-left: 4px solid #e9c176;">
       ${rows.map(r => `
         <tr>
-          <td style="padding-bottom: 12px; font-weight: bold; color: #666666; width: 120px;">${r.label}:</td>
-          <td style="padding-bottom: 12px; color: ${r.accent ? '#8B4564' : '#333333'}; font-weight: ${r.accent ? 'bold' : 'normal'};">${r.value}</td>
+          <td style="padding-bottom: 15px; font-weight: bold; color: #e9c176; width: 140px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px;">${r.label}:</td>
+          <td style="padding-bottom: 15px; color: ${r.accent ? '#e9c176' : '#ffffff'}; font-weight: ${r.accent ? 'bold' : 'normal'}; font-size: 14px;">${r.value}</td>
         </tr>
       `).join('')}
     </table>
@@ -79,13 +81,13 @@ export async function sendEmail({
   // ─── SCHEDULE (Original Invitation) ────────────────────────────────────────
   if (type === 'schedule' && eventDetails) {
     const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
-    emailSubject = 'New Appointment Invitation';
+    emailSubject = 'Institutional Appointment Invitation';
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
     const sequence = (eventDetails as any).isReminder ? '1' : '0';
-    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
+    const uid = iCalUID || `${eventId}@law-firm.institutional`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
@@ -104,28 +106,28 @@ export async function sendEmail({
     }];
 
     const rows = [
-      { label: 'From', value: organizer?.email || 'Your Lawyer' },
-      { label: 'Event', value: eventType, accent: true },
-      { label: 'Time', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      ...(notes ? [{ label: 'Notes', value: notes }] : []),
+      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
+      { label: 'Procedure', value: eventType, accent: true },
+      { label: 'Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
+      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
     ];
 
     emailContent = emailWrapper(
-      '#8B4564',
-      'New Appointment Invitation',
-      `<p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">You have been invited to a new legal consultation.</p>
+      '#722f37',
+      'Appointment Invitation',
+      `<p style="margin-bottom: 25px;">You have been summoned to a new institutional legal consultation. Please review the details below.</p>
        ${detailsTable(rows)}
-       <p style="font-size: 14px; color: #666666; margin: 0;">You can add this to your calendar using the attached invitation file.</p>`
+       <p style="font-size: 13px; color: #999999;">An encrypted invitation file has been attached for your digital calendar.</p>`
     );
 
   // ─── REMINDER ────────────────────────────────────────────────────────────
   } else if (type === 'reminder' && eventDetails) {
     const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
-    emailSubject = `Reminder: Upcoming ${eventType}`;
+    emailSubject = `Official Reminder: ${eventType}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
+    const uid = iCalUID || `${eventId}@law-firm.institutional`;
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
@@ -145,18 +147,18 @@ export async function sendEmail({
     }];
 
     const rows = [
-      { label: 'Event', value: eventType, accent: true },
+      { label: 'Procedure', value: eventType, accent: true },
       { label: 'Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'From', value: organizer?.email || 'Your Lawyer' },
-      ...(notes ? [{ label: 'Notes', value: notes }] : []),
+      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
+      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
     ];
 
     emailContent = emailWrapper(
-      '#8B4564',
-      'Appointment Reminder',
-      `<p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">This is a friendly reminder about your upcoming appointment. Please confirm your attendance.</p>
+      '#722f37',
+      'Procedural Reminder',
+      `<p style="margin-bottom: 25px;">This serves as a formal notification regarding your upcoming consultation. Please ensure your availability.</p>
        ${detailsTable(rows)}
-       <p style="font-size: 14px; color: #666666; margin: 0;">Please reply to this email or contact your attorney if you have any questions.</p>`
+       <p style="font-size: 13px; color: #999999;">Contact the presiding attorney should you require further clarification.</p>`
     );
 
   // ─── RESCHEDULE ────────────────────────────────────────────────────────────
@@ -166,7 +168,7 @@ export async function sendEmail({
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
+    const uid = iCalUID || `${eventId}@law-firm.institutional`;
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
@@ -186,19 +188,19 @@ export async function sendEmail({
     }];
 
     const rows = [
-      { label: 'Event', value: eventType, accent: true },
-      { label: 'New Time', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'From', value: organizer?.email || 'Your Lawyer' },
-      ...(reason ? [{ label: 'Reason', value: reason }] : []),
-      ...(notes ? [{ label: 'Notes', value: notes }] : []),
+      { label: 'Procedure', value: eventType, accent: true },
+      { label: 'New Schedule', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
+      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
+      ...(reason ? [{ label: 'Justification', value: reason }] : []),
+      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
     ];
 
     emailContent = emailWrapper(
       '#B45309',
-      'Appointment Rescheduled',
-      `<p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">Your appointment has been <strong>rescheduled</strong> to a new date and time. Please review the updated details below and accept the new calendar invitation.</p>
+      'Procedure Rescheduled',
+      `<p style="margin-bottom: 25px;">Your appointment has been <strong>rescheduled</strong>. Please acknowledge the updated procedural timeline below.</p>
        ${detailsTable(rows)}
-       <p style="font-size: 14px; color: #666666; margin: 0;">An updated calendar invitation has been attached. Please accept it to update your calendar.</p>`
+       <p style="font-size: 13px; color: #999999;">An updated calendar invitation is attached for your synchronization.</p>`
     );
 
   // ─── CANCELLED ─────────────────────────────────────────────────────────────
@@ -208,7 +210,7 @@ export async function sendEmail({
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@ilovelawyer.com`;
+    const uid = iCalUID || `${eventId}@law-firm.institutional`;
 
     // Send a CANCEL method iCal so the event is removed from the client's calendar
     const icsString = [
@@ -228,18 +230,18 @@ export async function sendEmail({
     }];
 
     const rows = [
-      { label: 'Event', value: eventType },
+      { label: 'Procedure', value: eventType },
       { label: 'Was Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'From', value: organizer?.email || 'Your Lawyer' },
-      ...(reason ? [{ label: 'Reason', value: reason }] : []),
+      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
+      ...(reason ? [{ label: 'Justification', value: reason }] : []),
     ];
 
     emailContent = emailWrapper(
       '#6B7280',
-      'Appointment Cancelled',
-      `<p style="font-size: 16px; line-height: 1.5; color: #333333; margin-bottom: 25px;">We regret to inform you that the following appointment has been <strong>cancelled</strong>. We apologize for any inconvenience caused.</p>
+      'Procedure Terminated',
+      `<p style="margin-bottom: 25px;">Notice: The following legal procedure has been <strong>terminated</strong>. We apologize for the disruption.</p>
        ${detailsTable(rows)}
-       <p style="font-size: 14px; color: #666666; margin: 0;">If you have questions or would like to reschedule, please reach out to your attorney directly.</p>`
+       <p style="font-size: 13px; color: #999999;">Should you wish to initiate a new session, please contact your attorney.</p>`
     );
 
   // ─── CONFIRMATION SUCCESS ──────────────────────────────────────────────────
@@ -249,7 +251,7 @@ export async function sendEmail({
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-    const uid = `success-${Date.now()}@ilovelawyer.com`;
+    const uid = `success-${Date.now()}@law-firm.institutional`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
@@ -262,10 +264,10 @@ export async function sendEmail({
 
     emailContent = emailWrapper(
       '#10B981',
-      'Appointment Confirmed!',
-      `<p style="font-size: 16px; color: #333333;">Your appointment for <strong>${eventType}</strong> is now confirmed.</p>
-       <p style="font-size: 16px; color: #333333; margin-top: 20px;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' })}</p>
-       <p style="font-size: 14px; color: #666666; margin-top: 30px;">The event has been added to your calendar based on your confirmation.</p>`
+      'Procedure Confirmed',
+      `<p>Your consultation for <strong>${eventType}</strong> has been successfully ratified.</p>
+       <p style="font-size: 20px; color: #ffffff; margin: 30px 0; font-weight: bold;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' })}</p>
+       <p style="font-size: 13px; color: #999999;">The procedure has been logged in your institutional calendar.</p>`
     );
 
   } else if (body) {

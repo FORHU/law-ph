@@ -88,16 +88,16 @@ export function SignUpForm() {
         <AuthHeader 
           icon={UserPlus}
           title="Create Account"
-          description="Join ilovelawyer and access AI-powered legal guidance"
+          description="Set up your account to access intelligent legal assistance."
         />
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <AuthInput 
             id="fullName"
             label="Full Name"
             value={formData.fullName}
             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-            placeholder="Juan Dela Cruz"
+            placeholder="Your full name"
             required
             delay={0.6}
           />
@@ -108,7 +108,7 @@ export function SignUpForm() {
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="your.email@example.com"
+            placeholder="you@example.com"
             required
             delay={0.7}
           />
@@ -119,7 +119,7 @@ export function SignUpForm() {
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="Create a strong password"
+            placeholder="Create a secure password"
             required
             minLength={8}
             delay={0.8}
@@ -131,7 +131,7 @@ export function SignUpForm() {
             type="password"
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            placeholder="Re-enter your password"
+            placeholder="Confirm your password"
             required
             minLength={8}
             delay={0.9}
@@ -141,14 +141,14 @@ export function SignUpForm() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-red-400 text-sm text-center bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
+              className="text-red-400 text-[11px] font-bold uppercase tracking-widest text-center bg-red-400/10 py-3 px-4 rounded-xl border border-red-400/20"
             >
               {error}
             </motion.div>
           )}
 
           <motion.div
-            className="flex items-start gap-3"
+            className="flex items-start gap-3 my-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 1.0 }}
@@ -156,23 +156,23 @@ export function SignUpForm() {
             <input
               type="checkbox"
               id="terms"
-              className="mt-1 w-4 h-4 accent-[#8B4564]"
+              className="mt-[2px] w-4 h-4 accent-[#722f37] shrink-0 border-white/20 rounded bg-white/5"
               required
             />
-            <label htmlFor="terms" className="text-white/60 text-xs">
+            <label htmlFor="terms" className="text-white/60 text-[11px] font-medium leading-tight">
               I agree to the{' '}
-              <button type="button" className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer">
-                Terms of Service
-              </button>{' '}
-              and{' '}
-              <button type="button" className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer">
+              <button type="button" className="text-white hover:text-[#e9c176] transition-colors cursor-pointer font-bold underline">
+                Terms
+              </button>
+              {' '}and{' '}
+              <button type="button" className="text-white hover:text-[#e9c176] transition-colors cursor-pointer font-bold underline">
                 Privacy Policy
               </button>
             </label>
           </motion.div>
 
           <AuthButton isLoading={isLoading} loadingText="Creating Account..." delay={1.1}>
-            Create Account
+            CREATE ACCOUNT
           </AuthButton>
         </form>
 
@@ -182,11 +182,11 @@ export function SignUpForm() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 1.2 }}
         >
-          <p className="text-white/60 text-sm">
-            Already have an account?{' '}
+          <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em]">
+            Already authorized?{' '}
             <button
               onClick={() => router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`)}
-              className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
+              className="text-[#e9c176] hover:text-white transition-colors cursor-pointer"
             >
               Sign in
             </button>
@@ -194,31 +194,7 @@ export function SignUpForm() {
         </motion.div>
       </AuthCard>
 
-      <motion.div
-        className="mt-8 text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 1.3 }}
-      >
-        <p className="text-white/50 text-xs uppercase tracking-wider mb-4">
-          Privacy Standards
-        </p>
-        <div className="flex items-center justify-center gap-8 mb-6">
-          <Shield className="w-6 h-6 text-white/40" />
-          <Lock className="w-6 h-6 text-white/40" />
-          <Scale className="w-6 h-6 text-white/40" />
-        </div>
-        <p className="text-white/40 text-xs">
-          By signing up, you agree to our{' '}
-          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
-            Legal Terms
-          </button>
-          {' '}&{' '}
-          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
-            Data Privacy Policy
-          </button>
-        </p>
-      </motion.div>
+
 
       <SignUpSuccessModal 
         isOpen={showSuccessModal} 

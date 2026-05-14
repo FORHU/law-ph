@@ -41,11 +41,11 @@ export function AppSidebar({
   // Determine active page from pathname if not explicitly provided
   const resolvedActivePage = activePage || (
     pathname?.startsWith('/consultation') ? 'chat' :
-    pathname?.startsWith('/documents') ? 'documents' :
-    pathname?.startsWith('/transcribe') ? 'transcribe' :
-    pathname?.startsWith('/calendar') ? 'calendar' :
-    pathname?.startsWith('/cases') ? 'cases' :
-    'chat'
+      pathname?.startsWith('/documents') ? 'documents' :
+        pathname?.startsWith('/transcribe') ? 'transcribe' :
+          pathname?.startsWith('/calendar') ? 'calendar' :
+            pathname?.startsWith('/cases') ? 'cases' :
+              'chat'
   );
 
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
@@ -148,7 +148,9 @@ export function AppSidebar({
                 className="w-full px-4 py-3 bg-[rgba(114,47,55,0.15)] border border-[rgba(114,47,55,0.4)] rounded-xl hover:bg-[rgba(114,47,55,0.25)] hover:shadow-[0_0_15px_rgba(114,47,55,0.3)] transition-all duration-300 flex items-center gap-3 text-white group"
               >
                 <MessageSquare size={18} className="text-[rgba(233,193,118,1)] transition-colors" />
-                <span className="text-sm font-medium">New Consultation</span>
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className="text-sm font-medium">Consultation</span>
+                </div>
               </button>
 
               <button

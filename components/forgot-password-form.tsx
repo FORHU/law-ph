@@ -29,13 +29,12 @@ export function ForgotPasswordForm() {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.UPDATE_PASSWORD}`,
       });
-      
+
       if (resetError) throw resetError;
-      
+
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('Reset password error:', err);
-      // Specifically handle the rate limit message or other Supabase errors
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -43,28 +42,28 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <AuthLayout 
-      backButtonLabel="Return to login" 
+    <AuthLayout
+      backButtonLabel="Return to login"
       backButtonHref={AUTH_ROUTES.LOGIN}
       maxWidth="max-w-xl"
     >
       <AuthCard>
         {!isSubmitted ? (
           <>
-            <AuthHeader 
+            <AuthHeader
               icon={Lock}
               title="Reset Password"
-              description="Enter your email address and we'll send you instructions to reset your password"
+              description="Enter your email address to reset your password."
             />
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <AuthInput 
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AuthInput
                 id="email"
-                label="Email Address"
+                label="EMAIL ADDRESS"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
+                placeholder="name@gmail.com"
                 required
               />
 
@@ -72,28 +71,28 @@ export function ForgotPasswordForm() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-red-400 text-sm text-center bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
+                  className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center bg-red-400/10 py-3 px-4 rounded-xl border border-red-400/20"
                 >
                   {error}
                 </motion.div>
               )}
 
-              <AuthButton isLoading={isLoading} loadingText="Sending...">
-                Send Reset Link
+              <AuthButton isLoading={isLoading} loadingText="RATIFYING REQUEST..." className="uppercase tracking-widest font-bold">
+                SEND PASSWORD RESET LINK
               </AuthButton>
             </form>
 
             <motion.div
-              className="mt-6 text-center"
+              className="mt-8 text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.8 }}
             >
-              <p className="text-white/60 text-sm">
-                Remember your password?{' '}
+              <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em]">
+                Remembered your password?{' '}
                 <button
                   onClick={() => router.push(AUTH_ROUTES.LOGIN)}
-                  className="text-[#8B4564] hover:text-[#a85678] transition-colors cursor-pointer"
+                  className="text-[#e9c176] hover:text-white transition-colors cursor-pointer uppercase tracking-widest font-bold"
                 >
                   Sign in
                 </button>
@@ -114,22 +113,21 @@ export function ForgotPasswordForm() {
             </motion.div>
 
             <motion.h1
-              className="text-3xl md:text-4xl text-center text-white mb-2"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              className="text-3xl md:text-4xl text-center text-white mb-2 font-serif"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Check Your Email
+              Protocol Initiated
             </motion.h1>
-            
+
             <motion.p
-              className="text-center text-white/60 mb-8"
+              className="text-center text-white/50 mb-8 font-light leading-relaxed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              We've sent password reset instructions to <span className="text-[#8B4564]">{email}</span>
+              We have dispatched recovery instructions to <span className="text-[#e9c176] font-bold">{email}</span>. Please verify your institutional inbox.
             </motion.p>
 
             <motion.div
@@ -138,29 +136,35 @@ export function ForgotPasswordForm() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <div className="bg-[#1A1A1A]/60 border border-white/10 rounded-lg p-4">
-                <p className="text-white/70 text-sm mb-2">
-                  <strong className="text-white">Didn't receive the email?</strong>
+              <div className="bg-[#0B0B0C]/60 border border-[#722f37]/20 rounded-2xl p-6">
+                <p className="text-white/70 text-[11px] font-bold uppercase tracking-widest mb-3">
+                  <strong className="text-[#e9c176]">Transmission Issues?</strong>
                 </p>
-                <ul className="text-white/60 text-xs space-y-1 list-disc list-inside">
-                  <li>Check your spam or junk folder</li>
-                  <li>Wait a few minutes (Supabase has a 1-minute rate limit)</li>
+                <ul className="text-white/40 text-[10px] font-medium space-y-2 list-none">
+                  <li className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-[#722f37]" />
+                    Inspect institutional spam or quarantine filters.
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-[#722f37]" />
+                    Observe the 1-minute ratification interval.
+                  </li>
                 </ul>
               </div>
 
-              <AuthButton 
-                type="button" 
+              <AuthButton
+                type="button"
                 onClick={() => setIsSubmitted(false)}
-                className="bg-transparent border-2 border-[#8B4564] hover:bg-[#8B4564]"
+                className="bg-transparent border-2 border-[#722f37] hover:bg-[#722f37] uppercase tracking-widest font-bold text-[11px]"
               >
-                Try Another Email
+                Retry Alternative Identifier
               </AuthButton>
 
               <button
                 onClick={() => router.push(AUTH_ROUTES.LOGIN)}
-                className="w-full text-white/60 hover:text-white py-3 transition-colors cursor-pointer text-sm font-medium"
+                className="w-full text-white/40 hover:text-white py-3 transition-colors cursor-pointer text-[10px] font-bold uppercase tracking-[0.2em]"
               >
-                Back to Login
+                Return to Authenticator
               </button>
             </motion.div>
           </>

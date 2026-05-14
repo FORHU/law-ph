@@ -1,13 +1,13 @@
 export const MODAL_STYLES = {
   overlay: "fixed inset-0 z-[100] flex items-center justify-center p-4",
-  backdrop: "absolute inset-0 bg-black/60 backdrop-blur-sm",
-  container: "relative w-full max-w-2xl bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]",
+  backdrop: "absolute inset-0 bg-black/70 backdrop-blur-md",
+  container: "relative w-full max-w-2xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]",
   content: "p-5 md:p-6 overflow-y-auto custom-scrollbar",
-  input: "w-full px-4 py-2.5 bg-black/40 border border-[#8B4564]/30 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#8B4564] transition-all text-[13px]",
-  textarea: "w-full px-4 py-3 bg-black/40 border border-[#8B4564]/30 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#8B4564] transition-all resize-none text-[13px]",
-  label: "block text-[13px] font-medium text-gray-400 mb-1.5 font-inter",
-  buttonCancel: "flex-1 px-4 py-2.5 border border-[#8B4564]/30 rounded-xl text-gray-400 hover:bg-white/5 transition-all font-medium text-[13px]",
-  buttonSubmit: "flex-[1.5] px-4 py-2.5 bg-[#8B4564] text-white rounded-xl hover:bg-[#A05273] transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-[13px]"
+  input: "w-full px-4 py-2.5 bg-black/40 border border-[#722f37]/20 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#e9c176]/50 transition-all text-[13px] font-body",
+  textarea: "w-full px-4 py-3 bg-black/40 border border-[#722f37]/20 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-[#e9c176]/50 transition-all resize-none text-[13px] font-body",
+  label: "block text-[12px] font-bold text-[#e9c176]/80 mb-1.5 uppercase tracking-widest font-sans",
+  buttonCancel: "flex-1 px-4 py-2.5 border border-[#722f37]/30 rounded-xl text-gray-400 hover:bg-white/5 transition-all font-medium text-[13px]",
+  buttonSubmit: "flex-[1.5] px-4 py-2.5 bg-[#722f37] text-white rounded-xl hover:bg-[#8B3A44] transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-[13px] uppercase tracking-wider"
 };
 
 export const STRINGS = {

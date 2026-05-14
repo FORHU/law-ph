@@ -94,50 +94,50 @@ export default function CaseInvitePage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#1A1A1A] gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#E0A7C2]" />
-        <p className="text-gray-400 font-medium">Verifying invite...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0B0C] gap-6">
+        <Loader2 className="w-8 h-8 animate-spin text-[#e9c176]" />
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Ratifying Institutional Invitation...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1A1A1A] px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0B0C] px-6">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-[#252525] border border-white/10 rounded-2xl p-8 shadow-2xl text-center"
+        className="max-w-md w-full bg-[#111111] border border-[#722f37]/30 rounded-[2.5rem] p-12 shadow-2xl text-center relative overflow-hidden"
       >
         {status === 'joining' && (
-          <div className="flex flex-col items-center gap-4">
-             <Loader2 className="w-12 h-12 animate-spin text-[#E0A7C2]" />
-             <h2 className="text-xl font-bold text-white">Joining Case...</h2>
-             <p className="text-sm text-gray-400">Please wait while we add you to the conversation.</p>
+          <div className="flex flex-col items-center gap-6">
+             <Loader2 className="w-12 h-12 animate-spin text-[#e9c176]" />
+             <h2 className="text-2xl font-serif text-white tracking-tight">Authenticating <span className="text-[#e9c176] italic">Credentials</span></h2>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">Securing your position within the institutional record</p>
           </div>
         )}
 
         {status === 'success' && (
-          <div className="flex flex-col items-center gap-4">
-             <div className="w-16 h-16 bg-[#10B981]/20 rounded-full flex items-center justify-center mb-2">
-               <CheckCircle className="w-8 h-8 text-[#10B981]" />
+          <div className="flex flex-col items-center gap-6">
+             <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center mb-2 border border-green-500/20">
+               <CheckCircle className="w-10 h-10 text-green-500" />
              </div>
-             <h2 className="text-2xl font-bold text-white">Successfully Joined!</h2>
-             <p className="text-sm text-gray-400">Redirecting you to the case...</p>
+             <h2 className="text-2xl font-serif text-white tracking-tight">Access <span className="text-green-500 italic">Ratified</span></h2>
+             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">Transitioning to relevant case evidence...</p>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="flex flex-col items-center gap-4">
-             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-2">
-               <AlertCircle className="w-8 h-8 text-red-500" />
+          <div className="flex flex-col items-center gap-6">
+             <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mb-2 border border-red-500/20">
+               <AlertCircle className="w-10 h-10 text-red-500" />
              </div>
-             <h2 className="text-2xl font-bold text-white">Cannot Join Case</h2>
-             <p className="text-sm text-red-400">{errorDetails}</p>
+             <h2 className="text-2xl font-serif text-white tracking-tight">Protocol <span className="text-red-500 italic">Failure</span></h2>
+             <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest leading-relaxed">{errorDetails}</p>
              <button
                onClick={() => router.push('/')}
-               className="mt-4 px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors"
+               className="mt-6 px-10 py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-xl shadow-[#722f37]/20 active:scale-95"
              >
-               Go back strictly
+               Return to Repository
              </button>
           </div>
         )}

@@ -13,10 +13,10 @@ export function AuthBackground() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#1A1A1A]/70 via-[#1A1A1A]/50 to-[#1A1A1A]/90"></div>
       {/* Static gradient orbs instead of animated to reduce lag */}
       <div 
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
+        className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#722f37]/10 rounded-full blur-3xl"
       />
       <div 
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8B4564]/10 rounded-full blur-3xl"
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#722f37]/10 rounded-full blur-3xl"
       />
     </div>
   );

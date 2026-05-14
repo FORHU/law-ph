@@ -56,37 +56,37 @@ export function SidebarProfile() {
         <DropdownMenuContent
           side="top"
           align="start"
-          className="w-64 bg-[#1A1A1A] border-[#8B4564]/30 text-white shadow-2xl mb-2 rounded-2xl"
+          className="w-64 bg-[#0B0B0C]/95 backdrop-blur-xl border-[#722f37]/30 text-white shadow-2xl mb-2 rounded-2xl"
         >
-          <DropdownMenuLabel className="text-gray-400 font-normal py-3 px-4">
+          <DropdownMenuLabel className="text-gray-400 font-normal py-4 px-5">
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-white">{user.email}</span>
-              <span className="text-[10px] uppercase tracking-wider text-gray-500"> Account Signed in</span>
+              <span className="text-sm font-bold text-white font-serif">{user.email}</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Institutional Account</span>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-[#8B4564]/20" />
+          <DropdownMenuSeparator className="bg-[#722f37]/20" />
           <DropdownMenuItem
             onClick={() => router.push('/settings')}
-            className="py-2.5 px-4 focus:bg-[#8B4564]/20 focus:text-white cursor-pointer transition-colors"
+            className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
-            <User className="mr-2 h-4 w-4 text-gray-400" />
+            <User className="mr-3 h-4 w-4 text-gray-500" />
             <span>Profile Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="py-2.5 px-4 focus:bg-[#8B4564]/20 focus:text-white cursor-pointer transition-colors">
-            <SunMoon className="mr-2 h-4 w-4 text-gray-400" />
-            <span>Theme Toggle</span>
+          <DropdownMenuItem className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest">
+            <SunMoon className="mr-3 h-4 w-4 text-gray-500" />
+            <span>Theme Control</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="py-2.5 px-4 focus:bg-[#8B4564]/20 focus:text-white cursor-pointer transition-colors">
-            <Settings className="mr-2 h-4 w-4 text-gray-400" />
-            <span>General Settings</span>
+          <DropdownMenuItem className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest">
+            <Settings className="mr-3 h-4 w-4 text-gray-500" />
+            <span>General Config</span>
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="bg-[#8B4564]/20" />
+          <DropdownMenuSeparator className="bg-[#722f37]/20" />
           <DropdownMenuItem
             onClick={handleLogout}
-            className="py-2.5 px-4 focus:bg-red-500/10 focus:text-red-400 text-red-400 cursor-pointer transition-colors"
+            className="py-3 px-5 focus:bg-red-500/10 focus:text-red-400 text-red-400 cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
+            <LogOut className="mr-3 h-4 w-4" />
+            <span>Log Out</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

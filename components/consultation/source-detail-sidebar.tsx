@@ -160,26 +160,26 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
 
           {/* Sidebar - slides in from the right (uniform with Related Cases) */}
           <motion.div
-            className="fixed right-0 top-0 h-full w-full md:w-[600px] lg:w-[700px] bg-[#1a1a1a] border-l border-white/10 z-[200000] overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 h-full w-full md:w-[600px] lg:w-[700px] bg-[#0B0B0C] border-l border-[#722f37]/20 z-[200000] overflow-hidden flex flex-col shadow-2xl"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-[#252525]">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-6 border-b border-[#722f37]/20 bg-[#111111]">
+              <div className="flex items-center gap-5">
                 <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: `${COLORS.PRIMARY}20` }}
+                  className="p-3 rounded-xl border border-[#722f37]/30"
+                  style={{ backgroundColor: `${COLORS.PRIMARY}15`, color: COLORS.SECONDARY }}
                 >
                   {icon}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">
-                    {isCase ? 'Case Details' : 'Legal Source'}
+                  <h2 className="text-xl font-serif text-white tracking-tight">
+                    {isCase ? 'Institutional Record' : 'Legal Source'}
                   </h2>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] mt-1">
                     {(() => {
                       const rawTitle = content?.title || caseItem?.title || '';
                       const rawRef = content?.reference || source?.reference || caseItem?.caseNumber || '';
@@ -222,8 +222,8 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                       size={20}
                       className={`transition-all duration-200 ${
                         bookmarked
-                          ? 'text-[#8B4564] fill-[#8B4564] scale-110'
-                          : 'text-gray-400 hover:text-[#8B4564]'
+                          ? 'text-[#722f37] fill-[#722f37] scale-110'
+                          : 'text-gray-400 hover:text-[#722f37]'
                       }`}
                     />
                   </button>
@@ -242,7 +242,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
             <div className="flex-1 overflow-y-auto p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-[#E0A7C2]" size={32} />
+                  <Loader2 className="animate-spin text-[#e9c176]" size={32} />
                 </div>
               ) : content ? (
                 <div className="space-y-6">
@@ -266,7 +266,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                       }}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-[#E0A7C2]">
+                        <span className="text-[10px] font-bold text-[#e9c176] uppercase tracking-widest">
                           RELEVANT SECTION
                         </span>
                       </div>
@@ -329,7 +329,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                   {(caseItem as any)?.isLocalCase && localVoiceNotes.length > 0 && (
                     <div className="pt-4 border-t border-white/10">
                       <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                        <Mic size={14} className="text-[#E0A7C2]" />
+                        <Mic size={14} className="text-[#e9c176]" />
                         Voice Recordings ({localVoiceNotes.length})
                       </h3>
                       <div className="space-y-3">
@@ -337,7 +337,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                           <div key={note.id || idx} className="p-4 bg-[#1A1A1A] rounded-2xl border border-white/5 shadow-inner group/player">
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-[#8B4564]/20 rounded-lg text-[#E0A7C2]">
+                                <div className="p-1.5 bg-[#722f37]/20 rounded-lg text-[#e9c176] border border-[#722f37]/30">
                                   <Mic size={12} />
                                 </div>
                                 <p className="text-xs font-bold text-gray-200">

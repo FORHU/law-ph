@@ -46,9 +46,9 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
           viewport={{ once: true }}
           className="mb-24"
         >
-          <span className="px-6 py-2 bg-white/5 border border-white/10 text-secondary text-xs font-bold tracking-[0.4em] uppercase rounded-full mb-10 inline-block">Citizen Hub</span>
-          <h2 className="text-8xl font-serif text-white mb-8 leading-tight">Verified Legal Resources</h2>
-          <p className="text-on-surface/50 text-2xl max-w-3xl font-light leading-relaxed">Direct access to official government portals and free legal assistance programs in the Philippines.</p>
+          <span className="px-6 py-2 bg-[#722f37]/10 border border-[#722f37]/20 text-[#e9c176] text-[10px] font-bold tracking-[0.4em] uppercase rounded-full mb-10 inline-block">Citizen Archives</span>
+          <h2 className="text-8xl font-serif text-white mb-8 leading-tight">Institutional <span className="text-[#e9c176] italic">Resources</span></h2>
+          <p className="text-on-surface/50 text-2xl max-w-3xl font-light leading-relaxed">Direct access to ratified government portals and verified legal assistance programs in the Philippines.</p>
         </motion.div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -59,20 +59,20 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 * i }}
-              whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.4)' }}
+              whileHover={{ y: -10, borderColor: 'rgba(233, 193, 118, 0.3)', backgroundColor: 'rgba(11, 11, 12, 0.6)' }}
               onClick={() => window.open(item.url, '_blank')}
-              className="glass-panel p-16 rounded-[3rem] border border-white/5 group transition-all cursor-pointer shadow-lg hover:shadow-secondary/5 bg-white/[0.01]"
+              className="glass-panel p-16 rounded-[3rem] border border-white/5 group transition-all cursor-pointer shadow-lg hover:shadow-[#e9c176]/5 bg-[#0B0B0C]/40 backdrop-blur-3xl"
             >
               <div className="flex justify-between items-start mb-12">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-on-surface/30 group-hover:text-secondary transition-colors border border-white/5">
+                <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center text-[#e9c176]/30 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20">
                   {item.icon}
                 </div>
-                <span className="text-[10px] font-bold tracking-[0.3em] text-on-surface/30 border border-white/10 px-3 py-1 rounded-full uppercase">{item.badge}</span>
+                <span className="text-[10px] font-bold tracking-[0.2em] text-[#e9c176]/60 border border-[#722f37]/30 px-4 py-1.5 rounded-full uppercase">{item.badge}</span>
               </div>
-              <h4 className="text-3xl font-serif text-white mb-6 leading-tight">{item.title}</h4>
+              <h4 className="text-3xl font-serif text-white mb-6 leading-tight group-hover:text-[#e9c176] transition-colors">{item.title}</h4>
               <p className="text-on-surface/40 text-lg leading-relaxed mb-12 font-medium">{item.desc}</p>
-              <button className="text-secondary text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all">
-                Visit Website <ExternalLink className="w-6 h-6" />
+              <button className="text-[#e9c176] text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
+                Access Portal <ExternalLink className="w-5 h-5" />
               </button>
             </motion.div>
           ))}

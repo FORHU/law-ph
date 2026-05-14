@@ -28,10 +28,10 @@ export function RecordingConflictModal() {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-[380px] bg-[#1A1A1A] border border-[#8B4564]/30 rounded-[2rem] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[380px] bg-[#0B0B0C] border border-[#722f37]/30 rounded-[2rem] shadow-2xl overflow-hidden"
       >
         {/* Header Decor */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#8B4564] to-transparent opacity-40" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#722f37] to-transparent opacity-40" />
         
         <div className="p-6">
           <div className="flex items-center gap-3.5 mb-5">
@@ -40,15 +40,15 @@ export function RecordingConflictModal() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-white tracking-tight leading-tight">Recording in Progress</h3>
-              <p className="text-[10px] text-[#E0A7C2]/60 uppercase tracking-[0.15em] font-bold">Overlap Detected</p>
+              <p className="text-[10px] text-[#e9c176]/60 uppercase tracking-[0.2em] font-bold">Protocol Conflict Detected</p>
             </div>
           </div>
 
           <div className="space-y-3.5">
             <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4">
               <div className="flex gap-3 items-start">
-                <div className="bg-[#8B4564]/10 w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <AlertCircle size={14} className="text-[#E0A7C2]/80" />
+                <div className="bg-[#722f37]/10 w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 border border-[#722f37]/20">
+                  <AlertCircle size={14} className="text-[#e9c176]/80" />
                 </div>
                 <p className="text-[13px] leading-relaxed text-gray-400">
                   Active voice note for:
@@ -60,7 +60,7 @@ export function RecordingConflictModal() {
             </div>
 
             <div className="flex items-start gap-2 text-[11px] text-gray-500 pl-1">
-              <CornerDownRight size={12} className="text-[#8B4564] mt-0.5 flex-shrink-0" />
+              <CornerDownRight size={12} className="text-[#722f37] mt-0.5 flex-shrink-0" />
               <span>Starting now will safely save the background recording.</span>
             </div>
           </div>

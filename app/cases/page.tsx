@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  Folder, 
-  FileText, 
-  Clock, 
+import {
+  Search,
+  Plus,
+  Filter,
+  Folder,
+  FileText,
+  Clock,
   ChevronRight,
   MoreVertical,
   Briefcase
@@ -36,7 +36,7 @@ export default function CasesPage() {
   useEffect(() => {
     async function fetchCases() {
       if (!session?.user?.id) return;
-      
+
       const { data, error } = await supabase
         .from('cases')
         .select('*')
@@ -59,8 +59,8 @@ export default function CasesPage() {
     fetchCases();
   }, [session, supabase]);
 
-  const filteredCases = cases.filter(c => 
-    c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredCases = cases.filter(c =>
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.client.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -71,21 +71,21 @@ export default function CasesPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-            <input 
-              type="text" 
-              placeholder="Search cases, clients, or files..." 
+            <input
+              type="text"
+              placeholder="Search cases, clients, or files..."
               className="w-full bg-[#1A1A1B] border border-white/5 rounded-2xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <div className="flex gap-4 w-full md:w-auto">
             <button className="flex-1 md:flex-none glass-panel px-6 py-3 rounded-xl flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all">
               <Filter className="w-4 h-4" />
               Filters
             </button>
-            <button 
+            <button
               onClick={() => router.push('/create-case')}
               className="flex-1 md:flex-none bg-[#722f37] hover:bg-[#8b3a44] text-white px-8 py-3 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-black/40 font-bold uppercase tracking-widest text-[10px]"
             >
@@ -96,7 +96,7 @@ export default function CasesPage() {
         </div>
 
         {/* Case List */}
-        <motion.div 
+        <motion.div
           variants={{
             hidden: { opacity: 0 },
             show: {
@@ -139,13 +139,12 @@ export default function CasesPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-8">
-                  <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
-                    c.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                    c.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                    'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                  }`}>
+                  <div className={`px-4 h-6 inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] border rounded-md ${c.status === 'active' ? 'bg-[#059669]/10 text-[#34d399] border-[#059669]/20' :
+                      c.status === 'pending' ? 'bg-[#e9c176]/10 text-[#e9c176] border-[#e9c176]/20' :
+                        'bg-white/5 text-gray-500 border-white/10'
+                    }`}>
                     {c.status}
                   </div>
                   <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-white/10 group-hover:translate-x-1 transition-all">

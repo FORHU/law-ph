@@ -18,7 +18,7 @@ export function ScrollToTop({ isVisible, onClick }: ScrollToTopProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.9 }}
           onClick={onClick}
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 p-2 bg-[#8B4564] text-white rounded-full shadow-lg hover:bg-[#7a3c58] transition-colors"
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 p-2 bg-[#722f37] text-white rounded-full shadow-lg hover:bg-[#4a1d23] transition-colors"
           title="Scroll to Top"
         >
           <ChevronUp size={20} />

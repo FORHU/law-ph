@@ -212,7 +212,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                       <button 
                         type="button" 
                         onClick={addParty}
-                        className="p-1.5 hover:bg-[#8B4564]/20 rounded-lg text-[#E0A7C2] transition-colors"
+                        className="p-1.5 hover:bg-[#722f37]/20 rounded-lg text-[#e9c176] transition-colors"
                       >
                         <Plus size={16} />
                       </button>

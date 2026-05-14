@@ -47,10 +47,10 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
         <div className="col-span-12 lg:col-span-7">
           <h2 className="text-6xl font-serif text-white mb-12 leading-[1.1]">
             Why Choose <br />
-            <span className="text-[#ffb2b8]">ilovelawyer?</span>
+            <span className="text-[#e9c176]">ilovelawyer?</span>
           </h2>
           <p className="text-lg text-on-surface/50 mb-16 leading-relaxed max-w-2xl font-light">
-            Traditional legal consultations can be expensive and time-consuming. ilovelawyer provides immediate, accessible legal guidance when you need it most.
+            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, institutional-grade guidance when precision is paramount.
           </p>
 
           <motion.div
@@ -69,10 +69,10 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             className="grid grid-cols-1 md:grid-cols-2 gap-12"
           >
             {[
-              { title: '24/7 Availability', desc: 'Get legal guidance anytime, anywhere', icon: <Clock className="w-6 h-6" /> },
-              { title: 'Instant Responses', desc: 'No waiting for appointments or callbacks', icon: <Zap className="w-6 h-6" /> },
-              { title: 'Comprehensive Knowledge', desc: 'Based on current legal codes and precedents', icon: <FileText className="w-6 h-6" /> },
-              { title: 'Affordable Access', desc: 'Quality legal information at a fraction of costs', icon: <LayoutGrid className="w-6 h-6" /> },
+              { title: '24/7 Availability', desc: 'Secure institutional guidance at any hour.', icon: <Clock className="w-6 h-6" /> },
+              { title: 'Instant Responses', desc: 'Immediate synthesis of relevant legal codes.', icon: <Zap className="w-6 h-6" /> },
+              { title: 'Ratified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-6 h-6" /> },
+              { title: 'Affordable Access', desc: 'Professional legal records at institutional efficiency.', icon: <LayoutGrid className="w-6 h-6" /> },
             ].map((item, i) => (
               <motion.div
                 key={item.title}
@@ -82,11 +82,11 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
                 }}
                 className="flex gap-8 items-start group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-primary-container/10 flex items-center justify-center text-[#ffb2b8] border border-white/5 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#722f37]/30">
+                <div className="w-14 h-14 rounded-2xl bg-[#722f37]/10 flex items-center justify-center text-[#e9c176] border border-[#722f37]/20 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#e9c176]/30">
                   {item.icon}
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-white mb-2 group-hover:text-[#ffb2b8] transition-colors">{item.title}</h4>
+                  <h4 className="text-xl font-bold text-white mb-2 group-hover:text-[#e9c176] transition-colors">{item.title}</h4>
                   <p className="text-on-surface/40 text-lg leading-relaxed">{item.desc}</p>
                 </div>
               </motion.div>
@@ -97,17 +97,17 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
         <div className="col-span-12 lg:col-span-5 flex justify-center">
           <motion.div
             whileHover={{ scale: 1.02, rotate: 1 }}
-            className="glass-panel rounded-3xl p-20 border border-white/10 w-full max-w-xl text-center relative overflow-hidden group shadow-2xl bg-white/[0.02]"
+            className="glass-panel rounded-[3rem] p-20 border border-white/5 w-full max-w-xl text-center relative overflow-hidden group shadow-2xl bg-[#0B0B0C]/40 backdrop-blur-3xl"
           >
-            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-12 text-on-surface/30">
+            <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mx-auto mb-12 text-[#e9c176] border border-[#722f37]/20">
               <Clock className="w-8 h-8" />
             </div>
             <div className="text-6xl font-serif text-white mb-6 tracking-tighter tabular-nums">
               {time}
             </div>
-            <p className="text-on-surface/40 text-sm tracking-[0.3em] uppercase mb-16 font-bold">Average response time</p>
-            <button className="w-full bg-[#722f37] hover:bg-[#8b3d46] text-white py-4 rounded-lg text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20">
-              Try It Now
+            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-16 font-bold">Institutional Response Time</p>
+            <button className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-4 rounded-xl text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95">
+              Initiate Consultation
             </button>
           </motion.div>
         </div>

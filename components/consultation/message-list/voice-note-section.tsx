@@ -114,12 +114,12 @@ export function VoiceNoteSection({
         <div className="flex items-center justify-between px-1 mb-1">
           <button
             onClick={toggleAllMinimize}
-            className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-[#E0A7C2] uppercase tracking-wider transition-colors"
+            className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-[0.2em] transition-colors"
           >
             {isAllMinimized ? (
-              <><ChevronsUpDown size={12} /> Expand All</>
+              <><ChevronsUpDown size={12} /> Expand Archive</>
             ) : (
-              <><ChevronsDownUp size={12} /> Minimize All</>
+              <><ChevronsDownUp size={12} /> Condense Archive</>
             )}
           </button>
         </div>
@@ -127,16 +127,16 @@ export function VoiceNoteSection({
 
       {/* List existing notes */}
       {notes.map((note: { id: string; url: string; label?: string; s3_key?: string }, idx: number) => (
-        <div key={note.id || idx} className="group p-3 bg-black/30 rounded-xl border border-white/5 flex flex-col gap-2 transition-all hover:border-[#8B4564]/30 w-full overflow-hidden">
+        <div key={note.id || idx} className="group p-3 bg-[#0B0B0C]/40 rounded-xl border border-[#722f37]/20 flex flex-col gap-2 transition-all hover:bg-white/[0.02] hover:border-[#722f37]/40 w-full overflow-hidden shadow-lg">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <button 
                 onClick={() => toggleMinimize(idx)}
-                className="p-1 -ml-1 text-gray-600 hover:text-[#E0A7C2] transition-colors"
+                className="p-1 -ml-1 text-gray-600 hover:text-white transition-colors"
               >
                 {minimizedNotes.has(idx) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
               </button>
-              <Mic size={12} className="text-[#8B4564] flex-shrink-0" />
+              <Mic size={12} className="text-[#722f37] flex-shrink-0" />
               {editingIdx === idx ? (
                 <div className="flex items-center gap-1 flex-1">
                   <input
@@ -149,11 +149,11 @@ export function VoiceNoteSection({
                       if (e.key === 'Escape') setEditingIdx(null);
                     }}
                     onBlur={() => handleSaveRename(idx)}
-                    className="flex-1 bg-black/50 border border-[#8B4564]/50 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-[#8B4564]/50 font-inter"
+                    className="flex-1 bg-black/60 border border-[#722f37]/40 rounded-lg px-3 py-1.5 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-[#722f37]/50 font-inter"
                   />
                   <button 
                     onClick={() => handleSaveRename(idx)}
-                    className="p-1 px-2 bg-[#8B4564]/20 rounded text-[#E0A7C2] hover:bg-[#8B4564]/40 transition-colors"
+                    className="p-1 px-2.5 bg-[#722f37]/20 rounded-md text-white hover:bg-[#722f37]/40 transition-colors"
                   >
                     <Check size={12} />
                   </button>
@@ -161,17 +161,17 @@ export function VoiceNoteSection({
               ) : (
                 <div className="flex items-center gap-1 min-w-0">
                   <span 
-                    className="text-xs font-semibold text-gray-300 truncate cursor-pointer hover:text-white transition-colors"
+                    className="text-[11px] font-bold text-gray-400 uppercase tracking-widest truncate cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleMinimize(idx)}
                   >
-                    {note.label || `Voice Note ${notes.length > 1 ? `#${idx + 1}` : ''}`}
+                    {note.label || `Legal Record ${notes.length > 1 ? `#${idx + 1}` : ''}`}
                   </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStartRename(idx, note.label || `Voice Note #${idx + 1}`);
                     }}
-                    className="p-1 text-gray-500 hover:text-[#E0A7C2] transition-all opacity-0 group-hover:opacity-100"
+                    className="p-1 text-gray-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
                     title="Rename Recording"
                   >
                     <Edit2 size={11} />
@@ -183,7 +183,7 @@ export function VoiceNoteSection({
             <div className="flex items-center gap-1 flex-shrink-0">
               {confirmDeleteIdx === idx ? (
                 <div className="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 animate-in fade-in slide-in-from-right-1">
-                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Delete?</span>
+                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">Discard?</span>
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleDelete(idx)}
@@ -203,7 +203,7 @@ export function VoiceNoteSection({
                 <div className="flex items-center">
                   <button
                     title="Download recording"
-                    className="p-1.5 text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/10 rounded-lg transition-all"
+                    className="p-1.5 text-gray-600 hover:text-white hover:bg-[#722f37]/10 rounded-lg transition-all"
                     onClick={() => {
                         const downloadUrl = (typeof note.url === 'string' && note.url.startsWith('blob:')) 
                             ? note.url 
@@ -218,7 +218,7 @@ export function VoiceNoteSection({
                   </button>
                   <button
                     title="Delete recording"
-                    className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                    className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                     onClick={() => setConfirmDeleteIdx(idx)}
                   >
                     <Trash2 size={13} />
@@ -243,7 +243,7 @@ export function VoiceNoteSection({
                       controls 
                       src={note.s3_key ? `https://da6hq15h0otl9.cloudfront.net/${note.s3_key}` : note.url} 
                       controlsList="nodownload"
-                      className="h-9 w-full custom-audio-player" 
+                      className="h-9 w-full custom-audio-player opacity-80 hover:opacity-100 transition-opacity" 
                     />
                   )}
                 </div>
@@ -253,28 +253,20 @@ export function VoiceNoteSection({
         </div>
       ))}
 
-      {/* Recording indicator / controls */}
-      {isRecording ? (
-        <div className="flex items-center gap-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+      {isRecording && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-red-500/10 border border-red-500/30 rounded-xl shadow-inner">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
           </span>
-          <span className="text-xs font-mono font-semibold text-red-400">REC {formatTime(recordingTime)}</span>
+          <span className="text-[10px] font-bold text-red-400 uppercase tracking-[0.2em]">RECORDING: {formatTime(recordingTime)}</span>
           <button
             onClick={onStopRecording}
-            className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 rounded-md text-xs font-semibold text-red-400 hover:text-white transition-colors"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 rounded-lg text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-white transition-colors"
           >
-            <Square size={10} className="fill-red-400" /> Stop
+            <Square size={10} className="fill-red-400" /> Stop Record
           </button>
         </div>
-      ) : (
-        <button
-          onClick={onStartRecording}
-          className="flex items-center gap-2 px-3 py-2 bg-[#8B4564]/10 hover:bg-[#8B4564]/25 border border-[#8B4564]/30 rounded-lg text-xs font-semibold text-[#E0A7C2] hover:text-white transition-colors w-fit"
-        >
-          <Mic size={13} /> Record Audio Note
-        </button>
       )}
     </div>
   );

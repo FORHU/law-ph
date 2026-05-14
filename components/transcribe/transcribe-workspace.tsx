@@ -30,7 +30,7 @@ const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string; 
 
   return (
     <div className="flex flex-col mb-1">
-      <div className="text-[10px] font-bold text-[#ffb2b8]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
+      <div className="text-[10px] font-bold text-[#e9c176]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
         Voice Identity
       </div>
       {isEditing ? (
@@ -56,10 +56,10 @@ const InlineSpeakerLabel = ({ originalName, onUpdate }: { originalName: string; 
           className="group cursor-pointer flex items-center gap-2 bg-[#722f37]/10 hover:bg-[#722f37]/20 border border-[#722f37]/20 hover:border-[#722f37]/40 px-3 py-1.5 rounded-xl transition-all duration-300"
           title="Click to rename"
         >
-          <span className="text-xs font-bold text-[#ffb2b8] tracking-wide truncate max-w-[120px]">
+          <span className="text-xs font-bold text-[#e9c176] tracking-wide truncate max-w-[120px]">
             {originalName.toUpperCase()}
           </span>
-          <PenTool size={10} className="text-[#ffb2b8]/40 group-hover:text-[#ffb2b8] transition-colors" />
+          <PenTool size={10} className="text-[#e9c176]/40 group-hover:text-[#e9c176] transition-colors" />
         </div>
       )}
     </div>
@@ -472,8 +472,8 @@ export default function TranscribeWorkspace({
       if (isFirst) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#111';
         ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW / 2, 100);
-        ctx.font = 'bold 44px serif'; ctx.fillText('ILOVELAWYER CASE INTELLIGENCE SYSTEM', CW / 2, 160);
-        ctx.font = '36px serif'; ctx.fillText('STRATEGIC LEGAL HUB', CW / 2, 210);
+        ctx.font = 'bold 44px serif'; ctx.fillText('INSTITUTIONAL CASE INTELLIGENCE SYSTEM', CW / 2, 160);
+        ctx.font = '36px serif'; ctx.fillText('SOVEREIGN LEGAL HUB', CW / 2, 210);
 
         ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(300, 250); ctx.lineTo(CW - 300, 250); ctx.stroke();
@@ -733,7 +733,7 @@ export default function TranscribeWorkspace({
         <div className="flex-1 overflow-y-auto p-8 md:p-12 pr-12 md:pr-24 relative custom-sidebar-scrollbar">
           {!transcript && !isRecording && !isPolling && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-              <div className="w-20 h-20 bg-[#722f37]/20 rounded-3xl flex items-center justify-center mb-8 text-[#ffb2b8] shadow-sm border border-[#722f37]/30">
+              <div className="w-20 h-20 bg-[#722f37]/20 rounded-3xl flex items-center justify-center mb-8 text-[#e9c176] shadow-sm border border-[#722f37]/30">
                 <Mic size={40} strokeWidth={1.5} />
               </div>
               <h1 className="text-4xl font-serif text-white mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
@@ -783,7 +783,7 @@ export default function TranscribeWorkspace({
           {(isUploading || uploadStatus) && (
             <div className="absolute inset-0 z-50 bg-[#1A1A1A]/90 backdrop-blur-md flex flex-col items-center justify-center text-center px-4 rounded-tl-2xl rounded-bl-2xl">
               <div className="mb-4">
-                {isUploading ? <Loader2 size={48} className="animate-spin text-[#ffb2b8]" /> : <CheckCircle size={48} className="text-emerald-400" />}
+                {isUploading ? <Loader2 size={48} className="animate-spin text-[#e9c176]" /> : <CheckCircle size={48} className="text-emerald-400" />}
               </div>
               <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Success'}</h2>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">{uploadStatus || 'Preparing your transcription'}</p>
@@ -794,18 +794,18 @@ export default function TranscribeWorkspace({
             <div className="max-w-4xl mx-auto py-4">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 md:mb-12 gap-6 md:gap-0">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-[#8B4564]/20 rounded-2xl text-[#E0A7C2] border border-[#8B4564]/30">
+                  <div className="p-3 bg-[#722f37]/20 rounded-2xl text-[#e9c176] border border-[#722f37]/30">
                     <FileAudio size={24} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">Transcription Session</h2>
-                    <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-sm text-gray-400 font-medium mt-0.5">
+                    <h2 className="text-2xl font-serif text-white tracking-tight">Transcription Workspace</h2>
+                    <div className="flex flex-wrap items-center gap-y-1 gap-x-2 text-[10px] font-bold text-[#e9c176]/60 uppercase tracking-[0.2em] mt-0.5">
                       <div className="flex items-center gap-1.5">
-                        <Clock size={14} />
+                        <Clock size={12} />
                         {isRecording ? formatTimelineTime(duration) : formatTimelineTime(totalDuration)}
                       </div>
                       <span className="hidden sm:inline mx-1 opacity-40">•</span>
-                      <span className="text-gray-500">AI Engine: AWS Transcribe</span>
+                      <span className="opacity-80">AI Engine: AWS Transcribe</span>
                     </div>
                   </div>
                 </div>
@@ -813,28 +813,28 @@ export default function TranscribeWorkspace({
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <button
                     onClick={resetWorkspace}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-semibold transition-colors border border-white/10"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-colors border border-white/10"
                   >
-                    <Plus size={18} /> <span className="text-sm">New</span>
+                    <Plus size={16} /> <span className="text-sm">New</span>
                   </button>
                   <button
                     onClick={exportToPDF}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all border text-[#E0A7C2] bg-[#8B4564]/20 hover:bg-[#8B4564]/30 border-[#8B4564]/30 whitespace-nowrap"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all border text-[#e9c176] bg-[#722f37]/20 hover:bg-[#722f37]/30 border-[#722f37]/30 whitespace-nowrap shadow-lg shadow-black/20"
                   >
-                    <ExternalLink size={18} /> <span className="text-sm">Download PDF</span>
+                    <ExternalLink size={16} /> <span className="text-sm">Download PDF</span>
                   </button>
                 </div>
               </div>
 
               {isPolling && (
-                <div className="mb-12 p-8 bg-[#8B4564]/10 rounded-3xl border border-[#8B4564]/20 flex items-center gap-6">
+                <div className="mb-12 p-8 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20 flex items-center gap-6 shadow-2xl">
                   <div className="relative">
-                    <div className="w-12 h-12 border-4 border-[#8B4564]/30 border-t-[#E0A7C2] rounded-full animate-spin"></div>
-                    <Loader2 className="absolute inset-0 m-auto text-[#E0A7C2]" size={20} />
+                    <div className="w-12 h-12 border-4 border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin"></div>
+                    <Loader2 className="absolute inset-0 m-auto text-[#e9c176]" size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white">AI is transcribing...</h3>
-                    <p className="text-[#E0A7C2] text-sm font-medium opacity-80 mt-1">Sit tight! We're processing your audio with high precision speaker diarization.</p>
+                    <h3 className="text-xl font-serif text-white mb-1">AI Intelligence at work...</h3>
+                    <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with high precision speaker diarization.</p>
                   </div>
                 </div>
               )}
@@ -903,11 +903,11 @@ export default function TranscribeWorkspace({
                   transcript.split('\n\n').map((paragraph, idx) => (
                     <div key={idx} className="group flex flex-col md:flex-row gap-4 md:gap-10 items-start hover:bg-white/[0.02] p-4 md:-mx-4 rounded-2xl transition-colors">
                       <div className="w-full md:w-36 flex-shrink-0 flex flex-col items-start pt-1">
-                        <div className="text-[10px] font-bold text-[#E0A7C2]/60 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
+                        <div className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] mb-1.5 pl-0.5">
                           Voice Identity
                         </div>
-                        <div className="bg-[#8B4564]/10 border border-[#8B4564]/20 px-3 py-1.5 rounded-xl text-xs font-bold text-[#E0A7C2] tracking-wide">
-                          PRIMARY VOICE
+                        <div className="bg-[#722f37]/10 border border-[#722f37]/20 px-3 py-1.5 rounded-xl text-[10px] font-bold text-[#e9c176] uppercase tracking-widest">
+                          Primary Voice
                         </div>
                         <div className="text-[10px] font-medium text-gray-500 font-mono pl-1 mt-1 tracking-wider opacity-60">
                           {formatTimelineTime((displayTotalDuration / Math.max(1, transcript.split('\n\n').length)) * idx)}
@@ -937,7 +937,7 @@ export default function TranscribeWorkspace({
             </div>
             <button
               onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-              className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-[#8B4564] text-white' : 'bg-white/5 border border-white/10 text-gray-400'}`}
+              className={`p-2 rounded-lg transition-all ${isHistoryOpen ? 'bg-[#722f37] text-white' : 'bg-white/5 border border-white/10 text-gray-400'}`}
             >
               <History size={16} />
             </button>
@@ -946,7 +946,7 @@ export default function TranscribeWorkspace({
           {/* Controls Bar */}
           <div className="flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 md:h-20 border-b border-white/5 relative gap-6 md:gap-0">
             {/* Desktop-only backdrop */}
-            <div className="absolute inset-0 bg-[#8B4564]/5 pointer-events-none hidden md:block" />
+            <div className="absolute inset-0 bg-[#722f37]/5 pointer-events-none hidden md:block" />
 
             {/* Time Display */}
             <div className="flex items-center gap-3 z-10 w-full md:w-auto justify-between md:justify-start">
@@ -961,7 +961,7 @@ export default function TranscribeWorkspace({
 
               <button
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${isHistoryOpen ? 'bg-[#8B4564] text-white border-[#8B4564]' : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400'}`}
+                className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${isHistoryOpen ? 'bg-[#722f37] text-white border-[#722f37]' : 'bg-white/5 hover:bg-white/10 border-white/10 text-gray-400'}`}
               >
                 <History size={14} /> <span className="text-[10px] font-bold uppercase tracking-wider">History</span>
               </button>
@@ -1001,7 +1001,7 @@ export default function TranscribeWorkspace({
                 onClick={toggleRecording}
                 className={`group relative w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all ${isRecording
                   ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'
-                  : 'bg-[#8B4564]/20 text-[#E0A7C2] border border-[#8B4564]/30 hover:bg-[#8B4564]/30'
+                  : 'bg-[#722f37]/20 text-[#e9c176] border border-[#722f37]/30 hover:bg-[#722f37]/30'
                   }`}
               >
                 {isRecording ? <Square size={24} fill="currentColor" /> : <Mic size={24} />}
@@ -1069,19 +1069,19 @@ export default function TranscribeWorkspace({
                     const isPlayed = !isRecording && timeAtBar <= currentTime;
                     const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
 
-                    return (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
-                          ? 'bg-[#E0A7C2] shadow-[0_0_8px_rgba(224,167,194,0.3)]'
-                          : 'bg-white/10'
-                          }`}
-                        style={{
-                          height: `${Math.max(4, peakHeight).toFixed(2)}%`,
-                          opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
-                        }}
-                      />
-                    );
+                      return (
+                        <div
+                          key={i}
+                          className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
+                            ? 'bg-[#e9c176] shadow-[0_0_8px_rgba(233,193,118,0.3)]'
+                            : 'bg-white/10'
+                            }`}
+                          style={{
+                            height: `${Math.max(4, peakHeight).toFixed(2)}%`,
+                            opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
+                          }}
+                        />
+                      );
                   });
                 })()}
               </div>
@@ -1090,12 +1090,12 @@ export default function TranscribeWorkspace({
             {/* Scrubber Line */}
             {!isRecording && audioUrl && (
               <div
-                className="absolute top-0 bottom-0 w-[2px] bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)] z-30 pointer-events-none"
+                className="absolute top-0 bottom-0 w-[2px] bg-[#e9c176] shadow-[0_0_15px_rgba(233,193,118,0.5)] z-30 pointer-events-none"
                 style={{
                   left: `${(currentTime / displayTotalDuration) * 100}%`
                 }}
               >
-                <div className="w-4 h-4 rounded-full bg-white absolute top-0 -left-[7px] shadow-lg border-4 border-[#111]" />
+                <div className="w-4 h-4 rounded-full bg-[#e9c176] absolute top-0 -left-[7px] shadow-lg border-4 border-[#0B0B0C]" />
               </div>
             )}
 
@@ -1119,17 +1119,17 @@ export default function TranscribeWorkspace({
         <div className="fixed md:relative inset-0 md:inset-auto z-[60] flex justify-end md:flex-none overflow-hidden">
           {/* Backdrop (Mobile Only) */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in duration-300"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md md:hidden animate-in fade-in duration-300"
             onClick={() => setIsHistoryOpen(false)}
           />
 
-          <div className="w-[85%] md:w-80 h-full bg-[#111111]/95 backdrop-blur-2xl border-l border-white/10 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div className="w-[85%] md:w-80 h-full bg-[#0B0B0C]/95 backdrop-blur-2xl border-l border-[#722f37]/30 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
+            <div className="p-6 border-b border-[#722f37]/20 flex items-center justify-between bg-white/[0.02]">
               <div className="flex flex-col">
-                <h3 className="font-bold text-white flex items-center gap-2 tracking-tight">
-                  <History size={18} className="text-[#E0A7C2]" /> Session History
+                <h3 className="font-serif text-lg text-white flex items-center gap-2 tracking-tight">
+                  <History size={18} className="text-[#e9c176]" /> History
                 </h3>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Recently Transcribed</p>
+                <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] mt-1">Session Archives</p>
               </div>
               <button
                 onClick={() => setIsHistoryOpen(false)}
@@ -1166,7 +1166,7 @@ export default function TranscribeWorkspace({
                           startPolling(item.id, item.job_name);
                         }
                       }}
-                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#8B4564] text-white border-[#8B4564] shadow-lg shadow-[#8B4564]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
+                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 min-w-0">
@@ -1187,9 +1187,9 @@ export default function TranscribeWorkspace({
                       </div>
 
                       {item.transcript === "Transcription in progress..." && (
-                        <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#E0A7C2]'}`}>
+                        <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#e9c176]'}`}>
                           <Loader2 size={10} className="animate-spin" />
-                          <span className="uppercase tracking-widest">Processing...</span>
+                          <span className="uppercase tracking-[0.2em]">Ratifying Record...</span>
                         </div>
                       )}
                     </button>
@@ -1201,7 +1201,7 @@ export default function TranscribeWorkspace({
             <div className="p-6 bg-[#111111] border-t border-white/5">
               <button
                 onClick={resetWorkspace}
-                className="w-full flex items-center justify-center gap-3 py-4 bg-[#8B4564] hover:bg-[#8B4564]/90 text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-xl shadow-[#8B4564]/10"
+                className="w-full flex items-center justify-center gap-3 py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-xl shadow-[#722f37]/10 uppercase tracking-[0.2em] text-[11px]"
               >
                 <Plus size={20} /> <span className="tracking-tight text-sm">Start New Session</span>
               </button>
@@ -1232,7 +1232,7 @@ export default function TranscribeWorkspace({
               </button>
               <button
                 onClick={confirmOverwriteAndRecord}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-[#8B4564] hover:bg-[#8B4564]/80 text-white shadow-lg shadow-[#8B4564]/20 transition-all active:scale-[0.98] flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl text-[10px] font-bold bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-lg shadow-[#722f37]/20 transition-all active:scale-[0.98] flex items-center gap-2 uppercase tracking-widest"
               >
                 <Mic size={16} /> Record Over
               </button>

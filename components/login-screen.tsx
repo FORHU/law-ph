@@ -36,7 +36,7 @@ const LoginScreen = () => {
       });
 
       if (signInError) throw signInError;
-      
+
       router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message || 'An error occurred during sign in');
@@ -48,14 +48,14 @@ const LoginScreen = () => {
   return (
     <AuthLayout maxWidth="max-w-xl">
       <AuthCard>
-        <AuthHeader 
+        <AuthHeader
           icon={Lock}
           title="Secure Sign In"
           description="Access your legal AI consultation platform"
         />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <AuthInput 
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <AuthInput
             id="email"
             label="Email Address"
             type="email"
@@ -65,7 +65,7 @@ const LoginScreen = () => {
             required
           />
 
-          <AuthInput 
+          <AuthInput
             id="password"
             label="Password"
             type="password"
@@ -96,20 +96,18 @@ const LoginScreen = () => {
           </div>
 
           <AuthButton isLoading={isLoading} loadingText="Verifying Credentials...">
-            Sign In to ilovelawyer
+            Log In to ilovelawyer
           </AuthButton>
         </form>
 
-        <div className="relative my-10">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-white/5" />
           </div>
-          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-[0.2em]">
-            <span className="bg-[#131314] px-4 text-white/20">Institutional Access</span>
-          </div>
+
         </div>
 
-        <div className="mb-8">
+        <div>
           <GoogleLoginButton />
         </div>
 

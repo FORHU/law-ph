@@ -58,18 +58,19 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
 
   return (
     <>
-      <div className="flex min-h-full flex-col justify-center px-6  lg:px-8">
+      <div className="flex min-h-full flex-col justify-center px-6 lg:px-8 py-10">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <h2 className="mt-10 text-center text-xl font-bold tracking-tight text-white">Sign in via email</h2>
+          <h2 className="mt-10 text-center text-2xl font-serif tracking-tight text-white uppercase letter-spacing-[0.1em]">Institutional Access</h2>
+          <p className="mt-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Authorize your credentials</p>
         </div>
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-          <form onSubmit={signInWithEmail} className="space-y-6">
+        <div className="mt-12 sm:mx-auto sm:w-full sm:max-w-sm">
+          <form onSubmit={signInWithEmail} className="space-y-8">
             <div>
-              <label htmlFor="email" className="block text-start text-sm/6 font-medium text-gray-100">
-                Email address
+              <label htmlFor="email" className="block text-start text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Official Identifier
               </label>
-              <div className="mt-2">
+              <div className="mt-2.5">
                 <input
                   id="email"
                   name="email"
@@ -78,23 +79,24 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                  placeholder="name@institutional.legal"
+                  className="block w-full rounded-xl bg-[#0B0B0C] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all outline-none"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm/6 font-medium text-gray-100">
-                  Password
+                <label htmlFor="password" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Security Passphrase
                 </label>
-                <div className="text-sm">
-                  <a href="/auth/forgot-password" className="font-semibold text-indigo-400 hover:text-indigo-300">
-                    Forgot password?
+                <div className="text-[10px]">
+                  <a href="/auth/forgot-password" className="font-bold text-[#e9c176] hover:text-white uppercase tracking-widest transition-colors">
+                    Reset Access
                   </a>
                 </div>
               </div>
-              <div className="mt-2">
+              <div className="mt-2.5">
                 <input
                   id="password"
                   name="password"
@@ -103,29 +105,43 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                  placeholder="••••••••"
+                  className="block w-full rounded-xl bg-[#0B0B0C] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all outline-none"
                 />
               </div>
             </div>
 
-            <div>
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={loading || success}
-                
-                className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                className="flex w-full justify-center items-center gap-3 rounded-xl bg-[#722f37] hover:bg-[#8b3a44] px-6 py-4 text-[11px] font-bold text-white uppercase tracking-[0.2em] transition-all shadow-xl shadow-[#722f37]/20 active:scale-95 disabled:opacity-50"
               >
-                 
-                {(loading || success) ? (<div className="flex items-center gap-3"><span className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></span> <span>Signing in..</span> </div>)  : "Sign in" }
-
+                {(loading || success) ? (
+                  <div className="flex items-center gap-3">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    <span>Authorizing...</span>
+                  </div>
+                ) : "Authenticate Access"}
               </button>
-              { error && (<p className="text-red-500 text-xs mt-2">{error}</p>)}
-              { success && (<p className="text-green-500 text-xs mt-2">Login successful. Redirecting...</p>)}
+              
+              {error && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center">{error}</p>
+                </div>
+              )}
+              
+              {success && (
+                <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                  <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest text-center">Ratification Successful. Redirecting...</p>
+                </div>
+              )}
             </div>
 
-            <div className="text-sm flex gap-1 items-center justify-center"> 
-              <p>No account yet?</p> <a href="/auth/sign-up" className="font-semibold text-indigo-400 hover:text-indigo-300">Signup</a>
-                </div>
+            <div className="pt-4 text-center"> 
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest inline-block mr-2">No institutional record?</p>
+              <a href="/auth/sign-up" className="text-[10px] font-bold text-[#e9c176] hover:text-white uppercase tracking-[0.2em] transition-colors">Enlist Now</a>
+            </div>
           </form>
         </div>
       </div>

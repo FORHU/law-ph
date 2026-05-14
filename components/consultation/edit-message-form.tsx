@@ -18,17 +18,17 @@ export function EditMessageForm({
       <textarea
          id="edit-message-textarea"
          name="edit-message-content"
-         className="w-full bg-black/40 border border-[#8B4564]/50 rounded-lg p-3 text-white focus:outline-none focus:ring-1 focus:ring-[#8B4564] min-h-[150px] resize-y custom-sidebar-scrollbar whitespace-pre-wrap"
+         className="w-full bg-black/40 border border-[#722f37]/50 rounded-xl p-4 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-[#722f37] min-h-[150px] resize-y custom-sidebar-scrollbar whitespace-pre-wrap leading-relaxed shadow-inner"
          value={text}
          onChange={(e) => setText(e.target.value)}
          placeholder="Edit your message..."
          autoFocus
       />
-      <div className="flex justify-end gap-2 mt-1">
+      <div className="flex justify-end gap-3 mt-4">
         <button 
            type="button"
            onClick={onCancel}
-           className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white transition-colors"
+           className="px-5 py-2 text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-widest"
         >
           Cancel
         </button>
@@ -39,9 +39,9 @@ export function EditMessageForm({
                 onSave(text);
               }
            }}
-           className="px-4 py-1.5 text-xs font-semibold bg-[#8B4564] text-white rounded-md hover:bg-[#A35276] transition-colors shadow-lg shadow-[#8B4564]/20"
+           className="px-6 py-2 text-[10px] font-bold bg-[#722f37] text-white rounded-xl hover:bg-[#8b3a44] transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest"
         >
-          Send
+          Commit Changes
         </button>
       </div>
     </div>

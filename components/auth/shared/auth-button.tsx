@@ -29,7 +29,7 @@ export function AuthButton({
       type={type}
       disabled={disabled || isLoading}
       onClick={onClick}
-      className={`w-full bg-[#722f37] hover:bg-[#8a3c46] text-white py-5 rounded-2xl font-bold text-lg transition-all shadow-xl hover:shadow-[#722f37]/20 disabled:opacity-70 disabled:cursor-not-allowed ${className}`}
+      className={`w-full bg-[#722f37] hover:bg-[#8a3c46] text-white py-4 rounded-xl font-bold text-base transition-all shadow-xl hover:shadow-[#722f37]/20 disabled:opacity-70 disabled:cursor-not-allowed ${className}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay }}

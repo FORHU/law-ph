@@ -88,30 +88,37 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative"
+            className="bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-[#E0A7C2]" />
-                  Case Invite Link
-                </h2>
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
+                    <UserPlus className="w-5 h-5 text-[#e9c176]" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-serif text-white tracking-tight">Institutional <span className="text-[#e9c176] italic">Invite</span></h2>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Secure Collaboration Access</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                  className="p-2 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-all border border-transparent hover:border-white/10"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <p className="text-sm text-gray-400 mb-6">
-                Share this link to invite others to this case. They will be able to view the history and participate.
+              <p className="text-[12px] text-gray-400 mb-8 leading-relaxed font-medium">
+                Distribute this institutional link to authorize third-party participation. All sessions are ratified and recorded.
               </p>
 
               {isGenerating ? (
-                <div className="flex flex-col items-center justify-center py-6 gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#E0A7C2]" />
-                  <p className="text-sm text-gray-400">Generating secure link...</p>
+                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#e9c176]" />
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">Ratifying Secure Token...</p>
                 </div>
               ) : error ? (
                 <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg text-sm text-red-200">
@@ -128,7 +135,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                     />
                     <button
                       onClick={handleCopy}
-                      className="p-2 shrink-0 bg-[#8B4564]/20 hover:bg-[#8B4564]/40 text-[#E0A7C2] rounded-md transition-colors flex items-center justify-center w-10 h-10"
+                      className="p-2 shrink-0 bg-[#722f37]/20 hover:bg-[#722f37]/40 text-[#e9c176] rounded-md transition-colors flex items-center justify-center w-10 h-10 border border-[#722f37]/30"
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
@@ -154,7 +161,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
           setIsOpen(true);
           if (!inviteLink) handleGenerateLink();
         }}
-        className="text-[#E0A7C2] hover:text-white flex items-center gap-1.5 transition-colors text-xs font-semibold px-3 py-1.5 bg-[#8B4564]/20 hover:bg-[#8B4564]/50 border border-[#8B4564]/30 rounded-full"
+        className="text-[#e9c176] hover:text-white flex items-center gap-1.5 transition-colors text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/50 border border-[#722f37]/30 rounded-full"
       >
         <UserPlus size={13} /> Case Invite
       </button>

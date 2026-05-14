@@ -33,24 +33,24 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
         onClose();
         router.push(`/cases/${caseItem.id}`);
       }}
-      className="group p-4 bg-black/30 border border-[#8B4564]/20 rounded-xl hover:border-[#8B4564]/40 transition-all cursor-pointer"
+      className="group p-4 bg-black/40 border border-[#722f37]/20 rounded-xl hover:border-white/10 transition-all cursor-pointer shadow-lg"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white text-sm truncate">{caseItem.case_name}</h3>
+          <h3 className="font-serif text-[15px] text-white truncate tracking-tight">{caseItem.case_name}</h3>
           {caseItem.party_involved && (
-            <div className="flex items-center gap-1.5 mt-1 text-[12px] text-gray-400">
-              <Users size={11} />
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+              <Users size={10} />
               <span className="truncate">{caseItem.party_involved}</span>
             </div>
           )}
           {caseItem.notes && (
-            <div className="flex items-start gap-1.5 mt-2 text-[12px] text-gray-500">
-              <FileText size={11} className="flex-shrink-0 mt-0.5" />
-              <p className="line-clamp-2 leading-relaxed">{caseItem.notes}</p>
+            <div className="flex items-start gap-1.5 mt-2 text-[12px] text-gray-400">
+              <FileText size={11} className="flex-shrink-0 mt-0.5 opacity-50" />
+              <p className="line-clamp-2 leading-relaxed italic opacity-80">{caseItem.notes}</p>
             </div>
           )}
-          <p className="mt-2 text-[11px] text-gray-600">
+          <p className="mt-2 text-[10px] font-bold text-gray-600 uppercase tracking-tighter">
             {caseItem.created_at ? new Date(caseItem.created_at).toLocaleDateString('en-US', {
               month: 'short', day: 'numeric', year: 'numeric'
             }) : ''}
@@ -118,23 +118,23 @@ export function ViewCasesModal({ isOpen, onClose }: ViewCasesModalProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#1A1A1A] border border-[#8B4564]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-2xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
               {/* Header */}
-              <div className="p-5 border-b border-[#8B4564]/20 flex items-center justify-between flex-shrink-0">
+              <div className="p-5 border-b border-[#722f37]/20 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-[#8B4564]/20 rounded-lg text-[#E0A7C2]">
+                  <div className="p-2 bg-[#722f37]/20 rounded-lg text-gray-400">
                     <Briefcase size={18} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-white">My Cases</h2>
-                    <p className="text-[12px] text-gray-500">{cases.length} case{cases.length !== 1 ? 's' : ''} found</p>
+                    <h2 className="text-xl font-serif text-white tracking-tight">My Cases</h2>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">{cases.length} case{cases.length !== 1 ? 's' : ''} found</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="p-2 text-gray-500 hover:text-white transition-colors">
@@ -143,14 +143,14 @@ export function ViewCasesModal({ isOpen, onClose }: ViewCasesModalProps) {
               </div>
 
               {/* Cases list */}
-              <div className="overflow-y-auto flex-1 p-4 space-y-3">
+              <div className="overflow-y-auto flex-1 p-4 space-y-3 custom-scrollbar">
                 {cases.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="p-4 bg-[#8B4564]/10 rounded-2xl mb-3">
-                      <Briefcase size={28} className="text-[#8B4564]" />
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="p-6 bg-[#722f37]/10 rounded-3xl mb-6">
+                      <Briefcase size={36} className="text-[#722f37]" strokeWidth={1.5} />
                     </div>
-                    <p className="text-sm text-gray-400 font-medium">No cases yet</p>
-                    <p className="text-[12px] text-gray-600 mt-1">Create a case using the "Create Case" button.</p>
+                    <p className="text-lg font-serif text-white mb-2">No cases found.</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Create a new case to begin</p>
                   </div>
                 ) : (
                   cases.map(c => (
@@ -160,14 +160,15 @@ export function ViewCasesModal({ isOpen, onClose }: ViewCasesModalProps) {
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-[#8B4564]/20 flex-shrink-0">
+              <div className="p-4 border-t border-[#722f37]/20 flex-shrink-0">
                 <button
                   onClick={onClose}
-                  className="w-full px-4 py-2.5 border border-[#8B4564]/30 rounded-xl text-gray-400 hover:bg-white/5 transition-all font-medium text-[13px]"
+                  className="w-full px-4 py-2.5 border border-[#722f37]/30 rounded-xl text-gray-400 hover:bg-white/5 transition-all font-bold text-[12px] uppercase tracking-widest"
                 >
                   Close
                 </button>
               </div>
+
             </motion.div>
           </div>
         )}

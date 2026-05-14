@@ -391,9 +391,9 @@ export function ChatInput({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#1A1A1A] border border-[#722f37]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20"
+                    className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#0B0B0C]/80 border border-[#722f37]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20 backdrop-blur-xl"
                   >
-                    <FileText size={16} className="text-[#ffb2b8]" />
+                    <FileText size={16} className="text-[#e9c176]" />
                     <span className="text-xs text-white max-w-[200px] truncate">{selectedFile.name}</span>
                     <button
                       onClick={() => setSelectedFile(null)}
@@ -405,7 +405,7 @@ export function ChatInput({
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center bg-transparent backdrop-blur-sm border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[56px] shadow-none">
+              <div className="flex items-center bg-[#0B0B0C]/40 backdrop-blur-xl border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[56px] shadow-none">
                 <AnimatePresence mode="wait">
                   {!isRecording && status === 'idle' ? (
                     <motion.textarea
@@ -421,7 +421,7 @@ export function ChatInput({
                       onKeyDown={handleKeyDown}
                       placeholder={placeholder}
                       rows={1}
-                      className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-500 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed max-h-[160px] overflow-y-auto font-inter"
+                      className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-600 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed max-h-[160px] overflow-y-auto font-inter"
                       disabled={disabled}
                     />
                   ) : (
@@ -440,12 +440,12 @@ export function ChatInput({
                               height: status === 'listening' ? Math.max(2, (volume / 100) * 24 * (1 - Math.abs(i - 16) / 16)) : 2,
                               opacity: status === 'listening' ? 0.8 : 0.2
                             }}
-                            className="w-1 bg-[#ffb2b8] rounded-full"
+                            className="w-1 bg-[#e9c176] rounded-full"
                             transition={{ type: "spring", stiffness: 300, damping: 25 }}
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] font-black tracking-[0.2em] text-[#ffb2b8] animate-pulse whitespace-nowrap">
+                      <span className="text-[10px] font-black tracking-[0.2em] text-[#e9c176] animate-pulse whitespace-nowrap">
                         {status === 'listening' ? 'RECORDING...' : 'TRANSCRIBING...'}
                       </span>
                     </motion.div>
@@ -470,7 +470,7 @@ export function ChatInput({
                   onClick={() => {
                     fileInputRef.current?.click();
                   }}
-                  className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-white/10"
+                  className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-[#722f37]/20"
 
                   disabled={disabled}
                 >
@@ -487,8 +487,8 @@ export function ChatInput({
                       if (!isAnalyzing) onAnalyzeClick?.();
                     }}
                     className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isAnalyzing
-                      ? 'text-[#ffb2b8] bg-[#722f37]/20 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-[#ffb2b8] hover:bg-[#722f37]/20'
+                      ? 'text-[#e9c176] bg-[#722f37]/20 cursor-not-allowed'
+                      : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'
                       }`}
                     disabled={disabled || isAnalyzing}
                   >
@@ -505,15 +505,15 @@ export function ChatInput({
                 {/* Voice Mode button */}
                 <button
                   type="button"
-                  title={isRecording ? "Stop Recording" : "Voice Mode (Talk to AI)"}
+                  title={isRecording ? "Stop Transmission" : "Solicit Institutional Record (Talk to AI)"}
                   onClick={handleVoiceToggle}
-                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#E0A7C2] hover:bg-[#8B4564]/20'}`}
+                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
                   disabled={disabled || status === 'thinking'}
                 >
                   {isRecording ? (
                     <Square size={16} fill="currentColor" className="md:size-3.5" />
                   ) : status === 'thinking' ? (
-                    <Loader2 size={20} className="animate-spin text-[#E0A7C2] md:size-4" />
+                    <Loader2 size={20} className="animate-spin text-[#e9c176] md:size-4" />
                   ) : (
                     <Mic size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
                   )}

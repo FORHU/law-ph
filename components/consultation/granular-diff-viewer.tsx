@@ -24,7 +24,7 @@ function DiffHighlighter({ children, originalSet }: { children: React.ReactNode,
       return (
         <span
           key={i}
-          className={isNew ? 'text-[#E0A7C2] font-semibold tracking-wide' : ''}
+          className={isNew ? 'text-white font-bold tracking-wide underline decoration-[#e9c176]/30 decoration-2 underline-offset-4' : ''}
         >
           {token}
         </span>
@@ -83,7 +83,7 @@ export function GranularDiffViewer({
         li: ({children}) => <li className="text-gray-200 mb-1 last:mb-0 leading-relaxed">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</li>,
         h1: ({children}) => <h1 className="text-3xl md:text-4xl font-serif font-bold mb-6 mt-8 text-white tracking-tight border-b border-white/5 pb-2">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h1>,
         h2: ({children}) => <h2 className="text-2xl md:text-3xl font-serif font-bold mb-4 mt-7 text-white tracking-tight">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h2>,
-        h3: ({children}) => <h3 className="text-xl md:text-2xl font-serif font-bold mb-3 mt-6 text-[#E0A7C2] tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
+        h3: ({children}) => <h3 className="text-xl md:text-2xl font-serif font-bold mb-3 mt-6 text-white tracking-wide">{hasEdit ? <DiffHighlighter children={children} originalSet={originalSet} /> : children}</h3>,
         blockquote: ({children}) => (
           <blockquote className="border-l-4 border-[#722f37] bg-[#722f37]/5 px-6 py-4 my-6 italic text-gray-300 font-serif leading-relaxed rounded-r-lg relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-[#722f37]/10 to-transparent pointer-events-none" />
@@ -102,7 +102,7 @@ export function GranularDiffViewer({
               href={href}
               target={isSourceLink ? undefined : '_blank'}
               rel={isSourceLink ? undefined : 'noopener noreferrer'}
-              className="text-[#E0A7C2] hover:text-[#F0B7D2] underline font-medium transition-colors cursor-pointer"
+              className="text-white hover:text-[#e9c176] underline decoration-white/20 hover:decoration-[#e9c176]/50 font-bold transition-all cursor-pointer"
               onClick={isSourceLink ? (e: React.MouseEvent) => { 
                 e.preventDefault(); 
                 // Pass the children text as the title if available

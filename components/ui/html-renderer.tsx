@@ -25,7 +25,7 @@ export function HtmlRenderer({ content, className = '' }: HtmlRendererProps) {
         prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-4
         prose-li:text-gray-300 
         prose-strong:text-white
-        prose-a:text-[#E0A7C2] prose-a:no-underline hover:prose-a:underline
+        prose-a:text-[#e9c176] prose-a:no-underline hover:prose-a:underline font-bold
         ${className}`}
       dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
