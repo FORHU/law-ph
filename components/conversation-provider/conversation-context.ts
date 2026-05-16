@@ -2,7 +2,7 @@
 import { createContext, useContext } from 'react';
 import { Conversation, ConsultationSession, CaseData } from '@/types';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
-import { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
+import type { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
 
 export interface Message {
   id: string | number;

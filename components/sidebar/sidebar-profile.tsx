@@ -11,18 +11,17 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Settings, LogOut, SunMoon, User } from 'lucide-react';
 
 export function SidebarProfile() {
-  const { session, supabase } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
-  const user = session?.user;
 
   if (!user) return null;
 
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+  const displayName = user.name || user.username || user.email.split('@')[0] || 'User';
 
   const initials = displayName
     .split(' ')
@@ -30,12 +29,6 @@ export function SidebarProfile() {
     .join('')
     .substring(0, 2)
     .toUpperCase() || 'U';
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
-  };
 
   return (
     <div className={SIDEBAR_STYLES.profileArea}>
@@ -82,7 +75,7 @@ export function SidebarProfile() {
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-[#722f37]/20" />
           <DropdownMenuItem
-            onClick={handleLogout}
+            onClick={logout}
             className="py-3 px-5 focus:bg-red-500/10 focus:text-red-400 text-red-400 cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
             <LogOut className="mr-3 h-4 w-4" />

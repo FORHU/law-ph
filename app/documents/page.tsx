@@ -11,7 +11,6 @@ import { ASSETS } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import { uploadAndAnalyzeDocument } from '@/lib/s3-utils';
 import { useAuth } from '@/components/auth/auth-provider';
-import { createClient } from '@/lib/supabase/client';
 
 interface StoredDocument {
   id: string;
@@ -27,9 +26,8 @@ interface StoredDocument {
 
 export default function Documents() {
   const router = useRouter();
-  const { loggedIn, session } = useAuth();
-  const userId = session?.user?.id;
-  const supabase = createClient();
+  const { loggedIn, user } = useAuth();
+  const userId = user?.id;
   const { isSidebarOpen, setIsSidebarOpen, cases, sendDocumentToChat, recentConsultations, analyzeDocuments } = useConversations();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -40,29 +38,25 @@ export default function Documents() {
   const [caseDropdownOpen, setCaseDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load documents from Supabase (authenticated) or localStorage (guest)
+  // Load documents from API (authenticated) or localStorage (guest)
   useEffect(() => {
     const loadDocuments = async () => {
       if (loggedIn && userId) {
-        const { data, error } = await supabase
-          .from('documents')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-        if (!error && data) {
-          setRecentDocuments(data.map(d => ({
+        const res = await fetch('/api/documents');
+        if (res.ok) {
+          const json = await res.json();
+          setRecentDocuments(json.documents.map((d: any) => ({
             id: d.id,
             name: d.name,
-            timestamp: new Date(d.created_at).getTime(),
-            caseId: d.case_id ?? undefined,
-            caseName: cases.find(c => c.id === d.case_id)?.case_name,
-            aiSummary: d.ai_summary ?? undefined,
-            file_url: d.file_url ?? undefined,
-            s3_key: d.s3_key ?? undefined,
+            timestamp: new Date(d.createdAt).getTime(),
+            caseId: d.caseId ?? undefined,
+            caseName: cases.find((c: any) => c.id === d.caseId)?.case_name,
+            aiSummary: d.aiSummary ?? undefined,
+            file_url: d.fileUrl ?? undefined,
+            s3_key: d.s3Key ?? undefined,
           })));
         }
       } else {
-        // Guest fallback
         const saved = localStorage.getItem('lawph_documents');
         if (saved) {
           try { setRecentDocuments(JSON.parse(saved)); } catch { }
@@ -99,19 +93,20 @@ export default function Documents() {
 
   const handleLinkToChat = async () => {
     if (selectedFiles.length === 0 || !selectedCaseId) return;
-
-    // Redirect immediately to the consultation
     router.push(`/consultation/${selectedCaseId}`);
-
-    // Trigger background upload and linking
     analyzeDocuments(selectedFiles, selectedCaseId);
-
-    // Clear local selection
     setSelectedFiles([]);
     setSelectedCaseId('');
   };
 
-
+  const handleRemoveDocument = async (doc: StoredDocument) => {
+    const updated = recentDocuments.filter(d => d.id !== doc.id);
+    setRecentDocuments(updated);
+    if (!loggedIn || !userId) {
+      localStorage.setItem('lawph_documents', JSON.stringify(updated));
+    }
+    // No delete API for individual documents yet — just remove from UI
+  };
 
   const formatTimeAgo = (ts: number) => {
     const s = Math.floor((Date.now() - ts) / 1000);
@@ -138,15 +133,7 @@ export default function Documents() {
             handleSendToChat(doc, doc.caseId);
           }
         },
-        onRemove: () => {
-          const updated = recentDocuments.filter(d => d.id !== doc.id);
-          setRecentDocuments(updated);
-          if (loggedIn && userId) {
-            supabase.from('documents').delete().eq('id', doc.id);
-          } else {
-            localStorage.setItem('lawph_documents', JSON.stringify(updated));
-          }
-        },
+        onRemove: () => handleRemoveDocument(doc),
       }))}
       maxWidth="max-w-7xl"
       backgroundAngle={2}
@@ -165,7 +152,6 @@ export default function Documents() {
                 <input ref={fileInputRef} type="file" className="hidden"
                   accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
                   multiple
-
                   onChange={(e) => {
                     if (e.target.files?.length) {
                       setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
@@ -216,7 +202,7 @@ export default function Documents() {
                   >
                     <Briefcase size={16} className="text-[#e9c176]/50 mr-3" />
                     <span className="flex-1 truncate font-medium">
-                      {selectedCaseId ? cases.find(c => c.id === selectedCaseId)?.case_name : "Select a case archive..."}
+                      {selectedCaseId ? cases.find((c: any) => c.id === selectedCaseId)?.case_name : "Select a case archive..."}
                     </span>
                     <ChevronDown size={14} className={`text-gray-500 transition-transform duration-300 ${caseDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
@@ -242,7 +228,7 @@ export default function Documents() {
                           {cases.length === 0 ? (
                             <div className="px-4 py-4 text-[11px] font-bold text-gray-600 uppercase tracking-widest text-center">No cases found</div>
                           ) : (
-                            cases.map(c => (
+                            cases.map((c: any) => (
                               <div
                                 key={c.id}
                                 onClick={() => {

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, CheckCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { AUTH_ROUTES } from "@/lib/constants";
 import { AuthLayout } from "./auth/shared/auth-layout";
 import { AuthCard } from "./auth/shared/auth-card";
@@ -25,14 +24,17 @@ export function UpdatePasswordForm() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      
+      const res = await fetch('/api/auth/update-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update password');
+      }
       setIsSubmitted(true);
-      setTimeout(() => {
-        router.push(AUTH_ROUTES.LOGIN);
-      }, 3000);
+      setTimeout(() => { router.push(AUTH_ROUTES.LOGIN); }, 3000);
     } catch (error: any) {
       setError(error.message || "An error occurred during password update");
     } finally {

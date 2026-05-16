@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
@@ -19,14 +18,14 @@ interface LogoutButtonProps {
   onMouseLeave?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-export function LogoutButton({ 
-  className, 
-  variant = "ghost", 
-  children, 
+export function LogoutButton({
+  className,
+  variant = "ghost",
+  children,
   onLogoutSuccess,
   style,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
 }: LogoutButtonProps) {
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -37,27 +36,15 @@ export function LogoutButton({
     setShowConfirm(false);
 
     try {
-      const supabase = createClient();
-      
-      // Perform signOut. If this fails due to a stale token, we still want to clear local state.
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("Supabase signOut error:", error);
-      }
+      await fetch("/api/auth/logout", { method: "POST" });
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // Small delay to show the "Signing out..." overlay for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      if (onLogoutSuccess) {
-        onLogoutSuccess();
-      }
+      if (onLogoutSuccess) onLogoutSuccess();
 
       router.push("/auth/login");
       router.refresh();
     } catch (err) {
-      console.error("Unexpected checkout error:", err);
-      // Fallback: forcefully redirect to login if catastrophic failure
+      console.error("Logout error:", err);
       router.push("/auth/login");
       router.refresh();
     } finally {
@@ -66,8 +53,8 @@ export function LogoutButton({
   };
 
   const trigger = children ? (
-    <button 
-      className={className} 
+    <button
+      className={className}
       onClick={() => setShowConfirm(true)}
       style={style}
       onMouseEnter={onMouseEnter}
@@ -76,9 +63,9 @@ export function LogoutButton({
       {children}
     </button>
   ) : (
-    <Button 
-      variant={variant} 
-      className={className} 
+    <Button
+      variant={variant}
+      className={className}
       onClick={() => setShowConfirm(true)}
       style={style}
       onMouseEnter={onMouseEnter}
@@ -95,17 +82,15 @@ export function LogoutButton({
 
       <AnimatePresence>
         {showConfirm && (
-          <LogoutConfirmationModal 
-            onClose={() => setShowConfirm(false)} 
-            onConfirm={handleLogout} 
+          <LogoutConfirmationModal
+            onClose={() => setShowConfirm(false)}
+            onConfirm={handleLogout}
           />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {isLoggingOut && (
-          <LogoutLoadingOverlay />
-        )}
+        {isLoggingOut && <LogoutLoadingOverlay />}
       </AnimatePresence>
     </>
   );

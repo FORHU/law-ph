@@ -7,7 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CaseInviteButton({ caseId }: { caseId: string }) {
-  const { supabase, session } = useAuth();
+  const { loggedIn } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -20,50 +20,33 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
   }, []);
 
   const handleGenerateLink = async () => {
-    if (!supabase || !session?.user?.id) return;
+    if (!loggedIn) return;
     setIsGenerating(true);
     setError(null);
 
     try {
-      // 1. Check if invite already exists
-      const { data: existing, error: fetchError } = await supabase
-        .from('conversation_invites')
-        .select('*')
-        .eq('conversation_id', caseId)
-        .single();
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: caseId }),
+      });
 
-      let linkToken = existing?.id;
+      if (!res.ok) throw new Error('Failed to create invite');
+      const json = await res.json();
+      const linkToken = json.invite.id;
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      setInviteLink(`${origin}/case-invite/${linkToken}`);
 
-      if (!existing && fetchError?.code === 'PGRST116') {
-        // 2. Generate a new invite
-        const { data: newInvite, error: insertError } = await supabase
-          .from('conversation_invites')
-          .insert({
-            conversation_id: caseId,
-            created_by: session.user.id
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        linkToken = newInvite.id;
-
-        // Automatically inject a system message denoting the group chat was started
-        const displayName = session.user.user_metadata?.full_name || session.user.email || 'You';
-        await supabase.from('messages').insert({
-          conversation_id: caseId,
+      // Inject system message for group chat start
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: caseId,
           role: 'system',
-          content: `${displayName} started the group chat with a group link.`
-        });
-
-      } else if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
-      }
-
-      if (linkToken) {
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        setInviteLink(`${origin}/case-invite/${linkToken}`);
-      }
+          content: 'A group invite link was created for this case.',
+        }),
+      });
     } catch (err: any) {
       console.error("Failed to generate link", err);
       setError("Failed to create invite link. Please try again.");

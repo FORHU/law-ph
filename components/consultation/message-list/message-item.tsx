@@ -91,12 +91,12 @@ export function MessageItem({
       const title = textForTitle.length > 60 ? textForTitle.substring(0, 57) + "..." : textForTitle || "AI Response";
 
       await addBookmark({
-        item_id: message.id.toString(),
+        itemId: message.id.toString(),
         title: title,
-        reference: "AI_RESPONSE", // Special reference for identification
+        reference: "AI_RESPONSE",
         type: 'source',
         url: `/consultation/${message.conversation_id}`,
-        ai_summary: message.text,
+        aiSummary: message.text,
       });
     }
   };

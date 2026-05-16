@@ -26,7 +26,6 @@ import {
 import { AppSidebar } from "./app-sidebar";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
 import { uploadAndAnalyzeDocument, formatS3Url } from "@/lib/s3-utils";
-import { Session } from "@supabase/supabase-js";
 import { Conversation } from "@/types";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -66,7 +65,7 @@ export default function Consultation() {
   const activeConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
-  const { loggedIn, supabase, session } = useAuth();
+  const { loggedIn, user } = useAuth();
 
   useEffect(() => {
     if (!loggedIn) {
@@ -220,12 +219,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      checkAuthStatus(session.user.id)
+    if (user?.id) {
+      checkAuthStatus(user.id)
         .then((status) => setIsGoogleConnected(status.authenticated))
         .catch(() => setIsGoogleConnected(false));
     }
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   console.log(
     "[Consultation] Render. Messages:",
@@ -242,10 +241,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     messages,
     activeCase,
     scrollContainerRef,
-    supabase,
-    userId: session?.user?.id,
-    userEmail: session?.user?.email,
-    userName: session?.user?.user_metadata?.full_name,
+    userId: user?.id,
+    userEmail: user?.email,
+    userName: user?.name ?? undefined,
     isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),

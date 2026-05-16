@@ -1,41 +1,48 @@
-// components/auth-provider.tsx
-'use client';
-import { createClient } from '@/lib/supabase/client';
-import { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { Session, SupabaseClient } from '@supabase/supabase-js';
+"use client";
 
-type AuthContextType = { 
-  loggedIn: boolean; 
-  session: Session | null;
-  supabase: ReturnType<typeof createClient>;
+import { createContext, useContext, useState, useCallback } from "react";
+import type { SessionUser } from "@/lib/auth/session";
+
+type AuthContextType = {
+  loggedIn: boolean;
+  user: SessionUser | null;
+  refetchUser: () => Promise<void>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export default function AuthProvider({
-  initialSession,
+  initialUser,
   children,
 }: {
-  initialSession: Session | null;
+  initialUser: SessionUser | null;
   children: React.ReactNode;
 }) {
-  const [session, setSession] = useState(initialSession);
-  const supabase = useMemo(() => createClient(), []);
+  const [user, setUser] = useState<SessionUser | null>(initialUser);
 
-  const loggedIn = !!session;
-  
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+  const refetchUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const { user } = await res.json();
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    window.location.href = "/auth/login";
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ loggedIn, session, supabase }}>
+    <AuthContext.Provider value={{ loggedIn: !!user, user, refetchUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

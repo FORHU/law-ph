@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Lock, Mail, CheckCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { AUTH_ROUTES } from '@/lib/constants';
 import { AuthLayout } from './auth/shared/auth-layout';
 import { AuthCard } from './auth/shared/auth-card';
@@ -25,13 +24,15 @@ export function ForgotPasswordForm() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.UPDATE_PASSWORD}`,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
-
-      if (resetError) throw resetError;
-
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to send reset email');
+      }
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('Reset password error:', err);

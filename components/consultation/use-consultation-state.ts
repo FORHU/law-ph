@@ -19,10 +19,10 @@ interface UseConsultationStateProps {
   messages: Message[];
   activeCase?: CaseData | null;
   scrollContainerRef: RefObject<HTMLDivElement | null>;
-  supabase?: any;
   userId?: string;
   userEmail?: string;
   userName?: string;
+  providerToken?: string | null;
   isGoogleConnected?: boolean;
   handleSendMessage?: (msg: string, ...args: any[]) => void;
   onTabChange?: (tab: "chat" | "timeline" | "mindmap" | "email" | "schedule" | "document" | "transcribe") => void;
@@ -33,8 +33,8 @@ export function useConsultationState({
   messages,
   activeCase,
   scrollContainerRef,
-  supabase,
   userId,
+  providerToken,
   userEmail,
   userName,
   isGoogleConnected,
@@ -161,22 +161,17 @@ export function useConsultationState({
         const startRange = new Date(checkTime.getTime() - 59 * 60 * 1000).toISOString();
         const endRange = new Date(checkTime.getTime() + 59 * 60 * 1000).toISOString();
 
-        let query = supabase
-          .from("events")
-          .select("id, title, date_time")
-          .eq("user_id", userId)
-          .gte("date_time", startRange)
-          .lte("date_time", endRange)
-          .neq("status", "cancelled");
-
-        if (draftedEventId) {
-          query = query.neq("id", draftedEventId);
-        }
-
-        const { data: conflicts } = await query.limit(1);
+        const params = new URLSearchParams({
+          startRange,
+          endRange,
+          excludeStatus: "cancelled",
+          ...(draftedEventId ? { excludeId: draftedEventId } : {}),
+        });
+        const res = await fetch(`/api/events?${params}`);
+        const { events: conflicts } = res.ok ? await res.json() : { events: [] };
 
         if (conflicts && conflicts.length > 0) {
-          const conflictTime = new Date(conflicts[0].date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const conflictTime = new Date(conflicts[0].dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
           setConflictWarning(`Overlap detected: You already have "${conflicts[0].title}" at ${conflictTime}.`);
         } else {
           setConflictWarning(null);
@@ -214,27 +209,22 @@ export function useConsultationState({
     });
 
     try {
-      // 1. Create as Draft in Supabase (Conflict check is already reactive via useEffect)
-      const { data, error } = await supabase
-        .from("events")
-        .insert({
-          user_id: userId,
-          title: activeCase?.case_name
-            ? activeCase.case_name
-            : consultationTitle
-              ? consultationTitle
-              : `Consultation`,
+      const evtRes = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: activeCase?.case_name || consultationTitle || 'Consultation',
           type: scheduleType.toLowerCase(),
           date_time: new Date(scheduleDateTime).toISOString(),
           client_email: scheduleEmails.join(', '),
           notes: scheduleNotes,
           status: "pending"
         })
-        .select()
-        .single();
+      });
 
-      if (error) throw error;
-      // 3. Status update (No chat interaction as requested)
+      if (!evtRes.ok) throw new Error('Failed to create event');
+      const { event: data } = await evtRes.json();
+
       setDraftedEventId(data.id);
       setScheduleStatus("drafted");
       setIsSchedulePreviewOpen(true);
@@ -259,7 +249,7 @@ export function useConsultationState({
       if (isGoogleConnected) {
         const start = new Date(scheduleDateTime);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        const result = await createCalendarEvent(userId, {
+        const result = await createCalendarEvent(userId ?? '', {
           title: activeCase?.case_name
             ? activeCase.case_name
             : consultationTitle
@@ -269,7 +259,7 @@ export function useConsultationState({
           end_datetime: end.toISOString(),
           description: scheduleNotes,
           client_email: scheduleEmails.join(', ')
-        });
+        }, providerToken);
         if (result.success) {
           if (result.link) googleLink = result.link;
           iCalUID = result.iCalUID;
@@ -279,15 +269,15 @@ export function useConsultationState({
 
       // 2. Update status to pending and save Google data
       const updatePayload: any = { status: "pending", google_link: googleLink };
-      if (googleEventId) {
-        updatePayload.google_event_id = googleEventId;
-      }
-      const { error: updateError } = await supabase
-        .from("events")
-        .update(updatePayload)
-        .eq("id", draftedEventId);
+      if (googleEventId) updatePayload.google_event_id = googleEventId;
 
-      if (updateError) throw new Error(`Database update failed: ${updateError.message}`);
+      const updateRes = await fetch(`/api/events/${draftedEventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload)
+      });
+
+      if (!updateRes.ok) throw new Error('Database update failed');
 
       // 3. Trigger Email API
       const response = await fetch("/api/send-email", {

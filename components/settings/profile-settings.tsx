@@ -20,17 +20,16 @@ const CHAT_WONDER_API = process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || 'http://l
 type GoogleAuthStatus = 'loading' | 'connected' | 'disconnected';
 
 export function ProfileSettings() {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const user = session?.user;
 
   const [googleStatus, setGoogleStatus] = useState<GoogleAuthStatus>('loading');
   const [successBanner, setSuccessBanner] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(false);
 
   const displayName =
-    user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+    user?.name || user?.email?.split('@')[0] || 'User';
 
   const initials = displayName
     .split(' ')
@@ -63,7 +62,7 @@ export function ProfileSettings() {
 
   // On mount: detect ?auth_success=true and check Google status
   useEffect(() => {
-    const authSuccess = searchParams.get('auth_success');
+    const authSuccess = searchParams?.get('auth_success');
     if (authSuccess === 'true') {
       setSuccessBanner(true);
       // Clean the URL without a page reload

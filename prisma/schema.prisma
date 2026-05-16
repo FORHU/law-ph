@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String?
+  name                String?
+  username            String    @unique
+  role                Role      @default(USER)
+  isActive            Boolean   @default(true)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  provider            String?
+  avatarId            String?
+  isEmailVerified     Boolean   @default(false)
+  onboardingCompleted Boolean   @default(false)
+  otpCode             String?
+  otpExpiry           DateTime?
+
+  sessions                 Session[]
+  avatar                   File?                     @relation(fields: [avatarId], references: [id])
+  conversations            Conversation[]
+  cases                    Case[]
+  documents                UserDocument[]
+  bookmarks                Bookmark[]
+  transcriptions           Transcription[]
+  calendarWatchChannels    CalendarWatchChannel[]
+  createdInvites           ConversationInvite[]
+  conversationParticipants ConversationParticipant[]
+  events                   Event[]
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  refreshToken String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model File {
+  id        String    @id @default(uuid())
+  filename  String?
+  fileUrl   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  metaData  Json?
+  users     User[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  invite       ConversationInvite?
+  participants ConversationParticipant[]
+
+  @@index([userId])
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String
+  role           MessageRole
+  content        String      @db.Text
+  imagePreview   String?
+  timestamp      DateTime?
+  createdAt      DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+model Case {
+  id            String   @id @default(uuid())
+  userId        String
+  caseName      String
+  partyInvolved String?
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents UserDocument[]
+
+  @@index([userId])
+}
+
+model UserDocument {
+  id        String   @id @default(uuid())
+  userId    String
+  caseId    String?
+  name      String
+  fileUrl   String?
+  s3Key     String?
+  aiSummary String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case Case? @relation(fields: [caseId], references: [id])
+
+  @@index([userId])
+}
+
+model Bookmark {
+  id        String       @id @default(uuid())
+  userId    String
+  itemId    String
+  title     String
+  reference String?
+  type      BookmarkType
+  url       String?
+  aiSummary String?      @db.Text
+  doctrine  String?      @db.Text
+  facts     String?      @db.Text
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+enum BookmarkType {
+  case
+  source
+}
+
+model ConversationInvite {
+  id             String   @id @default(uuid())
+  conversationId String   @unique
+  createdBy      String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id])
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+}
+
+model CalendarWatchChannel {
+  id         String   @id @default(uuid())
+  channelId  String   @unique
+  resourceId String
+  userId     String
+  expiration BigInt
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transcription {
+  id         String   @id @default(uuid())
+  userId     String
+  title      String?
+  audioUrl   String?
+  transcript String?  @db.Text
+  duration   Float?
+  jobName    String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Event {
+  id             String    @id @default(uuid())
+  userId         String
+  title          String
+  type           String    @default("Meeting")
+  dateTime       DateTime  @map("date_time")
+  clientEmail    String?   @map("client_email")
+  notes          String?   @db.Text
+  status         String    @default("pending")
+  googleLink     String?   @map("google_link")
+  googleEventId  String?   @map("google_event_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([googleEventId, userId], map: "events_google_event_id_user_id_key")
+  @@index([userId])
+  @@map("events")
+}
+
+// Legal RAG tables live in the separate legalrag database.
+// Query them via lib/db-rag.ts (raw SQL with pg Pool) using RAG_DATABASE_URL.

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -118,8 +118,6 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
         // Upload recordings to S3 (with fallback to blob URL on failure)
         if (recordingsSnapshot.length > 0) {
           const { uploadVoiceNote } = await import('@/lib/s3-utils');
-          const { createClient } = await import('@/lib/supabase/client');
-          const supabase = createClient();
 
           const voiceNotes = await Promise.all(recordingsSnapshot.map(async (r, i) => {
             try {
@@ -148,15 +146,13 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
           const meta = { voiceNotes, recordingUrl: voiceNotes[0]?.url, hidden: true };
           const content = `\uD83C\uDF99\uFE0F ${voiceNotes.length} voice recording${voiceNotes.length > 1 ? 's' : ''} attached to this case.\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
           
-          // 'role' is the correct DB column (not 'sender') — matches use-send-message pattern
-          const { error: msgError } = await supabase.from('messages').insert({
-            conversation_id: newCase.id,
-            role: 'user',
-            content,
+          const msgRes = await fetch('/api/chat/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversationId: newCase.id, role: 'user', content }),
           });
-
-          if (msgError) {
-            console.error('[CreateCase] Failed to store recordings in message:', msgError.message);
+          if (!msgRes.ok) {
+            console.error('[CreateCase] Failed to store recordings in message:', msgRes.status);
           }
         }
 

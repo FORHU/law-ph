@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -237,8 +237,8 @@ export default function CalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSidebarOpen, setIsSidebarOpen } = useConversations();
-  const { supabase, session, loggedIn } = useAuth();
-  const userId = session?.user?.id;
+  const { user, loggedIn } = useAuth();
+  const userId = user?.id;
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -475,31 +475,28 @@ export default function CalendarPage() {
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
-  // Fetch events from Supabase
+  // Fetch events from DB
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("user_id", userId)
-        .order("date_time", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching events:", error.message);
+      const res = await fetch("/api/events");
+      if (!res.ok) {
+        console.error("Error fetching events:", res.status);
         setEventsError("Unable to load events. Retrying...");
-        setTimeout(() => fetchEvents(), 3000); // Auto-retry after 3s
-      } else if (data) {
+        setTimeout(() => fetchEvents(), 3000);
+      } else {
+        const json = await res.json();
+        const data = json.events;
         setEventsError(null);
         // Normalize fields for consumption
         const normalized = data.map((e: any) => ({
           ...e,
-          dateTime: e.date_time,
-          clientEmail: e.client_email,
+          date_time: e.dateTime ? new Date(e.dateTime).toISOString() : null,
+          client_email: e.clientEmail,
           status: e.status || "pending",
-          lawyerAcknowledgedAt: e.lawyer_acknowledged_at,
-          lastReminderSentAt: e.last_reminder_sent_at,
+          lawyerAcknowledgedAt: e.lawyerAcknowledgedAt,
+          lastReminderSentAt: e.lastReminderSentAt,
         }));
 
         // Smart merge: if we already have Google-enriched events, keep their extra data
@@ -509,7 +506,7 @@ export default function CalendarPage() {
             if (e.google_event_id) googleMap.set(e.google_event_id, e);
           });
 
-          return normalized.map(sb => {
+          return normalized.map((sb: any) => {
             const ge = sb.google_event_id ? googleMap.get(sb.google_event_id) : null;
             if (ge) {
               return { ...ge, ...sb }; // Prefer DB notes but keep Google metadata
@@ -523,7 +520,7 @@ export default function CalendarPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, supabase]);
+  }, [userId]);
 
   // Load Google Calendar events
   const loadGoogleEvents = useCallback(async (sessId: string) => {
@@ -710,7 +707,7 @@ export default function CalendarPage() {
     if (loggedIn && userId) {
       fetchEvents();
 
-      const authSuccess = searchParams.get("auth_success");
+      const authSuccess = searchParams?.get("auth_success");
       if (authSuccess === "true") {
         router.replace("/calendar", { scroll: false });
       }
@@ -721,30 +718,8 @@ export default function CalendarPage() {
   // ── Realtime Sync ──────────────────────────────────────────────────────────
   // Listen for any INSERT/UPDATE/DELETE on the events table so that events
   // created from the Schedule tab (or anywhere else) appear instantly here.
-  useEffect(() => {
-    if (!userId || !supabase) return;
-
-    const channel = supabase
-      .channel(`calendar-events-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "law_ph",
-          table: "events",
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          // Re-fetch the full list on any change
-          fetchEvents();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, supabase, fetchEvents]);
+  // Real-time sync removed (Supabase realtime not available).
+  // fetchEvents is called on mount and after mutations instead.
 
   // Automatic conflict check for the Calendar Form
   useEffect(() => {
@@ -766,19 +741,16 @@ export default function CalendarPage() {
           checkTime.getTime() + 59 * 60 * 1000,
         ).toISOString();
 
-        let query = supabase
-          .from("events")
-          .select("id, title, date_time")
-          .eq("user_id", userId)
-          .gte("date_time", startRange)
-          .lte("date_time", endRange)
-          .neq("status", "cancelled");
-
-        if (editingEventId) {
-          query = query.neq("id", editingEventId);
-        }
-
-        const { data: conflicts } = await query.limit(1);
+        const conflictParams = new URLSearchParams({
+          startRange,
+          endRange,
+          excludeStatus: "cancelled",
+          limitOne: "true",
+          ...(editingEventId ? { excludeId: editingEventId } : {}),
+        });
+        const conflictRes = await fetch(`/api/events?${conflictParams}`);
+        const conflictJson = conflictRes.ok ? await conflictRes.json() : { events: [] };
+        const conflicts = conflictJson.events;
 
         if (conflicts && conflicts.length > 0) {
           const conflictTime = new Date(
@@ -799,7 +771,7 @@ export default function CalendarPage() {
     }, 200); // 200ms for instant feel
 
     return () => clearTimeout(timer);
-  }, [form.dateTime, userId, editingEventId, panelView, supabase]);
+  }, [form.dateTime, userId, editingEventId, panelView]);
 
   // ── Derived lists ──────────────────────────────────────────────────────────
 
@@ -984,19 +956,16 @@ export default function CalendarPage() {
         checkTime.getTime() + 59 * 60 * 1000,
       ).toISOString();
 
-      let conflictQuery = supabase
-        .from("events")
-        .select("id, title, date_time")
-        .eq("user_id", userId)
-        .gte("date_time", startRange)
-        .lte("date_time", endRange)
-        .neq("status", "cancelled");
-
-      if (editingEventId) {
-        conflictQuery = conflictQuery.neq("id", editingEventId);
-      }
-
-      const { data: conflicts } = await conflictQuery.limit(1);
+      const conflictSaveParams = new URLSearchParams({
+        startRange,
+        endRange,
+        excludeStatus: "cancelled",
+        limitOne: "true",
+        ...(editingEventId ? { excludeId: editingEventId } : {}),
+      });
+      const conflictSaveRes = await fetch(`/api/events?${conflictSaveParams}`);
+      const conflictSaveJson = conflictSaveRes.ok ? await conflictSaveRes.json() : { events: [] };
+      const conflicts = conflictSaveJson.events;
 
       if (conflicts && conflicts.length > 0 && !conflictWarning) {
         const conflictTime = new Date(
@@ -1020,8 +989,8 @@ export default function CalendarPage() {
         status: "pending",
       };
 
-      // 3. Save to Supabase (Update or Insert)
-      let result;
+      // 3. Save to DB (Update or Insert)
+      let savedEvent: any = null;
       const isGoogleId =
         typeof editingEventId === "string" &&
         editingEventId.length > 20 &&
@@ -1029,51 +998,46 @@ export default function CalendarPage() {
 
       if (editingEventId) {
         if (isGoogleId) {
-          // Try to update by google_event_id first - WRAP in try/catch for missing column
           try {
-            result = await supabase
-              .from("events")
-              .update(eventData)
-              .eq("google_event_id", editingEventId)
-              .select()
-              .single();
-
-            if (result.error || !result.data) {
-              // Try insert, but omit the google_event_id if it's likely the cause of failure
-              result = await supabase
-                .from("events")
-                .insert(eventData)
-                .select()
-                .single();
-            }
+            const r = await fetch(`/api/events/by-google-id/${editingEventId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(eventData),
+            });
+            if (!r.ok) throw new Error("google-id update failed");
+            savedEvent = { id: editingEventId, ...eventData };
           } catch (e) {
-            // Total fallback: just insert as a new event if DB is out of sync
-            result = await supabase
-              .from("events")
-              .insert(eventData)
-              .select()
-              .single();
+            const r = await fetch("/api/events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(eventData),
+            });
+            const j = await r.json();
+            savedEvent = j.event;
           }
         } else {
-          result = await supabase
-            .from("events")
-            .update(eventData)
-            .eq("id", editingEventId)
-            .select()
-            .single();
+          await fetch(`/api/events/${editingEventId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(eventData),
+          });
+          savedEvent = { id: editingEventId, ...eventData };
         }
       } else {
-        result = await supabase
-          .from("events")
-          .insert(eventData)
-          .select()
-          .single();
+        const r = await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventData),
+        });
+        if (!r.ok) throw new Error("Failed to create event");
+        const j = await r.json();
+        savedEvent = j.event;
       }
 
-      if (result.error) throw result.error;
+      if (!savedEvent) throw new Error("Event save failed");
 
-      const createdEventId = result.data.id;
-      let gLink = result.data.googleLink || "";
+      const createdEventId = savedEvent.id;
+      let gLink = savedEvent.googleLink || "";
 
       // Auto-send if there's a client email
       if (form.clientEmail) {
@@ -1092,7 +1056,7 @@ export default function CalendarPage() {
           const end = new Date(start.getTime() + 60 * 60 * 1000);
 
           if (!editingEventId) {
-            const gResult = await createCalendarEvent(userId, {
+            const gResult = await createCalendarEvent(userId ?? '', {
               title: form.title,
               start_datetime: start.toISOString(),
               end_datetime: end.toISOString(),
@@ -1114,7 +1078,7 @@ export default function CalendarPage() {
           } else {
             const existingGoogleId = typeof editingEventId === 'string' && editingEventId.length > 20 && !editingEventId.includes('-') ? editingEventId : googleEventId;
             if (existingGoogleId) {
-              const gResult = await updateCalendarEvent(userId, existingGoogleId, {
+              const gResult = await updateCalendarEvent(userId ?? '', existingGoogleId, {
                 title: form.title,
                 start_datetime: start.toISOString(),
                 end_datetime: end.toISOString(),
@@ -1150,8 +1114,8 @@ export default function CalendarPage() {
                 : {}),
             },
             organizer: {
-              name: session?.user?.user_metadata?.full_name || session?.user?.email,
-              email: session?.user?.email,
+              name: user?.name || user?.email,
+              email: user?.email,
             },
           }),
         });
@@ -1164,33 +1128,11 @@ export default function CalendarPage() {
 
           // Update DB with Google IDs - SILENT FAIL if columns are missing
           try {
-            const { error: finalError } = await supabase
-              .from("events")
-              .update(updatePayload)
-              .eq("id", createdEventId);
-
-            if (finalError) {
-              console.warn(
-                "[Calendar] DB update skip (missing columns?):",
-                finalError.message,
-              );
-            }
-
-            // CLEANUP REDUNDANCY: If we have a google_event_id, make sure NO OTHER 
-            // record in our DB exists for this ID. This removes "residue" from 
-            // failed syncs or duplicate inserts during rescheduling.
-            if (googleEventId) {
-              const { error: cleanupError } = await supabase
-                .from("events")
-                .delete()
-                .eq("user_id", userId)
-                .eq("google_event_id", googleEventId)
-                .neq("id", createdEventId); // Don't delete our currently saved record!
-
-              if (!cleanupError) {
-                console.log("[Calendar] Cleaned up redundant duplicate records.");
-              }
-            }
+            await fetch(`/api/events/${createdEventId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatePayload),
+            }).catch(e => console.warn("[Calendar] DB update failed:", e));
           } catch (e) {
             console.warn("[Calendar] DB update crash (missing columns?):", e);
           }
@@ -1199,10 +1141,10 @@ export default function CalendarPage() {
 
       // 4. Update local state
       const normalizedEvent = {
-        ...result.data,
-        dateTime: result.data.date_time,
-        clientEmail: result.data.client_email,
-        status: result.data.status,
+        ...savedEvent,
+        date_time: savedEvent.dateTime ? new Date(savedEvent.dateTime).toISOString() : savedEvent.date_time,
+        client_email: savedEvent.clientEmail || savedEvent.client_email,
+        status: savedEvent.status,
         googleLink: gLink,
       };
 
@@ -1270,7 +1212,7 @@ export default function CalendarPage() {
         }
       }
 
-      // 2. Update status to 'cancelled' in Supabase
+      // 2. Update status to cancelled in DB
       const getNote = () => `${eventToCancel?.notes || ""}\n\n[Cancelled: ${actionReason}]`;
 
       const updateData = {
@@ -1278,32 +1220,18 @@ export default function CalendarPage() {
         notes: getNote(),
       };
 
-      let query = supabase.from("events").update(updateData);
-
-      if (isGoogleId) {
-        query = query.eq("google_event_id", actionEventId);
-      } else {
-        query = query.eq("id", actionEventId);
-      }
-
-      const { error } = await query;
-
-      // Fallback: If DB rejected 'cancelled' (2 Ls), try 'canceled' (1 L)
-      if (error && error.message.includes("event_status")) {
-        console.log("[Calendar] DB rejected 'cancelled', trying 'canceled' fallback...");
-        const fallbackQuery = supabase.from("events").update({
-          status: 'canceled' as any,
-          notes: getNote()
-        });
-
-        if (isGoogleId) fallbackQuery.eq("google_event_id", actionEventId);
-        else fallbackQuery.eq("id", actionEventId);
-
-        const { error: error2 } = await fallbackQuery;
-        if (error2) throw error2;
-      } else if (error) {
-        throw error;
-      }
+      const cancelRes = isGoogleId
+        ? await fetch(`/api/events/by-google-id/${actionEventId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData),
+          })
+        : await fetch(`/api/events/${actionEventId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updateData),
+          });
+      if (!cancelRes.ok) throw new Error("Failed to cancel event");
 
       // 3. Update local state
       setEvents((prev) =>
@@ -1341,9 +1269,8 @@ export default function CalendarPage() {
               reason: actionReason,
             },
             organizer: {
-              name:
-                session?.user?.user_metadata?.full_name || session?.user?.email,
-              email: session?.user?.email,
+              name: user?.name || user?.email,
+              email: user?.email,
             },
           }),
         });
@@ -1404,9 +1331,8 @@ export default function CalendarPage() {
                 : undefined),
           },
           organizer: {
-            name:
-              session?.user?.user_metadata?.full_name || session?.user?.email,
-            email: session?.user?.email,
+            name: user?.name || user?.email,
+            email: user?.email,
           },
         }),
       });
@@ -1414,10 +1340,11 @@ export default function CalendarPage() {
       if (response.ok) {
         // Update DB to track that we sent this reminder
         const now = new Date().toISOString();
-        await supabase
-          .from("events")
-          .update({ last_reminder_sent_at: now })
-          .eq("id", event.id);
+        await fetch(`/api/events/${event.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ last_reminder_sent_at: now }),
+        }).catch(e => console.warn("[Calendar] DB reminder update failed:", e));
 
         // Update local state immediately to prevent re-triggers before next fetch
         setEvents(prev => prev.map(e => e.id === event.id ? { ...e, lastReminderSentAt: now } : e));
@@ -1545,19 +1472,12 @@ export default function CalendarPage() {
     const nowStr = new Date().toISOString();
 
     try {
-      const { error } = await supabase
-        .from('events')
-        .update({ lawyer_acknowledged_at: nowStr })
-        .in('id', ids);
-
-      if (error) {
-        console.warn("[Calendar] Could not save acknowledgment to DB. Ensure you have run the migration to add the lawyer_acknowledged_at column.", error);
-        // Fallback: Clear locally for this session so the user isn't stuck
-        setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
-        setShowLawyerModal(false);
-        return;
-      }
-
+      // Update each event individually since we need per-ID updates
+      await Promise.all(ids.map(id => fetch(`/api/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lawyer_acknowledged_at: nowStr }),
+      })));
       setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, lawyerAcknowledgedAt: nowStr } : e));
       setShowLawyerModal(false);
     } catch (err) {

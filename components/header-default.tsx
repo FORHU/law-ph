@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { COLORS, BRAND } from '@/lib/constants';
-import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from './logout-button';
 
 interface HeaderProps {

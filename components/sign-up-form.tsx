@@ -3,15 +3,13 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { UserPlus, Lock, Shield, Scale } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { UserPlus } from 'lucide-react';
 import { AUTH_ROUTES } from '@/lib/constants';
 import { AuthLayout } from './auth/shared/auth-layout';
 import { AuthCard } from './auth/shared/auth-card';
 import { AuthHeader } from './auth/shared/auth-header';
 import { AuthInput } from './auth/shared/auth-input';
 import { AuthButton } from './auth/shared/auth-button';
-import { SignUpSuccessModal } from './auth/sign-up-success-modal';
 
 export function SignUpForm() {
   const router = useRouter();
@@ -26,14 +24,6 @@ export function SignUpForm() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const supabase = createClient();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,33 +37,28 @@ export function SignUpForm() {
     }
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.LOGIN}${redirectQuery}`,
-          data: {
-            full_name: formData.fullName,
-          },
-        },
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.fullName,
+        }),
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes("User already registered") || signUpError.code === 'user_already_exists') {
+      if (!res.ok) {
+        const data = await res.json();
+        if (res.status === 409) {
           setError("This email is already registered. Please sign in instead.");
         } else {
-          throw signUpError;
+          throw new Error(data.error || 'Sign up failed');
         }
         return;
       }
 
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        setError("This email is already registered. Please sign in instead.");
-        setIsLoading(false);
-        return;
-      }
-      
-      setShowSuccessModal(true);
+      router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`);
+      router.refresh();
     } catch (err: any) {
       console.error('Sign up error:', err);
       setError(err.message || "An error occurred during sign up");
@@ -85,14 +70,14 @@ export function SignUpForm() {
   return (
     <AuthLayout maxWidth="max-w-xl">
       <AuthCard>
-        <AuthHeader 
+        <AuthHeader
           icon={UserPlus}
           title="Create Account"
           description="Set up your account to access intelligent legal assistance."
         />
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <AuthInput 
+          <AuthInput
             id="fullName"
             label="Full Name"
             value={formData.fullName}
@@ -102,7 +87,7 @@ export function SignUpForm() {
             delay={0.6}
           />
 
-          <AuthInput 
+          <AuthInput
             id="email"
             label="Email Address"
             type="email"
@@ -113,7 +98,7 @@ export function SignUpForm() {
             delay={0.7}
           />
 
-          <AuthInput 
+          <AuthInput
             id="password"
             label="Password"
             type="password"
@@ -125,7 +110,7 @@ export function SignUpForm() {
             delay={0.8}
           />
 
-          <AuthInput 
+          <AuthInput
             id="confirmPassword"
             label="Confirm Password"
             type="password"
@@ -193,14 +178,6 @@ export function SignUpForm() {
           </p>
         </motion.div>
       </AuthCard>
-
-
-
-      <SignUpSuccessModal 
-        isOpen={showSuccessModal} 
-        onClose={() => router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`)}
-        email={formData.email}
-      />
     </AuthLayout>
   );
 }

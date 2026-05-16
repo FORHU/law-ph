@@ -4,76 +4,51 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  Search,
-  Plus,
-  Filter,
-  Folder,
-  FileText,
-  Clock,
-  ChevronRight,
-  MoreVertical,
-  Briefcase
+  Search, Plus, Filter, Folder, FileText, Clock, ChevronRight, Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { PageLayout } from '@/components/ui/page-layout';
 
 interface Case {
   id: string;
-  title: string;
-  status: 'active' | 'archived' | 'pending';
-  last_updated: string;
-  client: string;
-  case_number: string;
+  caseName: string;
+  partyInvolved: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function CasesPage() {
   const router = useRouter();
-  const { supabase, session } = useAuth();
+  const { loggedIn } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    async function fetchCases() {
-      if (!session?.user?.id) return;
+    if (!loggedIn) return;
 
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .order('updated_at', { ascending: false });
+    fetch('/api/cases')
+      .then((r) => r.json())
+      .then(({ cases }) => setCases(cases || []))
+      .catch((err) => console.error('Error fetching cases:', err))
+      .finally(() => setLoading(false));
+  }, [loggedIn]);
 
-      if (error) {
-        console.error('Error fetching cases:', error);
-        // Mock data for demo if table missing
-        setCases([
-          { id: '1', title: 'People vs. Dela Cruz', status: 'active', last_updated: '2026-04-28', client: 'Juan Dela Cruz', case_number: 'G.R. No. 123456' },
-          { id: '2', title: 'Estate of Santiago', status: 'pending', last_updated: '2026-04-27', client: 'Santiago Family', case_number: 'SP No. 7890' },
-          { id: '3', title: 'TechCorp Merger', status: 'active', last_updated: '2026-04-25', client: 'TechCorp Inc.', case_number: 'SEC-2026-01' },
-        ]);
-      } else {
-        setCases(data || []);
-      }
-      setLoading(false);
-    }
-
-    fetchCases();
-  }, [session, supabase]);
-
-  const filteredCases = cases.filter(c =>
-    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.client.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCases = cases.filter((c) =>
+    c.caseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.partyInvolved || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <PageLayout activePage="cases" title="Case Management" subtitle="Organize and track your legal matters" backgroundAngle={2}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        {/* Header Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search cases, clients, or files..."
+              placeholder="Search cases or parties..."
               className="w-full bg-[#1A1A1B] border border-white/5 rounded-2xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -95,17 +70,8 @@ export default function CasesPage() {
           </div>
         </div>
 
-        {/* Case List */}
         <motion.div
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.1
-              }
-            }
-          }}
+          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } }}
           initial="hidden"
           animate="show"
           className="grid grid-cols-1 gap-6"
@@ -115,13 +81,10 @@ export default function CasesPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-secondary"></div>
             </div>
           ) : filteredCases.length > 0 ? (
-            filteredCases.map((c, index) => (
+            filteredCases.map((c) => (
               <motion.div
                 key={c.id}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-                }}
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.6 } } }}
                 onClick={() => router.push(`/cases/${c.id}`)}
                 className="glass-panel p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all cursor-pointer group flex items-center justify-between bg-white/[0.01] hover:bg-white/[0.03]"
                 whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}
@@ -131,22 +94,21 @@ export default function CasesPage() {
                     <Briefcase className="w-8 h-8 text-gray-400 group-hover:text-[#ffb2b8]" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[#ffb2b8] transition-colors">{c.title}</h3>
+                    <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[#ffb2b8] transition-colors">{c.caseName}</h3>
                     <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 font-medium">
-                      <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]"><Folder className="w-4 h-4 text-gray-600" /> {c.client}</span>
-                      <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]"><FileText className="w-4 h-4 text-gray-600" /> {c.case_number}</span>
-                      <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]"><Clock className="w-4 h-4 text-gray-600" /> {c.last_updated}</span>
+                      {c.partyInvolved && (
+                        <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]">
+                          <Folder className="w-4 h-4 text-gray-600" /> {c.partyInvolved}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]">
+                        <Clock className="w-4 h-4 text-gray-600" /> {new Date(c.updatedAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-8">
-                  <div className={`px-4 h-6 inline-flex items-center justify-center text-[9px] font-black uppercase tracking-[0.2em] border rounded-md ${c.status === 'active' ? 'bg-[#059669]/10 text-[#34d399] border-[#059669]/20' :
-                      c.status === 'pending' ? 'bg-[#e9c176]/10 text-[#e9c176] border-[#e9c176]/20' :
-                        'bg-white/5 text-gray-500 border-white/10'
-                    }`}>
-                    {c.status}
-                  </div>
                   <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-white/10 group-hover:translate-x-1 transition-all">
                     <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white" />
                   </div>

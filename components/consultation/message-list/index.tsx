@@ -28,7 +28,7 @@ export function MessageList({
   isLoading,
   onSendMessage
 }: MessageListProps) {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const { isRecording, recordingTime, startRecording, stopRecording, formatTime } = useConversations();
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
@@ -136,7 +136,7 @@ export function MessageList({
           onOpenNote={onOpenNote}
           scrollToMessage={scrollToMessage}
           formatTime={formatTime}
-          session={session}
+          session={user}
           relatedCasesLoading={relatedCasesLoading[message.id]}
           hasMoreRelatedCases={relatedCasesHasMore[message.id]}
           onLoadMoreRelated={() => fetchRelatedCases(message.id, true)}

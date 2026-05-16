@@ -127,12 +127,12 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
         const finalTitle = extractTitleFromContent(fullText, rawTitle);
 
         await addBookmark({
-          item_id: itemId,
+          itemId: itemId,
           title: finalTitle,
           reference: derivedReference,
           type: caseItem ? 'case' : 'source',
           url: content?.url || null,
-          ai_summary: aiSummary,
+          aiSummary: aiSummary,
           doctrine: doctrine,
           facts: facts
         });

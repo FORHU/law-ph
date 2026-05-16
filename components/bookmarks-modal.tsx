@@ -58,11 +58,11 @@ function BookmarkCard({
   const handleOpenLink = () => {
     if (isAIResponse) {
       if (consultationExists && bookmark.url) {
-        const targetUrl = `${bookmark.url}#message-${bookmark.item_id}`;
+        const targetUrl = `${bookmark.url}#message-${bookmark.itemId}`;
 
         if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
           // If already on the page, natively set the hash to trigger the hashchange event reliably
-          window.location.hash = `message-${bookmark.item_id}`;
+          window.location.hash = `message-${bookmark.itemId}`;
         } else {
           router.push(targetUrl);
         }
@@ -71,7 +71,7 @@ function BookmarkCard({
       }
       return;
     }
-    onOpen(bookmark.item_id);
+    onOpen(bookmark.itemId);
   };
 
   return (
@@ -142,10 +142,10 @@ function BookmarkCard({
             <div className="relative">
               <p className={`text-[13px] leading-relaxed italic ${isAIResponse && !isExpanded ? 'line-clamp-4' : ''
                 } ${isAIResponse && !consultationExists ? "text-gray-400" : "text-gray-400"}`}>
-                {bookmark.ai_summary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
+                {bookmark.aiSummary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
               </p>
 
-              {isAIResponse && bookmark.ai_summary && bookmark.ai_summary.length > 200 && (
+              {isAIResponse && bookmark.aiSummary && bookmark.aiSummary.length > 200 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

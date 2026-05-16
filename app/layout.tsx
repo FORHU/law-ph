@@ -1,8 +1,7 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "@/lib/auth/session";
 import AuthProvider from "@/components/auth/auth-provider";
 import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
@@ -24,22 +23,16 @@ export const metadata: Metadata = {
   description: "AI Legal Assistant",
 };
 
-
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let session = null;
+  let user = null;
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: { session: fetchedSession } } = await supabase.auth.getSession();
-      session = fetchedSession;
-    }
+    user = await getServerSession();
   } catch (error) {
-    console.error("Critical: Failed to retrieve session in RootLayout", error);
+    console.error("Failed to retrieve session in RootLayout", error);
   }
 
   return (
@@ -69,7 +62,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={<AuthLoading />}>
-            <AuthProvider initialSession={session}>
+            <AuthProvider initialUser={user}>
               <ConversationProvider>
                 <PersistentBackground />
                 <div className="flex h-screen w-full relative overflow-hidden bg-transparent">

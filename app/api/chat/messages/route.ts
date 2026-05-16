@@ -1,38 +1,38 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "@/lib/auth/session";
+import { MessageRole } from "@/generated/prisma";
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { conversation_id, role, content, imagePreview, created_at } = await req.json()
+  const user = await getServerSession();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { conversation_id, role, content, imagePreview, created_at } = await req.json();
 
   if (!conversation_id || !role || !content) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id,
-      role,
-      content,
-      imagePreview: imagePreview || null,
-      created_at: created_at ? new Date(created_at) : new Date()
-    })
+  try {
+    const message = await prisma.message.create({
+      data: {
+        conversationId: conversation_id,
+        role: role as MessageRole,
+        content,
+        imagePreview: imagePreview ?? null,
+        createdAt: created_at ? new Date(created_at) : new Date(),
+      },
+    });
 
-  if (error) {
-    console.error("Supabase insert error:", error)
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, message });
+  } catch (error) {
+    console.error("[api/chat/messages] insert error:", error);
+    return NextResponse.json({ error: "Failed to save message" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true })
 }
 
-export async function GET(req: Request) {
-  return NextResponse.json({ message: "GET method not implemented" })
+export async function GET() {
+  return NextResponse.json({ message: "GET method not implemented" });
 }

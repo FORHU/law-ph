@@ -13,13 +13,7 @@ import {
   fetchTranscriptionText
 } from '@/lib/aws-transcribe-utils';
 import { useAuth } from '@/components/auth/auth-provider';
-import {
-  getTranscriptions,
-  addTranscription,
-  updateTranscription,
-  deleteTranscription,
-  Transcription
-} from '@/lib/transcriptions-service';
+import type { Transcription } from '@/lib/transcriptions-service';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -73,8 +67,8 @@ export default function TranscribeWorkspace({
   onOpenSidebar?: () => void;
   isSidebarOpen?: boolean;
 }) {
-  const { session } = useAuth();
-  const userId = session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -276,8 +270,11 @@ export default function TranscribeWorkspace({
 
   const loadHistory = async () => {
     if (!userId) return;
-    const data = await getTranscriptions(userId);
-    setHistory(data);
+    const res = await fetch("/api/transcriptions");
+    if (res.ok) {
+      const { transcriptions } = await res.json();
+      setHistory(transcriptions ?? []);
+    }
   };
 
   const startPolling = (dbId: string, jobName: string) => {
@@ -299,7 +296,11 @@ export default function TranscribeWorkspace({
           const text = await fetchTranscriptionText(job.Transcript!.TranscriptFileUri!);
           setTranscript(text);
           setIsPolling(false);
-          await updateTranscription(dbId, { transcript: text });
+          await fetch(`/api/transcriptions/${dbId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript: text }),
+          });
           loadHistory();
           stopPolling();
         } else if (job.TranscriptionJobStatus === 'FAILED') {
@@ -328,17 +329,18 @@ export default function TranscribeWorkspace({
 
   const saveToHistory = async (title: string, url: string, initialTranscript: string, initialDuration: number, jobName?: string) => {
     if (!userId) return;
-    const newEntry = await addTranscription(userId, {
-      title,
-      audio_url: url,
-      transcript: initialTranscript,
-      duration: initialDuration,
-      job_name: jobName
+    const res = await fetch("/api/transcriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, audioUrl: url, transcript: initialTranscript, duration: initialDuration, jobName }),
     });
-    if (newEntry) {
-      setActiveTranscriptionId(newEntry.id);
-      loadHistory();
-      if (jobName) startPolling(newEntry.id, jobName);
+    if (res.ok) {
+      const { transcription: newEntry } = await res.json();
+      if (newEntry) {
+        setActiveTranscriptionId(newEntry.id);
+        loadHistory();
+        if (jobName) startPolling(newEntry.id, jobName);
+      }
     }
   };
 
@@ -866,7 +868,11 @@ export default function TranscribeWorkspace({
                               if (newTranscript !== transcript) {
                                 setTranscript(newTranscript);
                                 if (activeTranscriptionId) {
-                                  updateTranscription(activeTranscriptionId, { transcript: newTranscript });
+                                  fetch(`/api/transcriptions/${activeTranscriptionId}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ transcript: newTranscript }),
+                                  });
                                 }
                               }
                             }}
@@ -1150,20 +1156,20 @@ export default function TranscribeWorkspace({
                 </div>
               ) : (
                 history.map((item) => {
-                  const isRecorded = item.title.startsWith('Recording');
+                  const isRecorded = (item.title ?? '').startsWith('Recording');
                   const isActive = activeTranscriptionId === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => {
-                        setAudioUrl(item.audio_url);
+                        setAudioUrl(item.audioUrl);
                         setTranscript(item.transcript || '');
-                        if (item.duration > 0 || !totalDuration) setTotalDuration(item.duration);
+                        if ((item.duration ?? 0) > 0 || !totalDuration) setTotalDuration(item.duration ?? 0);
                         setActiveTranscriptionId(item.id);
                         if (window.innerWidth < 768) setIsHistoryOpen(false);
-                        if (item.audio_url) generateWaveform(item.audio_url);
-                        if (item.transcript === "Transcription in progress..." && item.job_name) {
-                          startPolling(item.id, item.job_name);
+                        if (item.audioUrl) generateWaveform(item.audioUrl);
+                        if (item.transcript === "Transcription in progress..." && item.jobName) {
+                          startPolling(item.id, item.jobName);
                         }
                       }}
                       className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
@@ -1178,12 +1184,12 @@ export default function TranscribeWorkspace({
                           <div className="font-bold text-sm truncate">{item.title}</div>
                         </div>
                         <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
-                          {formatTimelineTime(item.duration)}
+                          {formatTimelineTime(item.duration ?? 0)}
                         </div>
                       </div>
 
                       <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 ${isActive ? 'text-white' : 'text-gray-500'}`}>
-                        <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
+                        <Clock size={10} /> {new Date(item.createdAt).toLocaleDateString()}
                       </div>
 
                       {item.transcript === "Transcription in progress..." && (

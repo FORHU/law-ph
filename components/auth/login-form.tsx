@@ -1,60 +1,49 @@
 'use client'
 
-import { createClient } from "@/lib/supabase/client" 
 import React, { useEffect, useState } from "react"
-import { Toast } from "@/components/ui/toast"
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
 }
-export default function LoginForm({onLoginSuccess} : LoginFormProps) {
+export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-    const [email, setEmail ] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess ] = useState(false)
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setError(null);
+    setSuccess(false);
+    setLoading(false);
+  }, []);
 
-    useEffect(() => {
-      setEmail('');
-      setPassword('');
-      setError(null);
-      setSuccess(false);
-      setLoading(false);
-    }, []);
-
-    const supabase = createClient()
-    async function signInWithEmail(e: React.FormEvent<HTMLFormElement>){
-        e.preventDefault()
-        setError('')
-        setLoading(true)
-        setSuccess(false)
-        try {
-            const { data : { session }, error } = await supabase.auth.signInWithPassword({
-            email, password
-        })
-
-        if(error){
-            setError(error?.message || "Something went wrong. Please try again later.")
-        }
-
-        if(session){
-            setSuccess(true)
-            setTimeout(() => {
-                onLoginSuccess()
-            }, 500)
-        }
-            
-        } catch (error: any) {
-            setError(error?.message || "Something went wrong. Please try again later.")
-        } finally {
-            setLoading(false)
-        }
+  async function signInWithEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    setSuccess(false)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again later.");
+      } else {
+        setSuccess(true)
+        setTimeout(() => { onLoginSuccess() }, 500)
+      }
+    } catch (error: any) {
+      setError(error?.message || "Something went wrong. Please try again later.")
+    } finally {
+      setLoading(false)
     }
-
-    function handleEmailChange(email: string){
-        setEmail(email)
-    }
+  }
 
   return (
     <>
@@ -124,13 +113,13 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   </div>
                 ) : "Authenticate Access"}
               </button>
-              
+
               {error && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                   <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center">{error}</p>
                 </div>
               )}
-              
+
               {success && (
                 <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                   <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest text-center">Ratification Successful. Redirecting...</p>
@@ -138,7 +127,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
               )}
             </div>
 
-            <div className="pt-4 text-center"> 
+            <div className="pt-4 text-center">
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest inline-block mr-2">No institutional record?</p>
               <a href="/auth/sign-up" className="text-[10px] font-bold text-[#e9c176] hover:text-white uppercase tracking-[0.2em] transition-colors">Enlist Now</a>
             </div>
