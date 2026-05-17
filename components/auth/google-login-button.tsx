@@ -4,13 +4,19 @@ import { AuthButton } from "./shared/auth-button";
 import { useState } from "react";
 
 export function GoogleLoginButton() {
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = () => {
+    setIsLoading(true);
+    window.location.href = "/api/auth/google";
+  };
 
   return (
     <AuthButton
       type="button"
-      onClick={() => alert("Google login is not yet available. Please use email/password.")}
+      onClick={handleGoogleLogin}
       isLoading={isLoading}
+      loadingText="Redirecting..."
       className="flex items-center justify-center !bg-white/5 hover:!bg-white/10 border border-white/10 !shadow-none"
     >
       <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">

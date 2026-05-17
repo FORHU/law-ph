@@ -19,7 +19,14 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const oauthError = searchParams?.get('error');
+  const oauthErrorMessage =
+    oauthError === 'google_denied' ? 'Google sign-in was cancelled.' :
+    oauthError === 'google_auth_failed' ? 'Google sign-in failed. Please try again.' :
+    null;
+
+  const [error, setError] = useState<string | null>(oauthErrorMessage);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
