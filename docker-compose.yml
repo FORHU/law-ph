@@ -26,3 +26,19 @@ services:
     depends_on:
       - surrealdb
     restart: always
+
+  postgres:
+    image: postgres:16
+    container_name: lawph-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lawph
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
