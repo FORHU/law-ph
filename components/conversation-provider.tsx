@@ -7,7 +7,6 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-// Supabase client removed — all DB calls go through API routes
 import { Conversation, ConsultationSession, CaseData } from "@/types";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useParams } from "next/navigation";
@@ -244,7 +243,6 @@ export function ConversationProvider({
   // Chat session hook
   const { chatSessionId, setChatSessionId } = useChatSession();
 
-  // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [casesLoaded, setCasesLoaded] = useState(false);
@@ -336,7 +334,7 @@ export function ConversationProvider({
     }
   };
 
-  // Helper to map Supabase/Cloud messages to UI format
+  // Helper to map cloud messages to UI format
   const mapCloudMessage = useCallback((msg: any): Message => {
     let text = msg.content || msg.text || "";
     const role = msg.role || msg.sender;
@@ -396,7 +394,6 @@ export function ConversationProvider({
     };
   }, []);
 
-  // Sync Supabase Conversations
   const fetchConversations = useCallback(async () => {
     if (!loggedIn || !userId) return;
     console.log(
@@ -570,9 +567,7 @@ export function ConversationProvider({
       const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
       const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
 
-      // If we're on a case route, we might not have `cases` loaded from Supabase yet.
-      // Easiest is to just allow the fetch to proceed and fail gracefully if not found,
-      // or at least not clear the screen if cases are empty but we specifically routed to a case.
+      // If we're on a case route, allow the fetch to proceed and fail gracefully if not found.
       const isCaseRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
 
       if (!existsInConversations && !existsInCases && !matchesCurrent && !isCaseRoute) {

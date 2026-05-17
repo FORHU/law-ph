@@ -47,7 +47,7 @@ export type ConversationContextType = {
   documentContext: string | null;
   setDocumentContext: React.Dispatch<React.SetStateAction<string | null>>;
   analyzeDocuments: (files: File[], caseId: string, customPrompt?: string) => Promise<void>;
-  // Supabase/Cloud state
+  // Cloud state
   conversations: Conversation[];
   refreshConversations: () => Promise<void>;
 

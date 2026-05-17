@@ -45,7 +45,7 @@ interface CalendarEvent {
   id: string;
   title: string;
   type: "meeting" | "appointment" | "hearing" | "deposition";
-  date_time: string; // Used by Supabase
+  date_time: string;
   dateTime?: string; // Used by Google (will normalize to date_time)
   client_email?: string;
   clientEmail?: string;
@@ -604,7 +604,7 @@ export default function CalendarPage() {
             return ge;
           });
 
-          // Only keep Supabase events that weren't matched via ID or Key
+          // Only keep DB events that weren't matched via ID or Key
           const remainingSb = sbEvents.filter((e) => {
             if (e.google_event_id && mappedGoogleIds.has(e.google_event_id))
               return false;
@@ -715,11 +715,7 @@ export default function CalendarPage() {
     }
   }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
 
-  // ── Realtime Sync ──────────────────────────────────────────────────────────
-  // Listen for any INSERT/UPDATE/DELETE on the events table so that events
-  // created from the Schedule tab (or anywhere else) appear instantly here.
-  // Real-time sync removed (Supabase realtime not available).
-  // fetchEvents is called on mount and after mutations instead.
+  // fetchEvents is called on mount and after mutations for sync.
 
   // Automatic conflict check for the Calendar Form
   useEffect(() => {
