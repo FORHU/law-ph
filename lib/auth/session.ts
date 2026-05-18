@@ -13,6 +13,7 @@ export type SessionUser = {
   isEmailVerified: boolean;
   onboardingCompleted: boolean;
   avatarId: string | null;
+  googleAccessToken: string | null;
 };
 
 export async function getServerSession(): Promise<SessionUser | null> {
@@ -34,6 +35,7 @@ export async function getServerSession(): Promise<SessionUser | null> {
       isEmailVerified: true,
       onboardingCompleted: true,
       avatarId: true,
+      googleAccessToken: true,
     },
   });
 

@@ -8,10 +8,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { id } = await params;
 
-  const caseRecord = await prisma.case.findFirst({ where: { id, userId: user.id } });
-  if (!caseRecord) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const c = await prisma.case.findFirst({ where: { id, userId: user.id } });
+  if (!c) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json({ case: caseRecord });
+  return NextResponse.json({
+    case: {
+      id: c.id,
+      user_id: c.userId,
+      case_name: c.caseName,
+      party_involved: c.partyInvolved,
+      notes: c.notes,
+      created_at: c.createdAt,
+    },
+  });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -273,23 +273,55 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
     }
   }
 
-  // 3. Final fallback: parse Markdown numbered list timeline
-  const mdTimelineSection = text.match(/(?:timeline|actionable steps)[^\n]*\n((?:\d+\..+\n?)+)/i);
+  // 3. Final fallback: parse Markdown numbered list from actionable/strategy sections
+  // Matches sections like "Practical Litigation Posture", "Actionable Steps", "Strategic Plan", "Timeline"
+  const sectionRe = /(?:practical\s+litigation\s+posture|actionable\s+steps?|strategic\s+plan|recommended\s+steps?|next\s+steps?|timeline|course\s+of\s+action)[^\n]*\n((?:(?:\d+\.|\-|\*).+\n?(?:[ \t]+.+\n?)*)+)/i;
+  const mdTimelineSection = text.match(sectionRe);
+
   if (mdTimelineSection) {
     const items: TimelineItem[] = [];
-    const lineRe = /^\d+\.\s+\*?\*?([^*\n-]+)\*?\*?\s*[-–]\s*(\d{4}-\d{2}-\d{2})(?:[^:]*)?:\s*(.+)/;
     const lines = mdTimelineSection[1].split('\n');
+
+    // Pattern A: "1. **Title** - YYYY-MM-DD: Description"
+    const patternWithDate = /^\d+\.\s+\*?\*?([^*\n:–-]+?)\*?\*?\s*[-–]\s*(\d{4}-\d{2}-\d{2})[^:]*:\s*(.+)/;
+    // Pattern B: "1. **Title:** Description" (AI's actual format)
+    const patternBold = /^\d+\.\s+\*?\*?([^*\n:]+?)\*?\*?[:]\s*(.+)/;
+    // Pattern C: "1. Title - Description"
+    const patternPlain = /^\d+\.\s+([^:\n-]+?)\s*[-–:]\s*(.+)/;
+
     for (const line of lines) {
-      const m = line.trim().match(lineRe);
-      if (m) {
-        items.push({
-          title: m[1].trim(),
-          date: m[2].trim(),
-          description: m[3].trim(),
-          status: 'pending',
-        });
+      const trimmed = line.trim();
+      if (!trimmed || !/^\d+\./.test(trimmed)) continue;
+
+      let title = "";
+      let date: string | undefined;
+      let description = "";
+
+      const mA = trimmed.match(patternWithDate);
+      const mB = trimmed.match(patternBold);
+      const mC = trimmed.match(patternPlain);
+
+      if (mA) {
+        title = mA[1].trim();
+        date = mA[2].trim();
+        description = mA[3].trim();
+      } else if (mB) {
+        title = mB[1].trim();
+        description = mB[2].trim();
+      } else if (mC) {
+        title = mC[1].trim();
+        description = mC[2].trim();
+      } else {
+        // Plain numbered item with no separator — use whole line as title
+        title = trimmed.replace(/^\d+\.\s+/, "").replace(/\*\*/g, "").trim();
+        description = "";
+      }
+
+      if (title) {
+        items.push({ title, date, description, status: 'pending' });
       }
     }
+
     if (items.length > 0) return items;
   }
 
@@ -454,9 +486,10 @@ export function cleanAiText(text: string): string {
     cleaned = cleaned.substring(0, firstTagIdx);
   }
 
-  // 4. Strip any weird introductory timeline prose the AI likes to add at the end
-  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, "");
-  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, "");
+  // 4. Strip trailing timeline/plan intro lines the AI adds before a JSON block
+  // Only match if followed immediately by a ``` code fence (i.e. actual JSON block intro)
+  cleaned = cleaned.replace(/(?:\n|^)\s*\*?\*?(?:Proposed |Given |Following )?Timeline[^\n]{0,100}:?\*?\*?\s*```(?:json)?\s*$/i, "");
+  cleaned = cleaned.replace(/(?:\n|^)\s*\*?\*?Here is[^\n]{0,80}(?:timeline|plan)[^\n]{0,80}:?\*?\*?\s*```(?:json)?\s*$/i, "");
 
   return cleaned.trim();
 }

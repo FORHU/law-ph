@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { Conversation, ConsultationSession, CaseData } from "@/types";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { CHAT_SENDER } from "@/lib/constants";
 import {
   extractLegalSources,
@@ -37,6 +37,7 @@ export function ConversationProvider({
 }) {
   const { loggedIn, user } = useAuth();
   const params = useParams();
+  const router = useRouter();
   const syncedConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
@@ -249,6 +250,7 @@ export function ConversationProvider({
 
   // Ref to track all IDs deleted during this session to prevent any "resurrection" from stale API data
   const deletedIdsRef = useRef<Set<string>>(new Set());
+  const notFoundIdsRef = useRef<Set<string>>(new Set());
 
   // Load shadow-deleted IDs from local storage on mount
   useEffect(() => {
@@ -535,6 +537,9 @@ export function ConversationProvider({
   // Fetch Cloud Messages if needed
   const fetchCloudMessages = useCallback(
     async (ignore: boolean) => {
+      // If this ID previously returned 404, never retry it
+      if (syncedConversationId && notFoundIdsRef.current.has(syncedConversationId.toString())) return;
+
       // If we're on the root /consultation route (no ID), clear state and bail
       if (!syncedConversationId) {
         if (isLoading) return;
@@ -618,14 +623,52 @@ export function ConversationProvider({
         setCurrentConsultationId(syncedConversationId);
       } else {
         console.error("Error fetching messages:", msgRes.status);
-        // Prevent infinite loops on failure by marking this ID as loaded/attempted
-        loadedHistoryIdRef.current = syncedConversationId.toString();
+        if (msgRes.status === 404) {
+          const isCaseRoute =
+            typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/cases/");
+
+          if (isCaseRoute) {
+            try {
+              const caseRes = await fetch(`/api/cases/${syncedConversationId}`);
+              const caseName = caseRes.ok
+                ? (await caseRes.json()).case?.caseName ?? "Case"
+                : "Case";
+
+              const provisionRes = await fetch("/api/conversations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: syncedConversationId, title: `[CASE] ${caseName}` }),
+              });
+
+              if (provisionRes.ok) {
+                const retryRes = await fetch(`/api/conversations/${syncedConversationId}/messages`);
+                if (retryRes.ok) {
+                  const { messages: data } = await retryRes.json();
+                  const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
+                  setMessages(cloudMessages);
+                  loadedHistoryIdRef.current = syncedConversationId.toString();
+                  setCurrentConsultationId(syncedConversationId);
+                }
+              }
+            } catch (err) {
+              console.error("[ConversationProvider] Error provisioning conversation:", err);
+            }
+          } else {
+            notFoundIdsRef.current.add(syncedConversationId.toString());
+            loadedHistoryIdRef.current = syncedConversationId.toString();
+            persistDeletedId(syncedConversationId.toString());
+            router.replace("/consultation");
+          }
+        } else {
+          // Prevent infinite loops on non-404 failure by marking this ID as loaded/attempted
+          loadedHistoryIdRef.current = syncedConversationId.toString();
+        }
       }
       setIsLoading(false);
     },
     [
       syncedConversationId,
-      isLoading,
       userId,
       loggedIn,
       loaded,

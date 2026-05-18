@@ -22,6 +22,7 @@ model User {
   updatedAt           DateTime  @updatedAt
   provider            String?
   googleId            String?   @unique
+  googleAccessToken   String?
   avatarId            String?
   isEmailVerified     Boolean   @default(false)
   onboardingCompleted Boolean   @default(false)
@@ -215,10 +216,13 @@ model Event {
   clientEmail    String?   @map("client_email")
   notes          String?   @db.Text
   status         String    @default("pending")
-  googleLink     String?   @map("google_link")
-  googleEventId  String?   @map("google_event_id")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  googleLink            String?   @map("google_link")
+  googleEventId         String?   @map("google_event_id")
+  lastReminderSentAt    DateTime? @map("last_reminder_sent_at")
+  lawyerAcknowledgedAt  DateTime? @map("lawyer_acknowledged_at")
+  clientFeedback        String?   @map("client_feedback") @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

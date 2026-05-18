@@ -526,8 +526,9 @@ export default function CalendarPage() {
   const loadGoogleEvents = useCallback(async (sessId: string) => {
     setIsLoadingEvents(true);
     setEventsError(null);
+    const providerToken = user?.googleAccessToken;
     try {
-      const result = await listCalendarEvents(sessId, { maxResults: 50 });
+      const result = await listCalendarEvents(sessId, { maxResults: 50 }, providerToken);
       if (result.needs_auth) {
         setIsGoogleConnected(false);
         return;
@@ -688,7 +689,7 @@ export default function CalendarPage() {
     async (sessId: string) => {
       setIsCheckingAuth(true);
       try {
-        const status = await checkAuthStatus(sessId);
+        const status = await checkAuthStatus(sessId, user?.googleAccessToken);
         setIsGoogleConnected(status.authenticated);
         if (status.authenticated) {
           await loadGoogleEvents(sessId);
@@ -1059,7 +1060,7 @@ export default function CalendarPage() {
               description: form.notes,
               type: form.type,
               client_email: form.clientEmail,
-            });
+            }, user?.googleAccessToken);
             if (gResult.success) {
               gLink = gResult.link || "";
               iCalUID = gResult.iCalUID;
@@ -1081,7 +1082,7 @@ export default function CalendarPage() {
                 description: form.notes,
                 type: form.type,
                 client_email: form.clientEmail,
-              });
+              }, user?.googleAccessToken);
               if (gResult.needs_auth) {
                 setIsGoogleConnected(false);
                 setCreateError("Google session expired.");
@@ -1200,7 +1201,7 @@ export default function CalendarPage() {
         const gId = isGoogleId ? actionEventId : eventToCancel?.google_event_id;
         if (gId) {
           try {
-            await deleteCalendarEvent(userId, gId);
+            await deleteCalendarEvent(userId, gId, user?.googleAccessToken);
           } catch (gErr) {
             console.warn("[CalendarSync] Google delete failed (might be already gone):", gErr);
             // We continue anyway since we want to update our local record
