@@ -1430,6 +1430,7 @@ export const UserScalarFieldEnum = {
   updatedAt: 'updatedAt',
   provider: 'provider',
   googleId: 'googleId',
+  googleAccessToken: 'googleAccessToken',
   avatarId: 'avatarId',
   isEmailVerified: 'isEmailVerified',
   onboardingCompleted: 'onboardingCompleted',
@@ -1587,6 +1588,8 @@ export const EventScalarFieldEnum = {
   status: 'status',
   googleLink: 'googleLink',
   googleEventId: 'googleEventId',
+  lastReminderSentAt: 'lastReminderSentAt',
+  lawyerAcknowledgedAt: 'lawyerAcknowledgedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

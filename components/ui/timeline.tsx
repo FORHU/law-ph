@@ -226,11 +226,15 @@ export const Timeline = ({ data }: { data: TimelineData[] }) => {
                         </div>
                       )}
                     </div>
-                    <p
-                      className={`text-sm leading-relaxed mt-3 font-serif italic ${isLocked ? "text-gray-700" : "text-gray-400"}`}
-                    >
-                      {item.description}
-                    </p>
+                    {item.description ? (
+                      <p className={`text-sm leading-relaxed mt-3 font-serif italic ${isLocked ? "text-gray-700" : "text-gray-400"}`}>
+                        {item.description}
+                      </p>
+                    ) : (
+                      <p className={`text-xs leading-relaxed mt-3 uppercase tracking-widest font-bold ${isLocked ? "text-gray-800" : "text-[#722f37]/40"}`}>
+                        Update status when action is complete
+                      </p>
+                    )}
                   </div>
                 </div>
               );

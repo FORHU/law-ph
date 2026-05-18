@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       throw new Error(`Token exchange failed: ${tokenRes.status}`);
     }
 
-    const { access_token } = await tokenRes.json();
+    const { access_token, refresh_token } = await tokenRes.json();
 
     const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${access_token}` },
@@ -66,22 +66,16 @@ export async function GET(request: Request) {
     });
 
     if (user) {
-      if (!user.googleId) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            googleId: googleUser.id,
-            provider: "google",
-            isEmailVerified: true,
-            lastLoginAt: new Date(),
-          },
-        });
-      } else {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        });
-      }
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: googleUser.id,
+          provider: "google",
+          isEmailVerified: true,
+          lastLoginAt: new Date(),
+          googleAccessToken: access_token,
+        },
+      });
     } else {
       const username = await getUniqueUsername(googleUser.email.split("@")[0]);
       user = await prisma.user.create({
@@ -93,6 +87,7 @@ export async function GET(request: Request) {
           provider: "google",
           isEmailVerified: true,
           lastLoginAt: new Date(),
+          googleAccessToken: access_token,
         },
       });
     }

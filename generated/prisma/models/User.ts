@@ -37,6 +37,7 @@ export type UserMinAggregateOutputType = {
   updatedAt: Date | null
   provider: string | null
   googleId: string | null
+  googleAccessToken: string | null
   avatarId: string | null
   isEmailVerified: boolean | null
   onboardingCompleted: boolean | null
@@ -57,6 +58,7 @@ export type UserMaxAggregateOutputType = {
   updatedAt: Date | null
   provider: string | null
   googleId: string | null
+  googleAccessToken: string | null
   avatarId: string | null
   isEmailVerified: boolean | null
   onboardingCompleted: boolean | null
@@ -77,6 +79,7 @@ export type UserCountAggregateOutputType = {
   updatedAt: number
   provider: number
   googleId: number
+  googleAccessToken: number
   avatarId: number
   isEmailVerified: number
   onboardingCompleted: number
@@ -99,6 +102,7 @@ export type UserMinAggregateInputType = {
   updatedAt?: true
   provider?: true
   googleId?: true
+  googleAccessToken?: true
   avatarId?: true
   isEmailVerified?: true
   onboardingCompleted?: true
@@ -119,6 +123,7 @@ export type UserMaxAggregateInputType = {
   updatedAt?: true
   provider?: true
   googleId?: true
+  googleAccessToken?: true
   avatarId?: true
   isEmailVerified?: true
   onboardingCompleted?: true
@@ -139,6 +144,7 @@ export type UserCountAggregateInputType = {
   updatedAt?: true
   provider?: true
   googleId?: true
+  googleAccessToken?: true
   avatarId?: true
   isEmailVerified?: true
   onboardingCompleted?: true
@@ -232,6 +238,7 @@ export type UserGroupByOutputType = {
   updatedAt: Date
   provider: string | null
   googleId: string | null
+  googleAccessToken: string | null
   avatarId: string | null
   isEmailVerified: boolean
   onboardingCompleted: boolean
@@ -273,6 +280,7 @@ export type UserWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   provider?: Prisma.StringNullableFilter<"User"> | string | null
   googleId?: Prisma.StringNullableFilter<"User"> | string | null
+  googleAccessToken?: Prisma.StringNullableFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolFilter<"User"> | boolean
   onboardingCompleted?: Prisma.BoolFilter<"User"> | boolean
@@ -304,6 +312,7 @@ export type UserOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   provider?: Prisma.SortOrderInput | Prisma.SortOrder
   googleId?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleAccessToken?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarId?: Prisma.SortOrderInput | Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   onboardingCompleted?: Prisma.SortOrder
@@ -338,6 +347,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   provider?: Prisma.StringNullableFilter<"User"> | string | null
+  googleAccessToken?: Prisma.StringNullableFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolFilter<"User"> | boolean
   onboardingCompleted?: Prisma.BoolFilter<"User"> | boolean
@@ -369,6 +379,7 @@ export type UserOrderByWithAggregationInput = {
   updatedAt?: Prisma.SortOrder
   provider?: Prisma.SortOrderInput | Prisma.SortOrder
   googleId?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleAccessToken?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarId?: Prisma.SortOrderInput | Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   onboardingCompleted?: Prisma.SortOrder
@@ -395,6 +406,7 @@ export type UserScalarWhereWithAggregatesInput = {
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   provider?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   googleId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  googleAccessToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   onboardingCompleted?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
@@ -415,6 +427,7 @@ export type UserCreateInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -445,6 +458,7 @@ export type UserUncheckedCreateInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -475,6 +489,7 @@ export type UserUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -505,6 +520,7 @@ export type UserUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -535,6 +551,7 @@ export type UserCreateManyInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -555,6 +572,7 @@ export type UserUpdateManyMutationInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -574,6 +592,7 @@ export type UserUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -594,6 +613,7 @@ export type UserCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   googleId?: Prisma.SortOrder
+  googleAccessToken?: Prisma.SortOrder
   avatarId?: Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   onboardingCompleted?: Prisma.SortOrder
@@ -614,6 +634,7 @@ export type UserMaxOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   googleId?: Prisma.SortOrder
+  googleAccessToken?: Prisma.SortOrder
   avatarId?: Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   onboardingCompleted?: Prisma.SortOrder
@@ -634,6 +655,7 @@ export type UserMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   provider?: Prisma.SortOrder
   googleId?: Prisma.SortOrder
+  googleAccessToken?: Prisma.SortOrder
   avatarId?: Prisma.SortOrder
   isEmailVerified?: Prisma.SortOrder
   onboardingCompleted?: Prisma.SortOrder
@@ -875,6 +897,7 @@ export type UserCreateWithoutSessionsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -904,6 +927,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -949,6 +973,7 @@ export type UserUpdateWithoutSessionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -978,6 +1003,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1007,6 +1033,7 @@ export type UserCreateWithoutAvatarInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1036,6 +1063,7 @@ export type UserUncheckedCreateWithoutAvatarInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1094,6 +1122,7 @@ export type UserScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   provider?: Prisma.StringNullableFilter<"User"> | string | null
   googleId?: Prisma.StringNullableFilter<"User"> | string | null
+  googleAccessToken?: Prisma.StringNullableFilter<"User"> | string | null
   avatarId?: Prisma.StringNullableFilter<"User"> | string | null
   isEmailVerified?: Prisma.BoolFilter<"User"> | boolean
   onboardingCompleted?: Prisma.BoolFilter<"User"> | boolean
@@ -1114,6 +1143,7 @@ export type UserCreateWithoutConversationsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1143,6 +1173,7 @@ export type UserUncheckedCreateWithoutConversationsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1188,6 +1219,7 @@ export type UserUpdateWithoutConversationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1217,6 +1249,7 @@ export type UserUncheckedUpdateWithoutConversationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1246,6 +1279,7 @@ export type UserCreateWithoutCasesInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1275,6 +1309,7 @@ export type UserUncheckedCreateWithoutCasesInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1320,6 +1355,7 @@ export type UserUpdateWithoutCasesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1349,6 +1385,7 @@ export type UserUncheckedUpdateWithoutCasesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1378,6 +1415,7 @@ export type UserCreateWithoutDocumentsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1407,6 +1445,7 @@ export type UserUncheckedCreateWithoutDocumentsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1452,6 +1491,7 @@ export type UserUpdateWithoutDocumentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1481,6 +1521,7 @@ export type UserUncheckedUpdateWithoutDocumentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1510,6 +1551,7 @@ export type UserCreateWithoutBookmarksInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1539,6 +1581,7 @@ export type UserUncheckedCreateWithoutBookmarksInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1584,6 +1627,7 @@ export type UserUpdateWithoutBookmarksInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1613,6 +1657,7 @@ export type UserUncheckedUpdateWithoutBookmarksInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1642,6 +1687,7 @@ export type UserCreateWithoutCreatedInvitesInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1671,6 +1717,7 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1716,6 +1763,7 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1745,6 +1793,7 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1774,6 +1823,7 @@ export type UserCreateWithoutConversationParticipantsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1803,6 +1853,7 @@ export type UserUncheckedCreateWithoutConversationParticipantsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1848,6 +1899,7 @@ export type UserUpdateWithoutConversationParticipantsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1877,6 +1929,7 @@ export type UserUncheckedUpdateWithoutConversationParticipantsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1906,6 +1959,7 @@ export type UserCreateWithoutCalendarWatchChannelsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -1935,6 +1989,7 @@ export type UserUncheckedCreateWithoutCalendarWatchChannelsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -1980,6 +2035,7 @@ export type UserUpdateWithoutCalendarWatchChannelsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2009,6 +2065,7 @@ export type UserUncheckedUpdateWithoutCalendarWatchChannelsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2038,6 +2095,7 @@ export type UserCreateWithoutTranscriptionsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -2067,6 +2125,7 @@ export type UserUncheckedCreateWithoutTranscriptionsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2112,6 +2171,7 @@ export type UserUpdateWithoutTranscriptionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2141,6 +2201,7 @@ export type UserUncheckedUpdateWithoutTranscriptionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2170,6 +2231,7 @@ export type UserCreateWithoutEventsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -2199,6 +2261,7 @@ export type UserUncheckedCreateWithoutEventsInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   avatarId?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2244,6 +2307,7 @@ export type UserUpdateWithoutEventsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2273,6 +2337,7 @@ export type UserUncheckedUpdateWithoutEventsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2302,6 +2367,7 @@ export type UserCreateManyAvatarInput = {
   updatedAt?: Date | string
   provider?: string | null
   googleId?: string | null
+  googleAccessToken?: string | null
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
   otpCode?: string | null
@@ -2321,6 +2387,7 @@ export type UserUpdateWithoutAvatarInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2350,6 +2417,7 @@ export type UserUncheckedUpdateWithoutAvatarInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2379,6 +2447,7 @@ export type UserUncheckedUpdateManyWithoutAvatarInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2510,6 +2579,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   updatedAt?: boolean
   provider?: boolean
   googleId?: boolean
+  googleAccessToken?: boolean
   avatarId?: boolean
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2542,6 +2612,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   updatedAt?: boolean
   provider?: boolean
   googleId?: boolean
+  googleAccessToken?: boolean
   avatarId?: boolean
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2563,6 +2634,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   updatedAt?: boolean
   provider?: boolean
   googleId?: boolean
+  googleAccessToken?: boolean
   avatarId?: boolean
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2584,6 +2656,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
   provider?: boolean
   googleId?: boolean
+  googleAccessToken?: boolean
   avatarId?: boolean
   isEmailVerified?: boolean
   onboardingCompleted?: boolean
@@ -2591,7 +2664,7 @@ export type UserSelectScalar = {
   otpExpiry?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "name" | "username" | "role" | "isActive" | "lastLoginAt" | "createdAt" | "updatedAt" | "provider" | "googleId" | "avatarId" | "isEmailVerified" | "onboardingCompleted" | "otpCode" | "otpExpiry", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "name" | "username" | "role" | "isActive" | "lastLoginAt" | "createdAt" | "updatedAt" | "provider" | "googleId" | "googleAccessToken" | "avatarId" | "isEmailVerified" | "onboardingCompleted" | "otpCode" | "otpExpiry", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   avatar?: boolean | Prisma.User$avatarArgs<ExtArgs>
@@ -2641,6 +2714,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     updatedAt: Date
     provider: string | null
     googleId: string | null
+    googleAccessToken: string | null
     avatarId: string | null
     isEmailVerified: boolean
     onboardingCompleted: boolean
@@ -3092,6 +3166,7 @@ export interface UserFieldRefs {
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly provider: Prisma.FieldRef<"User", 'String'>
   readonly googleId: Prisma.FieldRef<"User", 'String'>
+  readonly googleAccessToken: Prisma.FieldRef<"User", 'String'>
   readonly avatarId: Prisma.FieldRef<"User", 'String'>
   readonly isEmailVerified: Prisma.FieldRef<"User", 'Boolean'>
   readonly onboardingCompleted: Prisma.FieldRef<"User", 'Boolean'>

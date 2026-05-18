@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm -rf \"c:/Users/USER/Documents/GitHub/law-ph/surreal_data\" \"c:/Users/USER/Documents/GitHub/law-ph/notebook_data\")"
+      "Bash(rm -rf \"c:/Users/USER/Documents/GitHub/law-ph/surreal_data\" \"c:/Users/USER/Documents/GitHub/law-ph/notebook_data\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\" -Force)",
+      "Bash(git show *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\Documents\\GitHub\\law-ph\\surreal_data"

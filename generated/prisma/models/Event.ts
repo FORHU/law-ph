@@ -35,6 +35,8 @@ export type EventMinAggregateOutputType = {
   status: string | null
   googleLink: string | null
   googleEventId: string | null
+  lastReminderSentAt: Date | null
+  lawyerAcknowledgedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +52,8 @@ export type EventMaxAggregateOutputType = {
   status: string | null
   googleLink: string | null
   googleEventId: string | null
+  lastReminderSentAt: Date | null
+  lawyerAcknowledgedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -65,6 +69,8 @@ export type EventCountAggregateOutputType = {
   status: number
   googleLink: number
   googleEventId: number
+  lastReminderSentAt: number
+  lawyerAcknowledgedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -82,6 +88,8 @@ export type EventMinAggregateInputType = {
   status?: true
   googleLink?: true
   googleEventId?: true
+  lastReminderSentAt?: true
+  lawyerAcknowledgedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -97,6 +105,8 @@ export type EventMaxAggregateInputType = {
   status?: true
   googleLink?: true
   googleEventId?: true
+  lastReminderSentAt?: true
+  lawyerAcknowledgedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -112,6 +122,8 @@ export type EventCountAggregateInputType = {
   status?: true
   googleLink?: true
   googleEventId?: true
+  lastReminderSentAt?: true
+  lawyerAcknowledgedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -200,6 +212,8 @@ export type EventGroupByOutputType = {
   status: string
   googleLink: string | null
   googleEventId: string | null
+  lastReminderSentAt: Date | null
+  lawyerAcknowledgedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: EventCountAggregateOutputType | null
@@ -236,6 +250,8 @@ export type EventWhereInput = {
   status?: Prisma.StringFilter<"Event"> | string
   googleLink?: Prisma.StringNullableFilter<"Event"> | string | null
   googleEventId?: Prisma.StringNullableFilter<"Event"> | string | null
+  lastReminderSentAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -252,6 +268,8 @@ export type EventOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   googleLink?: Prisma.SortOrderInput | Prisma.SortOrder
   googleEventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastReminderSentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lawyerAcknowledgedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -272,6 +290,8 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"Event"> | string
   googleLink?: Prisma.StringNullableFilter<"Event"> | string | null
   googleEventId?: Prisma.StringNullableFilter<"Event"> | string | null
+  lastReminderSentAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -288,6 +308,8 @@ export type EventOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   googleLink?: Prisma.SortOrderInput | Prisma.SortOrder
   googleEventId?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastReminderSentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lawyerAcknowledgedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.EventCountOrderByAggregateInput
@@ -309,6 +331,8 @@ export type EventScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"Event"> | string
   googleLink?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   googleEventId?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
+  lastReminderSentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Event"> | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Event"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Event"> | Date | string
 }
@@ -323,6 +347,8 @@ export type EventCreateInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutEventsInput
@@ -339,6 +365,8 @@ export type EventUncheckedCreateInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -353,6 +381,8 @@ export type EventUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutEventsNestedInput
@@ -369,6 +399,8 @@ export type EventUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -384,6 +416,8 @@ export type EventCreateManyInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -398,6 +432,8 @@ export type EventUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -413,6 +449,8 @@ export type EventUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -443,6 +481,8 @@ export type EventCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   googleLink?: Prisma.SortOrder
   googleEventId?: Prisma.SortOrder
+  lastReminderSentAt?: Prisma.SortOrder
+  lawyerAcknowledgedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -458,6 +498,8 @@ export type EventMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   googleLink?: Prisma.SortOrder
   googleEventId?: Prisma.SortOrder
+  lastReminderSentAt?: Prisma.SortOrder
+  lawyerAcknowledgedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -473,6 +515,8 @@ export type EventMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   googleLink?: Prisma.SortOrder
   googleEventId?: Prisma.SortOrder
+  lastReminderSentAt?: Prisma.SortOrder
+  lawyerAcknowledgedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -529,6 +573,8 @@ export type EventCreateWithoutUserInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -543,6 +589,8 @@ export type EventUncheckedCreateWithoutUserInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -587,6 +635,8 @@ export type EventScalarWhereInput = {
   status?: Prisma.StringFilter<"Event"> | string
   googleLink?: Prisma.StringNullableFilter<"Event"> | string | null
   googleEventId?: Prisma.StringNullableFilter<"Event"> | string | null
+  lastReminderSentAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.DateTimeNullableFilter<"Event"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
 }
@@ -601,6 +651,8 @@ export type EventCreateManyUserInput = {
   status?: string
   googleLink?: string | null
   googleEventId?: string | null
+  lastReminderSentAt?: Date | string | null
+  lawyerAcknowledgedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -615,6 +667,8 @@ export type EventUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -629,6 +683,8 @@ export type EventUncheckedUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -643,6 +699,8 @@ export type EventUncheckedUpdateManyWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   googleLink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   googleEventId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastReminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lawyerAcknowledgedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -660,6 +718,8 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   status?: boolean
   googleLink?: boolean
   googleEventId?: boolean
+  lastReminderSentAt?: boolean
+  lawyerAcknowledgedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -676,6 +736,8 @@ export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   googleLink?: boolean
   googleEventId?: boolean
+  lastReminderSentAt?: boolean
+  lawyerAcknowledgedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -692,6 +754,8 @@ export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   googleLink?: boolean
   googleEventId?: boolean
+  lastReminderSentAt?: boolean
+  lawyerAcknowledgedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -708,11 +772,13 @@ export type EventSelectScalar = {
   status?: boolean
   googleLink?: boolean
   googleEventId?: boolean
+  lastReminderSentAt?: boolean
+  lawyerAcknowledgedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "title" | "type" | "dateTime" | "clientEmail" | "notes" | "status" | "googleLink" | "googleEventId" | "createdAt" | "updatedAt", ExtArgs["result"]["event"]>
+export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "title" | "type" | "dateTime" | "clientEmail" | "notes" | "status" | "googleLink" | "googleEventId" | "lastReminderSentAt" | "lawyerAcknowledgedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["event"]>
 export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -739,6 +805,8 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     status: string
     googleLink: string | null
     googleEventId: string | null
+    lastReminderSentAt: Date | null
+    lawyerAcknowledgedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["event"]>
@@ -1175,6 +1243,8 @@ export interface EventFieldRefs {
   readonly status: Prisma.FieldRef<"Event", 'String'>
   readonly googleLink: Prisma.FieldRef<"Event", 'String'>
   readonly googleEventId: Prisma.FieldRef<"Event", 'String'>
+  readonly lastReminderSentAt: Prisma.FieldRef<"Event", 'DateTime'>
+  readonly lawyerAcknowledgedAt: Prisma.FieldRef<"Event", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Event", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Event", 'DateTime'>
 }

@@ -106,7 +106,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
     
     setIsSubmitting(true);
     try {
-      const partyString = parties.map(p => p.value.trim()).filter(Boolean).join(', ');
+      const partyString = parties.map(p => p.value.trim()).filter(Boolean).join('\n');
       
       const newCase = await handleCreateCase({ 
         name: caseName, 

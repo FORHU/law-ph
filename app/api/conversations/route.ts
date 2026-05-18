@@ -18,10 +18,17 @@ export async function POST(req: Request) {
   const user = await getServerSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { title } = await req.json();
+  const { id, title } = await req.json();
+
+  if (id) {
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(id)) {
+      return NextResponse.json({ error: "Invalid id format" }, { status: 400 });
+    }
+  }
 
   const conversation = await prisma.conversation.create({
-    data: { userId: user.id, title: title || null },
+    data: { ...(id ? { id } : {}), userId: user.id, title: title || null },
   });
 
   return NextResponse.json({ conversation }, { status: 201 });
