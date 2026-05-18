@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf \"c:/Users/USER/Documents/GitHub/law-ph/surreal_data\" \"c:/Users/USER/Documents/GitHub/law-ph/notebook_data\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Documents\\GitHub\\law-ph\\surreal_data"
+    ]
+  }
+}
