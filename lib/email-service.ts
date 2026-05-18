@@ -10,11 +10,12 @@ interface SendEmailParams {
   eventDetails?: {
     eventId: string;
     eventType: string;
+    title?: string;
     dateTime: string;
     notes?: string;
     iCalUID?: string;
     isReminder?: boolean;
-    reason?: string; // Used by reschedule and cancelled emails
+    reason?: string;
   };
   organizer?: {
     name: string;
@@ -51,223 +52,224 @@ export async function sendEmail({
 
   const formatG = (d: Date) => d.toISOString().replace(/-|:/g, '').replace(/\.\d{3}/, '');
 
-  const emailWrapper = (headerBg: string, headerLabel: string, bodyHtml: string) => `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: 'Georgia', serif; background-color: #0B0B0C; padding: 40px;">
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const formatDate = (d: Date) => d.toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short'
+  });
+
+  const emailWrapper = (accentColor: string, badge: string, badgeBg: string, bodyHtml: string) => `
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; background-color: #f4f4f5; padding: 32px 16px;">
       <tr><td align="center">
-        <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #111111; border-radius: 4px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid #722f37;">
-          <tr><td style="background-color: ${headerBg}; padding: 40px; text-align: center; border-bottom: 2px solid #e9c176;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 2px; text-transform: uppercase;">${headerLabel}</h1>
+        <table border="0" cellpadding="0" cellspacing="0" width="560" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-top: 4px solid ${accentColor};">
+
+          <!-- Header -->
+          <tr><td style="padding: 32px 40px 24px; border-bottom: 1px solid #e4e4e7;">
+            <table width="100%"><tr>
+              <td><span style="font-size: 20px; font-weight: 700; color: #18181b; letter-spacing: -0.3px;">ilovelawyer</span></td>
+              <td align="right"><span style="display: inline-block; background-color: ${badgeBg}; color: ${accentColor}; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; border: 1px solid ${accentColor}30;">${badge}</span></td>
+            </tr></table>
           </td></tr>
-          <tr><td style="padding: 50px 40px; text-align: center; color: #cccccc; font-size: 16px; line-height: 1.6;">${bodyHtml}</td></tr>
-          <tr><td style="background-color: #0B0B0C; padding: 30px; text-align: center; color: #666666; font-size: 11px; border-top: 1px solid #333333; text-transform: uppercase; letter-spacing: 1px;">
-            Institutional Legal Consultation Service • Confidential & Privileged
+
+          <!-- Body -->
+          <tr><td style="padding: 32px 40px; color: #3f3f46; font-size: 15px; line-height: 1.7;">${bodyHtml}</td></tr>
+
+          <!-- Footer -->
+          <tr><td style="background-color: #fafafa; padding: 20px 40px; border-top: 1px solid #e4e4e7;">
+            <p style="margin: 0; font-size: 12px; color: #a1a1aa; line-height: 1.6;">
+              This email was sent by <strong style="color: #71717a;">${organizer?.name || organizer?.email || 'ilovelawyer'}</strong> via ilovelawyer.<br>
+              All communications are confidential and protected under attorney-client privilege.
+            </p>
           </td></tr>
         </table>
       </td></tr>
     </table>
   `;
 
-  const detailsTable = (rows: { label: string; value: string; accent?: boolean }[]) => `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0B0B0C; border-radius: 0px; padding: 30px; margin-bottom: 30px; text-align: left; border-left: 4px solid #e9c176;">
-      ${rows.map(r => `
-        <tr>
-          <td style="padding-bottom: 15px; font-weight: bold; color: #e9c176; width: 140px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px;">${r.label}:</td>
-          <td style="padding-bottom: 15px; color: ${r.accent ? '#e9c176' : '#ffffff'}; font-weight: ${r.accent ? 'bold' : 'normal'}; font-size: 14px;">${r.value}</td>
+  const detailsCard = (rows: { label: string; value: string }[]) => `
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9fb; border-radius: 6px; border: 1px solid #e4e4e7; margin: 20px 0; overflow: hidden;">
+      ${rows.map((r, idx) => `
+        <tr style="background-color: ${idx % 2 === 0 ? '#ffffff' : '#f9f9fb'};">
+          <td style="padding: 12px 20px; width: 150px; font-size: 12px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid #f0f0f0; white-space: nowrap;">${r.label}</td>
+          <td style="padding: 12px 20px; font-size: 14px; color: #18181b; border-bottom: 1px solid #f0f0f0;">${r.value}</td>
         </tr>
       `).join('')}
     </table>
   `;
 
-  // ─── SCHEDULE (Original Invitation) ────────────────────────────────────────
+  // ─── SCHEDULE (New Appointment Invitation) ─────────────────────────────────
   if (type === 'schedule' && eventDetails) {
-    const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
-    emailSubject = 'Institutional Appointment Invitation';
+    const { eventId, eventType, title, dateTime, notes, iCalUID } = eventDetails;
+    const displayTitle = title || capitalize(eventType);
+    emailSubject = `Appointment Invitation: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+    const uid = iCalUID || `${eventId}@ilovelawyer.app`;
 
-    const sequence = (eventDetails as any).isReminder ? '1' : '0';
-    const uid = iCalUID || `${eventId}@law-firm.institutional`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Guest";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
-      `SEQUENCE:${sequence}`, 'TRANSP:OPAQUE',
+      `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      'SEQUENCE:0', 'TRANSP:OPAQUE',
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment tomorrow', 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{
-      filename: 'meeting_invite.ics',
-      content: Buffer.from(icsString),
-      contentType: 'text/calendar; charset=UTF-8; method=REQUEST'
-    }];
+    attachments = [{ filename: 'invite.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    const rows = [
-      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
-      { label: 'Procedure', value: eventType, accent: true },
-      { label: 'Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
-    ];
-
-    emailContent = emailWrapper(
-      '#722f37',
-      'Appointment Invitation',
-      `<p style="margin-bottom: 25px;">You have been summoned to a new institutional legal consultation. Please review the details below.</p>
-       ${detailsTable(rows)}
-       <p style="font-size: 13px; color: #999999;">An encrypted invitation file has been attached for your digital calendar.</p>`
+    emailContent = emailWrapper('#722f37', 'New Appointment', '#fdf2f3',
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">${displayTitle}</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">You have a new appointment invitation from <strong>${organizer?.name || organizer?.email}</strong>. Please review the details below.</p>
+       ${detailsCard([
+         { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
+         { label: 'Type', value: capitalize(eventType) },
+         { label: 'Date & Time', value: formatDate(startDate) },
+         { label: 'Duration', value: '1 hour' },
+         ...(notes ? [{ label: 'Notes', value: notes }] : []),
+       ])}
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar invitation (.ics) is attached. Open it to add this appointment to your calendar.</p>
+       <p style="font-size: 13px; color: #71717a;">If you have any questions, please reply directly to this email.</p>`
     );
 
-  // ─── REMINDER ────────────────────────────────────────────────────────────
+  // ─── REMINDER ─────────────────────────────────────────────────────────────
   } else if (type === 'reminder' && eventDetails) {
-    const { eventId, eventType, dateTime, notes, iCalUID } = eventDetails;
-    emailSubject = `Official Reminder: ${eventType}`;
+    const { eventId, eventType, title, dateTime, notes, iCalUID } = eventDetails;
+    const displayTitle = title || capitalize(eventType);
+    emailSubject = `Reminder: ${displayTitle} — Coming Up Soon`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@law-firm.institutional`;
+    const uid = iCalUID || `${eventId}@ilovelawyer.app`;
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Guest";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:1', 'TRANSP:OPAQUE',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment coming up', 'TRIGGER:-PT1H', 'END:VALARM',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Appointment coming up', 'TRIGGER:-PT1H', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{
-      filename: 'reminder.ics',
-      content: Buffer.from(icsString),
-      contentType: 'text/calendar; charset=UTF-8; method=REQUEST'
-    }];
+    attachments = [{ filename: 'reminder.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    const rows = [
-      { label: 'Procedure', value: eventType, accent: true },
-      { label: 'Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
-      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
-    ];
-
-    emailContent = emailWrapper(
-      '#722f37',
-      'Procedural Reminder',
-      `<p style="margin-bottom: 25px;">This serves as a formal notification regarding your upcoming consultation. Please ensure your availability.</p>
-       ${detailsTable(rows)}
-       <p style="font-size: 13px; color: #999999;">Contact the presiding attorney should you require further clarification.</p>`
+    emailContent = emailWrapper('#d97706', 'Appointment Reminder', '#fffbeb',
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have an upcoming appointment</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">This is a reminder from <strong>${organizer?.name || organizer?.email}</strong> about your scheduled appointment.</p>
+       ${detailsCard([
+         { label: 'Appointment', value: displayTitle },
+         { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
+         { label: 'Date & Time', value: formatDate(startDate) },
+         { label: 'Duration', value: '1 hour' },
+         ...(notes ? [{ label: 'Notes', value: notes }] : []),
+       ])}
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">Please ensure your availability. If you need to reschedule, contact your attorney as soon as possible.</p>`
     );
 
-  // ─── RESCHEDULE ────────────────────────────────────────────────────────────
+  // ─── RESCHEDULE ───────────────────────────────────────────────────────────
   } else if (type === 'reschedule' && eventDetails) {
-    const { eventId, eventType, dateTime, notes, iCalUID, reason } = eventDetails;
-    emailSubject = `Rescheduled: ${eventType}`;
+    const { eventId, eventType, title, dateTime, notes, iCalUID, reason } = eventDetails;
+    const displayTitle = title || capitalize(eventType);
+    emailSubject = `Rescheduled: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@law-firm.institutional`;
+    const uid = iCalUID || `${eventId}@ilovelawyer.app`;
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Guest";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:2', 'TRANSP:OPAQUE',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Rescheduled appointment', 'TRIGGER:-P1D', 'END:VALARM',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Rescheduled appointment reminder', 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{
-      filename: 'rescheduled_invite.ics',
-      content: Buffer.from(icsString),
-      contentType: 'text/calendar; charset=UTF-8; method=REQUEST'
-    }];
+    attachments = [{ filename: 'updated_invite.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    const rows = [
-      { label: 'Procedure', value: eventType, accent: true },
-      { label: 'New Schedule', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
-      ...(reason ? [{ label: 'Justification', value: reason }] : []),
-      ...(notes ? [{ label: 'Stipulations', value: notes }] : []),
-    ];
-
-    emailContent = emailWrapper(
-      '#B45309',
-      'Procedure Rescheduled',
-      `<p style="margin-bottom: 25px;">Your appointment has been <strong>rescheduled</strong>. Please acknowledge the updated procedural timeline below.</p>
-       ${detailsTable(rows)}
-       <p style="font-size: 13px; color: #999999;">An updated calendar invitation is attached for your synchronization.</p>`
+    emailContent = emailWrapper('#2563eb', 'Appointment Rescheduled', '#eff6ff',
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your appointment has been rescheduled</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has updated the schedule for your appointment. Please take note of the new date and time.</p>
+       ${detailsCard([
+         { label: 'Appointment', value: displayTitle },
+         { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
+         { label: 'New Date & Time', value: formatDate(startDate) },
+         { label: 'Duration', value: '1 hour' },
+         ...(reason ? [{ label: 'Reason', value: reason }] : []),
+         ...(notes ? [{ label: 'Notes', value: notes }] : []),
+       ])}
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">An updated calendar invitation is attached. Please open it to update your calendar.</p>`
     );
 
-  // ─── CANCELLED ─────────────────────────────────────────────────────────────
+  // ─── CANCELLED ────────────────────────────────────────────────────────────
   } else if (type === 'cancelled' && eventDetails) {
-    const { eventId, eventType, dateTime, iCalUID, reason } = eventDetails;
-    emailSubject = `Cancelled: ${eventType}`;
+    const { eventId, eventType, title, dateTime, iCalUID, reason } = eventDetails;
+    const displayTitle = title || capitalize(eventType);
+    emailSubject = `Appointment Cancelled: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-    const uid = iCalUID || `${eventId}@law-firm.institutional`;
+    const uid = iCalUID || `${eventId}@ilovelawyer.app`;
 
-    // Send a CANCEL method iCal so the event is removed from the client's calendar
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:CANCEL', 'BEGIN:VEVENT',
       `ORGANIZER;CN="${organizer?.name || organizer?.email}":mailto:${organizer?.email}`,
-      `ATTENDEE;CN="Participant";RSVP=FALSE:mailto:${cleanRecipients[0]}`,
+      `ATTENDEE;CN="Guest";RSVP=FALSE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, 'STATUS:CANCELLED',
-      'SEQUENCE:3', 'TRANSP:TRANSPARENT',
+      `SUMMARY:${displayTitle}`, 'STATUS:CANCELLED', 'SEQUENCE:3', 'TRANSP:TRANSPARENT',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{
-      filename: 'cancellation.ics',
-      content: Buffer.from(icsString),
-      contentType: 'text/calendar; charset=UTF-8; method=CANCEL'
-    }];
+    attachments = [{ filename: 'cancellation.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=CANCEL' }];
 
-    const rows = [
-      { label: 'Procedure', value: eventType },
-      { label: 'Was Scheduled', value: startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' }) },
-      { label: 'Origin', value: organizer?.email || 'Institutional Legal Services' },
-      ...(reason ? [{ label: 'Justification', value: reason }] : []),
-    ];
-
-    emailContent = emailWrapper(
-      '#6B7280',
-      'Procedure Terminated',
-      `<p style="margin-bottom: 25px;">Notice: The following legal procedure has been <strong>terminated</strong>. We apologize for the disruption.</p>
-       ${detailsTable(rows)}
-       <p style="font-size: 13px; color: #999999;">Should you wish to initiate a new session, please contact your attorney.</p>`
+    emailContent = emailWrapper('#6b7280', 'Appointment Cancelled', '#f9fafb',
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your appointment has been cancelled</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has cancelled the following appointment. We apologize for any inconvenience.</p>
+       ${detailsCard([
+         { label: 'Appointment', value: displayTitle },
+         { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
+         { label: 'Was Scheduled', value: formatDate(startDate) },
+         ...(reason ? [{ label: 'Reason', value: reason }] : []),
+       ])}
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">To schedule a new appointment, please contact your attorney directly or reply to this email.</p>`
     );
 
-  // ─── CONFIRMATION SUCCESS ──────────────────────────────────────────────────
+  // ─── CONFIRMATION SUCCESS ─────────────────────────────────────────────────
   } else if (type === 'confirmation_success' && eventDetails) {
-    const { eventType, dateTime, notes } = eventDetails;
-    emailSubject = `Confirmed: ${eventType}`;
+    const { eventType, title, dateTime, notes } = eventDetails;
+    const displayTitle = title || capitalize(eventType);
+    emailSubject = `Confirmed: ${displayTitle}`;
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-    const uid = `success-${Date.now()}@law-firm.institutional`;
+    const uid = `success-${Date.now()}@ilovelawyer.app`;
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${eventType}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment tomorrow', 'TRIGGER:-P1D', 'END:VALARM',
+      `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Appointment reminder', 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{ filename: 'event.ics', content: Buffer.from(icsString), contentType: 'text/calendar; method=PUBLISH' }];
+    attachments = [{ filename: 'confirmed.ics', content: Buffer.from(icsString), contentType: 'text/calendar; method=PUBLISH' }];
 
-    emailContent = emailWrapper(
-      '#10B981',
-      'Procedure Confirmed',
-      `<p>Your consultation for <strong>${eventType}</strong> has been successfully ratified.</p>
-       <p style="font-size: 20px; color: #ffffff; margin: 30px 0; font-weight: bold;">${startDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: displayTimezone, timeZoneName: 'short' })}</p>
-       <p style="font-size: 13px; color: #999999;">The procedure has been logged in your institutional calendar.</p>`
+    emailContent = emailWrapper('#16a34a', 'Appointment Confirmed', '#f0fdf4',
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have confirmed your appointment</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">Your attendance for the following appointment has been confirmed. See you there!</p>
+       ${detailsCard([
+         { label: 'Appointment', value: displayTitle },
+         { label: 'Date & Time', value: formatDate(startDate) },
+         { label: 'Duration', value: '1 hour' },
+         ...(notes ? [{ label: 'Notes', value: notes }] : []),
+       ])}
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar event has been attached for your records. If you need to cancel or reschedule, please contact your attorney as soon as possible.</p>`
     );
 
   } else if (body) {

@@ -1111,6 +1111,7 @@ export default function CalendarPage() {
             eventDetails: {
               eventId: createdEventId,
               eventType: form.type,
+              title: form.title,
               dateTime: new Date(form.dateTime).toISOString(),
               notes: form.notes,
               iCalUID: iCalUID || (googleEventId ? `${googleEventId}@google.com` : undefined),
@@ -2581,7 +2582,11 @@ export default function CalendarPage() {
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             {(() => {
-                              const isOrganizer = event.userId === user?.id;
+                              // Lawyer is the organizer if they created the event (DB event)
+                              // OR if their email matches the Google organizer (synced Google event)
+                              const isOrganizer =
+                                event.userId === user?.id ||
+                                !event.userId; // DB events always belong to the logged-in user
 
                               if (!isOrganizer) {
                                 const canRSVP =
