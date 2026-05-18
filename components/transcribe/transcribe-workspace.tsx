@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Play, Pause, RotateCcw, RotateCw, Mic, Divide, ZoomIn, ZoomOut, Bookmark, Upload,
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon,
-  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square
+  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square,
+  Edit2, Check
 } from 'lucide-react';
 import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import {
@@ -132,6 +133,50 @@ export default function TranscribeWorkspace({
   const [activeTranscriptionId, setActiveTranscriptionId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Title editing & deleting state and handlers
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+
+  const saveTitle = async (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    try {
+      const res = await fetch(`/api/transcriptions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (res.ok) {
+        loadHistory();
+        setEditingId(null);
+      }
+    } catch (err) {
+      console.error("Failed to save title:", err);
+    }
+  };
+
+  const handleDelete = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!confirm("Are you sure you want to delete this transcription session?")) return;
+    
+    try {
+      const res = await fetch(`/api/transcriptions/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        if (activeTranscriptionId === id) {
+          // Clear active workspace
+          setTranscript('');
+          setAudioUrl(null);
+          setTotalDuration(0);
+          setActiveTranscriptionId(null);
+        }
+        loadHistory();
+      }
+    } catch (err) {
+      console.error("Failed to delete transcription:", err);
+    }
+  };
 
   // Unified duration for the entire UI
   const displayTotalDuration = isRecording ? activeDuration : (totalDuration > 0 ? totalDuration : (duration > 0 ? duration : 0.1));
@@ -630,8 +675,10 @@ export default function TranscribeWorkspace({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
-        const file = new File([audioBlob], `recording-${Date.now()}.mp3`, { type: 'audio/mp3' });
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const file = new File([audioBlob], `recording-${Date.now()}.${ext}`, { type: mimeType });
 
         setIsUploading(true);
         setUploadStatus("Saving recording...");
@@ -819,12 +866,14 @@ export default function TranscribeWorkspace({
                   >
                     <Plus size={16} /> <span className="text-sm">New</span>
                   </button>
-                  <button
-                    onClick={exportToPDF}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all border text-[#e9c176] bg-[#722f37]/20 hover:bg-[#722f37]/30 border-[#722f37]/30 whitespace-nowrap shadow-lg shadow-black/20"
-                  >
-                    <ExternalLink size={16} /> <span className="text-sm">Download PDF</span>
-                  </button>
+                  {transcript && transcript !== 'Transcription in progress...' && !isPolling && !isUploading && (
+                    <button
+                      onClick={exportToPDF}
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all border text-[#e9c176] bg-[#722f37]/20 hover:bg-[#722f37]/30 border-[#722f37]/30 whitespace-nowrap shadow-lg shadow-black/20 animate-in fade-in zoom-in duration-300"
+                    >
+                      <ExternalLink size={16} /> <span className="text-sm">Download PDF</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1159,9 +1208,10 @@ export default function TranscribeWorkspace({
                   const isRecorded = (item.title ?? '').startsWith('Recording');
                   const isActive = activeTranscriptionId === item.id;
                   return (
-                    <button
+                    <div
                       key={item.id}
                       onClick={() => {
+                        if (editingId === item.id) return;
                         setAudioUrl(item.audioUrl);
                         setTranscript(item.transcript || '');
                         if ((item.duration ?? 0) > 0 || !totalDuration) setTotalDuration(item.duration ?? 0);
@@ -1172,23 +1222,92 @@ export default function TranscribeWorkspace({
                           startPolling(item.id, item.jobName);
                         }
                       }}
-                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
+                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none cursor-pointer relative group/item flex flex-col ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isRecorded ? (
-                            <Mic size={14} className={isActive ? 'text-white' : 'text-red-400'} />
+                            <Mic size={14} className={isActive ? 'text-white flex-shrink-0' : 'text-red-400 flex-shrink-0'} />
                           ) : (
-                            <Upload size={14} className={isActive ? 'text-white' : 'text-blue-400'} />
+                            <Upload size={14} className={isActive ? 'text-white flex-shrink-0' : 'text-blue-400 flex-shrink-0'} />
                           )}
-                          <div className="font-bold text-sm truncate">{item.title}</div>
+                          
+                          {editingId === item.id ? (
+                            <div className="flex items-center gap-1 flex-1">
+                              <input
+                                type="text"
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-black/50 border border-white/10 text-white text-xs px-2 py-1 rounded-lg w-full focus:outline-none focus:border-[#e9c176]"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.stopPropagation();
+                                    saveTitle(item.id, editingTitle);
+                                  } else if (e.key === 'Escape') {
+                                    e.stopPropagation();
+                                    setEditingId(null);
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveTitle(item.id, editingTitle);
+                                }}
+                                className="p-1 hover:bg-white/10 text-green-400 rounded-lg flex-shrink-0"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(null);
+                                }}
+                                className="p-1 hover:bg-white/10 text-red-400 rounded-lg flex-shrink-0"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="font-bold text-sm truncate flex-1">{item.title}</div>
+                          )}
                         </div>
-                        <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
-                          {formatTimelineTime(item.duration ?? 0)}
-                        </div>
+                        
+                        {editingId !== item.id && (
+                          <div className="relative flex-shrink-0 w-16 h-6 flex items-center justify-end">
+                            {/* Duration Tag (Default state) */}
+                            <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full transition-all duration-200 group-hover/item:opacity-0 group-hover/item:pointer-events-none ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
+                              {formatTimelineTime(item.duration ?? 0)}
+                            </div>
+
+                            {/* Action Buttons (Fades in on hover) */}
+                            <div className="absolute inset-0 flex items-center justify-end gap-1.5 opacity-0 group-hover/item:opacity-100 transition-all duration-200 pointer-events-none group-hover/item:pointer-events-auto">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(item.id);
+                                  setEditingTitle(item.title || '');
+                                }}
+                                className={`p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}`}
+                                title="Rename Session"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={(e) => handleDelete(item.id, e)}
+                                className={`p-1 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:text-red-300' : 'text-gray-400 hover:text-red-400'}`}
+                                title="Delete Session"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 ${isActive ? 'text-white' : 'text-gray-500'}`}>
+                      <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 mt-1.5 ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
                         <Clock size={10} /> {new Date(item.createdAt).toLocaleDateString()}
                       </div>
 
@@ -1198,7 +1317,7 @@ export default function TranscribeWorkspace({
                           <span className="uppercase tracking-[0.2em]">Ratifying Record...</span>
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })
               )}

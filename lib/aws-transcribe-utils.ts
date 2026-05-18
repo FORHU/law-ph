@@ -26,11 +26,21 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
     credentials: getCredentials(),
   });
 
-  const params = {
+  const ext = s3Uri.split('.').pop()?.toLowerCase();
+  let mediaFormat: string | undefined = undefined;
+  if (ext === 'mp3') mediaFormat = 'mp3';
+  else if (ext === 'wav') mediaFormat = 'wav';
+  else if (ext === 'flac') mediaFormat = 'flac';
+  else if (ext === 'ogg') mediaFormat = 'ogg';
+  else if (ext === 'webm' || ext === 'weba') mediaFormat = 'webm';
+  else if (ext === 'm4a') mediaFormat = 'm4a';
+  else if (ext === 'mp4') mediaFormat = 'mp4';
+  else if (ext === 'amr') mediaFormat = 'amr';
+
+  const params: any = {
     TranscriptionJobName: jobName,
     IdentifyLanguage: true,
     LanguageOptions: ["en-US", "tl-PH", "ko-KR"],
-    MediaFormat: "mp3",
     Media: {
       MediaFileUri: s3Uri,
     },
@@ -39,6 +49,10 @@ export async function startAWSBatchTranscription(s3Uri: string, jobName: string)
       MaxSpeakerLabels: 10,
     },
   };
+
+  if (mediaFormat) {
+    params.MediaFormat = mediaFormat;
+  }
 
   try {
     const data = await client.send(new StartTranscriptionJobCommand(params as any));
@@ -80,63 +94,111 @@ export async function fetchTranscriptionText(url: string): Promise<string> {
     const data = await response.json();
 
     // If speaker labels are not present, return simple transcript
-    if (!data.results.speaker_labels) {
+    if (!data.results.speaker_labels || !data.results.speaker_labels.segments) {
       return data.results.transcripts[0].transcript || "";
     }
 
-    // Advanced parsing for speaker labels: 
-    // We linearly iterate items and assign to segments to ensure punctuation (which lacks timestamps) is included.
-    const items = data.results.items;
-    const segments = data.results.speaker_labels.segments;
-    let fullTranscript = "";
-    let currentSegmentIdx = 0;
-    let segmentBuffer: string[] = [];
-
-    items.forEach((item: any, itemIdx: number) => {
-      const content = item.alternatives[0].content;
-      const isPunctuation = item.type === "punctuation";
-      
-      // Determine which speaker this item belongs to
-      if (!isPunctuation) {
-        const itemStart = parseFloat(item.start_time);
-        
-        // Advance currentSegmentIdx if this item starts after the current segment ends
-        while (
-          currentSegmentIdx < segments.length - 1 && 
-          itemStart >= parseFloat(segments[currentSegmentIdx].end_time)
-        ) {
-          // Flush the buffer for the completed segment
-          if (segmentBuffer.length > 0) {
-            const seg = segments[currentSegmentIdx];
-            const speaker = `Speaker ${seg.speaker_label.replace('spk_', '')}`;
-            const startTime = parseFloat(seg.start_time);
-            
-            let text = segmentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
-            text = text.charAt(0).toUpperCase() + text.slice(1);
-            if (!/[.!?]$/.test(text)) text += ".";
-            
-            fullTranscript += `[TS:${startTime.toFixed(2)}] [${speaker}]: ${text}\n\n`;
-            segmentBuffer = [];
+    // 1. Build a high-precision map of word start times to speaker labels
+    const wordSpeakerMap = new Map<number, string>();
+    data.results.speaker_labels.segments.forEach((seg: any) => {
+      if (seg.items) {
+        seg.items.forEach((item: any) => {
+          if (item.start_time) {
+            const t = parseFloat(item.start_time);
+            if (!isNaN(t)) {
+              wordSpeakerMap.set(t, seg.speaker_label);
+            }
           }
-          currentSegmentIdx++;
+        });
+      }
+    });
+
+    const getSpeakerForTime = (startTime: number): string => {
+      // Try precise word-level match with a tiny tolerance for floating point rounding
+      for (const [t, spk] of wordSpeakerMap.entries()) {
+        if (Math.abs(t - startTime) < 0.005) {
+          return spk;
         }
       }
 
-      segmentBuffer.push(content);
+      // Fallback: search for a segment containing this start time
+      const segments = data.results.speaker_labels.segments;
+      for (const seg of segments) {
+        const segStart = parseFloat(seg.start_time);
+        const segEnd = parseFloat(seg.end_time);
+        if (startTime >= segStart && startTime <= segEnd) {
+          return seg.speaker_label;
+        }
+      }
+      return "spk_0"; // default fallback
+    };
 
-      // Final flush for the last item
-      if (itemIdx === items.length - 1 && segmentBuffer.length > 0) {
-        const seg = segments[currentSegmentIdx];
-        const speaker = `Speaker ${seg.speaker_label.replace('spk_', '')}`;
-        const startTime = parseFloat(seg.start_time);
-        
-        let text = segmentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
-        text = text.charAt(0).toUpperCase() + text.slice(1);
-        if (!/[.!?]$/.test(text)) text += ".";
-        
-        fullTranscript += `[TS:${startTime.toFixed(2)}] [${speaker}]: ${text}\n\n`;
+    // 2. Iterate items sequentially to group into speaker turns
+    const items = data.results.items;
+    let fullTranscript = "";
+    
+    let currentSpeaker = "";
+    let currentStartTime = 0;
+    let currentBuffer: string[] = [];
+    let lastWordEndTime = 0;
+
+    items.forEach((item: any) => {
+      const isPunctuation = item.type === "punctuation";
+      const content = item.alternatives[0].content;
+
+      if (isPunctuation) {
+        currentBuffer.push(content);
+      } else {
+        const itemStart = parseFloat(item.start_time);
+        const itemEnd = parseFloat(item.end_time);
+        const speakerLabel = getSpeakerForTime(itemStart);
+        const speaker = `Speaker ${speakerLabel.replace('spk_', '')}`;
+
+        // Automatically split into a new timestamped block if:
+        // 1. There is a conversational pause > 2.0 seconds OR
+        // 2. The speaker changes OR
+        // 3. We reached a natural paragraph boundary (previous sentence ended and we have 45+ words)
+        const isPause = lastWordEndTime > 0 && (itemStart - lastWordEndTime) > 2.0;
+        const lastChar = currentBuffer.length > 0 ? currentBuffer[currentBuffer.length - 1] : "";
+        const endedSentence = lastChar === "." || lastChar === "?" || lastChar === "!";
+        const isParagraphSplit = endedSentence && currentBuffer.length >= 45;
+
+        const shouldSplit = (speaker !== currentSpeaker) || isPause || isParagraphSplit;
+
+        if (currentSpeaker === "") {
+          // First word
+          currentSpeaker = speaker;
+          currentStartTime = itemStart;
+          currentBuffer.push(content);
+        } else if (shouldSplit) {
+          // Flush the previous turn
+          let text = currentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
+          text = text.charAt(0).toUpperCase() + text.slice(1);
+          if (!/[.!?]$/.test(text)) text += ".";
+          
+          fullTranscript += `[TS:${currentStartTime.toFixed(2)}] [${currentSpeaker}]: ${text}\n\n`;
+
+          // Start the new turn
+          currentSpeaker = speaker;
+          currentStartTime = itemStart;
+          currentBuffer = [content];
+        } else {
+          // Same speaker
+          currentBuffer.push(content);
+        }
+
+        lastWordEndTime = itemEnd;
       }
     });
+
+    // Flush the final turn
+    if (currentBuffer.length > 0) {
+      let text = currentBuffer.join(" ").replace(/ ([,.!?;:])/g, "$1");
+      text = text.charAt(0).toUpperCase() + text.slice(1);
+      if (!/[.!?]$/.test(text)) text += ".";
+      
+      fullTranscript += `[TS:${currentStartTime.toFixed(2)}] [${currentSpeaker}]: ${text}\n\n`;
+    }
 
     return fullTranscript.trim() || data.results.transcripts[0].transcript || "";
   } catch (err) {

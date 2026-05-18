@@ -232,8 +232,10 @@ export function ChatInput({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/mp3' });
-        const file = new File([audioBlob], `voice-note-${Date.now()}.mp3`, { type: 'audio/mp3' });
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+        const file = new File([audioBlob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
 
         setStatus('thinking');
 

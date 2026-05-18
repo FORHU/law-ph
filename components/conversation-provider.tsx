@@ -618,6 +618,8 @@ export function ConversationProvider({
         setCurrentConsultationId(syncedConversationId);
       } else {
         console.error("Error fetching messages:", msgRes.status);
+        // Prevent infinite loops on failure by marking this ID as loaded/attempted
+        loadedHistoryIdRef.current = syncedConversationId.toString();
       }
       setIsLoading(false);
     },
@@ -725,7 +727,7 @@ export function ConversationProvider({
         const res = await fetch("/api/cases", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: caseData.name, party: caseData.party, notes: caseData.notes }),
+          body: JSON.stringify({ caseName: caseData.name, partyInvolved: caseData.party, notes: caseData.notes }),
         });
 
         if (res.ok) {

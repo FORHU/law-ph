@@ -9,7 +9,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
 
   // Verify conversation belongs to user (or user is a participant)
-  const conversation = await prisma.conversation.findFirst({
+  let conversation = await prisma.conversation.findFirst({
     where: {
       id,
       OR: [
@@ -19,7 +19,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     },
   });
 
-  if (!conversation) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!conversation) {
+    // Self-healing: If a Case exists with this ID, create the missing linked Conversation record
+    const caseRecord = await prisma.case.findFirst({
+      where: { id, userId: user.id },
+    });
+
+    if (caseRecord) {
+      conversation = await prisma.conversation.create({
+        data: {
+          id: caseRecord.id,
+          userId: user.id,
+          title: `[CASE] ${caseRecord.caseName}`,
+        },
+      });
+    } else {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
 
   const messages = await prisma.message.findMany({
     where: { conversationId: id },

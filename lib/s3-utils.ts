@@ -139,16 +139,14 @@ export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ 
 
   console.log(`[S3-Utils] Uploading voice note via direct S3 route: ${name} (${blob.size} bytes)`);
 
-  // Use our stable server-side S3 upload route instead of the backend proxy.
-  // This ensures files always land in ilovelawyer-dev (served by CloudFront)
-  // even when the backend EC2 instance is unavailable.
-  const formData = new FormData();
-  formData.append("file", blob, name);
-  formData.append("filename", name);
-
-  const response = await fetch("/api/s3-upload", {
+  // Use raw binary streams with query parameters instead of FormData to completely bypass
+  // browser and framework-level multipart parsing size limitations and CORS issues.
+  const response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(name)}`, {
     method: "POST",
-    body: formData,
+    headers: {
+      "Content-Type": blob.type || "application/octet-stream",
+    },
+    body: blob,
   });
 
   const data = await response.json();
@@ -184,14 +182,12 @@ export async function uploadToS3Direct(
   console.log(`[S3-Direct] Uploading ${filename} to ${targetBucket} via local proxy API (${blob.size} bytes)`);
 
   try {
-    const formData = new FormData();
-    formData.append("file", blob, filename);
-    formData.append("filename", filename);
-    if (bucket) formData.append("bucket", bucket);
-
-    const response = await fetch("/api/s3-upload", {
+    const response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(filename)}&bucket=${encodeURIComponent(targetBucket)}`, {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": blob.type || "application/octet-stream",
+      },
+      body: blob,
     });
 
     const data = await response.json();

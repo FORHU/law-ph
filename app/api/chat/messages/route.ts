@@ -16,6 +16,27 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Self-healing: If the conversation doesn't exist, but it's a Case, create the Conversation first!
+    const conversationExists = await prisma.conversation.findUnique({
+      where: { id: conversation_id },
+    });
+
+    if (!conversationExists) {
+      const caseRecord = await prisma.case.findFirst({
+        where: { id: conversation_id, userId: user.id },
+      });
+
+      if (caseRecord) {
+        await prisma.conversation.create({
+          data: {
+            id: caseRecord.id,
+            userId: user.id,
+            title: `[CASE] ${caseRecord.caseName}`,
+          },
+        });
+      }
+    }
+
     const message = await prisma.message.create({
       data: {
         conversationId: conversation_id,

@@ -24,9 +24,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "caseName is required" }, { status: 400 });
   }
 
-  const newCase = await prisma.case.create({
-    data: { userId: user.id, caseName, partyInvolved: partyInvolved || null, notes: notes || null },
+  const result = await prisma.$transaction(async (tx) => {
+    const newCase = await tx.case.create({
+      data: { userId: user.id, caseName, partyInvolved: partyInvolved || null, notes: notes || null },
+    });
+
+    await tx.conversation.create({
+      data: {
+        id: newCase.id,
+        userId: user.id,
+        title: `[CASE] ${caseName}`,
+      },
+    });
+
+    return newCase;
   });
 
-  return NextResponse.json({ case: newCase }, { status: 201 });
+  return NextResponse.json({ case: result }, { status: 201 });
 }
