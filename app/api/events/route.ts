@@ -13,14 +13,49 @@ export async function GET(req: Request) {
   const excludeStatus = searchParams.get("excludeStatus");
   const limitOne = searchParams.get("limitOne") === "true";
 
-  const where: any = { userId: user.id };
-  if (startRange) where.dateTime = { ...(where.dateTime || {}), gte: new Date(startRange) };
-  if (endRange) where.dateTime = { ...(where.dateTime || {}), lte: new Date(endRange) };
-  if (excludeId) where.id = { not: excludeId };
-  if (excludeStatus) where.status = { not: excludeStatus };
+  const where: any = {
+    AND: [
+      {
+        OR: [
+          { userId: user.id },
+          {
+            clientEmail: {
+              contains: user.email,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  const andConditions = where.AND;
+
+  if (startRange) {
+    andConditions.push({ dateTime: { gte: new Date(startRange) } });
+  }
+  if (endRange) {
+    andConditions.push({ dateTime: { lte: new Date(endRange) } });
+  }
+  if (excludeId) {
+    andConditions.push({ id: { not: excludeId } });
+  }
+  if (excludeStatus) {
+    andConditions.push({ status: { not: excludeStatus } });
+  }
 
   const events = await prisma.event.findMany({
     where,
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          username: true,
+        },
+      },
+    },
     ...(limitOne && { take: 1 }),
     orderBy: { dateTime: "asc" },
   });

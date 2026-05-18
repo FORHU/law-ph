@@ -7,7 +7,30 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const event = await prisma.event.findFirst({ where: { id, userId: user.id } });
+  const event = await prisma.event.findFirst({
+    where: {
+      id,
+      OR: [
+        { userId: user.id },
+        {
+          clientEmail: {
+            contains: user.email,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          username: true,
+        },
+      },
+    },
+  });
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ event });
@@ -33,7 +56,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (body.lawyer_acknowledged_at !== undefined) updateData.lawyerAcknowledgedAt = new Date(body.lawyer_acknowledged_at);
 
   const updated = await prisma.event.updateMany({
-    where: { id, userId: user.id },
+    where: {
+      id,
+      OR: [
+        { userId: user.id },
+        {
+          clientEmail: {
+            contains: user.email,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
     data: updateData,
   });
 

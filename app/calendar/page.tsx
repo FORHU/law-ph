@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -66,6 +66,13 @@ interface CalendarEvent {
   iCalUID?: string;
   lawyerAcknowledgedAt?: string;
   lastReminderSentAt?: string;
+  userId?: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+    username: string;
+  };
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -280,6 +287,7 @@ export default function CalendarPage() {
     "calendar",
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [submittingRSVP, setSubmittingRSVP] = useState<string | null>(null);
 
   // Success Modal State
   const [successModal, setSuccessModal] = useState<{
@@ -1299,6 +1307,98 @@ export default function CalendarPage() {
     } catch (err: any) {
       console.error("Error canceling event:", err.message || err);
       setSubmitting(false);
+    }
+  };
+
+  const handleRSVP = async (eventId: string, newStatus: "confirmed" | "denied") => {
+    if (!user) return;
+    setSubmittingRSVP(eventId);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update RSVP status");
+
+      // Update local state arrays
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId ? { ...e, status: newStatus } : e,
+        ),
+      );
+      setSelectedDayEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId ? { ...e, status: newStatus } : e,
+        ),
+      );
+
+      openSuccess(
+        newStatus === "confirmed" ? "Invitation Confirmed" : "Invitation Declined",
+        newStatus === "confirmed"
+          ? "You have confirmed the appointment successfully."
+          : "You have declined the appointment invitation.",
+        newStatus === "confirmed" ? "success" : "info"
+      );
+
+      // Trigger email updates
+      const eventObj = events.find((e) => e.id === eventId);
+      if (eventObj) {
+        const organizer = (eventObj as any).user;
+        
+        if (newStatus === "confirmed") {
+          // Send confirmation_success email to the client (current user)
+          await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: user.email,
+              type: "confirmation_success",
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              eventDetails: {
+                eventId: eventObj.id,
+                eventType: eventObj.type,
+                dateTime: new Date(
+                  eventObj.date_time || eventObj.dateTime || "",
+                ).toISOString(),
+                notes: eventObj.notes || undefined,
+                iCalUID:
+                  (eventObj as any).iCalUID ||
+                  eventObj.google_event_id ||
+                  undefined,
+              },
+              organizer: {
+                name: organizer?.name || organizer?.email || "Organizer",
+                email: organizer?.email || "",
+              },
+            }),
+          }).catch((err) =>
+            console.error("Failed to send confirmation email to guest:", err),
+          );
+        }
+
+        // Notify the organizer
+        if (organizer?.email) {
+          const actionText = newStatus === "confirmed" ? "confirmed" : "declined";
+          await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: organizer.email,
+              subject: `Client ${newStatus === "confirmed" ? "Confirmed" : "Declined"} Appointment: ${eventObj.title || eventObj.type}`,
+              body: `### Appointment ${newStatus === "confirmed" ? "Confirmed" : "Declined"}\n\nClient **${user.name || user.email}** has ${actionText} the appointment **"${eventObj.title || eventObj.type}"** scheduled for **${new Date(eventObj.date_time || eventObj.dateTime || "").toLocaleString()}**.`,
+            }),
+          }).catch((err) =>
+            console.error("Failed to send RSVP email notification to organizer:", err),
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("[Calendar] RSVP failed:", err.message || err);
+      alert("Failed to update RSVP status. Please try again.");
+    } finally {
+      setSubmittingRSVP(null);
     }
   };
 
@@ -2481,6 +2581,48 @@ export default function CalendarPage() {
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             {(() => {
+                              const isOrganizer = event.userId === user?.id;
+
+                              if (!isOrganizer) {
+                                const canRSVP =
+                                  event.status === "pending" ||
+                                  event.status === "tentative" ||
+                                  event.status === "requested_change";
+
+                                if (canRSVP) {
+                                  const isSubmittingThis = submittingRSVP === event.id;
+                                  return (
+                                    <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          await handleRSVP(event.id, "confirmed");
+                                        }}
+                                        disabled={isSubmittingThis}
+                                        className="text-[10px] font-bold px-3 py-1.5 bg-green-500/15 hover:bg-green-500/25 text-green-400 rounded-lg transition-all border border-green-500/20 flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                      >
+                                        <CheckCircle2 size={12} /> Confirm
+                                      </button>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          await handleRSVP(event.id, "denied");
+                                        }}
+                                        disabled={isSubmittingThis}
+                                        className="text-[10px] font-bold px-3 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg transition-all border border-red-500/20 flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                      >
+                                        <XCircle size={12} /> Decline
+                                      </button>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <span className="text-[10px] font-bold text-gray-500 px-2.5 py-1 bg-white/5 rounded-md capitalize">
+                                    RSVP: {event.status}
+                                  </span>
+                                );
+                              }
+
                               const isEventPast =
                                 new Date(
                                   event.date_time || event.dateTime || "",

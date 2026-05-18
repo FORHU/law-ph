@@ -255,6 +255,7 @@ export const EventScalarFieldEnum = {
   googleEventId: 'googleEventId',
   lastReminderSentAt: 'lastReminderSentAt',
   lawyerAcknowledgedAt: 'lawyerAcknowledgedAt',
+  clientFeedback: 'clientFeedback',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

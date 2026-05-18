@@ -94,10 +94,10 @@ async function handleProxy(req: NextRequest, method: 'GET' | 'HEAD') {
         const contentRange = response.headers.get("content-range");
         const contentLength = response.headers.get("content-length");
 
-        let body: Buffer | null = null;
+        let body: Uint8Array | null = null;
         if (method === 'GET') {
             const arrayBuffer = await response.arrayBuffer();
-            body = Buffer.from(arrayBuffer);
+            body = new Uint8Array(arrayBuffer);
         }
 
         // Return the response with the original content type and range headers
@@ -116,7 +116,7 @@ async function handleProxy(req: NextRequest, method: 'GET' | 'HEAD') {
             headers.set("Cache-Control", "public, max-age=3600");
         }
 
-        return new NextResponse(body, {
+        return new NextResponse(body as any, {
             status: response.status,
             headers,
         });

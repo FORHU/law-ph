@@ -19,7 +19,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ googleEv
   if (body.notes !== undefined) updateData.notes = body.notes;
 
   const updated = await prisma.event.updateMany({
-    where: { googleEventId, userId: user.id },
+    where: {
+      googleEventId,
+      OR: [
+        { userId: user.id },
+        {
+          clientEmail: {
+            contains: user.email,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
     data: updateData,
   });
 
