@@ -290,6 +290,7 @@ export function useConsultationState({
           eventDetails: {
             eventId: draftedEventId,
             eventType: scheduleType,
+            title: activeCase?.case_name || consultationTitle || scheduleType || 'Consultation',
             dateTime: new Date(scheduleDateTime).toISOString(),
             notes: scheduleNotes,
             iCalUID: iCalUID

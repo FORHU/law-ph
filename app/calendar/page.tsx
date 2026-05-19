@@ -498,14 +498,28 @@ export default function CalendarPage() {
         const data = json.events;
         setEventsError(null);
         // Normalize fields for consumption
-        const normalized = data.map((e: any) => ({
-          ...e,
-          date_time: e.dateTime ? new Date(e.dateTime).toISOString() : null,
-          client_email: e.clientEmail,
-          status: e.status || "pending",
-          lawyerAcknowledgedAt: e.lawyerAcknowledgedAt,
-          lastReminderSentAt: e.lastReminderSentAt,
-        }));
+        const normalized = data.map((e: any) => {
+          let status = e.status || "pending";
+          // Recover orphaned events: notes were stamped [Cancelled:] but DB status was never updated
+          if (status !== "cancelled" && status !== "canceled" && typeof e.notes === "string" && e.notes.includes("[Cancelled:")) {
+            status = "cancelled";
+            // Patch the DB silently so future fetches are consistent
+            fetch(`/api/events/${e.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "cancelled" }),
+            }).catch(() => {});
+          }
+          return {
+            ...e,
+            date_time: e.dateTime ? new Date(e.dateTime).toISOString() : null,
+            client_email: e.clientEmail,
+            google_event_id: e.googleEventId || e.google_event_id || null,
+            status,
+            lawyerAcknowledgedAt: e.lawyerAcknowledgedAt,
+            lastReminderSentAt: e.lastReminderSentAt,
+          };
+        });
 
         // Smart merge: if we already have Google-enriched events, keep their extra data
         setEvents((prev) => {
@@ -593,9 +607,17 @@ export default function CalendarPage() {
                 .replace(/[^a-z0-9]/g, "");
               mappedKeys.add(`${eTitle}|${rounded}`);
 
+              // Never let Google overwrite a locally-cancelled/denied status
+              const resolvedStatus =
+                localMatch.status === "cancelled" ||
+                localMatch.status === "canceled" ||
+                localMatch.status === "denied"
+                  ? localMatch.status
+                  : ge.status;
+
               return {
                 ...localMatch,
-                status: ge.status,
+                status: resolvedStatus,
                 google_event_id: ge.google_event_id,
                 googleLink: ge.googleLink,
                 iCalUID: ge.iCalUID,
@@ -1043,12 +1065,12 @@ export default function CalendarPage() {
 
       const createdEventId = savedEvent.id;
       let gLink = savedEvent.googleLink || "";
+      let googleEventId: string | undefined;
 
       // Auto-send if there's a client email
       if (form.clientEmail) {
         // Sync to Google Calendar
         let iCalUID: string | undefined;
-        let googleEventId: string | undefined;
 
         if (editingEventId) {
           const existing = events.find((e) => e.id === editingEventId);
@@ -1150,6 +1172,7 @@ export default function CalendarPage() {
         ...savedEvent,
         date_time: savedEvent.dateTime ? new Date(savedEvent.dateTime).toISOString() : savedEvent.date_time,
         client_email: savedEvent.clientEmail || savedEvent.client_email,
+        google_event_id: googleEventId || savedEvent.googleEventId || savedEvent.google_event_id || null,
         status: savedEvent.status,
         googleLink: gLink,
       };
@@ -1209,11 +1232,12 @@ export default function CalendarPage() {
       if (isGoogleConnected) {
         const gId = isGoogleId ? actionEventId : eventToCancel?.google_event_id;
         if (gId) {
-          try {
-            await deleteCalendarEvent(userId, gId, user?.googleAccessToken);
-          } catch (gErr) {
-            console.warn("[CalendarSync] Google delete failed (might be already gone):", gErr);
-            // We continue anyway since we want to update our local record
+          const gResult = await deleteCalendarEvent(userId, gId, user?.googleAccessToken);
+          if (gResult.needs_auth) {
+            setIsGoogleConnected(false);
+            console.warn("[CalendarSync] Google token expired — event not removed from Google Calendar.");
+          } else if (!gResult.success) {
+            console.warn("[CalendarSync] Google delete failed:", gResult.error);
           }
         }
       }
@@ -1266,6 +1290,7 @@ export default function CalendarPage() {
             eventDetails: {
               eventId: eventToCancel?.id,
               eventType: eventToCancel?.type,
+              title: eventToCancel?.title,
               dateTime: new Date(
                 eventToCancel?.date_time || eventToCancel?.dateTime || "",
               ).toISOString(),
@@ -1360,6 +1385,7 @@ export default function CalendarPage() {
               eventDetails: {
                 eventId: eventObj.id,
                 eventType: eventObj.type,
+                title: eventObj.title,
                 dateTime: new Date(
                   eventObj.date_time || eventObj.dateTime || "",
                 ).toISOString(),
@@ -1418,6 +1444,7 @@ export default function CalendarPage() {
           eventDetails: {
             eventId: event.id,
             eventType: event.type,
+            title: event.title,
             dateTime: new Date(
               event.date_time || event.dateTime || "",
             ).toISOString(),
@@ -2582,6 +2609,15 @@ export default function CalendarPage() {
                         ) : (
                           <div className="flex items-center justify-end gap-2">
                             {(() => {
+                              // No actions for cancelled/denied events
+                              if (event.status === "cancelled" || event.status === "canceled" || event.status === "denied") {
+                                return (
+                                  <span className="text-[10px] font-bold text-gray-500 px-2.5 py-1 bg-white/5 rounded-md capitalize">
+                                    {event.status === "denied" ? "Declined" : "Cancelled"}
+                                  </span>
+                                );
+                              }
+
                               // Lawyer is the organizer if they created the event (DB event)
                               // OR if their email matches the Google organizer (synced Google event)
                               const isOrganizer =

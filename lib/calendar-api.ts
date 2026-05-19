@@ -274,7 +274,7 @@ export async function deleteCalendarEvent(
 
   try {
     const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=all`,
     );
 
     const res = await fetch(url.toString(), {

@@ -163,6 +163,7 @@ export async function sendEmail({
        <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">This is a reminder from <strong>${organizer?.name || organizer?.email}</strong> about your scheduled appointment.</p>
        ${detailsCard([
          { label: 'Appointment', value: displayTitle },
+         { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'Date & Time', value: formatDate(startDate) },
          { label: 'Duration', value: '1 hour' },
@@ -199,6 +200,7 @@ export async function sendEmail({
        <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has updated the schedule for your appointment. Please take note of the new date and time.</p>
        ${detailsCard([
          { label: 'Appointment', value: displayTitle },
+         { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'New Date & Time', value: formatDate(startDate) },
          { label: 'Duration', value: '1 hour' },
@@ -234,6 +236,7 @@ export async function sendEmail({
        <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has cancelled the following appointment. We apologize for any inconvenience.</p>
        ${detailsCard([
          { label: 'Appointment', value: displayTitle },
+         { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'Was Scheduled', value: formatDate(startDate) },
          ...(reason ? [{ label: 'Reason', value: reason }] : []),
@@ -265,6 +268,7 @@ export async function sendEmail({
        <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">Your attendance for the following appointment has been confirmed. See you there!</p>
        ${detailsCard([
          { label: 'Appointment', value: displayTitle },
+         { label: 'Type', value: capitalize(eventType) },
          { label: 'Date & Time', value: formatDate(startDate) },
          { label: 'Duration', value: '1 hour' },
          ...(notes ? [{ label: 'Notes', value: notes }] : []),

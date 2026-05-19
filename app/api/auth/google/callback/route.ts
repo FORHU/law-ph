@@ -45,17 +45,21 @@ export async function GET(request: Request) {
       }),
     });
 
-    if (!tokenRes.ok) {
-      throw new Error(`Token exchange failed: ${tokenRes.status}`);
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) {
+      console.error("[google/callback] Token exchange failed:", tokenData);
+      throw new Error(`Token exchange failed: ${tokenData.error ?? tokenRes.status} — ${tokenData.error_description ?? ""}`);
     }
 
-    const { access_token, refresh_token } = await tokenRes.json();
+    const { access_token } = tokenData;
 
     const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
     if (!userRes.ok) {
+      const body = await userRes.text();
+      console.error("[google/callback] Userinfo fetch failed:", userRes.status, body);
       throw new Error(`User info fetch failed: ${userRes.status}`);
     }
 

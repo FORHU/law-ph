@@ -1,0 +1,21 @@
+Console Error
+
+
+
+Error fetching events: 500
+app/calendar/page.tsx (493:17) @ CalendarPage.useCallback[fetchEvents]
+
+
+  491 |       const res = await fetch("/api/events");
+  492 |       if (!res.ok) {
+> 493 |         console.error("Error fetching events:", res.status);
+      |                 ^
+  494 |         setEventsError("Unable to load events. Retrying...");
+  495 |         setTimeout(() => fetchEvents(), 3000);
+  496 |       } else {
+Call Stack
+4
+
+Show 3 ignore-listed frame(s)
+CalendarPage.useCallback[fetchEvents]
+app/calendar/page.tsx (493:17)

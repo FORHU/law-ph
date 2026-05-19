@@ -44,23 +44,28 @@ export async function GET(req: Request) {
     andConditions.push({ status: { not: excludeStatus } });
   }
 
-  const events = await prisma.event.findMany({
-    where,
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          username: true,
+  try {
+    const events = await prisma.event.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+          },
         },
       },
-    },
-    ...(limitOne && { take: 1 }),
-    orderBy: { dateTime: "asc" },
-  });
+      ...(limitOne && { take: 1 }),
+      orderBy: { dateTime: "asc" },
+    });
 
-  return NextResponse.json({ events });
+    return NextResponse.json({ events });
+  } catch (err) {
+    console.error("[api/events GET]", err);
+    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {

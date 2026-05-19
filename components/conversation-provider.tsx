@@ -628,7 +628,7 @@ export function ConversationProvider({
             typeof window !== "undefined" &&
             window.location.pathname.startsWith("/cases/");
 
-          if (isCaseRoute) {
+          if (isCaseRoute || existsInCases) {
             try {
               const caseRes = await fetch(`/api/cases/${syncedConversationId}`);
               const caseName = caseRes.ok

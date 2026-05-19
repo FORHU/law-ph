@@ -123,7 +123,11 @@ export default function TranscribeWorkspace({
   // Visualizer Live Tracking
   const audioHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyzerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const analyzerRafRef = useRef<number | null>(null);
+  const analyzerNodeRef = useRef<AnalyserNode | null>(null);
+  const analyzerDataRef = useRef<Uint8Array | null>(null);
+  const analyzerLastFrameRef = useRef<number>(0);
+  const [recordingTick, setRecordingTick] = useState(0);
   const [waveformPeaks, setWaveformPeaks] = useState<number[]>([]);
 
   // History state
@@ -447,7 +451,8 @@ export default function TranscribeWorkspace({
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      if (analyzerTimerRef.current) clearInterval(analyzerTimerRef.current);
+      if (analyzerRafRef.current) cancelAnimationFrame(analyzerRafRef.current);
+      analyzerNodeRef.current = null;
       if (audioContextRef.current) audioContextRef.current.close();
     } else {
       if (audioUrl || transcript) {
@@ -658,16 +663,32 @@ export default function TranscribeWorkspace({
         audioContextRef.current = audioContext;
         const source = audioContext.createMediaStreamSource(stream);
         const analyzer = audioContext.createAnalyser();
+        analyzer.fftSize = 1024;
+        analyzer.smoothingTimeConstant = 0.4;
         source.connect(analyzer);
-        analyzer.fftSize = 256;
+        analyzerNodeRef.current = analyzer;
         const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        analyzerDataRef.current = dataArray;
+        analyzerLastFrameRef.current = 0;
 
-        analyzerTimerRef.current = setInterval(() => {
-          analyzer.getByteFrequencyData(dataArray);
-          const maxVal = Math.max(...Array.from(dataArray));
-          const peak = Math.max(10, Math.min(100, (maxVal / 128) * 100 + 5));
-          audioHistoryRef.current.push(peak);
-        }, 100);
+        const sampleAudio = (timestamp: number) => {
+          if (!analyzerNodeRef.current || !analyzerDataRef.current) return;
+          // ~30fps: gives accurate response without excessive re-renders
+          if (timestamp - analyzerLastFrameRef.current >= 33) {
+            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current);
+            // Focus on speech-band bins (~80Hz–4kHz for 44100Hz/1024 fftSize → bins 2–93)
+            const speechBins = analyzerDataRef.current.slice(2, 93);
+            const rms = Math.sqrt(
+              speechBins.reduce((acc, v) => acc + v * v, 0) / speechBins.length
+            );
+            const peak = Math.max(5, Math.min(100, (rms / 70) * 100));
+            audioHistoryRef.current.push(peak);
+            setRecordingTick((t) => t + 1);
+            analyzerLastFrameRef.current = timestamp;
+          }
+          analyzerRafRef.current = requestAnimationFrame(sampleAudio);
+        };
+        analyzerRafRef.current = requestAnimationFrame(sampleAudio);
       }
 
       mediaRecorder.ondataavailable = (event) => {
@@ -1114,11 +1135,25 @@ export default function TranscribeWorkspace({
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex items-center gap-[2px] md:gap-1 w-full h-24 md:h-32 opacity-60">
                 {(() => {
+                  // recordingTick read here so React re-renders the bars on each audio sample
+                  void recordingTick;
                   return Array.from({ length: 150 }).map((_, i) => {
                     const hasAudioData = waveformPeaks.length > 0;
-                    // Use a deterministic pattern (sine wave) for placeholder if no data, to avoid hydration mismatch
                     const placeholderHeight = 10 + (Math.sin(i * 0.5) * 5 + 5);
-                    const peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
+
+                    let peakHeight: number;
+                    if (isRecording) {
+                      const hist = audioHistoryRef.current;
+                      if (hist.length > 0) {
+                        // Map bar i proportionally across all collected samples
+                        const sampleIdx = Math.floor((i / 150) * hist.length);
+                        peakHeight = hist[Math.min(sampleIdx, hist.length - 1)];
+                      } else {
+                        peakHeight = placeholderHeight;
+                      }
+                    } else {
+                      peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
+                    }
 
                     const timeAtBar = (i / 150) * displayTotalDuration;
                     const isPlayed = !isRecording && timeAtBar <= currentTime;
