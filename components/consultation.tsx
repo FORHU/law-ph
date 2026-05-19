@@ -34,6 +34,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useConversations, Message } from "@/components/conversation-provider/conversation-context";
 
 import { PageLayout } from "@/components/ui/page-layout";
+import { DateBox } from "@/components/ui/datebox";
 
 // Sub-components
 import { ConsultationHeader } from "./consultation/consultation-header";
@@ -255,6 +256,25 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   useConsultationEffects({
     messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
   });
+
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (globalTab === 'schedule') {
+      const fetchEvents = async () => {
+        try {
+          const res = await fetch("/api/events");
+          if (res.ok) {
+            const json = await res.json();
+            setCalendarEvents(json.events || []);
+          }
+        } catch (error) {
+          console.error("Failed to fetch calendar events:", error);
+        }
+      };
+      fetchEvents();
+    }
+  }, [globalTab]);
 
 
   let activeTimeline = derivedData.activeTimeline;
@@ -1219,16 +1239,15 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       {/* Date & Time Input */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
-                        <input
-                          type="datetime-local"
-                          min={getMinDateTime()}
+                        <DateBox
                           value={scheduleDateTime}
-                          onChange={(e) => {
-                            setScheduleDateTime(e.target.value);
+                          min={getMinDateTime()}
+                          onChange={(val) => {
+                            setScheduleDateTime(val);
                             setScheduleValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('date') && !err.toLowerCase().includes('past')));
                             // Validate past date immediately on change
-                            if (e.target.value) {
-                              const selected = new Date(e.target.value);
+                            if (val) {
+                              const selected = new Date(val);
                               const now = new Date();
                               now.setSeconds(0, 0);
                               selected.setSeconds(0, 0);
@@ -1237,7 +1256,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                               }
                             }
                           }}
-                          className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 focus:ring-1 focus:ring-[#722f37]/50 transition-all [color-scheme:dark]`}
+                          hasError={scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past'))}
+                          calendarEvents={calendarEvents}
                         />
                       </div>
                     </div>

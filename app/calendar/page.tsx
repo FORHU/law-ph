@@ -26,6 +26,7 @@ import {
   Bell,
 } from "lucide-react";
 import { PageLayout } from "@/components/ui/page-layout";
+import { DateBox } from "@/components/ui/datebox";
 import { useConversations } from "@/components/conversation-provider/conversation-context";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ASSETS } from "@/lib/constants";
@@ -868,6 +869,22 @@ export default function CalendarPage() {
         ),
     [events, now],
   );
+
+  const highlightedDates = useMemo(() => {
+    return events
+      .filter((e) => e.status !== "cancelled" && e.status !== "canceled" && e.status !== "denied")
+      .map((e) => {
+        const dtStr = e.date_time || e.dateTime;
+        if (!dtStr) return "";
+        const d = new Date(dtStr);
+        if (isNaN(d.getTime())) return "";
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      })
+      .filter(Boolean);
+  }, [events]);
 
   const activeList =
     activeTab === "upcoming"
@@ -1808,9 +1825,11 @@ export default function CalendarPage() {
             )}
             <button
               onClick={() => openCreateModal()}
-              className="flex items-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold px-4 py-2 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-[#722f37]/20"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold p-2.5 sm:px-4 sm:py-2 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-[#722f37]/20"
+              title="Create Schedule"
             >
-              <Plus size={16} /> Create Schedule
+              <Plus size={16} />
+              <span className="hidden sm:inline">Create Schedule</span>
             </button>
           </div>
         }
@@ -2389,21 +2408,22 @@ export default function CalendarPage() {
 
             {panelView === "details" && (
               <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4">
-                <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-white/5 bg-black/10">
+                <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-black/10">
                   <button
                     onClick={() => setPanelView("list")}
-                    className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 hover:border-white/10"
+                    className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10 shrink-0"
+                    title="Back"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={16} />
                   </button>
-                  <div className="text-right">
-                    <h2 className="text-sm font-bold text-white">
-                      Day Details
-                    </h2>
+                  <div className="flex-1 text-center">
+                    <h2 className="text-sm font-bold text-white tracking-wide">Day Details</h2>
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest">
                       {selectedDay || "?"} {MONTHS[viewMonth]} {viewYear}
                     </p>
                   </div>
+                  {/* Spacer to balance the back button */}
+                  <div className="w-9 shrink-0" />
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -2776,18 +2796,19 @@ export default function CalendarPage() {
 
             {panelView === "create" && (
               <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4">
-                <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-white/5 bg-black/10">
+                <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-black/10">
                   <button
                     onClick={() => setPanelView("list")}
-                    className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-all bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 hover:border-white/10"
+                    className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10 shrink-0"
+                    title="Back"
                   >
-                    <ArrowLeft size={14} /> Back
+                    <ArrowLeft size={16} />
                   </button>
-                  <div className="text-right">
-                    <h2 className="text-sm font-bold text-white">
-                      {editingEventId ? "Reschedule" : "Create Schedule"}
-                    </h2>
-                  </div>
+                  <h2 className="flex-1 text-center text-sm font-bold text-white tracking-wide">
+                    {editingEventId ? "Reschedule Event" : "Create Schedule"}
+                  </h2>
+                  {/* Spacer to balance the back button */}
+                  <div className="w-9 shrink-0" />
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -2899,14 +2920,13 @@ export default function CalendarPage() {
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                           Date & Time *
                         </label>
-                        <input
-                          type="datetime-local"
+                        <DateBox
                           min={getMinDateTime()}
                           value={form.dateTime}
-                          onChange={(e) => {
+                          onChange={(newVal) => {
                             setForm((f) => ({
                               ...f,
-                              dateTime: e.target.value,
+                              dateTime: newVal,
                             }));
                             setValidationErrors((prev) =>
                               prev.filter(
@@ -2916,7 +2936,12 @@ export default function CalendarPage() {
                               ),
                             );
                           }}
-                          className={`w-full bg-[#0B0B0C] border ${validationErrors.some((e) => e.toLowerCase().includes("date") || e.toLowerCase().includes("past")) ? "border-red-500/50" : "border-white/10"} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 [color-scheme:dark] transition-all`}
+                          hasError={validationErrors.some(
+                            (e) =>
+                              e.toLowerCase().includes("date") ||
+                              e.toLowerCase().includes("past")
+                          )}
+                          calendarEvents={events}
                         />
                       </div>
                     </div>

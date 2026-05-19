@@ -71,12 +71,14 @@ export function ConsultationHeader({
               <Menu size={16} className="text-gray-500 group-hover:text-white" />
             </button>
           )}
-          <button 
-            onClick={onBack || (() => router.push('/consultation'))}
-            className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0 relative flex items-center justify-center w-8 h-8"
-          >
-            <ArrowLeft size={14} className="text-gray-500 group-hover:text-white" />
-          </button>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0 relative flex items-center justify-center w-8 h-8"
+            >
+              <ArrowLeft size={14} className="text-gray-500 group-hover:text-white" />
+            </button>
+          )}
         </div>
 
         {/* Center: Title Region */}
