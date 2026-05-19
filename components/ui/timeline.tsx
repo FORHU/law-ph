@@ -61,7 +61,7 @@ export const Timeline = ({ data }: { data: TimelineData[] }) => {
   return (
     <div className="w-full font-serif" ref={containerRef}>
       <h2 className="text-3xl font-serif mb-8 flex items-center gap-3 text-white tracking-tight">
-        <GitGraph className="text-[#e9c176]" size={28} /> Institutional Timeline
+        <GitGraph className="text-[#e9c176]" size={28} /> Case Timeline
       </h2>
 
       <div
@@ -165,7 +165,7 @@ export const Timeline = ({ data }: { data: TimelineData[] }) => {
                           {lockedAlert === i && (
                             <div className="absolute right-0 top-full mt-2 w-64 bg-[#0B0B0C] border border-red-500/30 rounded-xl p-4 shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200">
                               <p className="text-[11px] leading-relaxed text-red-200 font-medium">
-                                Institutional protocol required: Complete{" "}
+                                Complete{" "}
                                 <strong className="text-red-400 font-bold uppercase tracking-widest">
                                   "
                                   {localData[i - 1]?.title ||

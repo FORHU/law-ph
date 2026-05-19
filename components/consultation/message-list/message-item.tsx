@@ -423,7 +423,7 @@ export function MessageItem({
                   return (
                     <div className="py-4 space-y-4">
                       <h4 className="text-lg font-serif text-white flex items-center gap-3 mb-6">
-                        <Gavel size={20} className="text-gray-400" /> Institutional Jurisprudence
+                        <Gavel size={20} className="text-gray-400" /> Legal Sources
                       </h4>
                       <div className="space-y-4">
                         {cases.map((caseItem: RelatedCase, i: number) => (
@@ -532,7 +532,7 @@ export function MessageItem({
               !message.isEditing ? (
                 message.isAnalysis && message.sender === 'user' && message.text.toUpperCase().includes('ANALYZING') ? (
                   isLoading ? (
-                    <span className="text-[10px] font-bold text-gray-400 animate-pulse italic uppercase tracking-[0.2em]">Synthesizing Institutional Analysis...</span>
+                    <span className="text-[10px] font-bold text-gray-400 animate-pulse italic uppercase tracking-[0.2em]">Analyzing...</span>
                   ) : null
                 ) : (
                   <>

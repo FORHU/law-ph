@@ -56,7 +56,7 @@ export default function CaseInvitePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0B0C] gap-6">
         <Loader2 className="w-8 h-8 animate-spin text-[#e9c176]" />
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Ratifying Institutional Invitation...</p>
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Verifying invitation...</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export default function CaseInvitePage() {
           <div className="flex flex-col items-center gap-6">
             <Loader2 className="w-12 h-12 animate-spin text-[#e9c176]" />
             <h2 className="text-2xl font-serif text-white tracking-tight">Authenticating <span className="text-[#e9c176] italic">Credentials</span></h2>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">Securing your position within the institutional record</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">Joining case session...</p>
           </div>
         )}
 
@@ -81,7 +81,7 @@ export default function CaseInvitePage() {
             <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center mb-2 border border-green-500/20">
               <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
-            <h2 className="text-2xl font-serif text-white tracking-tight">Access <span className="text-green-500 italic">Ratified</span></h2>
+            <h2 className="text-2xl font-serif text-white tracking-tight">Access <span className="text-green-500 italic">Granted</span></h2>
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">Transitioning to relevant case evidence...</p>
           </div>
         )}

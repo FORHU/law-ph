@@ -104,7 +104,7 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
             transition={{ delay: 0.8 }}
           >
             <Shield className="w-10 h-10 text-[#722f37] shrink-0" /> 
-            <span className="max-w-2xl text-left text-gray-400">Your institutional privacy is our priority. We utilize ratified security protocols to protect all sensitive information.</span>
+            <span className="max-w-2xl text-left text-gray-400">Your privacy is our priority. We use industry-standard security to protect all sensitive information.</span>
           </motion.div>
         </motion.div>
       </div>

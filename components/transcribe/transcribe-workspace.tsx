@@ -424,7 +424,7 @@ export default function TranscribeWorkspace({
       const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
 
       await startAWSBatchTranscription(s3Uri, jobName);
-      setUploadStatus("Transcription job successfully initiated!");
+      setUploadStatus("Transcription started successfully!");
 
       saveToHistory(file.name, s3Data.file_url, "Transcription in progress...", fileDuration, jobName);
 
@@ -713,10 +713,10 @@ export default function TranscribeWorkspace({
 
           const result = await startAWSBatchTranscription(s3Uri, jobName);
           if (!result) {
-            setUploadStatus("Failed to initiate transcription job. Please check AWS configuration.");
+            setUploadStatus("Transcription failed. Please try again.");
             return;
           }
-          setUploadStatus("Transcription job successfully initiated!");
+          setUploadStatus("Transcription started successfully!");
 
           saveToHistory(`Recording ${new Date().toLocaleString()}`, s3Data.file_url, "Transcription in progress...", duration, jobName);
         } catch (error) {
@@ -808,7 +808,7 @@ export default function TranscribeWorkspace({
               </div>
               <h1 className="text-4xl font-serif text-white mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
               <p className="text-gray-400 mb-10 leading-relaxed text-lg font-medium">
-                Record or upload audio to generate high-fidelity legal transcripts.
+                Record or upload audio to generate accurate legal transcripts.
               </p>
               <div className="flex gap-4 w-full">
                 <button
@@ -855,7 +855,7 @@ export default function TranscribeWorkspace({
               <div className="mb-4">
                 {isUploading ? <Loader2 size={48} className="animate-spin text-[#e9c176]" /> : <CheckCircle size={48} className="text-emerald-400" />}
               </div>
-              <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Success'}</h2>
+              <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Processing...' : 'Success'}</h2>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">{uploadStatus || 'Preparing your transcription'}</p>
             </div>
           )}
@@ -906,7 +906,7 @@ export default function TranscribeWorkspace({
                   </div>
                   <div>
                     <h3 className="text-xl font-serif text-white mb-1">AI Intelligence at work...</h3>
-                    <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with high precision speaker diarization.</p>
+                    <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with speaker identification.</p>
                   </div>
                 </div>
               )}
@@ -1349,7 +1349,7 @@ export default function TranscribeWorkspace({
                       {item.transcript === "Transcription in progress..." && (
                         <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#e9c176]'}`}>
                           <Loader2 size={10} className="animate-spin" />
-                          <span className="uppercase tracking-[0.2em]">Ratifying Record...</span>
+                          <span className="uppercase tracking-[0.2em]">Processing...</span>
                         </div>
                       )}
                     </div>
@@ -1380,7 +1380,7 @@ export default function TranscribeWorkspace({
               </div>
               <h2 className="text-xl font-bold text-white tracking-tight">Active session detected</h2>
               <p className="text-gray-400 text-sm leading-relaxed">
-                You currently have an active transcription session. Starting a new recording will discard your current timeline context. Are you sure you want to proceed?
+                You currently have an active transcription session. Starting a new recording will discard your current session. Are you sure you want to proceed?
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">

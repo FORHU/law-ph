@@ -136,8 +136,8 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
             <FileText size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-serif text-white tracking-tight">Institutional <span className="text-[#e9c176] italic">Analysis</span></h2>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Submit PDF, DOCX, or Audio evidence for ratification</p>
+            <h2 className="text-2xl font-serif text-white tracking-tight">Document <span className="text-[#e9c176] italic">Analysis</span></h2>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Submit PDF, DOCX, or audio for analysis</p>
           </div>
         </div>
 
@@ -164,9 +164,9 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                   <Upload size={28} className={isDragging ? 'text-[#e9c176]' : 'text-gray-500'} />
                 </div>
                 <p className="text-white font-bold text-sm mb-1 uppercase tracking-widest">
-                  {isDragging ? 'Release Transmission' : 'Initiate File Upload'}
+                  {isDragging ? 'Drop file here' : 'Click to upload'}
                 </p>
-                <p className="text-gray-500 text-[10px] uppercase tracking-widest">or click to browse filesystem</p>
+                <p className="text-gray-500 text-[10px] uppercase tracking-widest">or click to browse</p>
                 <p className="text-gray-600 text-[10px] mt-4 font-mono">SUPPORTED: PDF, DOCX, TXT, IMAGES, AUDIO · LIMIT 20MB</p>
                 <input
                   ref={fileInputRef}
@@ -186,7 +186,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                   className="mt-6 flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-[10px] text-red-400 font-bold uppercase tracking-widest"
                 >
                   <AlertCircle size={16} className="flex-shrink-0" />
-                  <span>Protocol Failure: {errorMessage}</span>
+                  <span>Upload failed: {errorMessage}</span>
                 </motion.div>
               )}
 
@@ -216,7 +216,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-white font-bold text-sm uppercase tracking-widest">Ratifying Submission...</p>
+                <p className="text-white font-bold text-sm uppercase tracking-widest">Analyzing...</p>
                 {selectedFile && (
                   <p className="text-[#e9c176] text-[10px] mt-2 font-mono uppercase tracking-wider max-w-[240px] truncate">{selectedFile.name}</p>
                 )}
@@ -241,8 +241,8 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-bold truncate">{filename}</p>
                   <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mt-1">
-                    {charCount.toLocaleString()} Characters Verified
-                    {wasTruncated && <span className="ml-2 text-amber-500">(Truncated Transmission)</span>}
+                    {charCount.toLocaleString()} characters extracted
+                    {wasTruncated && <span className="ml-2 text-amber-500">((Truncated))</span>}
                   </p>
                 </div>
                 <button
@@ -258,14 +258,14 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
               {wasTruncated && (
                 <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-[10px] text-amber-400 font-bold uppercase tracking-widest">
                   <FileWarning size={16} className="flex-shrink-0" />
-                  <span>Submission exceeded protocol limits. First 50,000 characters were ratified.</span>
+                  <span>File too large — only the first 50,000 characters were processed.</span>
                 </div>
               )}
 
               {/* Text Preview */}
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 ml-1">
-                  {aiSummary ? 'Institutional Synthesis' : 'Extracted Data Stream'}
+                  {aiSummary ? 'AI Summary' : 'Preview'}
                 </label>
                 <div className="bg-[#0B0B0C] border border-white/5 rounded-2xl p-6 max-h-52 overflow-y-auto text-[13px] text-gray-400 leading-relaxed [scrollbar-width:thin] [scrollbar-color:#722f37_transparent] custom-sidebar-scrollbar">
                   {aiSummary ? (
@@ -296,7 +296,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
                   className="flex-2 px-12 py-4 rounded-xl bg-[#722f37] hover:bg-[#8b3a44] text-white text-[11px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-[#722f37]/20 active:scale-95"
                 >
                   <Send size={16} className="stroke-[2.5]" />
-                  Ratify to Chat
+                  Send to Chat
                 </button>
               </div>
             </motion.div>

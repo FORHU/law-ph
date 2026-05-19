@@ -113,7 +113,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                   if (e.key === 'Escape') setEditingId(null);
                 }}
                 className="flex-1 bg-[#0B0B0C] border border-[#722f37]/40 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all font-inter"
-                placeholder="Institutional Record Title..."
+                placeholder="Conversation Title..."
               />
             </div>
           </div>

@@ -142,7 +142,7 @@ export function LegalWizard({ onClose, onSkip, onComplete }: LegalWizardProps) {
                 </div>
                 <div>
                    <h2 className="text-2xl font-serif text-white tracking-tight">
-                     Institutional <span className="text-[#e9c176] italic">Intake</span>
+                     Client <span className="text-[#e9c176] italic">Intake</span>
                    </h2>
                 </div>
             </div>
@@ -172,7 +172,7 @@ export function LegalWizard({ onClose, onSkip, onComplete }: LegalWizardProps) {
         <div className="flex-1 overflow-y-auto px-8 py-6 custom-sidebar-scrollbar">
             <div className="mb-6">
                 <p className="text-gray-500 text-sm mb-8 leading-relaxed font-light">
-                    Provide the necessary stipulatory details regarding your legal matter to facilitate a high-fidelity institutional analysis.
+                    Tell us about your legal matter so we can provide accurate guidance.
                 </p>
                 
                 <AnimatePresence mode="wait" custom={direction}>
@@ -239,8 +239,8 @@ export function LegalWizard({ onClose, onSkip, onComplete }: LegalWizardProps) {
                 >
                     <AlertTriangle className="w-5 h-5 text-[#e9c176] shrink-0 mt-0.5" />
                     <div className="text-xs text-gray-500 leading-relaxed">
-                        <strong className="text-[#e9c176] block mb-1 uppercase tracking-widest text-[10px]">Institutional Privilege:</strong>
-                        Your responses are handled with the highest level of encryption. This protocol facilitates preliminary analysis and does not constitute an attorney-client relationship.
+                        <strong className="text-[#e9c176] block mb-1 uppercase tracking-widest text-[10px]">Attorney-Client Privilege:</strong>
+                        Your responses are handled with the highest level of encryption. This helps us prepare initial guidance and does not constitute an attorney-client relationship.
                     </div>
                 </motion.div>
             )}

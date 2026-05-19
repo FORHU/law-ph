@@ -47,8 +47,8 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
           className="mb-24"
         >
           <span className="px-6 py-2 bg-[#722f37]/10 border border-[#722f37]/20 text-[#e9c176] text-[10px] font-bold tracking-[0.4em] uppercase rounded-full mb-10 inline-block">Citizen Archives</span>
-          <h2 className="text-8xl font-serif text-white mb-8 leading-tight">Institutional <span className="text-[#e9c176] italic">Resources</span></h2>
-          <p className="text-on-surface/50 text-2xl max-w-3xl font-light leading-relaxed">Direct access to ratified government portals and verified legal assistance programs in the Philippines.</p>
+          <h2 className="text-8xl font-serif text-white mb-8 leading-tight">Legal <span className="text-[#e9c176] italic">Resources</span></h2>
+          <p className="text-on-surface/50 text-2xl max-w-3xl font-light leading-relaxed">Direct access to official government portals and verified legal assistance programs in the Philippines.</p>
         </motion.div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">

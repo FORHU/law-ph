@@ -137,7 +137,7 @@ function BookmarkCard({
           <div className="flex-1">
             <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isAIResponse && !consultationExists ? "text-gray-500" : "text-gray-400"
               }`}>
-              {isAIResponse ? 'Response Intelligence' : 'Institutional Summary'}
+              {isAIResponse ? 'AI Response' : 'AI Summary'}
             </h4>
             <div className="relative">
               <p className={`text-[13px] leading-relaxed italic ${isAIResponse && !isExpanded ? 'line-clamp-4' : ''

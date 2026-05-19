@@ -139,7 +139,7 @@ export default function Consultation() {
 
   const handleGetCaseInsight = () => {
     if (activeCase) {
-      const prompt = `[Case Analysis Request] I have opened a new case. Please provide your professional insight, a strategic plan, and a proposed timeline of actionable steps. Do not repeat the facts or notes in your insight, just provide pure strategy and advice.
+      const prompt = `[Case Analysis] I have opened a new case. Please provide your professional insight, a strategic plan, and a proposed timeline of actionable steps. Do not repeat the facts or notes in your insight, just provide pure strategy and advice.
 
 Case Name: ${activeCase.case_name}
 Party Involved: ${activeCase.party_involved || "N/A"}
@@ -188,7 +188,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             m.voiceNotes &&
             m.voiceNotes.length > 0 &&
             m.text &&
-            !m.text.startsWith("[Case Analysis Request]") &&
+            !m.text.startsWith("[Case Analysis]") &&
             !m.text.includes("voice recording attached to this case") // Exclude meta placeholder
         )
         .map((m) => m.text.trim())
@@ -514,7 +514,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-serif text-white flex items-center gap-2 tracking-tight">
                 <Sparkles className="w-5 h-5 text-[#e9c176]" />
-                Upload Evidence
+                Upload Documents
               </h2>
               <button
                 onClick={() => setIsAnalysisModalOpen(false)}
@@ -553,7 +553,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
                 <div>
                   <p className="text-xl font-serif text-white mb-1 tracking-tight">
-                    Drop evidence here or click to browse
+                    Drop files here or click to browse
                   </p>
                   <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] max-w-[280px] mx-auto leading-relaxed">
                     PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Analysis will start automatically.
@@ -658,7 +658,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   className="w-full py-4 bg-[#10B981] hover:bg-[#0da270] text-black font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#10B981]/20"
                 >
                   {isScheduling ? <Loader2 className="w-5 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
-                  {isScheduling ? "Sending Invitation..." : "Approve & Send"}
+                  {isScheduling ? "Sending..." : "Send Invitation"}
                 </button>
                 <button
                   onClick={() => setIsSchedulePreviewOpen(false)}
@@ -698,7 +698,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 <div className="p-2.5 bg-[#722f37]/20 rounded-xl border border-[#722f37]/30">
                   <Send className="w-5 h-5 text-[#e9c176]" />
                 </div>
-                Review Institutional Correspondence
+                Review Invitation
               </h2>
               <button
                 onClick={() => setIsEmailPreviewOpen(false)}
@@ -748,7 +748,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   className="w-full py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#722f37]/20 uppercase tracking-[0.2em] text-[11px]"
                 >
                   {isSendingEmail ? <Loader2 className="w-5 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {isSendingEmail ? "Ratifying Transmission..." : "Approve & Dispatch"}
+                  {isSendingEmail ? "Sending..." : "Send"}
                 </button>
                 <button
                   onClick={() => setIsEmailPreviewOpen(false)}
@@ -816,7 +816,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       : null);
 
   let headerTitle = activeConversation?.title || "Consultation";
-  let headerSubtitle = activeConversation ? "Institutional Consultation Session" : "Immediate guidance based on Philippine law";
+  let headerSubtitle = activeConversation ? "AI Legal Consultation" : "Immediate guidance based on Philippine law";
   if (isCaseMode && activeCase) {
     headerTitle = activeCase.case_name;
   }
@@ -902,7 +902,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       className="h-full flex flex-col items-center justify-center py-20"
                     >
                       <Loader2 size={40} className="text-[#722f37] animate-spin mb-4" />
-                      <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
+                      <p className="text-gray-500 font-medium animate-pulse">Loading case history...</p>
                     </motion.div>
                   ) : (messages.length === 0) && !isLoading && casesLoaded && (
                     <motion.div
@@ -932,7 +932,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             className="bg-[#722f37] hover:bg-[#8b3a44] text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest text-[11px] transition-all shadow-xl shadow-[#722f37]/20 flex items-center gap-3 active:scale-95"
                           >
                             <Sparkles size={18} className="text-[#e9c176]" />
-                            Solicit AI Insight
+                            Ask AI
                           </button>
                         </div>
                       ) : (
@@ -975,7 +975,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   messages={messages.map((m) => {
                     if (
                       m.sender === CHAT_SENDER.USER &&
-                      m.text.startsWith("[Case Analysis Request]")
+                      m.text.startsWith("[Case Analysis]")
                     ) {
                       return {
                         ...m,
@@ -1487,7 +1487,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     style={{ animationDelay: "300ms" }}
                   ></span>
                 </div>
-                <span>Institutional Intelligence is thinking...</span>
+                <span>AI is thinking...</span>
               </motion.div>
             )}
           </div>

@@ -185,7 +185,7 @@ export default function Documents() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-[11px] font-bold text-[#e9c176]/60 uppercase tracking-widest leading-relaxed max-w-xs">PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Select multiple to synthesize.</p>
+                      <p className="text-[11px] font-bold text-[#e9c176]/60 uppercase tracking-widest leading-relaxed max-w-xs">PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Select multiple to analyze together.</p>
                     </>
                   )}
                 </div>
@@ -202,7 +202,7 @@ export default function Documents() {
                   >
                     <Briefcase size={16} className="text-[#e9c176]/50 mr-3" />
                     <span className="flex-1 truncate font-medium">
-                      {selectedCaseId ? cases.find((c: any) => c.id === selectedCaseId)?.case_name : "Select a case archive..."}
+                      {selectedCaseId ? cases.find((c: any) => c.id === selectedCaseId)?.case_name : "Select a case..."}
                     </span>
                     <ChevronDown size={14} className={`text-gray-500 transition-transform duration-300 ${caseDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
@@ -223,7 +223,7 @@ export default function Documents() {
                           <div
                             className="px-4 py-2 text-[10px] font-bold text-[#e9c176]/40 uppercase tracking-[0.2em] border-b border-[#722f37]/10 bg-white/[0.01]"
                           >
-                            Active Archives
+                            My Cases
                           </div>
                           {cases.length === 0 ? (
                             <div className="px-4 py-4 text-[11px] font-bold text-gray-600 uppercase tracking-widest text-center">No cases found</div>
@@ -260,7 +260,7 @@ export default function Documents() {
                   }`}
               >
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Scale size={16} />}
-                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Link & Synthesize Batch (${selectedFiles.length})` : 'Link to Case Archive'}
+                {isUploading ? uploadStatus || 'Processing...' : selectedFiles.length > 1 ? `Attach to Case (${selectedFiles.length} files)` : 'Attach to Case'}
               </button>
 
             </div>

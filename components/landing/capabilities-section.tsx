@@ -49,9 +49,9 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               >
                 <FileCheck size={48} />
               </motion.div>
-              <h3 className="text-4xl font-serif text-white mb-8 leading-tight tracking-tight">Institutional <span className="text-[#e9c176] italic">Review</span></h3>
+              <h3 className="text-4xl font-serif text-white mb-8 leading-tight tracking-tight">Document <span className="text-[#e9c176] italic">Review</span></h3>
               <p className="text-xl text-on-surface/70 leading-relaxed mb-10 font-light">
-                Analyze, and ratify contracts and legal documents with AI-driven precision. Our system identifies potential protocol risks and ensures institutional compliance.
+                Analyze contracts and legal documents with AI-driven precision. Our system identifies potential legal risks and ensures compliance.
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-16">
                 {[
@@ -108,7 +108,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 >
                   <div className="flex items-center gap-4 text-[10px] text-gray-500 mb-6 tracking-[0.2em] uppercase font-bold">
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
-                    Protocol Analysis Complete
+                    Analysis Complete
                   </div>
                   <div className="h-1.5 w-full bg-[#e9c176]/20 rounded-full mb-4" />
                   <div className="h-1.5 w-2/3 bg-[#e9c176]/20 rounded-full" />
@@ -150,12 +150,12 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mb-12 text-[#e9c176]/40 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20 group-hover:border-[#e9c176]/30">
               <Search size={36} />
             </div>
-            <h3 className="text-3xl font-serif text-white mb-6">Institutional <span className="text-[#e9c176] italic">Research</span></h3>
+            <h3 className="text-3xl font-serif text-white mb-6">Legal <span className="text-[#e9c176] italic">Research</span></h3>
             <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
-              Access instant citations from Republic Acts and Batas Pambansa. Our AI synthesizes decades of legal documentation with millisecond precision.
+              Access instant citations from Republic Acts and Batas Pambansa. Our AI instantly searches decades of legal documentation.
             </p>
             <div className="text-[#e9c176] text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
-              Explore Protocol Tools <ArrowRight size={24} />
+              Start Research <ArrowRight size={24} />
             </div>
           </motion.div>
 
@@ -177,7 +177,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             </div>
             <h3 className="text-3xl font-serif text-white mb-6">Jurisprudential <span className="text-[#e9c176] italic">Archives</span></h3>
             <p className="text-lg text-on-surface/50 leading-relaxed mb-10 font-light">
-              Simplify complex jurisprudence with AI-generated summaries of landmark SC decisions, making institutional precedents immediately accessible.
+              Simplify complex case law with AI-generated summaries of landmark SC decisions, making case law immediately accessible.
             </p>
             <div className="text-[#e9c176] text-lg font-bold flex items-center gap-3 group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
               Browse Case Library <ArrowRight size={24} />

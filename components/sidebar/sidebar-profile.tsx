@@ -54,7 +54,7 @@ export function SidebarProfile() {
           <DropdownMenuLabel className="text-gray-400 font-normal py-4 px-5">
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-bold text-white font-serif">{user.email}</span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Institutional Account</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Your Account</span>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-[#722f37]/20" />

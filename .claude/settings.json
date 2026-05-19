@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"c:/Users/USER/Documents/GitHub/law-ph\" && sed -i 's/Securing your position within the institutional record/Joining case session.../g' \"app/case-invite/[id]/page.tsx\" && echo \"case-invite page done\")",
+      "Bash(sed -i 's/Our AI synthesizes decades of legal documentation with millisecond precision\\\\./Our AI instantly searches decades of legal documentation./g; s/making institutional precedents immediately accessible\\\\./making case law immediately accessible./g; s/complex jurisprudence/complex case law/g' components/landing/capabilities-section.tsx)",
+      "Bash(sed -i 's/Provide the necessary stipulatory details regarding your legal matter to facilitate a high-fidelity institutional analysis\\\\./Tell us about your legal matter so we can provide accurate guidance./g; s/This protocol facilitates preliminary analysis/This helps us prepare initial guidance/g' components/landing/legal-wizard.tsx)",
+      "Bash(sed -i 's/Ratifying Institutional Invitation\\\\.\\\\.\\\\./Verifying invitation.../g' \"app/case-invite/[id]/page.tsx\")",
+      "Bash(sed -i 's/Ratifying Institutional Source\\\\.\\\\.\\\\./Loading source.../g; s/Solicit Original Document/View Original Document/g' \"app/sources/[itemId]/page.tsx\")",
+      "Bash(sed -i 's/Ratify Alerts/Dismiss Alerts/g' app/calendar/page.tsx)",
+      "Bash(sed -i 's/Access <span className=\"text-green-500 italic\">Ratified<\\\\/span>/Access <span className=\"text-green-500 italic\">Granted<\\\\/span>/g' \"app/case-invite/[id]/page.tsx\")",
+      "Bash(sed -i 's/Institutional Record/Case Document/g' app/documents/viewer/page.tsx)",
+      "Bash(sed -i \"s/isLaw ? 'Institutional Law' : 'Jurisprudence'/isLaw ? 'Philippine Law' : 'Case Law'/g; s/Ratified \\\\${data.year}/Published \\\\${data.year}/g\" \"app/sources/[itemId]/page.tsx\")",
+      "Bash(sed -i 's/Institutional <span className=\"text-\\\\[#e9c176\\\\] italic\">Invite<\\\\/span>/Case <span className=\"text-[#e9c176] italic\">Invite<\\\\/span>/g' components/consultation/case-invite-button.tsx)",
+      "Bash(cd \"c:/Users/USER/Documents/GitHub/law-ph\" && sed -i 's/>Ratified {data\\\\.year}</>Published {data.year}</g' \"app/sources/[itemId]/page.tsx\" && echo \"Done\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\case-invite\\[id]",
+      "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\sources\\[itemId]"
+    ]
+  }
+}

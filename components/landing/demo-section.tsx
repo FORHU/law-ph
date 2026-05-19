@@ -37,7 +37,7 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
               className="flex justify-end"
             >
               <div className="bg-[#722f37]/20 rounded-[2rem] rounded-tr-none p-8 text-white text-base md:text-lg max-w-2xl border border-[#722f37]/30 shadow-xl leading-relaxed backdrop-blur-xl">
-                What are the institutional protocols for terminating a lease early under the Civil Code?
+                What are the legal requirements for terminating a lease early under the Civil Code?
               </div>
             </motion.div>
             
@@ -52,8 +52,8 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
                 <Scale className="w-8 h-8 text-gray-400" />
               </div>
               <div className="bg-[#0B0B0C]/60 rounded-[2rem] rounded-tl-none p-10 text-gray-300 text-base md:text-lg leading-relaxed border border-[#e9c176]/20 shadow-2xl font-light backdrop-blur-3xl">
-                <span className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] block mb-4">Institutional Synthesis</span>
-                Under the Civil Code of the Philippines, particularly Article 1673, a lessor cannot arbitrarily terminate a lease agreement prior to the expiration of the stipulated period. All terminations must follow ratified legal protocols...
+                <span className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] block mb-4">AI Summary</span>
+                Under the Civil Code of the Philippines, particularly Article 1673, a lessor cannot arbitrarily terminate a lease agreement prior to the expiration of the stipulated period. All terminations must follow proper legal procedures...
               </div>
             </motion.div>
           </div>

@@ -75,7 +75,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               onClick={handleAboutClick}
               className="text-gray-400 hover:text-[#e9c176] transition-all text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer"
             >
-              Institutional Narrative
+              Case Notes
             </button>
             <button
               onClick={handleFaqClick}
@@ -87,7 +87,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
               onClick={handleResourcesClick}
               className="text-gray-400 hover:text-[#e9c176] transition-all text-[11px] font-bold uppercase tracking-[0.2em] cursor-pointer"
             >
-              Ratified Resources
+              Saved Resources
             </button>
             {isLoggedIn && (
               <LogoutButton

@@ -78,7 +78,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
             <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
               <Loader2 className="animate-spin text-[#e9c176]" size={32} />
             </div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Ratifying Institutional Source...</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading source...</p>
           </div>
         )}
 
@@ -103,7 +103,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                   }`}
               >
                 {isLaw ? <BookOpen size={12} /> : <Gavel size={12} />}
-                {isLaw ? 'Institutional Law' : 'Jurisprudence'}
+                {isLaw ? 'Philippine Law' : 'Case Law'}
               </span>
               {data.gr_number && (
                 <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.gr_number}</span>
@@ -112,7 +112,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                 <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.law_number}</span>
               )}
               {data.year && (
-                <span className="text-[10px] font-mono text-[#e9c176] font-bold uppercase tracking-wider">Ratified {data.year}</span>
+                <span className="text-[10px] font-mono text-[#e9c176] font-bold uppercase tracking-wider">Published {data.year}</span>
               )}
             </div>
 
@@ -173,7 +173,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                   className="inline-flex items-center gap-3 px-8 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all bg-[#722f37] text-white hover:bg-[#8b3a44] shadow-xl shadow-[#722f37]/20 active:scale-95"
                 >
                   <ExternalLink size={16} />
-                  Solicit Original Document
+                  View Original Document
                 </a>
               </div>
             )}

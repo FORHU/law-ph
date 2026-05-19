@@ -93,7 +93,7 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
             type="button"
             onClick={onDiscard}
             className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/20"
-            title="Discard Evidence"
+            title="Remove File"
           >
             <Trash2 size={14} />
           </button>

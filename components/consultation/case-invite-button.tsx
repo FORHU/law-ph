@@ -80,7 +80,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                     <UserPlus className="w-5 h-5 text-[#e9c176]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-serif text-white tracking-tight">Institutional <span className="text-[#e9c176] italic">Invite</span></h2>
+                    <h2 className="text-xl font-serif text-white tracking-tight">Case <span className="text-[#e9c176] italic">Invite</span></h2>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Secure Collaboration Access</p>
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
               </div>
 
               <p className="text-[12px] text-gray-400 mb-8 leading-relaxed font-medium">
-                Distribute this institutional link to authorize third-party participation. All sessions are ratified and recorded.
+                Share this link to invite someone to view this case. All sessions are logged and recorded.
               </p>
 
               {isGenerating ? (
@@ -101,7 +101,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                   <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
                     <Loader2 className="w-8 h-8 animate-spin text-[#e9c176]" />
                   </div>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">Ratifying Secure Token...</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">Generating link...</p>
                 </div>
               ) : error ? (
                 <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg text-sm text-red-200">

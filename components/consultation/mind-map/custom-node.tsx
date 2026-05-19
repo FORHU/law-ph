@@ -130,7 +130,7 @@ export const CustomNode = memo(({ data }: any) => {
                       className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg"
                     >
                       <span className="text-[10px] font-bold text-[#e9c176] truncate uppercase tracking-widest leading-none mb-1">
-                        Institutional Audio
+                        Audio File
                       </span>
                       <div className="w-full h-8 rounded-md bg-white/5 border border-dashed border-white/20 flex items-center justify-center text-[10px] text-white/50">
                         Preview Not Available
@@ -141,7 +141,7 @@ export const CustomNode = memo(({ data }: any) => {
 
                 return (
                   <div key={idx} className="flex flex-col gap-1.5 w-full bg-[#050505]/60 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
-                    <span className="text-[10px] font-bold text-[#e9c176] truncate uppercase tracking-widest leading-none mb-1">Institutional Audio</span>
+                    <span className="text-[10px] font-bold text-[#e9c176] truncate uppercase tracking-widest leading-none mb-1">Audio File</span>
                     <audio controls className="w-full h-9 rounded-md">
                       <source src={formatS3Url(url)} />
                     </audio>

@@ -1656,8 +1656,8 @@ export default function CalendarPage() {
                     <Bell className="text-white" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-serif text-white leading-tight">Institutional <span className="text-[#e9c176] italic">Alerts</span></h2>
-                    <p className="text-[10px] font-bold text-[#e9c176]/80 uppercase tracking-[0.2em] mt-1">Pending Acknowledgement</p>
+                    <h2 className="text-xl font-serif text-white leading-tight">Upcoming <span className="text-[#e9c176] italic">Alerts</span></h2>
+                    <p className="text-[10px] font-bold text-[#e9c176]/80 uppercase tracking-[0.2em] mt-1">Needs Attention</p>
                   </div>
                 </div>
               </div>
@@ -1689,7 +1689,7 @@ export default function CalendarPage() {
                   onClick={handleAcknowledgeEvents}
                   className="flex-1 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl transition-all shadow-xl shadow-[#722f37]/20 active:scale-[0.98] uppercase tracking-widest text-[11px]"
                 >
-                  Ratify Alerts
+                  Dismiss Alerts
                 </button>
                 <button
                   onClick={() => {
@@ -1826,10 +1826,10 @@ export default function CalendarPage() {
             <button
               onClick={() => openCreateModal()}
               className="flex items-center justify-center gap-1.5 sm:gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold p-2.5 sm:px-4 sm:py-2 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-[#722f37]/20"
-              title="Create Schedule"
+              title="New Appointment"
             >
               <Plus size={16} />
-              <span className="hidden sm:inline">Create Schedule</span>
+              <span className="hidden sm:inline">New Appointment</span>
             </button>
           </div>
         }
@@ -2805,7 +2805,7 @@ export default function CalendarPage() {
                     <ArrowLeft size={16} />
                   </button>
                   <h2 className="flex-1 text-center text-sm font-bold text-white tracking-wide">
-                    {editingEventId ? "Reschedule Event" : "Create Schedule"}
+                    {editingEventId ? "Reschedule" : "New Appointment"}
                   </h2>
                   {/* Spacer to balance the back button */}
                   <div className="w-9 shrink-0" />

@@ -27,7 +27,7 @@ export function Footer() {
               </span>
             </motion.div>
             <p className="text-on-surface/40 text-sm leading-relaxed max-w-sm mb-10">
-              The definitive digital workspace for the Philippine legal profession. Bridging centuries of jurisprudence with cutting-edge artificial intelligence.
+              AI-powered legal assistance built for Philippine law.
             </p>
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-on-surface/30 hover:text-white hover:border-white/20 transition-all cursor-pointer">

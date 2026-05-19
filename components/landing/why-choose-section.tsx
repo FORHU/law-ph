@@ -50,7 +50,7 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             <span className="text-[#e9c176]">ilovelawyer?</span>
           </h2>
           <p className="text-lg text-on-surface/50 mb-16 leading-relaxed max-w-2xl font-light">
-            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, institutional-grade guidance when precision is paramount.
+            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, professional guidance when precision is paramount.
           </p>
 
           <motion.div
@@ -69,10 +69,10 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             className="grid grid-cols-1 md:grid-cols-2 gap-12"
           >
             {[
-              { title: '24/7 Availability', desc: 'Secure institutional guidance at any hour.', icon: <Clock className="w-6 h-6" /> },
-              { title: 'Instant Responses', desc: 'Immediate synthesis of relevant legal codes.', icon: <Zap className="w-6 h-6" /> },
-              { title: 'Ratified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-6 h-6" /> },
-              { title: 'Affordable Access', desc: 'Professional legal records at institutional efficiency.', icon: <LayoutGrid className="w-6 h-6" /> },
+              { title: '24/7 Availability', desc: 'Professional guidance at any hour.', icon: <Clock className="w-6 h-6" /> },
+              { title: 'Instant Responses', desc: 'Quick access to current legal codes.', icon: <Zap className="w-6 h-6" /> },
+              { title: 'Verified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-6 h-6" /> },
+              { title: 'Affordable Access', desc: 'Professional legal guidance at an affordable price.', icon: <LayoutGrid className="w-6 h-6" /> },
             ].map((item, i) => (
               <motion.div
                 key={item.title}
@@ -105,9 +105,9 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             <div className="text-6xl font-serif text-white mb-6 tracking-tighter tabular-nums">
               {time}
             </div>
-            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-16 font-bold">Institutional Response Time</p>
+            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-16 font-bold">Response Time</p>
             <button className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-4 rounded-xl text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95">
-              Initiate Consultation
+              Start Consultation
             </button>
           </motion.div>
         </div>

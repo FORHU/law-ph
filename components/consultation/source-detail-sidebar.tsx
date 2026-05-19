@@ -177,7 +177,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                 </div>
                 <div>
                   <h2 className="text-xl font-serif text-white tracking-tight">
-                    {isCase ? 'Institutional Record' : 'Legal Source'}
+                    {isCase ? 'Case Record' : 'Legal Source'}
                   </h2>
                   <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] mt-1">
                     {(() => {

@@ -48,7 +48,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
             transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="text-lg md:text-xl text-on-surface/80 mb-12 max-w-2xl leading-relaxed font-light"
           >
-            The definitive digital workspace for the Philippine legal profession. ilovelawyer bridges centuries of jurisprudence with cutting-edge artificial intelligence.
+            AI-powered legal assistance built for Philippine law.
           </motion.p>
 
           <div className="flex flex-wrap gap-6">

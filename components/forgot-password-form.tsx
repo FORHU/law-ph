@@ -128,7 +128,7 @@ export function ForgotPasswordForm() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              We have dispatched recovery instructions to <span className="text-[#e9c176] font-bold">{email}</span>. Please verify your institutional inbox.
+              We sent recovery instructions to <span className="text-[#e9c176] font-bold">{email}</span>. Please check your inbox.
             </motion.p>
 
             <motion.div
@@ -144,11 +144,11 @@ export function ForgotPasswordForm() {
                 <ul className="text-white/40 text-[10px] font-medium space-y-2 list-none">
                   <li className="flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-[#722f37]" />
-                    Inspect institutional spam or quarantine filters.
+                    Check your spam folder.
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-[#722f37]" />
-                    Observe the 1-minute ratification interval.
+                    Wait 1 minute before trying again.
                   </li>
                 </ul>
               </div>

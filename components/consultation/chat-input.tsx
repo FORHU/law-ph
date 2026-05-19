@@ -383,7 +383,7 @@ export function ChatInput({
               {/* Compact Note above input */}
               <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] font-black text-[#722f37] opacity-60 px-4 mb-2 landscape:hidden">
                 <AlertTriangle size={10} />
-                <span>IMAGE ANALYSIS LIMITED</span>
+                <span>Image analysis is limited</span>
               </div>
 
               {/* Attached File Preview */}
@@ -507,7 +507,7 @@ export function ChatInput({
                 {/* Voice Mode button */}
                 <button
                   type="button"
-                  title={isRecording ? "Stop Transmission" : "Solicit Institutional Record (Talk to AI)"}
+                  title={isRecording ? "Stop Recording" : "Record Voice Message"}
                   onClick={handleVoiceToggle}
                   className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
                   disabled={disabled || status === 'thinking'}
