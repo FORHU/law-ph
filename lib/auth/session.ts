@@ -14,6 +14,7 @@ export type SessionUser = {
   onboardingCompleted: boolean;
   avatarId: string | null;
   googleAccessToken: string | null;
+  googleRefreshToken: string | null;
 };
 
 export async function getServerSession(): Promise<SessionUser | null> {
@@ -36,6 +37,7 @@ export async function getServerSession(): Promise<SessionUser | null> {
       onboardingCompleted: true,
       avatarId: true,
       googleAccessToken: true,
+      googleRefreshToken: true,
     },
   });
 

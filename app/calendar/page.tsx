@@ -1075,7 +1075,8 @@ export default function CalendarPage() {
         if (editingEventId) {
           const existing = events.find((e) => e.id === editingEventId);
           iCalUID = (existing as any)?.iCalUID;
-          googleEventId = existing?.google_event_id;
+          // Fallback: check both snake_case (mapped) and camelCase (raw Prisma)
+          googleEventId = existing?.google_event_id || (existing as any)?.googleEventId || undefined;
         }
 
         if (isGoogleConnected) {
@@ -1115,10 +1116,14 @@ export default function CalendarPage() {
               }, user?.googleAccessToken);
               if (gResult.needs_auth) {
                 setIsGoogleConnected(false);
-                setCreateError("Google session expired.");
+                setCreateError("Google session expired. Please reconnect.");
               } else if (!gResult.success) {
                 console.error("[Calendar] Google update failed:", gResult.error);
+              } else {
+                console.log("[Calendar] Google event updated:", existingGoogleId);
               }
+            } else {
+              console.warn("[Calendar] Reschedule: no google_event_id found for event", editingEventId, "— Google Calendar not updated");
             }
           }
         }

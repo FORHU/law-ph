@@ -96,6 +96,7 @@ export const UserScalarFieldEnum = {
   provider: 'provider',
   googleId: 'googleId',
   googleAccessToken: 'googleAccessToken',
+  googleRefreshToken: 'googleRefreshToken',
   avatarId: 'avatarId',
   isEmailVerified: 'isEmailVerified',
   onboardingCompleted: 'onboardingCompleted',

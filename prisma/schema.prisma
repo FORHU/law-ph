@@ -23,6 +23,7 @@ model User {
   provider            String?
   googleId            String?   @unique
   googleAccessToken   String?
+  googleRefreshToken  String?
   avatarId            String?
   isEmailVerified     Boolean   @default(false)
   onboardingCompleted Boolean   @default(false)

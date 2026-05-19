@@ -252,17 +252,6 @@ export async function sendEmail({
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-    const uid = `success-${Date.now()}@ilovelawyer.app`;
-    const icsString = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-      `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
-      `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Appointment reminder', 'TRIGGER:-P1D', 'END:VALARM',
-      'END:VEVENT', 'END:VCALENDAR'
-    ].join('\r\n');
-
-    attachments = [{ filename: 'confirmed.ics', content: Buffer.from(icsString), contentType: 'text/calendar; method=PUBLISH' }];
-
     emailContent = emailWrapper('#16a34a', 'Appointment Confirmed', '#f0fdf4',
       `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have confirmed your appointment</h2>
        <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">Your attendance for the following appointment has been confirmed. See you there!</p>
@@ -273,7 +262,7 @@ export async function sendEmail({
          { label: 'Duration', value: '1 hour' },
          ...(notes ? [{ label: 'Notes', value: notes }] : []),
        ])}
-       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar event has been attached for your records. If you need to cancel or reschedule, please contact your attorney as soon as possible.</p>`
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">If you need to cancel or reschedule, please contact your attorney as soon as possible.</p>`
     );
 
   } else if (body) {

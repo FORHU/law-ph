@@ -1,3 +1,16 @@
+// Calls /api/auth/google/refresh to get a new access token, then retries the request.
+// Returns the new token on success, null if refresh failed.
+export async function refreshGoogleToken(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/auth/google/refresh", { method: "POST" });
+    if (!res.ok) return null;
+    const { access_token } = await res.json();
+    return access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface CalendarAuthStatus {
   session_id: string;
   authenticated: boolean;
@@ -50,25 +63,25 @@ export interface DeleteEventResult {
 }
 
 export async function checkAuthStatus(
-  sessionId: string,
+  _sessionId: string,
   providerToken?: string | null,
 ): Promise<CalendarAuthStatus> {
   return {
-    session_id: sessionId,
+    session_id: _sessionId,
     authenticated: !!providerToken,
     service: "google",
   };
 }
 
 export function getGoogleAuthUrl(
-  sessionId: string,
+  _sessionId: string,
   returnPath: string = "/calendar",
 ): string {
   return `/auth/login?redirect=${returnPath}`;
 }
 
 export async function listCalendarEvents(
-  sessionId: string,
+  _sessionId: string,
   opts: { maxResults?: number; timeMin?: string; timeMax?: string } = {},
   providerToken?: string | null,
 ): Promise<ListEventsResult> {
@@ -87,10 +100,18 @@ export async function listCalendarEvents(
     if (opts.timeMin) url.searchParams.set("timeMin", opts.timeMin);
     if (opts.timeMax) url.searchParams.set("timeMax", opts.timeMax);
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${providerToken}` },
+    let token = providerToken;
+    let res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    }
+    if (res.status === 401) return { success: false, needs_auth: true };
     if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
     const data = await res.json();
     const events = (data.items || []).map((i: any) => ({
@@ -111,7 +132,7 @@ export async function listCalendarEvents(
 }
 
 export async function createCalendarEvent(
-  sessionId: string,
+  _sessionId: string,
   data: {
     title: string;
     start_datetime: string;
@@ -149,22 +170,27 @@ export async function createCalendarEvent(
     }
 
     const url = new URL(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
     );
 
-    const res = await fetch(url.toString(), {
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${providerToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
       body: JSON.stringify(eventBody),
     });
+
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
+    }
 
     const responseText = await res.text();
 
     if (res.status === 401) {
-      console.error("[createCalendarEvent] 401 Unauthorized - Token may be expired.");
       return { success: false, needs_auth: true };
     }
 
@@ -196,7 +222,7 @@ export async function createCalendarEvent(
 }
 
 export async function updateCalendarEvent(
-  sessionId: string,
+  _sessionId: string,
   googleEventId: string,
   data: {
     title: string;
@@ -226,17 +252,23 @@ export async function updateCalendarEvent(
     }
 
     const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=all`,
     );
 
-    const res = await fetch(url.toString(), {
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${providerToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
       body: JSON.stringify(eventBody),
     });
+
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
+    }
 
     const responseText = await res.text();
     if (res.status === 401) return { success: false, needs_auth: true };
@@ -266,7 +298,7 @@ export async function updateCalendarEvent(
 }
 
 export async function deleteCalendarEvent(
-  sessionId: string,
+  _sessionId: string,
   googleEventId: string,
   providerToken?: string | null,
 ): Promise<DeleteEventResult> {
@@ -277,11 +309,19 @@ export async function deleteCalendarEvent(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=all`,
     );
 
-    const res = await fetch(url.toString(), {
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${providerToken}` },
+      headers: { Authorization: `Bearer ${t}` },
     });
 
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
+    }
     if (res.status === 401) return { success: false, needs_auth: true };
     if (res.status === 204 || res.status === 410 || res.status === 404 || res.ok) {
       return { success: true, event_id: googleEventId };

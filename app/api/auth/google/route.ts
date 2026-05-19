@@ -11,7 +11,7 @@ export async function GET() {
     response_type: "code",
     scope: "openid email profile https://www.googleapis.com/auth/calendar",
     access_type: "offline",
-    prompt: "select_account",
+    prompt: "consent", // forces refresh_token to be returned every login
   });
 
   return NextResponse.redirect(
