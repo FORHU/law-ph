@@ -420,6 +420,22 @@ export function MessageItem({
                     );
                   }
 
+                  if (!relatedCasesLoading && cases.length === 0) {
+                    return (
+                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                        <div className="p-5 bg-[#722f37]/10 rounded-full border border-[#722f37]/20 shadow-inner">
+                          <Gavel size={40} className="text-gray-600" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-serif text-white mb-2">No Cases Found</h4>
+                          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest max-w-xs mx-auto">
+                            No matching documents found in the legal database.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="py-4 space-y-4">
                       <h4 className="text-lg font-serif text-white flex items-center gap-3 mb-6">

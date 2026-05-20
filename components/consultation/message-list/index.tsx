@@ -43,7 +43,12 @@ export function MessageList({
 
     const currentPage = isLoadMore ? (relatedCasesPage[messageId] || 1) + 1 : 1;
     const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
-    const searchPrompt = precedingUserMsg?.text || msg.text;
+    const aiErrorMessage = "I'm sorry, I'm having trouble connecting right now.";
+    const searchPrompt = precedingUserMsg?.text || (msg.text !== aiErrorMessage ? msg.text : '');
+
+    if (!searchPrompt) {
+      return;
+    }
 
     setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
     try {

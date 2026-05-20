@@ -9,12 +9,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { user_input, session_id, document_context, google_access_token } = body;
 
-    if (!user_input || !session_id) {
+    if (!user_input) {
       return new Response(
-        JSON.stringify({ error: 'Missing user_input or session_id' }),
+        JSON.stringify({ error: 'Missing user_input' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    const effectiveSessionId = session_id || `local-${Date.now()}`;
 
     // Get the WebSocket URL from environment
     const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8001').replace(/\/+$/, '');
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
           // Send the chat message
           const payload = {
             user_input,
-            session_id,
+            session_id: effectiveSessionId,
             document_context,
             google_access_token,
           };

@@ -22,9 +22,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Session initialization error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize session. Please try again.' },
-      { status: 500 }
-    );
+    // Return a local fallback session ID so the stream route can still proceed
+    const fallbackId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    return NextResponse.json({ session_id: fallbackId });
   }
 }

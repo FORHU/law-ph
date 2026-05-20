@@ -143,18 +143,35 @@ export async function searchDocumentsByKeyword(
   opts: ListOptions = {}
 ): Promise<RagDocument[]> {
   const { limit = 20, offset = 0 } = opts;
-  const pattern = `%${query}%`;
+
+  // Split into individual keywords and build OR conditions per word
+  const keywords = query
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length > 2);
+
+  if (keywords.length === 0) return [];
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  for (const word of keywords) {
+    const pattern = `%${word}%`;
+    params.push(pattern);
+    const i = params.length;
+    conditions.push(`(title ILIKE $${i} OR concise_summary ILIKE $${i} OR case_no ILIKE $${i})`);
+  }
+
+  params.push(limit, offset);
 
   const { rows } = await ragPool.query<RagDocument>(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
             case_no, year, source_url, concise_summary, created_at, updated_at
      FROM documents
-     WHERE title ILIKE $1
-        OR concise_summary ILIKE $1
-        OR case_no ILIKE $1
+     WHERE ${conditions.join(" OR ")}
      ORDER BY created_at DESC
-     LIMIT $2 OFFSET $3`,
-    [pattern, limit, offset]
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
   );
   return rows;
 }
