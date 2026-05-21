@@ -24,7 +24,8 @@ export async function GET(
     const result: Record<string, unknown> = { document };
 
     if (includeFullText) {
-      result.fullText = await getDocumentFullText(numericId);
+      const fullText = await getDocumentFullText(numericId);
+      result.document = { ...document, full_text: fullText };
     }
 
     if (includeChunks) {

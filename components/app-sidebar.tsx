@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark, Mic } from 'lucide-react';
+import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark, Mic, Library } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
@@ -45,7 +45,8 @@ export function AppSidebar({
         pathname?.startsWith('/transcribe') ? 'transcribe' :
           pathname?.startsWith('/calendar') ? 'calendar' :
             pathname?.startsWith('/cases') ? 'cases' :
-              'chat'
+              pathname?.startsWith('/legal-library') ? 'library' :
+                'chat'
   );
 
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
@@ -54,7 +55,7 @@ export function AppSidebar({
   const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const isDocumentsOrCalendarOrTranscribe = resolvedActivePage === 'documents' || resolvedActivePage === 'calendar' || resolvedActivePage === 'transcribe';
+  const isDocumentsOrCalendarOrTranscribe = resolvedActivePage === 'documents' || resolvedActivePage === 'calendar' || resolvedActivePage === 'transcribe' || resolvedActivePage === 'library';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { openSourceByItemId } = useConversations() || {};
 
@@ -140,6 +141,15 @@ export function AppSidebar({
                 <CalendarIcon size={18} className={resolvedActivePage === 'calendar' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-sm font-medium">Calendar</span>
               </button>
+
+              <button
+                onClick={() => router.push('/legal-library')}
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'
+                  }`}
+              >
+                <Library size={18} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-sm font-medium">Legal Library</span>
+              </button>
             </>
           ) : (
             <>
@@ -199,6 +209,14 @@ export function AppSidebar({
               >
                 <Bookmark size={18} className="transition-colors" />
                 <span className="text-sm font-medium">Bookmarks</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/legal-library')}
+                className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Library size={18} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-sm font-medium">Legal Library</span>
               </button>
             </>
           )}

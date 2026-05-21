@@ -10,7 +10,7 @@ export interface RecentItem {
   onRename?: (newTitle: string) => void;
 }
 
-export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth';
+export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth' | 'library';
 
 export interface NavItem {
   id: SidebarPage;

@@ -69,6 +69,9 @@ export interface DocumentFilter extends ListOptions {
   category?: string;
   subcategory?: string;
   year?: number;
+  yearFrom?: number;
+  yearTo?: number;
+  libraries?: string[];
   bucketSlug?: string;
 }
 
@@ -97,7 +100,7 @@ export async function getDocumentBySourceHash(hash: string): Promise<RagDocument
  * Returns lightweight rows (no full_text) for listing UIs.
  */
 export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDocument[]> {
-  const { limit = 20, offset = 0, category, subcategory, year, bucketSlug } = filter;
+  const { limit = 20, offset = 0, category, subcategory, year, yearFrom, yearTo, libraries, bucketSlug } = filter;
 
   const conditions: string[] = [];
   const params: unknown[] = [];
@@ -114,9 +117,24 @@ export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDoc
     params.push(year);
     conditions.push(`year = $${params.length}`);
   }
+  if (yearFrom) {
+    params.push(yearFrom);
+    conditions.push(`year >= $${params.length}`);
+  }
+  if (yearTo) {
+    params.push(yearTo);
+    conditions.push(`year <= $${params.length}`);
+  }
   if (bucketSlug) {
     params.push(bucketSlug);
     conditions.push(`bucket_slug = $${params.length}`);
+  }
+  if (libraries && libraries.length > 0) {
+    const libConditions = libraries.map(lib => {
+      params.push(`%${lib}%`);
+      return `(title ILIKE $${params.length} OR subcategory ILIKE $${params.length})`;
+    });
+    conditions.push(`(${libConditions.join(" OR ")})`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -127,7 +145,7 @@ export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDoc
             case_no, year, source_url, concise_summary, created_at, updated_at
      FROM documents
      ${where}
-     ORDER BY created_at DESC
+     ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
@@ -140,11 +158,10 @@ export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDoc
  */
 export async function searchDocumentsByKeyword(
   query: string,
-  opts: ListOptions = {}
+  opts: ListOptions & { yearFrom?: number; yearTo?: number; libraries?: string[]; category?: string; subcategory?: string } = {}
 ): Promise<RagDocument[]> {
-  const { limit = 20, offset = 0 } = opts;
+  const { limit = 20, offset = 0, yearFrom, yearTo, libraries, category, subcategory } = opts;
 
-  // Split into individual keywords and build OR conditions per word
   const keywords = query
     .split(/\s+/)
     .map(w => w.trim())
@@ -152,14 +169,28 @@ export async function searchDocumentsByKeyword(
 
   if (keywords.length === 0) return [];
 
-  const conditions: string[] = [];
   const params: unknown[] = [];
+  const keywordConditions: string[] = [];
 
   for (const word of keywords) {
     const pattern = `%${word}%`;
     params.push(pattern);
     const i = params.length;
-    conditions.push(`(title ILIKE $${i} OR concise_summary ILIKE $${i} OR case_no ILIKE $${i})`);
+    keywordConditions.push(`title ILIKE $${i}`);
+  }
+
+  const andConditions: string[] = [`(${keywordConditions.join(" OR ")})`];
+
+  if (category) { params.push(category); andConditions.push(`category = $${params.length}`); }
+  if (subcategory) { params.push(subcategory); andConditions.push(`subcategory = $${params.length}`); }
+  if (yearFrom) { params.push(yearFrom); andConditions.push(`year >= $${params.length}`); }
+  if (yearTo) { params.push(yearTo); andConditions.push(`year <= $${params.length}`); }
+  if (libraries && libraries.length > 0) {
+    const libConds = libraries.map(lib => {
+      params.push(`%${lib}%`);
+      return `(title ILIKE $${params.length} OR subcategory ILIKE $${params.length})`;
+    });
+    andConditions.push(`(${libConds.join(" OR ")})`);
   }
 
   params.push(limit, offset);
@@ -168,8 +199,8 @@ export async function searchDocumentsByKeyword(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
             case_no, year, source_url, concise_summary, created_at, updated_at
      FROM documents
-     WHERE ${conditions.join(" OR ")}
-     ORDER BY created_at DESC
+     WHERE ${andConditions.join(" AND ")}
+     ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );

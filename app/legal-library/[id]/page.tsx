@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Loader2, Gavel, BookOpen } from 'lucide-react';
-import { FormattedLegalText } from '@/components/legal/formatted-legal-text';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ExternalLink, Loader2, Gavel, Scale, Building2, BookOpen, FileText } from 'lucide-react';
+
+import { FormattedLegalText, cleanText } from '@/components/legal/formatted-legal-text';
 
 interface RagDocument {
   id: number;
@@ -16,14 +16,19 @@ interface RagDocument {
   source_url: string | null;
   concise_summary: string | null;
   full_text: string | null;
-  created_at: string;
+  formatted_text: string | null;
+  summary: string | null;
 }
 
-export default function LegalRagDocumentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = React.use(params);
-  const searchParams = useSearchParams();
-  const keyword = searchParams.get('from') || '';
+const CATEGORY_ICONS: Record<string, any> = {
+  law: Scale,
+  jurisprudence: Gavel,
+  issuance: Building2,
+};
 
+export default function LegalLibraryDocumentPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
+  const router = useRouter();
   const [doc, setDoc] = useState<RagDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,19 +46,42 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
       .finally(() => setLoading(false));
   }, [id]);
 
-  const backHref = keyword ? `/legal-rag?keyword=${encodeURIComponent(keyword)}` : '/legal-rag';
+  const CategoryIcon = doc ? (CATEGORY_ICONS[doc.category] || FileText) : FileText;
+
+  const extractTitleFromText = (text: string): string | null => {
+    const lines = text.split('\n').map(l =>
+      l.replace(/^\[.*?\]\s*/g, '').replace(/#{1,6}\s*/g, '').trim()
+    );
+    const candidate = lines.find(l => l.length > 5 && l.length <= 120 && /[a-zA-Z]/.test(l));
+    return candidate ? candidate.replace(/\s+/g, ' ').trim() : null;
+  };
+
+  const stripDates = (t: string) => t
+    .replace(/,?\s*\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*\d{4}\b/gi, '')
+    .replace(/,?\s*\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi, '')
+    .replace(/\s+/g, ' ').trim();
+
+  const resolvedTitle = stripDates(
+    doc?.title
+    || doc?.case_no
+    || (doc?.full_text ? extractTitleFromText(doc.full_text) : null)
+    || 'Untitled Document'
+  );
 
   return (
-    <div className="min-h-screen bg-[#0B0B0C] text-gray-100">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-white mb-12 transition-all uppercase tracking-[0.2em]"
+    <div className="min-h-screen text-gray-100">
+      {/* Fixed top back button */}
+      <div className="sticky top-0 z-10 px-6 py-4 border-b border-white/5 backdrop-blur-md bg-black/20">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-white transition-all uppercase tracking-[0.2em]"
         >
           <ArrowLeft size={14} />
-          Back to Search
-        </Link>
+          Back to Legal Library
+        </button>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6 py-12">
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-6">
@@ -70,10 +98,10 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
           <div className="text-center py-24 space-y-6">
             <p className="text-gray-400 font-serif italic text-lg">{error}</p>
             <Link
-              href="/legal-rag"
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#722f37] text-white text-[11px] font-bold uppercase tracking-[0.2em] transition-all"
+              href="/legal-library"
+              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#722f37] text-white text-[11px] font-bold uppercase tracking-[0.2em]"
             >
-              <ArrowLeft size={16} /> Back to Search
+              <ArrowLeft size={16} /> Back to Library
             </Link>
           </div>
         )}
@@ -84,9 +112,14 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest bg-[#722f37]/20 border border-[#722f37]/30">
-                <Gavel size={12} className="text-[#e9c176]" />
-                {doc.subcategory ?? doc.category}
+                <CategoryIcon size={12} className="text-[#e9c176]" />
+                {doc.category}
               </span>
+              {doc.subcategory && (
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">
+                  {doc.subcategory.replace(/_/g, ' ')}
+                </span>
+              )}
               {doc.case_no && (
                 <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">
                   {doc.case_no}
@@ -101,26 +134,28 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
 
             {/* Title */}
             <h1 className="text-3xl md:text-4xl font-serif text-white leading-tight tracking-tight">
-              {doc.title ?? doc.case_no ?? 'Untitled Document'}
+              {resolvedTitle}
             </h1>
 
             {/* Summary */}
             {doc.concise_summary && (
-              <div className="bg-white/[0.02] border border-[#722f37]/20 rounded-xl p-6">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="bg-white/[0.02] border border-[#722f37]/20 rounded-2xl p-6 space-y-3">
+                <div className="flex items-center gap-2">
                   <BookOpen size={14} className="text-[#e9c176]" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#e9c176]">Summary</span>
                 </div>
-                <p className="text-gray-300 leading-relaxed text-sm">{doc.concise_summary}</p>
+                <p className="text-gray-300 leading-relaxed text-sm">{cleanText(doc.concise_summary)}</p>
               </div>
             )}
+
 
             {/* Full text */}
             {doc.full_text && (
               <div className="border-t border-white/10 pt-8">
-                <h2 className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
-                  <BookOpen size={12} /> Full Text
-                </h2>
+                <div className="flex items-center gap-2 mb-6">
+                  <BookOpen size={14} className="text-gray-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Full Text</span>
+                </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 space-y-4">
                   <FormattedLegalText text={doc.full_text} />
                 </div>
@@ -129,12 +164,12 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
 
             {/* Source link */}
             {doc.source_url?.startsWith('http') && (
-              <div className="pt-8 border-t border-white/10">
+              <div className="pt-6 border-t border-white/10">
                 <a
                   href={doc.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all bg-[#722f37] text-white hover:bg-[#8b3a44] shadow-xl shadow-[#722f37]/20"
+                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all bg-[#722f37] text-white hover:bg-[#8b3a44] shadow-xl shadow-[#722f37]/20 active:scale-95"
                 >
                   <ExternalLink size={16} />
                   View Original Source

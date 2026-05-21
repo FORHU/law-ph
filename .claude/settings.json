@@ -11,11 +11,21 @@
       "Bash(sed -i 's/Institutional Record/Case Document/g' app/documents/viewer/page.tsx)",
       "Bash(sed -i \"s/isLaw ? 'Institutional Law' : 'Jurisprudence'/isLaw ? 'Philippine Law' : 'Case Law'/g; s/Ratified \\\\${data.year}/Published \\\\${data.year}/g\" \"app/sources/[itemId]/page.tsx\")",
       "Bash(sed -i 's/Institutional <span className=\"text-\\\\[#e9c176\\\\] italic\">Invite<\\\\/span>/Case <span className=\"text-[#e9c176] italic\">Invite<\\\\/span>/g' components/consultation/case-invite-button.tsx)",
-      "Bash(cd \"c:/Users/USER/Documents/GitHub/law-ph\" && sed -i 's/>Ratified {data\\\\.year}</>Published {data.year}</g' \"app/sources/[itemId]/page.tsx\" && echo \"Done\")"
+      "Bash(cd \"c:/Users/USER/Documents/GitHub/law-ph\" && sed -i 's/>Ratified {data\\\\.year}</>Published {data.year}</g' \"app/sources/[itemId]/page.tsx\" && echo \"Done\")",
+      "Bash(docker exec *)",
+      "Bash(node -e \"require\\('ws'\\); require\\('pg'\\)\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\app\\\\api\\\\rag\\\\documents\\\\[id]\\\\format\\\\route.ts\" -Force)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\scripts\\\\generate-titles.mjs\" -Force)",
+      "Bash(rm \"c:/Users/USER/Documents/GitHub/law-ph/app/api/rag/documents/[id]/format/route.ts\" && rm \"c:/Users/USER/Documents/GitHub/law-ph/scripts/generate-titles.mjs\")",
+      "Bash(ls ~/.claude/skills/ 2>/dev/null || echo \"not found\")",
+      "Read(//c/Users/USER/.claude/skills/**)",
+      "Bash(mkdir -p \"C:/Users/USER/Documents/GitHub/law-ph/.claude/skills\")",
+      "Bash(cp -r /c/Users/USER/.claude/skills/* \"C:/Users/USER/Documents/GitHub/law-ph/.claude/skills/\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\case-invite\\[id]",
-      "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\sources\\[itemId]"
+      "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\sources\\[itemId]",
+      "c:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\api\\rag\\documents\\[id]\\format"
     ]
   }
 }
