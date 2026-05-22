@@ -1,8 +1,19 @@
 export function cleanText(raw: string): string {
   return raw
     .replace(/\r\n/g, '\n')
+    // Remove standalone single-letter section markers (A. B. C. on their own line)
+    .replace(/^[A-Z]\.\s*$/gm, '')
+    // Remove single-letter prefix at start of paragraph (B. text or B.text → text)
+    .replace(/^[A-Z]\.\s*(?=[A-Za-z])/gm, '')
+    // Remove standalone SEC. N lines that are just markers
+    .replace(/^SEC\.\s*\d+\.?\s*$/gm, '')
+    // Remove dotted blank fields (............)
+    .replace(/\.{3,}/g, '')
+    // Remove excessive quotation marks
     .replace(/"{2,}/g, '')
     .replace(/^"(.+)"$/gm, '$1')
+    // Collapse multiple blank lines
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
