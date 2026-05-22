@@ -55,22 +55,28 @@ function BookmarkCard({
 
   const { exists: consultationExists, id: consultationId } = getConsultationStatus();
 
+  const isLibraryDoc = !isAIResponse && /^\d+$/.test(bookmark.itemId);
+
   const handleOpenLink = () => {
     if (isAIResponse) {
       if (consultationExists && bookmark.url) {
         const targetUrl = `${bookmark.url}#message-${bookmark.itemId}`;
-
         if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
-          // If already on the page, natively set the hash to trigger the hashchange event reliably
           window.location.hash = `message-${bookmark.itemId}`;
         } else {
           router.push(targetUrl);
         }
-
-        onOpen('__NAVIGATE__'); // Signal navigation to close sidebar
+        onOpen('__NAVIGATE__');
       }
       return;
     }
+
+    if (isLibraryDoc) {
+      router.push(`/legal-library/${bookmark.itemId}`);
+      onOpen('__NAVIGATE__');
+      return;
+    }
+
     onOpen(bookmark.itemId);
   };
 
@@ -121,6 +127,13 @@ function BookmarkCard({
         >
           {bookmark.title}
         </h3>
+
+        {isLibraryDoc && (
+          <div className="flex items-center gap-1.5 mb-3 -mt-1">
+            <BookOpen size={11} className="text-[#722f37]" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#722f37]">Legal Library</span>
+          </div>
+        )}
 
         {/* AI Summary Section */}
         <div className="flex gap-3 mb-3">

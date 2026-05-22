@@ -1,13 +1,74 @@
 export function cleanText(raw: string): string {
   return raw
     .replace(/\r\n/g, '\n')
-    // Remove excessive or standalone quotation marks only
     .replace(/"{2,}/g, '')
     .replace(/^"(.+)"$/gm, '$1')
     .trim();
 }
 
-export function FormattedLegalText({ text }: { text: string }) {
+interface AnnotationMark {
+  text: string;
+  color: string;
+  note?: string;
+}
+
+function applyHighlights(block: string, annotations: AnnotationMark[]): React.ReactNode {
+  if (!annotations.length) return block;
+
+  // Build a list of all matches with their positions
+  type Segment = { start: number; end: number; annotation: AnnotationMark };
+  const segments: Segment[] = [];
+
+  for (const ann of annotations) {
+    const needle = ann.text;
+    let idx = block.indexOf(needle);
+    while (idx !== -1) {
+      segments.push({ start: idx, end: idx + needle.length, annotation: ann });
+      idx = block.indexOf(needle, idx + needle.length);
+    }
+  }
+
+  if (!segments.length) return block;
+
+  // Sort by start, remove overlaps
+  segments.sort((a, b) => a.start - b.start);
+  const merged: Segment[] = [];
+  for (const seg of segments) {
+    const last = merged[merged.length - 1];
+    if (last && seg.start < last.end) continue; // skip overlap
+    merged.push(seg);
+  }
+
+  // Build React nodes
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const seg of merged) {
+    if (cursor < seg.start) nodes.push(block.slice(cursor, seg.start));
+    nodes.push(
+      <mark
+        key={seg.start}
+        title={seg.annotation.note || undefined}
+        style={{
+          backgroundColor: seg.annotation.color + '40',
+          borderBottom: `2px solid ${seg.annotation.color}`,
+          color: 'inherit',
+          borderRadius: '2px',
+          padding: '0 1px',
+          cursor: seg.annotation.note ? 'help' : 'default',
+        }}
+      >
+        {block.slice(seg.start, seg.end)}
+      </mark>
+    );
+    cursor = seg.end;
+  }
+  if (cursor < block.length) nodes.push(block.slice(cursor));
+  return <>{nodes}</>;
+}
+
+import React from 'react';
+
+export function FormattedLegalText({ text, annotations = [] }: { text: string; annotations?: AnnotationMark[] }) {
   const rawBlocks = cleanText(text)
     .split(/\n{2,}/)
     .flatMap(block => {
@@ -22,7 +83,7 @@ export function FormattedLegalText({ text }: { text: string }) {
       return [trimmed];
     });
 
-  // Merge surname onto name ending with middle initial (e.g. "FERDINAND E." + "MARCOS ...")
+  // Merge surname onto name ending with middle initial
   const blocks: string[] = [];
   for (let i = 0; i < rawBlocks.length; i++) {
     const current = rawBlocks[i];
@@ -52,24 +113,25 @@ export function FormattedLegalText({ text }: { text: string }) {
           && /[A-Z]/.test(block)
           && !/\b[A-Z]\.\s*$/.test(block);
         const isSectionHeader = /^(section|article|whereas|now therefore|be it enacted|republic act|resolved|ordered)\b/i.test(block);
+        const content = applyHighlights(block, annotations);
 
         if (isAllCaps) {
           return (
             <h3 key={i} className="text-[#e9c176] font-bold text-sm uppercase tracking-widest pt-4 pb-1 border-b border-white/5">
-              {block}
+              {content}
             </h3>
           );
         }
         if (isSectionHeader) {
           return (
             <p key={i} className="text-white font-semibold text-sm leading-relaxed">
-              {block}
+              {content}
             </p>
           );
         }
         return (
           <p key={i} className="text-gray-400 text-sm leading-relaxed">
-            {block}
+            {content}
           </p>
         );
       })}

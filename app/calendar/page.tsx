@@ -67,6 +67,8 @@ interface CalendarEvent {
   iCalUID?: string;
   lawyerAcknowledgedAt?: string;
   lastReminderSentAt?: string;
+  reminderDayBeforeSentAt?: string;
+  reminderDayOfSentAt?: string;
   userId?: string;
   user?: {
     id: string;
@@ -519,6 +521,8 @@ export default function CalendarPage() {
             status,
             lawyerAcknowledgedAt: e.lawyerAcknowledgedAt,
             lastReminderSentAt: e.lastReminderSentAt,
+            reminderDayBeforeSentAt: e.reminderDayBeforeSentAt,
+            reminderDayOfSentAt: e.reminderDayOfSentAt,
           };
         });
 
@@ -1511,8 +1515,22 @@ export default function CalendarPage() {
   };
 
   // ── Automated Reminders (Today / Tomorrow) ─────────────────────────────────
-  const autoRemindProcessed = useRef<Set<string>>(new Set());
   const isProcessingReminders = useRef(false);
+
+  // Persist processed IDs in sessionStorage so navigating away and back doesn't re-fire
+  const getSessionReminded = (): Set<string> => {
+    try {
+      const raw = sessionStorage.getItem('autoRemindedEvents');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  };
+  const addSessionReminded = (id: string) => {
+    try {
+      const existing = getSessionReminded();
+      existing.add(id);
+      sessionStorage.setItem('autoRemindedEvents', JSON.stringify([...existing]));
+    } catch {}
+  };
 
   useEffect(() => {
     if (!loggedIn || !userId || events.length === 0 || isLoading || isProcessingReminders.current) return;
@@ -1521,45 +1539,50 @@ export default function CalendarPage() {
       isProcessingReminders.current = true;
       try {
         const nowTs = new Date();
-        const endOfTomorrow = new Date(nowTs);
-        endOfTomorrow.setDate(nowTs.getDate() + 2);
-        endOfTomorrow.setHours(0, 0, 0, 0);
+        const todayStart = new Date(nowTs); todayStart.setHours(0, 0, 0, 0);
+        const tomorrowStart = new Date(todayStart); tomorrowStart.setDate(todayStart.getDate() + 1);
+        const dayAfterTomorrow = new Date(tomorrowStart); dayAfterTomorrow.setDate(tomorrowStart.getDate() + 1);
 
-        const todayStart = new Date(nowTs);
-        todayStart.setHours(0, 0, 0, 0);
+        const sessionReminded = getSessionReminded();
 
-        // Find events for today or tomorrow that haven't been reminded yet today
-        const toRemind = events.filter(e => {
-          if (e.status === 'cancelled' || e.status === 'denied') return false;
-          if (autoRemindProcessed.current.has(e.id)) return false;
+        for (const event of events) {
+          if (event.status === 'cancelled' || event.status === 'denied' || event.status === 'canceled') continue;
+          if (!event.client_email && !event.clientEmail) continue;
 
-          // Skip if already sent today
-          if (e.lastReminderSentAt) {
-            const lastSent = new Date(e.lastReminderSentAt);
-            if (lastSent.getFullYear() === nowTs.getFullYear() &&
-              lastSent.getMonth() === nowTs.getMonth() &&
-              lastSent.getDate() === nowTs.getDate()) {
-              return false;
-            }
-          }
+          const evtDate = new Date(event.date_time || event.dateTime || '');
+          const isToday = evtDate >= todayStart && evtDate < tomorrowStart;
+          const isTomorrow = evtDate >= tomorrowStart && evtDate < dayAfterTomorrow;
 
-          const evtDate = new Date(e.date_time || e.dateTime || "");
-          // Only remind for FUTURE events (today or tomorrow)
-          return evtDate > nowTs && evtDate < endOfTomorrow;
-        });
+          if (!isToday && !isTomorrow) continue;
 
-        if (toRemind.length === 0) return;
+          const sessionKey = `${event.id}_${isToday ? 'day_of' : 'day_before'}`;
+          if (sessionReminded.has(sessionKey)) continue;
 
-        console.log(`[Calendar] Found ${toRemind.length} events needing automated reminders.`);
+          // Day-before: only send if reminderDayBeforeSentAt not set
+          if (isTomorrow && event.reminderDayBeforeSentAt) continue;
+          // Day-of: only send if reminderDayOfSentAt not set
+          if (isToday && event.reminderDayOfSentAt) continue;
 
-        for (const event of toRemind) {
-          // Check again inside loop in case state updated during previous iterations
-          if (autoRemindProcessed.current.has(event.id)) continue;
+          // Mark in session before sending to prevent double-fire
+          addSessionReminded(sessionKey);
 
-          autoRemindProcessed.current.add(event.id);
+          const now = new Date().toISOString();
+          const dbField = isToday ? 'reminder_day_of_sent_at' : 'reminder_day_before_sent_at';
+          const stateField = isToday ? 'reminderDayOfSentAt' : 'reminderDayBeforeSentAt';
+
           await handleRemindEvent(event, { silent: true });
 
-          // Small delay to avoid API rate limits
+          // Persist which reminder was sent
+          fetch(`/api/events/${event.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [dbField]: now }),
+          }).catch(() => {});
+
+          setEvents(prev => prev.map(e =>
+            e.id === event.id ? { ...e, [stateField]: now } : e
+          ));
+
           await new Promise(r => setTimeout(r, 1000));
         }
       } finally {
