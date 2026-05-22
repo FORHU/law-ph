@@ -46,6 +46,7 @@ export function AppSidebar({
           pathname?.startsWith('/calendar') ? 'calendar' :
             pathname?.startsWith('/cases') ? 'cases' :
               pathname?.startsWith('/legal-library') ? 'library' :
+                pathname?.startsWith('/bookmarks') ? 'bookmarks' :
                 'chat'
   );
 
@@ -143,7 +144,7 @@ export function AppSidebar({
               </button>
 
               <button
-                onClick={() => setIsBookmarksModalOpen(true)}
+                onClick={() => router.push('/bookmarks')}
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <Bookmark size={16} className="transition-colors" />
@@ -212,7 +213,7 @@ export function AppSidebar({
               </button>
 
               <button
-                onClick={() => setIsBookmarksModalOpen(true)}
+                onClick={() => router.push('/bookmarks')}
                 className="w-full px-4 py-3 bg-transparent border border-transparent rounded-xl hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-3 text-gray-400 hover:text-white group"
               >
                 <Bookmark size={16} className="transition-colors" />
