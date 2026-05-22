@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Settings, LogOut, SunMoon, User } from 'lucide-react';
+import { Settings, LogOut, User } from 'lucide-react';
 
 export function SidebarProfile() {
   const { user, logout } = useAuth();
@@ -65,11 +65,10 @@ export function SidebarProfile() {
             <User className="mr-3 h-4 w-4 text-gray-500" />
             <span>Profile Settings</span>
           </DropdownMenuItem>
-          <DropdownMenuItem className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest">
-            <SunMoon className="mr-3 h-4 w-4 text-gray-500" />
-            <span>Theme Control</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest">
+          <DropdownMenuItem
+            onClick={() => router.push('/settings/general')}
+            className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
+          >
             <Settings className="mr-3 h-4 w-4 text-gray-500" />
             <span>General Config</span>
           </DropdownMenuItem>
