@@ -53,6 +53,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (body.client_email !== undefined) updateData.clientEmail = body.client_email;
   if (body.notes !== undefined) updateData.notes = body.notes;
   if (body.last_reminder_sent_at !== undefined) updateData.lastReminderSentAt = new Date(body.last_reminder_sent_at);
+  if (body.reminder_day_before_sent_at !== undefined) updateData.reminderDayBeforeSentAt = new Date(body.reminder_day_before_sent_at);
+  if (body.reminder_day_of_sent_at !== undefined) updateData.reminderDayOfSentAt = new Date(body.reminder_day_of_sent_at);
   if (body.lawyer_acknowledged_at !== undefined) updateData.lawyerAcknowledgedAt = new Date(body.lawyer_acknowledged_at);
 
   try {

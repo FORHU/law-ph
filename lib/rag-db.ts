@@ -176,7 +176,9 @@ export async function searchDocumentsByKeyword(
     const pattern = `%${word}%`;
     params.push(pattern);
     const i = params.length;
-    keywordConditions.push(`title ILIKE $${i}`);
+    keywordConditions.push(
+      `(title ILIKE $${i} OR concise_summary ILIKE $${i} OR full_text ILIKE $${i})`
+    );
   }
 
   const andConditions: string[] = [`(${keywordConditions.join(" OR ")})`];
@@ -195,12 +197,23 @@ export async function searchDocumentsByKeyword(
 
   params.push(limit, offset);
 
-  const { rows } = await ragPool.query<RagDocument>(
+  // Build CASE expression to indicate where the match was found (title > summary > full_text)
+  const matchCaseExpr = keywords.map((_, idx) => {
+    const p = params.indexOf(`%${keywords[idx]}%`) + 1;
+    return `WHEN title ILIKE $${p} THEN 'title'
+            WHEN concise_summary ILIKE $${p} THEN 'summary'
+            ELSE 'full_text'`;
+  }).join('\n');
+
+  const { rows } = await ragPool.query<RagDocument & { matched_in?: string }>(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-            case_no, year, source_url, concise_summary, created_at, updated_at
+            case_no, year, source_url, concise_summary, created_at, updated_at,
+            CASE ${matchCaseExpr} END AS matched_in
      FROM documents
      WHERE ${andConditions.join(" AND ")}
-     ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
+     ORDER BY
+       CASE WHEN title ILIKE $1 THEN 0 WHEN concise_summary ILIKE $1 THEN 1 ELSE 2 END,
+       year ASC NULLS LAST, case_no ASC NULLS LAST
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );

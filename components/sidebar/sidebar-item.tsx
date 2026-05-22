@@ -119,8 +119,8 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
           </div>
         ) : (
           <>
-            <div className={`truncate font-serif text-[13px] tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
-            <div className={`text-[9px] font-bold ${isActive ? 'text-gray-400' : 'text-gray-600'} mt-0.5 truncate uppercase tracking-[0.2em]`}>{item.subtitle || 'CONSULTATION'}</div>
+            <div className={`truncate font-serif text-[12px] tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
+            <div className={`text-[8px] font-bold ${isActive ? 'text-gray-400' : 'text-gray-600'} truncate uppercase tracking-[0.2em]`}>{item.subtitle || 'CONSULTATION'}</div>
           </>
         )}
       </div>

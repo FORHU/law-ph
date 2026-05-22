@@ -30,12 +30,12 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const SIDEBAR_STYLES = {
   container: "w-60 bg-[#0B0B0C] border-r border-[#722f37]/30 flex flex-col h-full shadow-2xl overflow-hidden relative",
-  contentArea: "px-4 py-2",
+  contentArea: "px-3 py-1.5",
   navArea: "p-4 border-t border-[#722f37]/10 space-y-2",
   activeItem: "bg-[#722f37]/20 border border-[#722f37]/30 text-white shadow-lg shadow-[#722f37]/5",
   inactiveItem: "hover:bg-white/5 text-gray-400 hover:text-white",
   recentItem: {
-    base: "group relative py-3 px-4 text-sm rounded-xl transition-all cursor-pointer border border-transparent",
+    base: "group relative py-1.5 px-3 text-sm rounded-lg transition-all cursor-pointer border border-transparent",
     editing: "bg-[#111111] border-[#722f37]/40",
     hover: "text-gray-400 hover:text-white hover:bg-[#111111]/40",
     active: "bg-[#722f37]/20 border-[#722f37]/40 text-white shadow-lg shadow-[#722f37]/5"
