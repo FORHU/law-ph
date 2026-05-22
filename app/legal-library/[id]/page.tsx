@@ -513,13 +513,14 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
               </div>
             )}
 
-            {/* Related documents */}
+            {/* Similar documents */}
             {related.length > 0 && (
               <div className="border-t border-white/10 pt-8 print:hidden">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-1">
                   <FileText size={14} className="text-gray-500" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Related Documents</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Similar Documents</span>
                 </div>
+                <p className="text-[10px] text-gray-600 italic mb-4">Based on text similarity — not legal citations</p>
                 <div className="grid grid-cols-1 gap-2">
                   {related.map(r => {
                     const Icon = CATEGORY_ICONS[r.category] || FileText;
@@ -535,7 +536,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
                           <div className="flex items-center gap-2 mt-0.5">
                             {r.case_no && <span className="text-[10px] font-mono text-gray-600">{r.case_no}</span>}
                             {r.year && <span className="text-[10px] text-gray-600">· {r.year}</span>}
-                            <span className="text-[10px] text-[#e9c176]/60">{Math.round(r.similarity * 100)}% match</span>
+                            <span className="text-[10px] text-[#e9c176]/60">{Math.round(r.similarity * 100)}% similar</span>
                           </div>
                         </div>
                         <ChevronDown size={14} className="text-gray-600 group-hover:text-white -rotate-90 transition-colors flex-shrink-0" />
