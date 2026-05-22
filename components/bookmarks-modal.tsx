@@ -253,7 +253,7 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed z-[101] inset-0 flex items-center justify-center p-6 pointer-events-none"
             >
-              <div className="relative w-full max-w-3xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] pointer-events-auto">
+              <div className="relative w-full max-w-5xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto">
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-[#722f37]/20 flex items-center justify-between flex-shrink-0">
                   <div className="flex flex-col">

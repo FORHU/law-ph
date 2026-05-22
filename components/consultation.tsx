@@ -591,7 +591,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
-          className="bg-[#141414] border border-[#10B981]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+          className="bg-[#141414] border border-[#10B981]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-8">
@@ -689,7 +689,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
-          className="bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+          className="bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-8">
@@ -847,7 +847,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       activePage="chat"
       title={headerTitle}
       subtitle={headerSubtitle}
-      maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"}
+      maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "w-full"}
       onNewItem={handleNewConsultation}
       newItemLabel="Consultation"
       recentItems={sidebarRecentItems}
@@ -887,7 +887,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           className={`flex-1 ${globalTab === "mindmap" || globalTab === "transcribe" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : globalTab === "transcribe" ? "p-0" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}
         >
           <div
-            className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
+            className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-5xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
 
             {globalTab === "chat" ? (
@@ -1031,7 +1031,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 )}
               </div>
             ) : globalTab === 'email' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-3xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden w-full">
                   <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
@@ -1181,7 +1181,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
               </div>
             ) : globalTab === 'schedule' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-3xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative w-full">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-[#722f37]/10 text-[#722f37] rounded-xl flex-shrink-0">

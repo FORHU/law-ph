@@ -226,6 +226,29 @@ export function useSendMessage({
           let retryCount = 0;
           const MAX_RETRIES = 3;
 
+          // Throttle UI updates to ~20/sec. Running extractTimeline, extractMindMap,
+          // cleanAccumulatedText, and setMessages on every single chunk causes O(n²)
+          // work and hundreds of React re-renders for a long response.
+          const RENDER_INTERVAL_MS = 50;
+          let lastRenderTime = 0;
+
+          const flushToUI = (isFinal: boolean) => {
+            const now = Date.now();
+            if (!isFinal && now - lastRenderTime < RENDER_INTERVAL_MS) return;
+            lastRenderTime = now;
+            timeline = extractTimeline(accumulatedText);
+            mindMap = extractMindMap(accumulatedText);
+            const cleanText = cleanAccumulatedText(accumulatedText);
+            setMessages(prev => {
+              const updated = [...prev];
+              const lastIdx = updated.length - 1;
+              if (updated[lastIdx]?.id === aiMessageId) {
+                updated[lastIdx] = { ...updated[lastIdx], text: cleanText, rawContent: accumulatedText, relatedCases, timeline, mindMap };
+              }
+              return updated;
+            });
+          };
+
           while (retryCount < MAX_RETRIES && !aiResponseSuccessful) {
             try {
               if (!currentChatSessionId) {
@@ -260,27 +283,16 @@ export function useSendMessage({
                   break;
                 }
 
-                // Run every chunk through the rules defined in stream-response-processor
                 const processed = processChunk(raw);
                 if (processed.extractedSources) streamSources = processed.extractedSources;
-
                 accumulatedText += processed.text;
                 relatedCases = streamSources;
-                timeline = extractTimeline(accumulatedText);
-                mindMap = extractMindMap(accumulatedText);
 
-                const cleanText = cleanAccumulatedText(accumulatedText);
-
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const lastIdx = updated.length - 1;
-                  if (updated[lastIdx]?.id === aiMessageId) {
-                    updated[lastIdx] = { ...updated[lastIdx], text: cleanText, rawContent: accumulatedText, relatedCases, timeline, mindMap };
-                  }
-                  return updated;
-                });
+                flushToUI(false);
               }
+              flushToUI(true); // always render the complete final text
               aiResponseSuccessful = true;
+              setIsLoading(false); // unlock input now; DB save below is a side-effect
             } catch (err: any) {
               if (err.message === "UNKNOWN_SESSION") {
                 retryCount++;
@@ -302,8 +314,13 @@ export function useSendMessage({
 
           if (aiSaveRes.ok) {
             const savedAiMsg = await aiSaveRes.json();
-            if (savedAiMsg?.message) {
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? mapCloudMessage(savedAiMsg.message) : m));
+            if (savedAiMsg?.message?.id) {
+              // Only update the temp ID to the persisted DB ID.
+              // All content (text, timeline, relatedCases, mindMap) was already set
+              // correctly during streaming — re-running mapCloudMessage here would
+              // re-execute all parsing functions on the full response text synchronously,
+              // freezing the main thread.
+              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, id: savedAiMsg.message.id } : m));
             }
           }
         } catch (error: any) {

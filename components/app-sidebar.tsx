@@ -15,8 +15,6 @@ import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
 import { ScrollToTop } from './sidebar/scroll-to-top';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
-import { useConversations } from './conversation-provider/conversation-context';
-
 interface AppSidebarProps {
   activePage?: SidebarPage;
   recentItems?: RecentItem[];
@@ -25,15 +23,19 @@ interface AppSidebarProps {
   recentLabel?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  currentConsultationId?: string | number | null;
+  openSourceByItemId?: (itemId: string, title?: string, context?: string) => void;
 }
 
-export function AppSidebar({
+export const AppSidebar = React.memo(function AppSidebar({
   activePage,
   recentItems = [],
   onNewItem,
   recentLabel = 'RECENT',
   isOpen = false,
   onClose,
+  currentConsultationId,
+  openSourceByItemId,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -57,7 +59,6 @@ export function AppSidebar({
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const isDocumentsOrCalendarOrTranscribe = resolvedActivePage === 'documents' || resolvedActivePage === 'calendar' || resolvedActivePage === 'transcribe' || resolvedActivePage === 'library';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { openSourceByItemId } = useConversations() || {};
 
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
@@ -235,6 +236,7 @@ export function AppSidebar({
                     item={item}
                     isOpen={activeMenuId === item.id}
                     onToggle={() => toggleMenu(item.id)}
+                    currentConsultationId={currentConsultationId}
                   />
                 ))}
               </div>
@@ -330,4 +332,4 @@ export function AppSidebar({
       </AnimatePresence>
     </>
   );
-}
+});

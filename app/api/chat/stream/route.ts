@@ -62,13 +62,12 @@ export async function POST(request: NextRequest) {
           const message = event.data;
 
           try {
-            // Forward the message to the client
-            controller.enqueue(new TextEncoder().encode(message));
-
-            // If this is the end signal, close the stream
-            if (message === '__END__' && !isClosed) {
+            if (message === '__END__') {
+              // End sentinel — close cleanly, don't forward to the client
               ws.close();
               closeStream();
+            } else {
+              controller.enqueue(new TextEncoder().encode(message));
             }
           } catch (err) {
             console.error('Streaming enqueue error:', err);

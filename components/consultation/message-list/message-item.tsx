@@ -72,7 +72,7 @@ export function MessageItem({
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
-  const { addBookmark, removeBookmark, isBookmarked } = useConversations();
+  const { addBookmark, removeBookmark, isBookmarked, currentConsultationId } = useConversations();
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -95,7 +95,7 @@ export function MessageItem({
         title: title,
         reference: "AI_RESPONSE",
         type: 'source',
-        url: `/consultation/${message.conversation_id}`,
+        url: `/consultation/${currentConsultationId}`,
         aiSummary: message.text,
       });
     }

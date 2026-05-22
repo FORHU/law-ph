@@ -62,15 +62,16 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
     throw new Error(urlData.detail || urlData.error || `Failed to get upload URL for ${file.name}`);
   }
 
-  // Step 2: Upload file directly to S3 using PUT
-  const s3Response = await fetch(urlData.url, {
-    method: 'PUT',
-    headers: { 'Content-Type': urlData.content_type },
+  // Step 2: Upload file through server-side proxy to avoid browser CORS restrictions on direct S3 PUT
+  const s3Response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(urlData.s3_key)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
     body: file,
   });
 
-  if (!s3Response.ok && s3Response.status !== 204) {
-    throw new Error(`Failed to upload ${file.name} to S3.`);
+  if (!s3Response.ok) {
+    const s3Err = await s3Response.json().catch(() => ({}));
+    throw new Error(s3Err.error || `Failed to upload ${file.name} to S3.`);
   }
 
   // Step 3: Determine final file URL

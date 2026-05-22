@@ -6,8 +6,6 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoreHorizontal, Edit3, Trash2, Check, X } from 'lucide-react';
 import { RecentItem, SIDEBAR_STYLES } from './sidebar-constants';
-import { useConversations } from '@/components/conversation-provider/conversation-context';
-
 const PortalWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -19,10 +17,10 @@ interface SidebarItemProps {
   item: RecentItem;
   isOpen?: boolean;
   onToggle?: () => void;
+  currentConsultationId?: string | number | null;
 }
 
-export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps) {
-  const { currentConsultationId } = useConversations();
+export function SidebarItem({ item, isOpen = false, onToggle, currentConsultationId }: SidebarItemProps) {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);

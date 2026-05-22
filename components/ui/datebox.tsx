@@ -167,6 +167,7 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
   }
 
   const handleSelectDate = (cellDate: Date) => {
+    if (isPastDate(cellDate)) return;
     const newTemp = new Date(tempDate);
     newTemp.setFullYear(cellDate.getFullYear());
     newTemp.setMonth(cellDate.getMonth());
@@ -324,6 +325,25 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
     }
   };
 
+  const minDate = React.useMemo(() => {
+    if (!min) return null;
+    const d = new Date(min);
+    return isNaN(d.getTime()) ? null : d;
+  }, [min]);
+
+  const isPastDate = (cellDate: Date): boolean => {
+    if (!minDate) return false;
+    const minDay = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+    const cellDay = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
+    return cellDay < minDay;
+  };
+
+  const canGoPrevMonth = !minDate ||
+    new Date(activeMonth.getFullYear(), activeMonth.getMonth() - 1, 1) >=
+    new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+
+  const isDoneDisabled = minDate !== null && tempDate < minDate;
+
   const isSelectedDate = (cellDate: Date) => {
     return (
       cellDate.getDate() === tempDate.getDate() &&
@@ -391,9 +411,10 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
               <div className="p-4 flex-1 select-none">
                 <div className="flex items-center justify-between mb-4">
                   <button
-                    onClick={prevMonth}
+                    onClick={canGoPrevMonth ? prevMonth : undefined}
                     type="button"
-                    className="p-1.5 hover:bg-white/5 rounded-lg text-white/60 hover:text-white transition-colors"
+                    disabled={!canGoPrevMonth}
+                    className={`p-1.5 rounded-lg transition-colors ${canGoPrevMonth ? "hover:bg-white/5 text-white/60 hover:text-white" : "text-white/15 cursor-not-allowed"}`}
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -421,7 +442,8 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
                   {cells.map((cell, idx) => {
                     const isSelected = isSelectedDate(cell.date);
                     const isToday = isTodayDate(cell.date);
-                    
+                    const isPast = isPastDate(cell.date);
+
                     const year = cell.date.getFullYear();
                     const month = String(cell.date.getMonth() + 1).padStart(2, "0");
                     const dayStr = String(cell.date.getDate()).padStart(2, "0");
@@ -432,10 +454,12 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
                       <div
                         key={idx}
                         onClick={() => handleSelectDate(cell.date)}
-                        className={`py-1 rounded-lg cursor-pointer transition-all flex flex-col items-center justify-center font-medium relative h-9
-                          ${!cell.isCurrentMonth ? "text-white/20 hover:bg-white/5" : "text-white/80 hover:bg-[#722f37]/25 hover:text-white"}
-                          ${isSelected ? "!bg-[#722f37] !text-white font-bold shadow-md shadow-[#722f37]/20" : ""}
-                          ${isToday && !isSelected ? "border border-[#722f37]/45 text-[#ffb2b8]" : ""}
+                        className={`py-1 rounded-lg transition-all flex flex-col items-center justify-center font-medium relative h-9
+                          ${isPast ? "text-white/15 cursor-not-allowed" : "cursor-pointer"}
+                          ${!isPast && !cell.isCurrentMonth ? "text-white/20 hover:bg-white/5" : ""}
+                          ${!isPast && cell.isCurrentMonth ? "text-white/80 hover:bg-[#722f37]/25 hover:text-white" : ""}
+                          ${isSelected && !isPast ? "!bg-[#722f37] !text-white font-bold shadow-md shadow-[#722f37]/20" : ""}
+                          ${isToday && !isSelected && !isPast ? "border border-[#722f37]/45 text-[#ffb2b8]" : ""}
                         `}
                       >
                         <span className={hasEvent ? "relative -top-0.5" : ""}>{cell.day}</span>
@@ -580,7 +604,7 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
                     <button
                       onClick={toggleAmPm}
                       type="button"
-                      className="bg-black/60 border border-white/10 hover:border-[#722f37]/40 px-2 py-1 rounded-lg text-[10px] font-bold text-center text-white/80 hover:text-white hover:bg-[#722f37]/20 transition-all uppercase self-center w-10 h-[26px] mt-3.5 flex items-center justify-center"
+                      className="bg-black/60 border border-white/10 hover:border-[#722f37]/40 px-2 py-1 rounded-lg text-[10px] font-bold text-center text-white/80 hover:text-white hover:bg-[#722f37]/20 transition-all uppercase self-center w-10 h-[26px] flex items-center justify-center"
                     >
                       {ampmStr}
                     </button>
@@ -597,9 +621,10 @@ export function DateBox({ value, min, onChange, hasError, highlightedDates, cale
                     Cancel
                   </button>
                   <button
-                    onClick={handleDone}
+                    onClick={isDoneDisabled ? undefined : handleDone}
                     type="button"
-                    className="px-3 py-1 bg-[#722f37] hover:bg-[#722f37]/80 rounded-lg text-[10px] font-bold text-white transition-all"
+                    disabled={isDoneDisabled}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-bold text-white transition-all ${isDoneDisabled ? "bg-[#722f37]/30 cursor-not-allowed" : "bg-[#722f37] hover:bg-[#722f37]/80"}`}
                   >
                     Done
                   </button>
