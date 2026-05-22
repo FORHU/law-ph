@@ -148,7 +148,7 @@ export function AppSidebar({
                   }`}
               >
                 <Library size={18} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-sm font-medium">Legal Library</span>
+                <span className="text-sm font-medium">Library</span>
               </button>
             </>
           ) : (
@@ -216,7 +216,7 @@ export function AppSidebar({
                 className={`w-full px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Library size={18} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-sm font-medium">Legal Library</span>
+                <span className="text-sm font-medium">Library</span>
               </button>
             </>
           )}
