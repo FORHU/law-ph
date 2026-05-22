@@ -15,6 +15,7 @@ interface RagDocument {
   year: number | null;
   source_url: string | null;
   concise_summary: string | null;
+  matched_in?: 'title' | 'summary' | 'full_text';
 }
 
 const CATEGORIES = [
@@ -106,6 +107,9 @@ export default function LegalLibraryPage() {
   const [appliedYearTo, setAppliedYearTo] = useState('');
   const [appliedArticleNo, setAppliedArticleNo] = useState('');
   const [appliedLibraries, setAppliedLibraries] = useState<string[]>([]);
+  const [savedSearches, setSavedSearches] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('lib_saved_searches') || '[]'); } catch { return []; }
+  });
 
   const YEARS = Array.from({ length: 2026 - 1899 + 1 }, (_, i) => 1899 + i);
 
@@ -236,8 +240,24 @@ export default function LegalLibraryPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setKeyword(searchInput.trim());
+    const q = searchInput.trim();
+    setKeyword(q);
     setPage(1);
+    if (q) {
+      setSavedSearches(prev => {
+        const updated = [q, ...prev.filter(s => s !== q)].slice(0, 8);
+        try { localStorage.setItem('lib_saved_searches', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    }
+  };
+
+  const removeSavedSearch = (s: string) => {
+    setSavedSearches(prev => {
+      const updated = prev.filter(x => x !== s);
+      try { localStorage.setItem('lib_saved_searches', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   };
 
   const handleClearSearch = () => {
@@ -281,8 +301,7 @@ export default function LegalLibraryPage() {
             </form>
 
             {/* Filter button */}
-            <button
-              onClick={() => setShowFilter(f => !f)}
+            <button onClick={() => setShowFilter(f => !f)}
               className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border text-[11px] font-bold uppercase tracking-widest transition-all ${
                 hasActiveFilter
                   ? 'bg-[#722f37]/30 border-[#722f37]/50 text-white'
@@ -295,6 +314,24 @@ export default function LegalLibraryPage() {
             </button>
           </div>
 
+          {/* Saved searches */}
+          {savedSearches.length > 0 && !keyword && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Recent:</span>
+              {savedSearches.map(s => (
+                <div key={s} className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-lg overflow-hidden group">
+                  <button
+                    onClick={() => { setSearchInput(s); setKeyword(s); setPage(1); }}
+                    className="px-3 py-1 text-[11px] text-gray-400 hover:text-white transition-colors"
+                  >{s}</button>
+                  <button
+                    onClick={() => removeSavedSearch(s)}
+                    className="px-2 py-1 text-gray-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                  ><X size={10} /></button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filter Drawer — slides in from right */}
@@ -566,6 +603,11 @@ export default function LegalLibraryPage() {
                       <h3 className="text-sm text-gray-300 group-hover:text-white transition-colors leading-snug mb-1 line-clamp-1 capitalize">
                         {stripDates(doc.title ?? doc.case_no ?? 'Untitled Document')}
                       </h3>
+                      {doc.matched_in && doc.matched_in !== 'title' && (
+                        <span className="inline-block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#e9c176]/10 text-[#e9c176] border border-[#e9c176]/20 mb-1">
+                          Match in {doc.matched_in === 'full_text' ? 'full text' : 'summary'}
+                        </span>
+                      )}
                       {doc.concise_summary && (
                         <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-1 group-hover:text-gray-500 transition-colors">
                           {doc.concise_summary}

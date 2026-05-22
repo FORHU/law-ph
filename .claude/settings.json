@@ -20,7 +20,10 @@
       "Bash(ls ~/.claude/skills/ 2>/dev/null || echo \"not found\")",
       "Read(//c/Users/USER/.claude/skills/**)",
       "Bash(mkdir -p \"C:/Users/USER/Documents/GitHub/law-ph/.claude/skills\")",
-      "Bash(cp -r /c/Users/USER/.claude/skills/* \"C:/Users/USER/Documents/GitHub/law-ph/.claude/skills/\")"
+      "Bash(cp -r /c/Users/USER/.claude/skills/* \"C:/Users/USER/Documents/GitHub/law-ph/.claude/skills/\")",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\.next\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Done\")",
+      "Bash(xargs grep -l \"bookmark\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\case-invite\\[id]",

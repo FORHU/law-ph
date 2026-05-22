@@ -67,6 +67,8 @@ interface CalendarEvent {
   iCalUID?: string;
   lawyerAcknowledgedAt?: string;
   lastReminderSentAt?: string;
+  reminderDayBeforeSentAt?: string;
+  reminderDayOfSentAt?: string;
   userId?: string;
   user?: {
     id: string;
@@ -519,6 +521,8 @@ export default function CalendarPage() {
             status,
             lawyerAcknowledgedAt: e.lawyerAcknowledgedAt,
             lastReminderSentAt: e.lastReminderSentAt,
+            reminderDayBeforeSentAt: e.reminderDayBeforeSentAt,
+            reminderDayOfSentAt: e.reminderDayOfSentAt,
           };
         });
 
@@ -1511,8 +1515,22 @@ export default function CalendarPage() {
   };
 
   // ── Automated Reminders (Today / Tomorrow) ─────────────────────────────────
-  const autoRemindProcessed = useRef<Set<string>>(new Set());
   const isProcessingReminders = useRef(false);
+
+  // Persist processed IDs in sessionStorage so navigating away and back doesn't re-fire
+  const getSessionReminded = (): Set<string> => {
+    try {
+      const raw = sessionStorage.getItem('autoRemindedEvents');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  };
+  const addSessionReminded = (id: string) => {
+    try {
+      const existing = getSessionReminded();
+      existing.add(id);
+      sessionStorage.setItem('autoRemindedEvents', JSON.stringify([...existing]));
+    } catch {}
+  };
 
   useEffect(() => {
     if (!loggedIn || !userId || events.length === 0 || isLoading || isProcessingReminders.current) return;
@@ -1521,45 +1539,50 @@ export default function CalendarPage() {
       isProcessingReminders.current = true;
       try {
         const nowTs = new Date();
-        const endOfTomorrow = new Date(nowTs);
-        endOfTomorrow.setDate(nowTs.getDate() + 2);
-        endOfTomorrow.setHours(0, 0, 0, 0);
+        const todayStart = new Date(nowTs); todayStart.setHours(0, 0, 0, 0);
+        const tomorrowStart = new Date(todayStart); tomorrowStart.setDate(todayStart.getDate() + 1);
+        const dayAfterTomorrow = new Date(tomorrowStart); dayAfterTomorrow.setDate(tomorrowStart.getDate() + 1);
 
-        const todayStart = new Date(nowTs);
-        todayStart.setHours(0, 0, 0, 0);
+        const sessionReminded = getSessionReminded();
 
-        // Find events for today or tomorrow that haven't been reminded yet today
-        const toRemind = events.filter(e => {
-          if (e.status === 'cancelled' || e.status === 'denied') return false;
-          if (autoRemindProcessed.current.has(e.id)) return false;
+        for (const event of events) {
+          if (event.status === 'cancelled' || event.status === 'denied' || event.status === 'canceled') continue;
+          if (!event.client_email && !event.clientEmail) continue;
 
-          // Skip if already sent today
-          if (e.lastReminderSentAt) {
-            const lastSent = new Date(e.lastReminderSentAt);
-            if (lastSent.getFullYear() === nowTs.getFullYear() &&
-              lastSent.getMonth() === nowTs.getMonth() &&
-              lastSent.getDate() === nowTs.getDate()) {
-              return false;
-            }
-          }
+          const evtDate = new Date(event.date_time || event.dateTime || '');
+          const isToday = evtDate >= todayStart && evtDate < tomorrowStart;
+          const isTomorrow = evtDate >= tomorrowStart && evtDate < dayAfterTomorrow;
 
-          const evtDate = new Date(e.date_time || e.dateTime || "");
-          // Only remind for FUTURE events (today or tomorrow)
-          return evtDate > nowTs && evtDate < endOfTomorrow;
-        });
+          if (!isToday && !isTomorrow) continue;
 
-        if (toRemind.length === 0) return;
+          const sessionKey = `${event.id}_${isToday ? 'day_of' : 'day_before'}`;
+          if (sessionReminded.has(sessionKey)) continue;
 
-        console.log(`[Calendar] Found ${toRemind.length} events needing automated reminders.`);
+          // Day-before: only send if reminderDayBeforeSentAt not set
+          if (isTomorrow && event.reminderDayBeforeSentAt) continue;
+          // Day-of: only send if reminderDayOfSentAt not set
+          if (isToday && event.reminderDayOfSentAt) continue;
 
-        for (const event of toRemind) {
-          // Check again inside loop in case state updated during previous iterations
-          if (autoRemindProcessed.current.has(event.id)) continue;
+          // Mark in session before sending to prevent double-fire
+          addSessionReminded(sessionKey);
 
-          autoRemindProcessed.current.add(event.id);
+          const now = new Date().toISOString();
+          const dbField = isToday ? 'reminder_day_of_sent_at' : 'reminder_day_before_sent_at';
+          const stateField = isToday ? 'reminderDayOfSentAt' : 'reminderDayBeforeSentAt';
+
           await handleRemindEvent(event, { silent: true });
 
-          // Small delay to avoid API rate limits
+          // Persist which reminder was sent
+          fetch(`/api/events/${event.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [dbField]: now }),
+          }).catch(() => {});
+
+          setEvents(prev => prev.map(e =>
+            e.id === event.id ? { ...e, [stateField]: now } : e
+          ));
+
           await new Promise(r => setTimeout(r, 1000));
         }
       } finally {
@@ -1583,23 +1606,36 @@ export default function CalendarPage() {
 
   const [showLawyerModal, setShowLawyerModal] = useState(false);
   const [unacknowledgedEvents, setUnacknowledgedEvents] = useState<CalendarEvent[]>([]);
+  const [snoozeSecondsLeft, setSnoozeSecondsLeft] = useState(0);
+  const [showSnoozePicker, setShowSnoozePicker] = useState(false);
   const hasHandledModal = useRef(false);
 
   useEffect(() => {
+    const tick = () => {
+      const until = Number(sessionStorage.getItem('alertSnoozeUntil') || 0);
+      const diff = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      setSnoozeSecondsLeft(diff);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     if (isLoading || events.length === 0 || hasHandledModal.current) return;
+
+    const snoozeUntil = sessionStorage.getItem('alertSnoozeUntil');
+    if (snoozeUntil && Date.now() < Number(snoozeUntil)) return;
 
     const nowTs = new Date();
     const endOfTomorrow = new Date(nowTs);
     endOfTomorrow.setDate(nowTs.getDate() + 2);
     endOfTomorrow.setHours(0, 0, 0, 0);
-    const todayStart = new Date(nowTs);
-    todayStart.setHours(0, 0, 0, 0);
 
     const filterUnacked = events.filter(e => {
       if (e.status === 'cancelled' || e.status === 'denied' || e.status === 'canceled') return false;
       if (e.lawyerAcknowledgedAt) return false;
       const evtDate = new Date(e.date_time || e.dateTime || "");
-      // Only notify for FUTURE events (today or tomorrow)
       return evtDate >= nowTs && evtDate < endOfTomorrow;
     });
 
@@ -1684,22 +1720,47 @@ export default function CalendarPage() {
                 ))}
               </div>
 
-              <div className="p-6 bg-black/40 border-t border-white/5 flex gap-3">
+              <div className="p-6 bg-black/40 border-t border-white/5 flex flex-nowrap gap-3">
                 <button
                   onClick={handleAcknowledgeEvents}
-                  className="flex-1 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl transition-all shadow-xl shadow-[#722f37]/20 active:scale-[0.98] uppercase tracking-widest text-[11px]"
+                  className="flex-[2] bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold py-4 rounded-xl transition-all shadow-xl shadow-[#722f37]/20 active:scale-[0.98] uppercase tracking-widest text-[11px]"
                 >
                   Dismiss Alerts
                 </button>
-                <button
-                  onClick={() => {
-                    hasHandledModal.current = true;
-                    setShowLawyerModal(false);
-                  }}
-                  className="px-6 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all border border-white/5"
-                >
-                  Remind Me Later
-                </button>
+                <div className="relative flex-1">
+                  <button
+                    onClick={() => setShowSnoozePicker(p => !p)}
+                    className="w-full bg-transparent hover:bg-white/5 text-gray-500 hover:text-gray-300 text-[11px] font-bold py-4 rounded-xl transition-all border border-white/10 uppercase tracking-widest flex items-center justify-center gap-1.5"
+                  >
+                    Snooze
+                    <ChevronUp size={12} className={`transition-transform ${showSnoozePicker ? '' : 'rotate-180'}`} />
+                  </button>
+                  <AnimatePresence>
+                    {showSnoozePicker && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        className="absolute bottom-full mb-2 left-0 right-0 bg-[#0B0B0C] border border-white/10 rounded-xl overflow-hidden shadow-xl"
+                      >
+                        {[5, 15, 30].map(mins => (
+                          <button
+                            key={mins}
+                            onClick={() => {
+                              sessionStorage.setItem('alertSnoozeUntil', String(Date.now() + mins * 60 * 1000));
+                              hasHandledModal.current = true;
+                              setShowSnoozePicker(false);
+                              setShowLawyerModal(false);
+                            }}
+                            className="w-full px-4 py-3 text-[11px] font-bold text-gray-400 hover:text-white hover:bg-white/5 uppercase tracking-widest transition-all text-left"
+                          >
+                            {mins} minutes
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -1809,6 +1870,12 @@ export default function CalendarPage() {
         subtitle="Legal appointments and hearings"
         headerActions={
           <div className="flex items-center gap-2">
+            {snoozeSecondsLeft > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#722f37]/10 border border-[#722f37]/30 text-[#e9c176] text-xs font-bold">
+                <Bell size={12} />
+                <span>Alert in {Math.floor(snoozeSecondsLeft / 60)}:{String(snoozeSecondsLeft % 60).padStart(2, '0')}</span>
+              </div>
+            )}
             {isGoogleConnected && (
               <button
                 onClick={handleRefresh}
