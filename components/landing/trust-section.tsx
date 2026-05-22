@@ -10,35 +10,35 @@ interface TrustSectionProps {
 
 export function TrustSection({ setActiveAngle }: TrustSectionProps) {
   const trustItems = [
-    { 
-      icon: <Lock className="w-8 h-8 text-gray-500" />, 
-      title: 'AES-256 Encryption', 
-      desc: 'Military-grade encryption protects all your data in transit and at rest.' 
+    {
+      icon: <Lock className="w-8 h-8 text-gray-500" />,
+      title: 'AES-256 Encryption',
+      desc: 'Military-grade encryption protects all your data in transit and at rest.'
     },
-    { 
-      icon: <EyeOff className="w-8 h-8 text-gray-500" />, 
-      title: 'Zero Knowledge Architecture', 
-      desc: 'Your conversations and documents are encrypted end-to-end.' 
+    {
+      icon: <EyeOff className="w-8 h-8 text-gray-500" />,
+      title: 'Zero Knowledge Architecture',
+      desc: 'Your conversations and documents are encrypted end-to-end.'
     },
-    { 
-      icon: <ShieldAlert className="w-8 h-8 text-gray-500" />, 
-      title: 'No Third-Party Sharing', 
-      desc: 'We never share your data with third parties without explicit consent.' 
+    {
+      icon: <ShieldAlert className="w-8 h-8 text-gray-500" />,
+      title: 'No Third-Party Sharing',
+      desc: 'We never share your data with third parties without explicit consent.'
     },
-    { 
-      icon: <CheckCircle2 className="w-8 h-8 text-gray-500" />, 
-      title: 'DPA Compliant', 
-      desc: 'Fully compliant with the Philippine Data Privacy Act of 2012 (R.A. 10173).' 
+    {
+      icon: <CheckCircle2 className="w-8 h-8 text-gray-500" />,
+      title: 'DPA Compliant',
+      desc: 'Fully compliant with the Philippine Data Privacy Act of 2012 (R.A. 10173).'
     }
   ];
 
   return (
-    <section 
+    <section
       className="py-48 px-12 bg-background"
       onMouseEnter={() => setActiveAngle?.(2)}
     >
       <div className="max-w-[1200px] mx-auto">
-        <motion.div 
+        <motion.div
           className="glass-panel rounded-[3rem] p-24 border border-white/10 text-center shadow-2xl bg-white/[0.01]"
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -51,8 +51,8 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
               Legal matters require absolute confidentiality. We prioritize your data security and privacy above all else.
             </p>
             <motion.div whileHover={{ scale: 1.05 }}>
-              <a 
-                href="#" 
+              <a
+                href="#"
                 className="text-white text-lg font-bold border-b-2 border-white/20 pb-2 inline-flex items-center gap-3 hover:text-secondary hover:border-secondary transition-all"
               >
                 Read Our Privacy Policy <ExternalLink size={20} />
@@ -60,7 +60,7 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
             </motion.div>
           </div>
 
-          <motion.div 
+          <motion.div
             variants={{
               hidden: { opacity: 0 },
               show: {
@@ -76,8 +76,8 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
             className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left"
           >
             {trustItems.map((item, index) => (
-              <motion.div 
-                key={index} 
+              <motion.div
+                key={index}
                 variants={{
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
@@ -96,14 +96,14 @@ export function TrustSection({ setActiveAngle }: TrustSectionProps) {
             ))}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="mt-16 p-10 bg-[#722f37]/5 rounded-[2rem] border border-[#722f37]/20 inline-flex items-center gap-6 text-lg text-gray-500 font-medium"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.8 }}
           >
-            <Shield className="w-10 h-10 text-[#722f37] shrink-0" /> 
+            <Shield className="w-10 h-10 text-[#722f37] shrink-0" />
             <span className="max-w-2xl text-left text-gray-400">Your privacy is our priority. We use industry-standard security to protect all sensitive information.</span>
           </motion.div>
         </motion.div>

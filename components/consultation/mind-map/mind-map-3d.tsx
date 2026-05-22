@@ -207,7 +207,7 @@ export const MindMap3D = forwardRef<MindMap3DHandle, MindMap3DProps>(({ root, ro
 
       // Get RGB values from node color
       const rgb = hexToRgb(node.color);
-      
+
       // Semi-transparent colored background (20% opacity like Tailwind's /20)
       context.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
       context.fillRect(0, 0, canvas.width, canvas.height);

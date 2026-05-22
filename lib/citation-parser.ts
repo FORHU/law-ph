@@ -474,7 +474,7 @@ export function cleanAiText(text: string): string {
   // but we only do this for the specific tags we extract elsewhere.
   const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
   let firstTagIdx = -1;
-  
+
   for (const tag of startTags) {
     const match = cleaned.search(tag);
     if (match !== -1) {
@@ -614,58 +614,58 @@ function safeJsonParse(str: string): any {
         let finalAttempt = processed.trim();
         // Remove trailing comma if it exists before closing
         finalAttempt = finalAttempt.replace(/,\s*$/, "");
-          
-          // Use a stack to track open structures and string state
-          let isStringOpen = false;
-          let isEscape = false;
-          const stack: string[] = [];
-          
-          for (let i = 0; i < finalAttempt.length; i++) {
-            const char = finalAttempt[i];
-            if (isEscape) {
-              isEscape = false;
-              continue;
-            }
-            if (char === '\\') {
-              isEscape = true;
-              continue;
-            }
-            if (char === '"') {
-              isStringOpen = !isStringOpen;
-              continue;
-            }
-            if (!isStringOpen) {
-              if (char === '{') stack.push('}');
-              else if (char === '[') stack.push(']');
-              else if (char === '}' || char === ']') {
-                if (stack.length > 0 && stack[stack.length - 1] === char) {
-                  stack.pop();
-                }
+
+        // Use a stack to track open structures and string state
+        let isStringOpen = false;
+        let isEscape = false;
+        const stack: string[] = [];
+
+        for (let i = 0; i < finalAttempt.length; i++) {
+          const char = finalAttempt[i];
+          if (isEscape) {
+            isEscape = false;
+            continue;
+          }
+          if (char === '\\') {
+            isEscape = true;
+            continue;
+          }
+          if (char === '"') {
+            isStringOpen = !isStringOpen;
+            continue;
+          }
+          if (!isStringOpen) {
+            if (char === '{') stack.push('}');
+            else if (char === '[') stack.push(']');
+            else if (char === '}' || char === ']') {
+              if (stack.length > 0 && stack[stack.length - 1] === char) {
+                stack.pop();
               }
             }
           }
+        }
 
-          if (isStringOpen) finalAttempt += '"';
-          while (stack.length > 0) {
-            finalAttempt += stack.pop();
-          }
+        if (isStringOpen) finalAttempt += '"';
+        while (stack.length > 0) {
+          finalAttempt += stack.pop();
+        }
 
-          // 6b. Final emergency repair: if we have a trailing colon or incomplete key, remove it
-          finalAttempt = finalAttempt.trim()
-            .replace(/,\s*$/, "")
-            .replace(/:\s*$/, "")
-            .replace(/,\s*"\w*"\s*$/, "")
-            .replace(/\{\s*"\w*"\s*$/, "{");
+        // 6b. Final emergency repair: if we have a trailing colon or incomplete key, remove it
+        finalAttempt = finalAttempt.trim()
+          .replace(/,\s*$/, "")
+          .replace(/:\s*$/, "")
+          .replace(/,\s*"\w*"\s*$/, "")
+          .replace(/\{\s*"\w*"\s*$/, "{");
 
-          try {
-            return JSON.parse(finalAttempt);
-          } catch (finalError) {
-            // Silence noisy warnings during streaming; only log if actually needed for debugging
-            // console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
-            return null;
-          }
+        try {
+          return JSON.parse(finalAttempt);
+        } catch (finalError) {
+          // Silence noisy warnings during streaming; only log if actually needed for debugging
+          // console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
+          return null;
         }
       }
+    }
   } catch (globalError) {
     // console.error("safeJsonParse: Critical failure during parsing logic", globalError);
     return null;

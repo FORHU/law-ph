@@ -10,12 +10,12 @@ export function Footer() {
     <footer className="relative bg-[#0B0B0C] border-t border-white/5 py-24 z-10 overflow-hidden">
       {/* Decorative background element */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
-      
+
       <div className="max-w-[1280px] mx-auto px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 mb-20">
           {/* Brand Column */}
           <div className="md:col-span-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -70,7 +70,6 @@ export function Footer() {
             </div>
           </div>
         </div>
-
 
       </div>
     </footer>

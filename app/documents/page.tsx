@@ -255,8 +255,8 @@ export default function Documents() {
                 onClick={handleLinkToChat}
                 disabled={selectedFiles.length === 0 || isUploading || !selectedCaseId}
                 className={`w-full mt-8 px-6 py-4 rounded-xl font-bold uppercase tracking-[0.15em] text-[11px] flex items-center justify-center gap-3 transition-all shadow-xl ${selectedFiles.length > 0 && !isUploading && selectedCaseId
-                    ? 'bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-[#722f37]/20'
-                    : 'bg-[#722f37]/10 text-gray-600 cursor-not-allowed border border-[#722f37]/10'
+                  ? 'bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-[#722f37]/20'
+                  : 'bg-[#722f37]/10 text-gray-600 cursor-not-allowed border border-[#722f37]/10'
                   }`}
               >
                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Scale size={16} />}

@@ -18,18 +18,18 @@ interface PartyInputListProps {
   inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
 }
 
-export const PartyInputList = React.memo(({ 
-  parties, 
-  onUpdate, 
-  onRemove, 
+export const PartyInputList = React.memo(({
+  parties,
+  onUpdate,
+  onRemove,
   onKeyDown,
-  inputRefs 
+  inputRefs
 }: PartyInputListProps) => {
   return (
     <div className="space-y-2">
       <AnimatePresence>
         {parties.map((party, index) => (
-          <motion.div 
+          <motion.div
             key={party.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}

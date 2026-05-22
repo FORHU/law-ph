@@ -90,35 +90,35 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
         await removeBookmark(bookmarkId);
       } else {
         const fullText = content?.fullText || '';
-        
+
         // Improved extraction with fallbacks
-        const aiSummary = 
-          extractSection(fullText, 'Case Summary') || 
-          extractSection(fullText, 'AI Summary') || 
+        const aiSummary =
+          extractSection(fullText, 'Case Summary') ||
+          extractSection(fullText, 'AI Summary') ||
           extractSection(fullText, 'Full Text').substring(0, 200) ||
           fullText.replace(/[#*]/g, '').substring(0, 200).trim() + '...';
 
-        const doctrine = 
-          extractSection(fullText, 'Doctrine Established') || 
+        const doctrine =
+          extractSection(fullText, 'Doctrine Established') ||
           extractSection(fullText, 'Doctrine') ||
           extractSection(fullText, 'Key Provisions') ||
           extractSection(fullText, 'Elements of the Offense') || '';
 
-        const facts = 
-          extractSection(fullText, 'Facts of the Case') || 
+        const facts =
+          extractSection(fullText, 'Facts of the Case') ||
           extractSection(fullText, 'Facts') ||
           extractSection(fullText, 'Background') || '';
 
         // Better reference extraction if missing
         let derivedReference = content?.reference || source?.reference || caseItem?.caseNumber || '';
-        
+
         if (!derivedReference || derivedReference === 'No Reference') {
           // Try to extract G.R. No. or RA No. from title or content
           const textToSearch = (content?.title || '') + ' ' + (content?.fullText || '');
           const grMatch = textToSearch.match(/G\.R\.\s*No\.\s*[\w-]+/i);
           const raMatch = textToSearch.match(/R\.A\.\s*No\.\s*\d+/i);
           const phMatch = textToSearch.match(/\d+\s+Phil\.\s+\d+/i);
-          
+
           derivedReference = grMatch?.[0] || raMatch?.[0] || phMatch?.[0] || '';
         }
 
@@ -169,7 +169,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-[#722f37]/20 bg-[#111111]">
               <div className="flex items-center gap-5">
-                <div 
+                <div
                   className="p-3 rounded-xl border border-[#722f37]/30"
                   style={{ backgroundColor: `${COLORS.PRIMARY}15`, color: COLORS.SECONDARY }}
                 >
@@ -183,25 +183,25 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     {(() => {
                       const rawTitle = content?.title || caseItem?.title || '';
                       const rawRef = content?.reference || source?.reference || caseItem?.caseNumber || '';
-                      
+
                       const cleanedTitle = cleanLegalTitle(rawTitle);
                       const cleanedRef = cleanLegalTitle(rawRef);
-                      
+
                       // 1. If title is a G.R./RA/AO No., it's the best "reference title"
                       if (cleanedTitle.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)) {
                         return cleanedTitle;
                       }
-                      
+
                       // 2. Short references are perfect for the subtitle
                       if (cleanedRef && cleanedRef.length <= 30 && !isGenericTitle(cleanedRef)) {
                         return cleanedRef;
                       }
-                      
+
                       // 3. Fallback to cleaned title if not generic
                       if (cleanedTitle && !isGenericTitle(cleanedTitle)) {
                         return cleanedTitle;
                       }
-                      
+
                       return cleanedRef || (isLoading ? 'Loading document...' : '');
                     })()}
                   </p>
@@ -220,11 +220,10 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                   >
                     <Bookmark
                       size={20}
-                      className={`transition-all duration-200 ${
-                        bookmarked
+                      className={`transition-all duration-200 ${bookmarked
                           ? 'text-[#722f37] fill-[#722f37] scale-110'
                           : 'text-gray-400 hover:text-[#722f37]'
-                      }`}
+                        }`}
                     />
                   </button>
                 )}
@@ -258,9 +257,9 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
 
                   {/* Relevant Section Highlight */}
                   {content.relevantSection && (
-                    <div 
+                    <div
                       className="p-4 rounded-lg border-l-4"
-                      style={{ 
+                      style={{
                         backgroundColor: `${COLORS.PRIMARY}10`,
                         borderColor: COLORS.PRIMARY
                       }}
@@ -357,25 +356,25 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="w-full flex items-center gap-3">
-                                <audio
-                                  controls
-                                  src={note.s3_key ? `${S3_CONFIG.CDN_URL || ''}${note.s3_key}` : formatS3Url(note.url)}
-                                  controlsList="nodownload"
-                                  className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
-                                  onLoadedMetadata={(e) => {
-                                    // Sometimes WebM blobs need a little nudge to show duration
-                                    const audio = e.currentTarget;
-                                    if (audio.duration === Infinity) {
-                                      audio.currentTime = 1e101;
-                                      audio.ontimeupdate = () => {
-                                        audio.ontimeupdate = null;
-                                        audio.currentTime = 0;
-                                      };
-                                    }
-                                  }}
-                                />
+                              <audio
+                                controls
+                                src={note.s3_key ? `${S3_CONFIG.CDN_URL || ''}${note.s3_key}` : formatS3Url(note.url)}
+                                controlsList="nodownload"
+                                className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
+                                onLoadedMetadata={(e) => {
+                                  // Sometimes WebM blobs need a little nudge to show duration
+                                  const audio = e.currentTarget;
+                                  if (audio.duration === Infinity) {
+                                    audio.currentTime = 1e101;
+                                    audio.ontimeupdate = () => {
+                                      audio.ontimeupdate = null;
+                                      audio.currentTime = 0;
+                                    };
+                                  }
+                                }}
+                              />
                             </div>
                           </div>
                         ))}

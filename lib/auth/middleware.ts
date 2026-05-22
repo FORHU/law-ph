@@ -15,6 +15,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/api/auth/login" ||
     pathname === "/api/auth/signup" ||
     pathname === "/api/auth/forgot-password" ||
+    pathname === "/api/auth/update-password" ||
     pathname === "/api/auth/callback" ||
     pathname.startsWith("/api/auth/google") ||
     pathname.startsWith("/api/webhooks");

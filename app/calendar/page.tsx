@@ -509,7 +509,7 @@ export default function CalendarPage() {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ status: "cancelled" }),
-            }).catch(() => {});
+            }).catch(() => { });
           }
           return {
             ...e,
@@ -611,8 +611,8 @@ export default function CalendarPage() {
               // Never let Google overwrite a locally-cancelled/denied status
               const resolvedStatus =
                 localMatch.status === "cancelled" ||
-                localMatch.status === "canceled" ||
-                localMatch.status === "denied"
+                  localMatch.status === "canceled" ||
+                  localMatch.status === "denied"
                   ? localMatch.status
                   : ge.status;
 
@@ -794,7 +794,7 @@ export default function CalendarPage() {
           setConflictWarning(null);
         }
       } catch (err) {
-        console.error("Conflict check failed:", err);
+        console.warn("Conflict check failed:", err);
       }
     }, 200); // 200ms for instant feel
 
@@ -1274,15 +1274,15 @@ export default function CalendarPage() {
 
       const cancelRes = isGoogleId
         ? await fetch(`/api/events/by-google-id/${actionEventId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updateData),
-          })
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        })
         : await fetch(`/api/events/${actionEventId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updateData),
-          });
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        });
       if (!cancelRes.ok) throw new Error("Failed to cancel event");
 
       // 3. Update local state
@@ -1394,7 +1394,7 @@ export default function CalendarPage() {
       const eventObj = events.find((e) => e.id === eventId);
       if (eventObj) {
         const organizer = (eventObj as any).user;
-        
+
         if (newStatus === "confirmed") {
           // Send confirmation_success email to the client (current user)
           await fetch("/api/send-email", {
@@ -1503,7 +1503,7 @@ export default function CalendarPage() {
         throw new Error("Failed to send reminder");
       }
     } catch (err) {
-      console.error("[Calendar] Remind event failed:", err);
+      console.warn("[Calendar] Remind event failed:", err);
       if (!opts.silent) {
         alert("Failed to send reminder. Please try again.");
       }

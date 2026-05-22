@@ -13,13 +13,13 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
   const router = useRouter();
 
   return (
-    <section 
+    <section
       id="capabilities"
       className="relative py-48 px-12 bg-transparent"
       onMouseEnter={() => setActiveAngle?.(1)}
     >
       <div className="max-w-[1440px] mx-auto">
-        <motion.div 
+        <motion.div
           className="text-center mb-32"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -31,7 +31,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
         </motion.div>
 
         {/* Main Featured Capability */}
-        <motion.div 
+        <motion.div
           className="mb-16 group"
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -40,7 +40,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
         >
           <div className="glass-panel rounded-[3rem] p-24 border border-white/10 flex flex-col lg:flex-row gap-24 items-center shadow-2xl bg-white/[0.01]">
             <div className="flex-1">
-              <motion.div 
+              <motion.div
                 className="w-24 h-24 rounded-3xl bg-[#722f37]/10 flex items-center justify-center mb-12 border border-[#722f37]/20 text-[#e9c176] shadow-xl shadow-[#722f37]/20"
                 initial={{ scale: 0, rotate: -10 }}
                 whileInView={{ scale: 1, rotate: 0 }}
@@ -60,8 +60,8 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                   'Clause-by-clause breakdown',
                   'Automated redlining and suggestions'
                 ].map((item, idx) => (
-                  <motion.li 
-                    key={idx} 
+                  <motion.li
+                    key={idx}
                     className="flex items-center gap-4 text-on-surface/60 text-lg group/item"
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -73,7 +73,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                   </motion.li>
                 ))}
               </ul>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(114, 47, 55, 0.3)" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => router.push('/documents')}
@@ -82,7 +82,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 Try Document Review <ArrowRight size={24} />
               </motion.button>
             </div>
-            
+
             {/* Animated Visual Element */}
             <div className="flex-1 w-full lg:max-w-2xl">
               <div className="bg-black/40 rounded-[2.5rem] border border-white/5 p-16 relative overflow-hidden backdrop-blur-xl shadow-2xl">
@@ -98,8 +98,8 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                     <div className="h-3 w-64 bg-white/10 rounded mt-2.5" />
                   </div>
                 </div>
-                
-                <motion.div 
+
+                <motion.div
                   className="mt-16 p-10 bg-white/5 rounded-[2rem] border border-white/10 shadow-lg"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -119,7 +119,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
         </motion.div>
 
         {/* Secondary Capabilities Grid */}
-        <motion.div 
+        <motion.div
           variants={{
             hidden: { opacity: 0 },
             show: {
@@ -134,7 +134,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           viewport={{ once: true }}
           className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-12"
         >
-          <motion.div 
+          <motion.div
             variants={{
               hidden: { opacity: 0, y: 30 },
               show: { opacity: 1, y: 0, transition: { duration: 0.8 } }
@@ -159,7 +159,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             variants={{
               hidden: { opacity: 0, y: 30 },
               show: { opacity: 1, y: 0, transition: { duration: 0.8 } }

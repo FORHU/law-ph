@@ -295,6 +295,11 @@ export async function sendEmail({
   }
 
   try {
+    if (!googleAccessToken && !process.env.SMTP_USER) {
+      console.warn('[Email Mock] No SMTP credentials provided. Mocking email send to:', cleanRecipients);
+      return { data: { mocked: true }, error: null };
+    }
+
     const info = await transporter.sendMail({
       from,
       to: cleanRecipients,

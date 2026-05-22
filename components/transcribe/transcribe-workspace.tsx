@@ -162,7 +162,7 @@ export default function TranscribeWorkspace({
   const handleDelete = async (id: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (!confirm("Are you sure you want to delete this transcription session?")) return;
-    
+
     try {
       const res = await fetch(`/api/transcriptions/${id}`, {
         method: "DELETE",
@@ -1159,19 +1159,19 @@ export default function TranscribeWorkspace({
                     const isPlayed = !isRecording && timeAtBar <= currentTime;
                     const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
 
-                      return (
-                        <div
-                          key={i}
-                          className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
-                            ? 'bg-[#e9c176] shadow-[0_0_8px_rgba(233,193,118,0.3)]'
-                            : 'bg-white/10'
-                            }`}
-                          style={{
-                            height: `${Math.max(4, peakHeight).toFixed(2)}%`,
-                            opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
-                          }}
-                        />
-                      );
+                    return (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
+                          ? 'bg-[#e9c176] shadow-[0_0_8px_rgba(233,193,118,0.3)]'
+                          : 'bg-white/10'
+                          }`}
+                        style={{
+                          height: `${Math.max(4, peakHeight).toFixed(2)}%`,
+                          opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
+                        }}
+                      />
+                    );
                   });
                 })()}
               </div>
@@ -1266,7 +1266,7 @@ export default function TranscribeWorkspace({
                           ) : (
                             <Upload size={14} className={isActive ? 'text-white flex-shrink-0' : 'text-blue-400 flex-shrink-0'} />
                           )}
-                          
+
                           {editingId === item.id ? (
                             <div className="flex items-center gap-1 flex-1">
                               <input
@@ -1309,7 +1309,7 @@ export default function TranscribeWorkspace({
                             <div className="font-bold text-sm truncate flex-1">{item.title}</div>
                           )}
                         </div>
-                        
+
                         {editingId !== item.id && (
                           <div className="relative flex-shrink-0 w-16 h-6 flex items-center justify-end">
                             {/* Duration Tag (Default state) */}

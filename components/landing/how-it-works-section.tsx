@@ -10,13 +10,13 @@ interface HowItWorksSectionProps {
 
 export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
   return (
-    <section 
-      className="py-48 bg-black/20" 
+    <section
+      className="py-48 bg-black/20"
       id="how-it-works"
       onMouseEnter={() => setActiveAngle?.(3)}
     >
       <div className="max-w-[1440px] mx-auto px-12 text-center">
-        <motion.span 
+        <motion.span
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -24,7 +24,7 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
         >
           Simple Process
         </motion.span>
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -32,7 +32,7 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
         >
           How It Works
         </motion.h2>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -42,7 +42,7 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
           Getting legal guidance has never been easier. Follow these simple steps to start your consultation.
         </motion.p>
 
-        <motion.div 
+        <motion.div
           variants={{
             hidden: { opacity: 0 },
             show: {
@@ -64,24 +64,24 @@ export function HowItWorksSection({ setActiveAngle }: HowItWorksSectionProps) {
             { step: '3', title: 'Receive Guidance', desc: 'Receive cited legal information with references.', icon: <FileText className="w-8 h-8" /> },
             { step: '4', title: 'Take Action', desc: 'Use insights to make informed decisions.', icon: <ArrowRight className="w-8 h-8" /> },
           ].map((item, i) => (
-            <motion.div 
-              key={item.step} 
+            <motion.div
+              key={item.step}
               variants={{
                 hidden: { opacity: 0, y: 30 },
                 show: { opacity: 1, y: 0, transition: { duration: 1, ease: "easeOut" } }
               }}
               className="flex flex-col items-center group relative z-10"
             >
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.05, backgroundColor: '#8b3a44' }}
                 className="w-24 h-24 rounded-full bg-[#722f37] text-white flex items-center justify-center text-2xl font-bold mb-8 shadow-2xl transition-all ring-4 ring-transparent group-hover:ring-[#e9c176]/20"
               >
                 {item.step}
               </motion.div>
-              <motion.div 
+              <motion.div
                 initial={{ backgroundColor: "rgba(11, 11, 12, 0.4)" }}
-                whileHover={{ 
-                  y: -10, 
+                whileHover={{
+                  y: -10,
                   backgroundColor: "rgba(11, 11, 12, 0.6)",
                   boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
                   borderColor: "rgba(233, 193, 118, 0.3)"

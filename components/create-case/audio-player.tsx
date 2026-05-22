@@ -56,7 +56,7 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
         <div className="p-2.5 bg-[#722f37]/20 rounded-xl text-[#e9c176] border border-[#722f37]/30">
           <Volume2 size={16} />
         </div>
-        
+
         <div className="flex-1">
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{STRINGS.recordingLabel}</p>
           <div className="flex items-center gap-2 mt-1">
@@ -71,8 +71,8 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
                 onChange={handleSeek}
                 className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
               />
-              <div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#722f37] to-[#8b3a44] transition-all duration-100 shadow-[0_0_8px_rgba(114,47,55,0.5)]" 
+              <div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#722f37] to-[#8b3a44] transition-all duration-100 shadow-[0_0_8px_rgba(114,47,55,0.5)]"
                 style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
               />
             </div>
@@ -88,7 +88,7 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
           >
             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
           </button>
-          
+
           <button
             type="button"
             onClick={onDiscard}
@@ -100,13 +100,13 @@ export const SimpleAudioPlayer = ({ url, onDiscard }: AudioPlayerProps) => {
         </div>
       </div>
 
-      <audio 
-        ref={audioRef} 
-        src={url} 
+      <audio
+        ref={audioRef}
+        src={url}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
-        onEnded={() => setIsPlaying(false)} 
-        className="hidden" 
+        onEnded={() => setIsPlaying(false)}
+        className="hidden"
       />
     </div>
   );

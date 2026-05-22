@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, CheckCircle } from "lucide-react";
 import { AUTH_ROUTES } from "@/lib/constants";
@@ -13,6 +13,9 @@ import { AuthButton } from "./auth/shared/auth-button";
 
 export function UpdatePasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") ?? undefined;
+
   const [password, setPassword] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +30,7 @@ export function UpdatePasswordForm() {
       const res = await fetch('/api/auth/update-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, token }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -46,7 +49,7 @@ export function UpdatePasswordForm() {
     <AuthLayout 
       backButtonLabel="Return to login" 
       backButtonHref={AUTH_ROUTES.LOGIN}
-      maxWidth="max-w-xl"
+      maxWidth="max-w-2xl"
     >
       <AuthCard>
         {!isSubmitted ? (
@@ -60,7 +63,7 @@ export function UpdatePasswordForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <AuthInput 
                 id="password"
-                label="New Password"
+                label="NEW PASSWORD"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -73,13 +76,13 @@ export function UpdatePasswordForm() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-red-400 text-sm text-center"
+                  className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center bg-red-400/10 py-3 px-4 rounded-xl border border-red-400/20"
                 >
                   {error}
                 </motion.div>
               )}
 
-              <AuthButton isLoading={isLoading} loadingText="Updating...">
+              <AuthButton isLoading={isLoading} loadingText="UPDATING..." className="uppercase tracking-widest font-bold">
                 Update Password
               </AuthButton>
             </form>
@@ -98,8 +101,7 @@ export function UpdatePasswordForm() {
             </motion.div>
 
             <motion.h1
-              className="text-3xl md:text-4xl text-center text-white mb-2"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              className="text-3xl md:text-4xl text-center text-white mb-2 font-serif"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}

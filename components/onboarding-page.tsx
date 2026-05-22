@@ -45,7 +45,7 @@ export function OnboardingPage() {
   return (
     <div className="bg-transparent text-on-background font-body-md overflow-x-hidden min-h-screen relative flex flex-col">
       {/* 3D Model is rendered globally behind this component */}
-      
+
       {/* TopNavBar */}
       <motion.header
         initial={{ backgroundColor: 'rgba(11, 11, 12, 0)', backdropFilter: 'blur(0px)', borderBottomColor: 'rgba(255, 255, 255, 0.01)' }}
@@ -115,8 +115,6 @@ export function OnboardingPage() {
 
           <FAQSection setActiveAngle={setActiveAngle} />
         </div>
-
-
 
         <Footer />
       </main>

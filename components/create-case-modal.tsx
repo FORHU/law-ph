@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,17 +29,17 @@ import { RecordingControls } from './create-case/recording-controls';
 export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
   const router = useRouter();
   const { handleCreateCase } = useConversations();
-  
+
   // Form State
   const [caseName, setCaseName] = useState('');
   const [parties, setParties] = useState<{ id: string, value: string }[]>([{ id: crypto.randomUUID(), value: '' }]);
   const [notes, setNotes] = useState('');
-  
+
 
   // Logic State
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  
+
   // Recording Hook
   const {
     isRecording,
@@ -100,18 +100,18 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseName.trim() || isRecording || isAudioRecording) return;
-    
+
     // Snapshot recordings NOW before any async work clears them
     const recordingsSnapshot = [...recordings];
-    
+
     setIsSubmitting(true);
     try {
       const partyString = parties.map(p => p.value.trim()).filter(Boolean).join('\n');
-      
-      const newCase = await handleCreateCase({ 
-        name: caseName, 
-        party: partyString, 
-        notes 
+
+      const newCase = await handleCreateCase({
+        name: caseName,
+        party: partyString,
+        notes
       });
 
       if (newCase) {
@@ -123,29 +123,29 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
             try {
               const { file_url, s3_key } = await uploadVoiceNote(r.blob, `case_${newCase.id}_rec_${i + 1}.webm`);
               if (!file_url) throw new Error('No URL returned from uploadVoiceNote');
-              
-              return { 
-                id: r.id, 
-                url: file_url, 
+
+              return {
+                id: r.id,
+                url: file_url,
                 s3_key: s3_key,
                 label: `Recording ${i + 1}`,
-                duration: r.duration 
+                duration: r.duration
               };
             } catch (err: any) {
               console.error(`[CreateCase] Failed to upload recording ${i + 1}:`, err);
               // Fall back to temporary blob URL if upload fails - but warn user
-              return { 
-                id: r.id, 
-                url: r.url, 
+              return {
+                id: r.id,
+                url: r.url,
                 label: `Recording ${i + 1} (Upload Failed)`,
-                duration: r.duration 
+                duration: r.duration
               };
             }
           }));
 
           const meta = { voiceNotes, recordingUrl: voiceNotes[0]?.url, hidden: true };
           const content = `\uD83C\uDF99\uFE0F ${voiceNotes.length} voice recording${voiceNotes.length > 1 ? 's' : ''} attached to this case.\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
-          
+
           const msgRes = await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -186,7 +186,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
               onClick={onClose}
               className={MODAL_STYLES.backdrop}
             />
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -202,11 +202,11 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                     <CaseNameInput value={caseName} onChange={handleCaseNameChange} />
                   </FormField>
 
-                  <FormField 
+                  <FormField
                     label={STRINGS.partyLabel}
                     rightElement={
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={addParty}
                         className="p-1.5 hover:bg-[#722f37]/20 rounded-lg text-[#e9c176] transition-colors"
                       >
@@ -214,7 +214,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                       </button>
                     }
                   >
-                    <PartyInputList 
+                    <PartyInputList
                       parties={parties}
                       onUpdate={handleUpdateParty}
                       onRemove={handleRemoveParty}
@@ -225,12 +225,12 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
 
                   <FormField label={STRINGS.notesLabel}>
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <RecordingControls 
-                        isRecording={isRecording} 
-                        isAudioRecording={isAudioRecording} 
-                        duration={duration} 
-                        onToggleTranscription={toggleTranscription} 
-                        onToggleAudio={toggleAudioRecording} 
+                      <RecordingControls
+                        isRecording={isRecording}
+                        isAudioRecording={isAudioRecording}
+                        duration={duration}
+                        onToggleTranscription={toggleTranscription}
+                        onToggleAudio={toggleAudioRecording}
                       />
                     </div>
                     <NotesTextarea value={notes} onChange={handleNotesChange} />
@@ -247,9 +247,9 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                           >
-                            <SimpleAudioPlayer 
-                              url={rec.url} 
-                              onDiscard={() => removeRecording(rec.id)} 
+                            <SimpleAudioPlayer
+                              url={rec.url}
+                              onDiscard={() => removeRecording(rec.id)}
                             />
                           </motion.div>
                         ))}
@@ -269,8 +269,8 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
                         <Loader2 size={18} className="animate-spin" />
                       ) : (isRecording || isAudioRecording) ? (
                         <div className="flex items-center gap-2">
-                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                           Recording...
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          Recording...
                         </div>
                       ) : (
                         STRINGS.createBtn

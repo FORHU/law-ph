@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
-import { extractLegalSources, extractRelatedCases, extractTimeline, extractMindMap, cleanAiText, cleanMessageText } from '@/lib/citation-parser';
+import { extractTimeline, extractMindMap, cleanMessageText } from '@/lib/citation-parser';
+import { processChunk, cleanAccumulatedText, CHAT_WONDER_RULES } from '@/lib/stream-response-processor';
 import { Message } from './conversation-context';
 import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
 
@@ -201,7 +202,8 @@ export function useSendMessage({
           };
 
           const doFetch = async (sId: string): Promise<Response> => {
-            const payloadUserInput = `[Legal AI] ${finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "")}`;
+            const baseInput = finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "");
+            const payloadUserInput = `[Legal AI] ${CHAT_WONDER_RULES}\n\n${baseInput}`;
 
             return fetch('/api/chat/stream', {
               method: 'POST',
@@ -216,10 +218,10 @@ export function useSendMessage({
           };
 
           let accumulatedText = "";
-          let sources: any[] | undefined;
           let relatedCases: any[] | undefined;
           let timeline: any[] | undefined;
           let mindMap: any | undefined;
+          let streamSources: any[] | undefined;
           let aiResponseSuccessful = false;
           let retryCount = 0;
           const MAX_RETRIES = 3;
@@ -247,43 +249,33 @@ export function useSendMessage({
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                let chunk = decoder.decode(value, { stream: true });
-                chunk = chunk.replace(/^(?:\[Tool\][^\n]*\n?)+/, "");
+                const raw = decoder.decode(value, { stream: true });
 
-                if (chunk.includes("Unknown session")) throw new Error("UNKNOWN_SESSION");
-                if (chunk.startsWith("[Error]")) {
-                  accumulatedText = "Error: " + chunk.replace("[Error]", "");
+                if (raw.includes("Unknown session")) throw new Error("UNKNOWN_SESSION");
+                if (raw.startsWith("[Error]") || raw.startsWith("Error:")) {
+                  accumulatedText = raw.startsWith("[Error]")
+                    ? "Error: " + raw.replace("[Error]", "")
+                    : raw;
                   aiResponseSuccessful = true;
                   break;
                 }
-                if (chunk.startsWith("[Sources]")) {
-                  const rest = chunk.slice("[Sources] ".length);
-                  const firstBrace = rest.indexOf("{");
-                  if (firstBrace === 0) {
-                    let depth = 0, end = -1;
-                    for (let i = 0; i < rest.length; i++) {
-                      if (rest[i] === "{") depth++;
-                      else if (rest[i] === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
-                    }
-                    if (end !== -1) chunk = rest.slice(end).replace(/^\s*\n?/, "").trimStart();
-                  }
-                }
 
-                accumulatedText += chunk;
-                sources = extractLegalSources(accumulatedText);
-                relatedCases = extractRelatedCases(accumulatedText);
+                // Run every chunk through the rules defined in stream-response-processor
+                const processed = processChunk(raw);
+                if (processed.extractedSources) streamSources = processed.extractedSources;
+
+                accumulatedText += processed.text;
+                relatedCases = streamSources;
                 timeline = extractTimeline(accumulatedText);
                 mindMap = extractMindMap(accumulatedText);
 
-                let cleanText = accumulatedText.trim()
-                  .replace(/\[TIMELINE\][\s\S]*?(?:\[\/TIMELINE\]|$)/i, '').trim()
-                  .replace(/\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i, '').trim();
+                const cleanText = cleanAccumulatedText(accumulatedText);
 
                 setMessages(prev => {
                   const updated = [...prev];
                   const lastIdx = updated.length - 1;
                   if (updated[lastIdx]?.id === aiMessageId) {
-                    updated[lastIdx] = { ...updated[lastIdx], text: cleanText, rawContent: accumulatedText, sources, relatedCases, timeline, mindMap };
+                    updated[lastIdx] = { ...updated[lastIdx], text: cleanText, rawContent: accumulatedText, relatedCases, timeline, mindMap };
                   }
                   return updated;
                 });

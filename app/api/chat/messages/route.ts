@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Self-healing: If the conversation doesn't exist, but it's a Case, create the Conversation first!
+    // Self-healing: ensure the Conversation row exists before inserting the message.
     const conversationExists = await prisma.conversation.findUnique({
       where: { id: conversation_id },
     });
@@ -32,6 +32,15 @@ export async function POST(req: Request) {
             id: caseRecord.id,
             userId: user.id,
             title: `[CASE] ${caseRecord.caseName}`,
+          },
+        });
+      } else {
+        // No matching case either — create a blank conversation so the FK constraint is satisfied.
+        await prisma.conversation.create({
+          data: {
+            id: conversation_id,
+            userId: user.id,
+            title: 'Consultation',
           },
         });
       }

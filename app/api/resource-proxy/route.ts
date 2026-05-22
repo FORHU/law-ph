@@ -61,13 +61,13 @@ async function handleProxy(req: NextRequest, method: 'GET' | 'HEAD') {
         // Fallback Logic: If CloudFront fails (403/404), try direct S3
         if (!response.ok && (response.status === 403 || response.status === 404) && url.includes('cloudfront.net')) {
             console.warn(`[Resource Proxy] CloudFront failed (${response.status}). Attempting S3 fallback for: ${url}`);
-            
+
             const filename = targetUrl.pathname.split('/').pop();
             if (filename) {
                 const bucket = process.env.AWS_S3_BUCKET || "ilovelawyer-dev";
                 const region = process.env.NEXT_PUBLIC_AWS_REGION || "ap-southeast-1";
                 const s3FallbackUrl = `https://${bucket}.s3.${region}.amazonaws.com/${filename}`;
-                
+
                 console.log(`[Resource Proxy] S3 Fallback URL: ${s3FallbackUrl}`);
                 const fallbackResponse = await fetch(s3FallbackUrl, {
                     method: method,

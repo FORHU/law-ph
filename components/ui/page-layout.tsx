@@ -66,7 +66,7 @@ export function PageLayout({
         />
 
         <div className="flex-1 relative z-10 flex flex-col overflow-hidden">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}

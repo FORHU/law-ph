@@ -13,11 +13,11 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
   const router = useRouter();
 
   return (
-    <section 
+    <section
       className="py-48 bg-background"
       onMouseEnter={() => setActiveAngle?.(3)}
     >
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -26,10 +26,10 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
         <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-8 block">Live Preview</span>
         <h2 className="text-5xl font-serif text-white mb-8 leading-[1.1]">AI Legal Consultation in Action</h2>
         <p className="text-on-surface/50 text-lg mb-16 max-w-3xl mx-auto font-light">See how our AI provides instant, accurate legal guidance based on Philippine law.</p>
-        
+
         <div className="glass-panel rounded-[3rem] p-16 md:p-24 border border-white/10 text-left relative overflow-hidden shadow-2xl bg-white/[0.01]">
           <div className="space-y-12 max-w-4xl mx-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -40,8 +40,8 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
                 What are the legal requirements for terminating a lease early under the Civil Code?
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -58,14 +58,14 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
             </motion.div>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 1.2 }}
             className="mt-20 flex justify-center"
           >
-            <button 
+            <button
               onClick={() => router.push('/consultation')}
               className="bg-[#722f37] text-white px-8 py-4 rounded-xl flex items-center gap-4 text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#722f37]/20"
             >

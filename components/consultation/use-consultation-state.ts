@@ -342,10 +342,10 @@ export function useConsultationState({
     if (!timeline || timeline.length === 0) return false;
     // A timeline is relevant if it has more than 2 steps OR its steps aren't just generic placeholders
     if (timeline.length > 3) return true;
-    
+
     const genericTitles = ["Case Created", "Initial Analysis", "Strategic Planning", "Assessment", "Consultation", "Case Assessment"];
-    const meaningfulSteps = timeline.filter(item => 
-      !genericTitles.some(gt => item.title.includes(gt)) && 
+    const meaningfulSteps = timeline.filter(item =>
+      !genericTitles.some(gt => item.title.includes(gt)) &&
       item.description && item.description.length > 15
     );
     return meaningfulSteps.length > 0;
@@ -353,7 +353,7 @@ export function useConsultationState({
 
   const isRelevantMindMap = (mindMap: any) => {
     if (!mindMap || !mindMap.children || mindMap.children.length === 0) return false;
-    
+
     // Check if any of the main categories have actual data (not just "Extracting..." placeholders)
     const hasMeaningfulContent = mindMap.children.some((child: any) => {
       if (!child.children || child.children.length === 0) return false;
@@ -362,7 +362,7 @@ export function useConsultationState({
         return !label.includes("extracting") && !label.includes("identifying") && !label.includes("awaiting");
       });
     });
-    
+
     return hasMeaningfulContent;
   };
 
@@ -370,7 +370,7 @@ export function useConsultationState({
   const latestTimelineMessage = [...messages]
     .reverse()
     .find((m) => m.timeline && m.timeline.length > 0 && isRelevantTimeline(m.timeline));
-  
+
   // Fallback to latest available if no "relevant" one found yet, to at least show something
   const fallbackTimelineMessage = latestTimelineMessage || [...messages]
     .reverse()
@@ -488,35 +488,35 @@ export function useConsultationState({
 
     const fallbackSteps = isCriminal
       ? [
-          { title: "Gather Evidence & Documents", description: "Collect MOA, receipts, bank records, text messages, and emails related to the case.", date: "", status: "pending", requires_previous: false },
-          { title: "Prepare Counter-Affidavit", description: "Draft and file a counter-affidavit addressing the charges before the deadline.", date: datesInNotes.find(d => /counter.?affidavit|april 30/i.test(d.context))?.iso || "", status: "pending", requires_previous: true },
-          { title: "Attend Preliminary Investigation", description: "Appear before the prosecutor for preliminary investigation proceedings.", date: "", status: "pending", requires_previous: true },
-          { title: "Settlement Discussions", description: "Explore settlement options with the prosecutor's office.", date: "", status: "pending", requires_previous: false },
-          { title: "Trial Preparation", description: "Prepare witnesses, exhibits, and legal arguments for trial.", date: "", status: "pending", requires_previous: true },
-        ]
+        { title: "Gather Evidence & Documents", description: "Collect MOA, receipts, bank records, text messages, and emails related to the case.", date: "", status: "pending", requires_previous: false },
+        { title: "Prepare Counter-Affidavit", description: "Draft and file a counter-affidavit addressing the charges before the deadline.", date: datesInNotes.find(d => /counter.?affidavit|april 30/i.test(d.context))?.iso || "", status: "pending", requires_previous: true },
+        { title: "Attend Preliminary Investigation", description: "Appear before the prosecutor for preliminary investigation proceedings.", date: "", status: "pending", requires_previous: true },
+        { title: "Settlement Discussions", description: "Explore settlement options with the prosecutor's office.", date: "", status: "pending", requires_previous: false },
+        { title: "Trial Preparation", description: "Prepare witnesses, exhibits, and legal arguments for trial.", date: "", status: "pending", requires_previous: true },
+      ]
       : isFamily
-      ? [
+        ? [
           { title: "Gather Documents", description: "Collect marriage certificate, birth certificates, and financial records.", date: "", status: "pending", requires_previous: false },
           { title: "File Petition", description: "File the appropriate petition with the Regional Trial Court (Family Court).", date: "", status: "pending", requires_previous: true },
           { title: "Attend Mediation", description: "Participate in court-ordered mediation or judicial dispute resolution.", date: "", status: "pending", requires_previous: true },
           { title: "Trial Proper", description: "Present evidence and arguments before the court.", date: "", status: "pending", requires_previous: true },
           { title: "Await Decision", description: "Await the court's decision and prepare for any appeal.", date: "", status: "pending", requires_previous: true },
         ]
-      : isCivil
-      ? [
-          { title: "Send Demand Letter", description: "Send a formal demand letter to the opposing party.", date: "", status: "pending", requires_previous: false },
-          { title: "File Complaint", description: "Prepare and file the complaint with the appropriate court.", date: "", status: "pending", requires_previous: true },
-          { title: "Attend Pre-Trial Conference", description: "Participate in pre-trial conference and submit pre-trial brief.", date: "", status: "pending", requires_previous: true },
-          { title: "Present Evidence", description: "Present documentary evidence and witness testimonies.", date: "", status: "pending", requires_previous: true },
-          { title: "Await Judgment", description: "Await court judgment and prepare for execution or appeal.", date: "", status: "pending", requires_previous: true },
-        ]
-      : [
-          { title: "Gather Evidence & Documents", description: "Collect all relevant evidence, documents, and witness information.", date: "", status: "pending", requires_previous: false },
-          { title: "Legal Research", description: "Research applicable laws, regulations, and jurisprudence.", date: "", status: "pending", requires_previous: true },
-          { title: "Prepare Legal Strategy", description: "Develop a comprehensive legal strategy based on case facts.", date: "", status: "pending", requires_previous: true },
-          { title: "File Appropriate Pleadings", description: "Draft and file the necessary pleadings or motions.", date: "", status: "pending", requires_previous: true },
-          { title: "Attend Hearings", description: "Appear in court and present arguments and evidence.", date: "", status: "pending", requires_previous: true },
-        ];
+        : isCivil
+          ? [
+            { title: "Send Demand Letter", description: "Send a formal demand letter to the opposing party.", date: "", status: "pending", requires_previous: false },
+            { title: "File Complaint", description: "Prepare and file the complaint with the appropriate court.", date: "", status: "pending", requires_previous: true },
+            { title: "Attend Pre-Trial Conference", description: "Participate in pre-trial conference and submit pre-trial brief.", date: "", status: "pending", requires_previous: true },
+            { title: "Present Evidence", description: "Present documentary evidence and witness testimonies.", date: "", status: "pending", requires_previous: true },
+            { title: "Await Judgment", description: "Await court judgment and prepare for execution or appeal.", date: "", status: "pending", requires_previous: true },
+          ]
+          : [
+            { title: "Gather Evidence & Documents", description: "Collect all relevant evidence, documents, and witness information.", date: "", status: "pending", requires_previous: false },
+            { title: "Legal Research", description: "Research applicable laws, regulations, and jurisprudence.", date: "", status: "pending", requires_previous: true },
+            { title: "Prepare Legal Strategy", description: "Develop a comprehensive legal strategy based on case facts.", date: "", status: "pending", requires_previous: true },
+            { title: "File Appropriate Pleadings", description: "Draft and file the necessary pleadings or motions.", date: "", status: "pending", requires_previous: true },
+            { title: "Attend Hearings", description: "Appear in court and present arguments and evidence.", date: "", status: "pending", requires_previous: true },
+          ];
 
     const steps = stepsFromNotes.length >= 2 ? stepsFromNotes : fallbackSteps;
 
@@ -544,7 +544,7 @@ export function useConsultationState({
   const latestMindMapMessage = [...messages]
     .reverse()
     .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0 && isRelevantMindMap(m.mindMap));
-  
+
   const fallbackMindMapMessage = latestMindMapMessage || [...messages]
     .reverse()
     .find((m) => m.mindMap && Object.keys(m.mindMap).length > 0);
@@ -704,8 +704,8 @@ export function useConsultationState({
           const role = roleMatch
             ? normalizeRole(roleMatch[1])
             : inlineRole && ROLE_KEYWORDS.some((k) => k.toLowerCase() === inlineRole.toLowerCase())
-            ? normalizeRole(inlineRole)
-            : "Party";
+              ? normalizeRole(inlineRole)
+              : "Party";
           const name = extractNameFromLine(part);
           if (!name || name.length < 2) return;
           if (results.some((r) => r.name.toLowerCase() === name.toLowerCase())) return;
@@ -829,19 +829,19 @@ export function useConsultationState({
     // use them to supplement laws not already inferred from the case text.
     const lawNodes = inferredLaws.length > 0
       ? inferredLaws.map((l, i) => ({
-          id: `law-${i}`,
-          label: l.label,
-          description: l.description,
-          children: buildLawChildren(l.label),
-        }))
+        id: `law-${i}`,
+        label: l.label,
+        description: l.description,
+        children: buildLawChildren(l.label),
+      }))
       : latestAiMessage?.sources && latestAiMessage.sources.length > 0
-      ? latestAiMessage.sources.slice(0, 4).map((s: any, i: number) => ({
+        ? latestAiMessage.sources.slice(0, 4).map((s: any, i: number) => ({
           id: `law-${i}`,
           label: (s.reference || s.title || "Statute").slice(0, 50),
           description: s.description || "",
           children: buildLawChildren(s.reference || s.title || ""),
         }))
-      : [{ id: "law-empty", label: "Ask AI for legal basis", description: "Send a message to get applicable laws.", children: [] }];
+        : [{ id: "law-empty", label: "Ask AI for legal basis", description: "Send a message to get applicable laws.", children: [] }];
 
     // Strategic Steps — only show date as child if present; description shown on click
     const strategyNodes = activeTimeline
@@ -907,8 +907,8 @@ export function useConsultationState({
       return groups.length > 0
         ? groups
         : allSentences.slice(0, 4).map((s, i) => ({
-            id: `fact-${i}`, label: s.length > 55 ? s.substring(0, 52) + "..." : s, description: s, children: [],
-          }));
+          id: `fact-${i}`, label: s.length > 55 ? s.substring(0, 52) + "..." : s, description: s, children: [],
+        }));
     })();
 
     activeMindMap = {
