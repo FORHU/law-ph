@@ -6,10 +6,10 @@ import { useConversations } from '@/components/conversation-provider/conversatio
 import { usePathname, useRouter } from 'next/navigation';
 
 export function PersistentSidebar() {
-  const { 
-    isSidebarOpen, 
-    setIsSidebarOpen, 
-    recentConsultations, 
+  const {
+    isSidebarOpen,
+    setIsSidebarOpen,
+    recentConsultations,
     handleNewConsultation,
     handleRemoveConsultation,
     handleRenameConsultation
