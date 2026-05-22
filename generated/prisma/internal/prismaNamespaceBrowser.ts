@@ -255,6 +255,8 @@ export const EventScalarFieldEnum = {
   googleLink: 'googleLink',
   googleEventId: 'googleEventId',
   lastReminderSentAt: 'lastReminderSentAt',
+  reminderDayBeforeSentAt: 'reminderDayBeforeSentAt',
+  reminderDayOfSentAt: 'reminderDayOfSentAt',
   lawyerAcknowledgedAt: 'lawyerAcknowledgedAt',
   clientFeedback: 'clientFeedback',
   createdAt: 'createdAt',
