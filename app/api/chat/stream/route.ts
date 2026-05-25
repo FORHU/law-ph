@@ -60,13 +60,46 @@ export async function POST(request: NextRequest) {
         ws = new WebSocket(wsEndpoint);
 
         const closeStream = () => {
-          if (streamClosed) return;
-          streamClosed = true;
-          closeWebSocket();
+          if (!isClosed) {
+            isClosed = true;
+            try {
+              controller.close();
+            } catch (err) {
+              // Controller already closed, ignore
+            }
+          }
+        };
+
+        // Handle WebSocket connection open
+        ws.onopen = () => {
+          console.log('WebSocket connected to chat-wonder-api');
+
+          // Send the chat message
+          const payload = {
+            user_input,
+            session_id: effectiveSessionId,
+            document_context,
+            google_access_token,
+          };
+          ws.send(JSON.stringify(payload));
+        };
+
+        // Handle incoming WebSocket messages
+        ws.onmessage = (event) => {
+          if (isClosed) return;
+
+          const message = event.data;
+
           try {
-            controller.close();
-          } catch {
-            // Consumer may have already closed/cancelled the stream
+            if (message === '__END__') {
+              ws.close();
+              closeStream();
+            } else {
+              controller.enqueue(new TextEncoder().encode(message));
+            }
+          } catch (err) {
+            console.error('Streaming enqueue error:', err);
+            isClosed = true;
           }
         };
 

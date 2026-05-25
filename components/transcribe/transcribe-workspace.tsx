@@ -672,7 +672,7 @@ export default function TranscribeWorkspace({
         analyzer.smoothingTimeConstant = 0.4;
         source.connect(analyzer);
         analyzerNodeRef.current = analyzer;
-        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount as number) as Uint8Array<ArrayBuffer>;
         analyzerDataRef.current = dataArray;
         analyzerLastFrameRef.current = 0;
 
@@ -680,7 +680,7 @@ export default function TranscribeWorkspace({
           if (!analyzerNodeRef.current || !analyzerDataRef.current) return;
           // ~12fps: one sample per bar for iOS-style scrolling waveform
           if (timestamp - analyzerLastFrameRef.current >= 80) {
-            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current);
+            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current as Uint8Array<ArrayBuffer>);
             const speechBins = analyzerDataRef.current.slice(2, 93);
             const rms = Math.sqrt(
               speechBins.reduce((acc, v) => acc + v * v, 0) / speechBins.length

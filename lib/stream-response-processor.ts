@@ -40,46 +40,46 @@ export interface ProcessedChunk {
 // requests made through the streaming hook.
 // ---------------------------------------------------------------------------
 
-export const CHAT_WONDER_RULES = `
-[LEGAL_RULES]
+// export const CHAT_WONDER_RULES = `
+// [LEGAL_RULES]
 
-Markdown only.
+// Markdown only.
 
-Response order:
-## Legal Assessment
-## Applicable Law
-## Analysis
-## Relevant Jurisprudence
-## Recommended Steps
+// Response order:
+// ## Legal Assessment
+// ## Applicable Law
+// ## Analysis
+// ## Relevant Jurisprudence
+// ## Recommended Steps
 
-Rules:
-- Bold laws, cases, deadlines.
-- Use > for warnings, risks, deadlines, or quoted law.
-- Numbered lists for steps.
-- Cite:
-  - "Republic Act No. XXXX"
-  - "Article XX of the [Code]"
-  - "**Case Name** (G.R. No. XXXXXX, Month DD, YYYY)"
-- Apply law to facts directly.
-- Use qualified terms: "may", "likely", "court may find".
-- Never guarantee outcomes or invent citations/laws.
-- Mention risks or consequences of inaction.
-- State proper agency/lawyer if needed.
+// Rules:
+// - Bold laws, cases, deadlines.
+// - Use > for warnings, risks, deadlines, or quoted law.
+// - Numbered lists for steps.
+// - Cite:
+//   - "Republic Act No. XXXX"
+//   - "Article XX of the [Code]"
+//   - "**Case Name** (G.R. No. XXXXXX, Month DD, YYYY)"
+// - Apply law to facts directly.
+// - Use qualified terms: "may", "likely", "court may find".
+// - Never guarantee outcomes or invent citations/laws.
+// - Mention risks or consequences of inaction.
+// - State proper agency/lawyer if needed.
 
-End with:
-[TIMELINE]
-[
-{
-"title":"",
-"description":"",
-"status":"pending",
-"requires_previous":false
-}
-]
-[/TIMELINE]
+// End with:
+// [TIMELINE]
+// [
+// {
+// "title":"",
+// "description":"",
+// "status":"pending",
+// "requires_previous":false
+// }
+// ]
+// [/TIMELINE]
 
-[/LEGAL_RULES]
-`.trim();
+// [/LEGAL_RULES]
+// `.trim();
 
 //export const CHAT_WONDER_RULES = "";
 
@@ -181,37 +181,33 @@ function mapToStreamSource(item: any): StreamSource {
  */
 export function processChunk(rawChunk: string): ProcessedChunk {
   // RULE: strip internal [Tool] trace lines
-  // let text = rawChunk.replace(STREAM_RULES.STRIP_TOOL_LINES, '');
-  // console.log(rawChunk);
-  // debugger;
-  let text = rawChunk;
+  let text = rawChunk.replace(STREAM_RULES.STRIP_TOOL_LINES, '');
 
-  // RULE: extract [Sources] block — never display in chat (proxy usually strips first)
+  // RULE: extract [Sources] block — never display in chat
   if (text.startsWith(STREAM_RULES.SOURCES_PREFIX)) {
     const rest = text.slice(STREAM_RULES.SOURCES_PREFIX.length).trimStart();
     const block = extractJsonBlock(rest);
 
-  //   if (block) {
-  //     try {
-  //       const parsed = JSON.parse(block.json);
-  //       const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
-  //       return {
-  //         text:             block.remainder,
-  //         extractedSources: items.map(mapToStreamSource),
-  //       };
-  //     } catch (_) {
-  //       // Malformed JSON — discard the whole [Sources] chunk silently
-  //     }
-  //   }
+    if (block) {
+      try {
+        const parsed = JSON.parse(block.json);
+        const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
+        return {
+          text:             block.remainder,
+          extractedSources: items.map(mapToStreamSource),
+        };
+      } catch (_) {
+        // Malformed JSON — discard the whole [Sources] chunk silently
+      }
+    }
 
   //   // Could not parse (malformed or still streaming) — discard entirely
   //   return { text: '' };
   // }
-  }
 
   return { text };
 }
-
+}
 
 /**
  * Applies display-only rules to the fully accumulated response text
