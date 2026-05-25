@@ -27,6 +27,8 @@ interface SendEmailParams {
   googleRefreshToken?: string;
 }
 
+type EventTypeName = 'meeting' | 'appointment' | 'hearing' | 'deposition';
+
 export async function sendEmail({
   to,
   subject,
@@ -98,11 +100,49 @@ export async function sendEmail({
     </table>
   `;
 
+  const normalizeEventType = (rawType: string) => {
+    const normalized = rawType.toLowerCase();
+    if (normalized === 'meeting' || normalized === 'appointment' || normalized === 'hearing' || normalized === 'deposition') {
+      return normalized as EventTypeName;
+    }
+    return 'meeting';
+  };
+
+  const eventTheme = (rawType: string) => {
+    const normalized = normalizeEventType(rawType);
+    const themes = {
+      meeting: { accent: '#3b82f6', badgeBg: '#eff6ff' },
+      appointment: { accent: '#d97706', badgeBg: '#fffbeb' },
+      hearing: { accent: '#722f37', badgeBg: '#fdf2f3' },
+      deposition: { accent: '#7c3aed', badgeBg: '#f5f3ff' },
+    };
+    return themes[normalized];
+  };
+
+  const eventCopy = (rawType: string) => {
+    const normalized = normalizeEventType(rawType);
+    const label = capitalize(normalized);
+    return {
+      label,
+      noun: normalized,
+      detailLabel: label,
+      inviteBadge: `New ${label}`,
+      reminderBadge: `${label} Reminder`,
+      rescheduledBadge: `${label} Rescheduled`,
+      cancelledBadge: `${label} Cancelled`,
+      confirmedBadge: `${label} Confirmed`,
+      alarmReminder: `Reminder: ${label} tomorrow`,
+      alarmRescheduled: `Rescheduled ${normalized} reminder`,
+    };
+  };
+
   // ─── SCHEDULE (New Appointment Invitation) ─────────────────────────────────
   if (type === 'schedule' && eventDetails) {
     const { eventId, eventType, title, dateTime, notes, iCalUID } = eventDetails;
-    const displayTitle = title || capitalize(eventType);
-    emailSubject = `Appointment Invitation: ${displayTitle}`;
+    const copy = eventCopy(eventType);
+    const theme = eventTheme(eventType);
+    const displayTitle = title || copy.label;
+    emailSubject = `${copy.label} Invitation: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
@@ -115,15 +155,15 @@ export async function sendEmail({
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:0', 'TRANSP:OPAQUE',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Reminder: Appointment tomorrow', 'TRIGGER:-P1D', 'END:VALARM',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${copy.alarmReminder}`, 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
     attachments = [{ filename: 'invite.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    emailContent = emailWrapper('#722f37', 'New Appointment', '#fdf2f3',
+    emailContent = emailWrapper(theme.accent, copy.inviteBadge, theme.badgeBg,
       `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">${displayTitle}</h2>
-       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">You have a new appointment invitation from <strong>${organizer?.name || organizer?.email}</strong>. Please review the details below.</p>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">You have a new ${copy.noun} invitation from <strong>${organizer?.name || organizer?.email}</strong>. Please review the details below.</p>
        ${detailsCard([
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'Type', value: capitalize(eventType) },
@@ -131,19 +171,22 @@ export async function sendEmail({
          { label: 'Duration', value: '1 hour' },
          ...(notes ? [{ label: 'Notes', value: notes }] : []),
        ])}
-       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar invitation (.ics) is attached. Open it to add this appointment to your calendar.</p>
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar invitation (.ics) is attached. Open it to add this ${copy.noun} to your calendar.</p>
        <p style="font-size: 13px; color: #71717a;">If you have any questions, please reply directly to this email.</p>`
     );
 
   // ─── REMINDER ─────────────────────────────────────────────────────────────
   } else if (type === 'reminder' && eventDetails) {
     const { eventId, eventType, title, dateTime, notes, iCalUID } = eventDetails;
-    const displayTitle = title || capitalize(eventType);
-    emailSubject = `Reminder: ${displayTitle} — Coming Up Soon`;
+    const copy = eventCopy(eventType);
+    const theme = eventTheme(eventType);
+    const displayTitle = title || copy.label;
+    emailSubject = `Reminder: ${displayTitle} - Coming Up Soon`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const uid = iCalUID || `${eventId}@ilovelawyer.app`;
+    const cleanNotes = (notes || '').replace(/\[type:[^\]]+\]\n?/, '').trim();
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
@@ -151,31 +194,34 @@ export async function sendEmail({
       `ATTENDEE;CN="Guest";RSVP=TRUE:mailto:${cleanRecipients[0]}`,
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
-      'SEQUENCE:1', 'TRANSP:OPAQUE',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Appointment coming up', 'TRIGGER:-PT1H', 'END:VALARM',
+      'SEQUENCE:0', 'TRANSP:OPAQUE',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${copy.alarmReminder}`, 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
-    attachments = [{ filename: 'reminder.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
+    attachments = [{ filename: 'invite.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    emailContent = emailWrapper('#d97706', 'Appointment Reminder', '#fffbeb',
-      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have an upcoming appointment</h2>
-       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">This is a reminder from <strong>${organizer?.name || organizer?.email}</strong> about your scheduled appointment.</p>
+    emailContent = emailWrapper(theme.accent, copy.reminderBadge, theme.badgeBg,
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have an upcoming ${copy.noun}</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">This is a reminder from <strong>${organizer?.name || organizer?.email}</strong> about your scheduled ${copy.noun}.</p>
        ${detailsCard([
-         { label: 'Appointment', value: displayTitle },
+         { label: copy.detailLabel, value: displayTitle },
          { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'Date & Time', value: formatDate(startDate) },
          { label: 'Duration', value: '1 hour' },
-         ...(notes ? [{ label: 'Notes', value: notes }] : []),
+         ...(cleanNotes ? [{ label: 'Notes', value: cleanNotes }] : []),
        ])}
-       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">Please ensure your availability. If you need to reschedule, contact your attorney as soon as possible.</p>`
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">A calendar invitation (.ics) is attached. Open it to add this ${copy.noun} to your calendar or update your RSVP status.</p>
+       <p style="font-size: 12px; color: #9ca3af; margin-top: 16px;">If you need to reschedule, contact your attorney directly.</p>`
     );
 
   // ─── RESCHEDULE ───────────────────────────────────────────────────────────
   } else if (type === 'reschedule' && eventDetails) {
     const { eventId, eventType, title, dateTime, notes, iCalUID, reason } = eventDetails;
-    const displayTitle = title || capitalize(eventType);
+    const copy = eventCopy(eventType);
+    const theme = eventTheme(eventType);
+    const displayTitle = title || copy.label;
     emailSubject = `Rescheduled: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
@@ -189,17 +235,17 @@ export async function sendEmail({
       `UID:${uid}`, `DTSTAMP:${formatG(new Date())}Z`, `DTSTART:${formatG(startDate)}Z`, `DTEND:${formatG(endDate)}Z`,
       `SUMMARY:${displayTitle}`, `DESCRIPTION:${(notes || '').replace(/\n/g, '\\n')}`, 'STATUS:CONFIRMED',
       'SEQUENCE:2', 'TRANSP:OPAQUE',
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Rescheduled appointment reminder', 'TRIGGER:-P1D', 'END:VALARM',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${copy.alarmRescheduled}`, 'TRIGGER:-P1D', 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'
     ].join('\r\n');
 
     attachments = [{ filename: 'updated_invite.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=REQUEST' }];
 
-    emailContent = emailWrapper('#2563eb', 'Appointment Rescheduled', '#eff6ff',
-      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your appointment has been rescheduled</h2>
-       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has updated the schedule for your appointment. Please take note of the new date and time.</p>
+    emailContent = emailWrapper(theme.accent, copy.rescheduledBadge, theme.badgeBg,
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your ${copy.noun} has been rescheduled</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has updated the schedule for your ${copy.noun}. Please take note of the new date and time.</p>
        ${detailsCard([
-         { label: 'Appointment', value: displayTitle },
+         { label: copy.detailLabel, value: displayTitle },
          { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'New Date & Time', value: formatDate(startDate) },
@@ -213,8 +259,10 @@ export async function sendEmail({
   // ─── CANCELLED ────────────────────────────────────────────────────────────
   } else if (type === 'cancelled' && eventDetails) {
     const { eventId, eventType, title, dateTime, iCalUID, reason } = eventDetails;
-    const displayTitle = title || capitalize(eventType);
-    emailSubject = `Appointment Cancelled: ${displayTitle}`;
+    const copy = eventCopy(eventType);
+    const theme = eventTheme(eventType);
+    const displayTitle = title || copy.label;
+    emailSubject = `${copy.label} Cancelled: ${displayTitle}`;
 
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
@@ -231,32 +279,34 @@ export async function sendEmail({
 
     attachments = [{ filename: 'cancellation.ics', content: Buffer.from(icsString), contentType: 'text/calendar; charset=UTF-8; method=CANCEL' }];
 
-    emailContent = emailWrapper('#6b7280', 'Appointment Cancelled', '#f9fafb',
-      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your appointment has been cancelled</h2>
-       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has cancelled the following appointment. We apologize for any inconvenience.</p>
+    emailContent = emailWrapper(theme.accent, copy.cancelledBadge, theme.badgeBg,
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">Your ${copy.noun} has been cancelled</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;"><strong>${organizer?.name || organizer?.email}</strong> has cancelled the following ${copy.noun}. We apologize for any inconvenience.</p>
        ${detailsCard([
-         { label: 'Appointment', value: displayTitle },
+         { label: copy.detailLabel, value: displayTitle },
          { label: 'Type', value: capitalize(eventType) },
          { label: 'Attorney', value: `${organizer?.name || ''} &lt;${organizer?.email || ''}&gt;` },
          { label: 'Was Scheduled', value: formatDate(startDate) },
          ...(reason ? [{ label: 'Reason', value: reason }] : []),
        ])}
-       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">To schedule a new appointment, please contact your attorney directly or reply to this email.</p>`
+       <p style="font-size: 13px; color: #71717a; margin-top: 20px;">To schedule a new ${copy.noun}, please contact your attorney directly or reply to this email.</p>`
     );
 
   // ─── CONFIRMATION SUCCESS ─────────────────────────────────────────────────
   } else if (type === 'confirmation_success' && eventDetails) {
     const { eventType, title, dateTime, notes } = eventDetails;
-    const displayTitle = title || capitalize(eventType);
+    const copy = eventCopy(eventType);
+    const theme = eventTheme(eventType);
+    const displayTitle = title || copy.label;
     emailSubject = `Confirmed: ${displayTitle}`;
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-    emailContent = emailWrapper('#16a34a', 'Appointment Confirmed', '#f0fdf4',
-      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have confirmed your appointment</h2>
-       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">Your attendance for the following appointment has been confirmed. See you there!</p>
+    emailContent = emailWrapper(theme.accent, copy.confirmedBadge, theme.badgeBg,
+      `<h2 style="margin: 0 0 8px; font-size: 22px; color: #18181b;">You have confirmed your ${copy.noun}</h2>
+       <p style="margin: 0 0 24px; color: #71717a; font-size: 14px;">Your attendance for the following ${copy.noun} has been confirmed.</p>
        ${detailsCard([
-         { label: 'Appointment', value: displayTitle },
+         { label: copy.detailLabel, value: displayTitle },
          { label: 'Type', value: capitalize(eventType) },
          { label: 'Date & Time', value: formatDate(startDate) },
          { label: 'Duration', value: '1 hour' },

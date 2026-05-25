@@ -49,9 +49,9 @@ export const PartyInputList = React.memo(({
               <button
                 type="button"
                 onClick={() => onRemove(party.id)}
-                className="p-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors flex-shrink-0 self-center"
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} />
               </button>
             )}
           </motion.div>

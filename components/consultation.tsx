@@ -757,13 +757,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           handleRenameConsultation(currentConsultationId, newTitle);
         }
       }}
-      onBack={() => {
-        if (!currentConsultationId && !isCaseMode) {
-          router.push("/");
-        } else {
-          handleNewConsultation();
-        }
-      }}
       headerActions={
         <div className="flex items-center gap-2">
           {isCaseMode && activeCase && messages.length > 0 && (

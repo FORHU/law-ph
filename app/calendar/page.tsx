@@ -82,8 +82,8 @@ interface CalendarEvent {
 
 const EVENT_COLORS: Record<string, { badge: string; dot: string }> = {
   meeting: {
-    badge: "bg-[#4338ca]/10 text-[#818cf8] border-[#4338ca]/30",
-    dot: "bg-[#4338ca]",
+    badge: "bg-[#1e40af]/10 text-[#93c5fd] border-[#1e40af]/30",
+    dot: "bg-[#3b82f6]",
   },
   appointment: {
     badge: "bg-[#d97706]/10 text-[#fbbf24] border-[#d97706]/30",
@@ -94,8 +94,8 @@ const EVENT_COLORS: Record<string, { badge: string; dot: string }> = {
     dot: "bg-[#722f37]",
   },
   deposition: {
-    badge: "bg-[#059669]/10 text-[#34d399] border-[#059669]/30",
-    dot: "bg-[#059669]",
+    badge: "bg-[#5b21b6]/10 text-[#c4b5fd] border-[#5b21b6]/30",
+    dot: "bg-[#7c3aed]",
   },
 };
 const MONTHS = [
@@ -155,17 +155,17 @@ const StatusBadge = ({
     pending: isPast
       ? "bg-red-500/10 text-red-400 border-red-500/20"
       : "bg-[#e9c176]/10 text-[#e9c176] border-[#e9c176]/20",
-    confirmed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    confirmed: isPast ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20",
     requested_change: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     denied: "bg-red-500/10 text-red-400 border-red-500/20",
-    tentative: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    tentative: "bg-orange-500/10 text-orange-300 border-orange-500/25",
     cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
     canceled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
   };
 
   let label = status as string;
   if (status === "pending")
-    label = isPast ? "Missed" : "Invitation Sent";
+    label = isPast ? "Missed" : "Pending";
   if (status === "tentative") label = isPast ? "Missed" : "Tentative";
   if (status === "denied") label = "Denied";
   if (status === "confirmed") label = isPast ? "Done" : "Confirmed";
@@ -186,6 +186,8 @@ function inferEventType(
   description?: string,
   title?: string,
 ): CalendarEvent["type"] {
+  const typeMatch = description?.match(/\[type:(meeting|appointment|hearing|deposition)\]/);
+  if (typeMatch) return typeMatch[1] as CalendarEvent["type"];
   const text = `${title ?? ""} ${description ?? ""}`.toLowerCase();
   if (text.includes("hearing")) return "hearing";
   if (text.includes("deposition")) return "deposition";
@@ -562,7 +564,10 @@ export default function CalendarPage() {
     setEventsError(null);
     const providerToken = user?.googleAccessToken;
     try {
-      const result = await listCalendarEvents(sessId, { maxResults: 50 }, providerToken);
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const result = await listCalendarEvents(sessId, { maxResults: 100, timeMin: monthStart.toISOString() }, providerToken);
       if (result.needs_auth) {
         setIsGoogleConnected(false);
         return;
@@ -619,13 +624,47 @@ export default function CalendarPage() {
                 .replace(/[^a-z0-9]/g, "");
               mappedKeys.add(`${eTitle}|${rounded}`);
 
-              // Never let Google overwrite a locally-cancelled/denied status
-              const resolvedStatus =
-                localMatch.status === "cancelled" ||
-                  localMatch.status === "canceled" ||
-                  localMatch.status === "denied"
-                  ? localMatch.status
-                  : ge.status;
+              // If the local event is cancelled, never let Google sync overwrite it.
+              // Otherwise, trust Google Calendar's response status if it is a definitive answer (confirmed/denied).
+              // If Google has no definitive answer (e.g. pending/tentative) but the local DB already has a status,
+              // keep the local DB status to protect manual updates.
+              let resolvedStatus = localMatch.status;
+              if (localMatch.status !== "cancelled" && localMatch.status !== "canceled") {
+                if (ge.status === "confirmed" || ge.status === "denied") {
+                  resolvedStatus = ge.status;
+                }
+              }
+
+              // Sync status/metadata changes back to DB
+              const needsStatusUpdate = resolvedStatus !== localMatch.status;
+              const needsGoogleIdUpdate = ge.google_event_id && !localMatch.google_event_id && !localMatch.googleEventId;
+              const needsGoogleLinkUpdate = ge.googleLink && !localMatch.googleLink && !localMatch.google_link;
+
+              if (needsStatusUpdate || needsGoogleIdUpdate || needsGoogleLinkUpdate) {
+                const eventId = localMatch.id;
+                const updatePayload: any = {};
+                if (needsStatusUpdate) updatePayload.status = resolvedStatus;
+                if (needsGoogleIdUpdate || ge.google_event_id) updatePayload.google_event_id = ge.google_event_id;
+                if (needsGoogleLinkUpdate || ge.googleLink) updatePayload.google_link = ge.googleLink;
+
+                setTimeout(() => {
+                  fetch(`/api/events/${eventId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updatePayload),
+                  })
+                    .then((res) => {
+                      if (!res.ok) {
+                        console.error(`[Google Sync] Failed to update event ${eventId} in DB`);
+                      } else {
+                        console.log(`[Google Sync] Successfully updated event ${eventId} in DB`, updatePayload);
+                      }
+                    })
+                    .catch((err) => {
+                      console.error(`[Google Sync] Error updating event ${eventId} in DB:`, err);
+                    });
+                }, 0);
+              }
 
               return {
                 ...localMatch,
@@ -709,7 +748,7 @@ export default function CalendarPage() {
     } finally {
       setIsLoadingEvents(false);
     }
-  }, []);
+  }, [user?.googleAccessToken]);
 
   const registerWebhook = useCallback(async () => {
     // Use NEXT_PUBLIC_WEBHOOK_URL in dev (your ngrok URL).
@@ -720,12 +759,15 @@ export default function CalendarPage() {
       await fetch("/api/calendar/watch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ webhookUrl }),
+        body: JSON.stringify({
+          webhookUrl,
+          providerToken: user?.googleAccessToken,
+        }),
       });
     } catch (err) {
       console.error("[calendar] Failed to register webhook:", err);
     }
-  }, []);
+  }, [user?.googleAccessToken]);
 
   const checkGoogleAuth = useCallback(
     async (sessId: string) => {
@@ -743,7 +785,7 @@ export default function CalendarPage() {
         setIsCheckingAuth(false);
       }
     },
-    [loadGoogleEvents, registerWebhook],
+    [loadGoogleEvents, registerWebhook, user?.googleAccessToken],
   );
 
   useEffect(() => {
@@ -1163,29 +1205,29 @@ export default function CalendarPage() {
         }
         // Trigger Email API — send 'reschedule' when editing an existing event, 'schedule' for new ones
         await fetch("/api/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: form.clientEmail,
-            type: editingEventId ? "reschedule" : "schedule",
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            eventDetails: {
-              eventId: createdEventId,
-              eventType: form.type,
-              title: form.title,
-              dateTime: new Date(form.dateTime).toISOString(),
-              notes: form.notes,
-              iCalUID: iCalUID || (googleEventId ? `${googleEventId}@google.com` : undefined),
-              ...(editingEventId && actionReason
-                ? { reason: actionReason }
-                : {}),
-            },
-            organizer: {
-              name: user?.name || user?.email,
-              email: user?.email,
-            },
-          }),
-        });
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: form.clientEmail,
+              type: editingEventId ? "reschedule" : "schedule",
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              eventDetails: {
+                eventId: createdEventId,
+                eventType: form.type,
+                title: form.title,
+                dateTime: new Date(form.dateTime).toISOString(),
+                notes: form.notes,
+                iCalUID: iCalUID || (googleEventId ? `${googleEventId}@google.com` : undefined),
+                ...(editingEventId && actionReason
+                  ? { reason: actionReason }
+                  : {}),
+              },
+              organizer: {
+                name: user?.name || user?.email,
+                email: user?.email,
+              },
+            }),
+          });
 
         // Update DB with Google IDs
         if (googleEventId || gLink) {
@@ -1447,13 +1489,15 @@ export default function CalendarPage() {
         // Notify the organizer
         if (organizer?.email) {
           const actionText = newStatus === "confirmed" ? "confirmed" : "declined";
+          const eventTypeLabel = (eventObj.type || "meeting").charAt(0).toUpperCase() + (eventObj.type || "meeting").slice(1);
+          const eventTypeNoun = (eventObj.type || "meeting").toLowerCase();
           await fetch("/api/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               to: organizer.email,
-              subject: `Client ${newStatus === "confirmed" ? "Confirmed" : "Declined"} Appointment: ${eventObj.title || eventObj.type}`,
-              body: `### Appointment ${newStatus === "confirmed" ? "Confirmed" : "Declined"}\n\nClient **${user.name || user.email}** has ${actionText} the appointment **"${eventObj.title || eventObj.type}"** scheduled for **${new Date(eventObj.date_time || eventObj.dateTime || "").toLocaleString()}**.`,
+              subject: `Client ${newStatus === "confirmed" ? "Confirmed" : "Declined"} ${eventTypeLabel}: ${eventObj.title || eventObj.type}`,
+              body: `### ${eventTypeLabel} ${newStatus === "confirmed" ? "Confirmed" : "Declined"}\n\nClient **${user.name || user.email}** has ${actionText} the ${eventTypeNoun} **"${eventObj.title || eventObj.type}"** scheduled for **${new Date(eventObj.date_time || eventObj.dateTime || "").toLocaleString()}**.`,
             }),
           }).catch((err) =>
             console.error("Failed to send RSVP email notification to organizer:", err),
@@ -1491,7 +1535,9 @@ export default function CalendarPage() {
             iCalUID:
               (event as any).iCalUID ||
               (typeof event.google_event_id === "string"
-                ? event.google_event_id
+                ? (event.google_event_id.includes("@")
+                  ? event.google_event_id
+                  : `${event.google_event_id}@google.com`)
                 : undefined),
           },
           organizer: {
@@ -1621,10 +1667,17 @@ export default function CalendarPage() {
   const [unacknowledgedEvents, setUnacknowledgedEvents] = useState<CalendarEvent[]>([]);
   const [snoozeSecondsLeft, setSnoozeSecondsLeft] = useState(0);
   const [showSnoozePicker, setShowSnoozePicker] = useState(false);
+  const [alertsMutedIndefinitely, setAlertsMutedIndefinitely] = useState(false);
   const hasHandledModal = useRef(false);
 
   useEffect(() => {
     const tick = () => {
+      const muted = sessionStorage.getItem('alertSnoozeIndefinite') === 'true';
+      setAlertsMutedIndefinitely(muted);
+      if (muted) {
+        setSnoozeSecondsLeft(0);
+        return;
+      }
       const until = Number(sessionStorage.getItem('alertSnoozeUntil') || 0);
       const diff = Math.max(0, Math.ceil((until - Date.now()) / 1000));
       setSnoozeSecondsLeft(diff);
@@ -1638,6 +1691,8 @@ export default function CalendarPage() {
     if (isLoading || events.length === 0 || hasHandledModal.current) return;
 
     const snoozeUntil = sessionStorage.getItem('alertSnoozeUntil');
+    const snoozeIndefinite = sessionStorage.getItem('alertSnoozeIndefinite') === 'true';
+    if (snoozeIndefinite) return;
     if (snoozeUntil && Date.now() < Number(snoozeUntil)) return;
 
     const nowTs = new Date();
@@ -1681,6 +1736,14 @@ export default function CalendarPage() {
       // Instant fallback for UX
       setShowLawyerModal(false);
     }
+  };
+
+  const resumeAlerts = () => {
+    sessionStorage.removeItem('alertSnoozeUntil');
+    sessionStorage.removeItem('alertSnoozeIndefinite');
+    hasHandledModal.current = false;
+    setSnoozeSecondsLeft(0);
+    setAlertsMutedIndefinitely(false);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -1761,6 +1824,8 @@ export default function CalendarPage() {
                             key={mins}
                             onClick={() => {
                               sessionStorage.setItem('alertSnoozeUntil', String(Date.now() + mins * 60 * 1000));
+                              sessionStorage.removeItem('alertSnoozeIndefinite');
+                              setAlertsMutedIndefinitely(false);
                               hasHandledModal.current = true;
                               setShowSnoozePicker(false);
                               setShowLawyerModal(false);
@@ -1770,6 +1835,20 @@ export default function CalendarPage() {
                             {mins} minutes
                           </button>
                         ))}
+                        <button
+                          onClick={() => {
+                            sessionStorage.removeItem('alertSnoozeUntil');
+                            sessionStorage.setItem('alertSnoozeIndefinite', 'true');
+                            setSnoozeSecondsLeft(0);
+                            setAlertsMutedIndefinitely(true);
+                            hasHandledModal.current = true;
+                            setShowSnoozePicker(false);
+                            setShowLawyerModal(false);
+                          }}
+                          className="w-full px-4 py-3 text-[11px] font-bold text-[#e9c176] hover:text-white hover:bg-[#722f37]/20 uppercase tracking-widest transition-all text-left border-t border-white/10"
+                        >
+                          Until I turn it back on
+                        </button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1883,11 +1962,25 @@ export default function CalendarPage() {
         subtitle="Legal appointments and hearings"
         headerActions={
           <div className="flex items-center gap-2">
+            {alertsMutedIndefinitely && (
+              <button
+                onClick={resumeAlerts}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#722f37]/10 border border-[#722f37]/30 text-[#e9c176] hover:text-white hover:bg-[#722f37]/20 text-xs font-bold transition-all"
+                title="Resume event alerts"
+              >
+                <Bell size={12} />
+                <span>Alerts muted</span>
+              </button>
+            )}
             {snoozeSecondsLeft > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#722f37]/10 border border-[#722f37]/30 text-[#e9c176] text-xs font-bold">
+              <button
+                onClick={resumeAlerts}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#722f37]/10 border border-[#722f37]/30 text-[#e9c176] hover:text-white hover:bg-[#722f37]/20 text-xs font-bold transition-all"
+                title="Resume event alerts"
+              >
                 <Bell size={12} />
                 <span>Alert in {Math.floor(snoozeSecondsLeft / 60)}:{String(snoozeSecondsLeft % 60).padStart(2, '0')}</span>
-              </div>
+              </button>
             )}
             {isGoogleConnected && (
               <button
@@ -1999,9 +2092,19 @@ export default function CalendarPage() {
                 >
                   <ArrowLeft size={16} className="text-gray-400" />
                 </button>
-                <h2 className="font-bold text-white text-sm">
-                  {MONTHS[viewMonth]} {viewYear}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="font-serif text-white text-lg tracking-tight">
+                    {MONTHS[viewMonth]} {viewYear}
+                  </h2>
+                  {(viewMonth !== now.getMonth() || viewYear !== now.getFullYear()) && (
+                    <button
+                      onClick={() => { setViewMonth(now.getMonth()); setViewYear(now.getFullYear()); }}
+                      className="text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg bg-[#722f37]/20 border border-[#722f37]/30 text-[#e9c176] hover:bg-[#722f37]/40 transition-all"
+                    >
+                      Today
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => {
                     const d = new Date(viewYear, viewMonth + 1);
@@ -2073,7 +2176,6 @@ export default function CalendarPage() {
                         if (dayEvents.length > 0) {
                           setSelectedDayEvents(dayEvents);
                           setSelectedDay(day);
-                          // On mobile, show modal. On desktop, show panel.
                           if (window.innerWidth < 768) {
                             setShowMobileEventModal(true);
                           } else {
@@ -2084,16 +2186,15 @@ export default function CalendarPage() {
                         }
                       }}
                       className={`min-h-[80px] lg:min-h-[100px] flex flex-col items-stretch p-1.5 rounded-xl text-xs transition-all border
-                                            ${isPast
+                        ${isPast
                           ? dayEvents.length > 0
                             ? "opacity-40 cursor-pointer border-white/5"
                             : "opacity-30 cursor-not-allowed border-transparent"
                           : "cursor-pointer"
                         }
-                                            ${isToday && !isPast
+                        ${isToday && !isPast
                           ? "bg-[#722f37]/10 border-[#722f37]/40"
-                          : !isPast &&
-                            dayEvents.length > 0
+                          : !isPast && dayEvents.length > 0
                             ? "bg-white/[0.02] border-white/5 hover:bg-white/5"
                             : !isPast
                               ? "hover:bg-white/5 border-transparent"
@@ -2102,7 +2203,7 @@ export default function CalendarPage() {
                     >
                       <span
                         className={`text-[10px] font-bold mb-1 w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0
-                                            ${isToday ? "bg-[#722f37] text-white font-bold" : "text-gray-500"}`}
+                          ${isToday ? "bg-[#722f37] text-white font-bold" : "text-gray-500"}`}
                       >
                         {day}
                       </span>
@@ -2130,10 +2231,7 @@ export default function CalendarPage() {
               {/* Legend */}
               <div className="mt-5 flex flex-wrap gap-2">
                 {Object.entries(EVENT_COLORS).map(([type, c]) => (
-                  <span
-                    key={type}
-                    className="flex items-center gap-1.5 text-[10px] text-gray-400 capitalize"
-                  >
+                  <span key={type} className="flex items-center gap-1.5 text-[10px] text-gray-400 capitalize">
                     <span className={`w-2 h-2 rounded-full ${c.dot}`} />
                     {type}
                   </span>
@@ -2167,72 +2265,40 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                {/* Tabs + Search */}
-                <div className="flex-shrink-0 px-5 pt-5 space-y-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => {
-                        setActiveTab("pending");
-                        setShowAll(false);
-                      }}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "pending"
-                        ? "bg-[#e9c176]/20 border border-[#e9c176]/30 text-[#e9c176] shadow-lg shadow-[#e9c176]/5"
-                        : "text-gray-500 hover:bg-white/5 border border-transparent"
-                        }`}
-                    >
-                      <AlertCircle size={14} /> Pending{" "}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "pending" ? "bg-[#e9c176]/20 text-[#e9c176]" : "bg-white/5 text-gray-500"}`}>
-                        {pendingEvents.length}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveTab("upcoming");
-                        setShowAll(false);
-                      }}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "upcoming"
-                        ? "bg-blue-500/20 border border-blue-500/30 text-blue-400 shadow-lg shadow-blue-500/5"
-                        : "text-gray-500 hover:bg-white/5 border border-transparent"
-                        }`}
-                    >
-                      <Clock size={14} /> Upcoming{" "}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "upcoming" ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-gray-500"}`}>
-                        {upcomingEvents.length}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveTab("accomplished");
-                        setShowAll(false);
-                      }}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "accomplished"
-                        ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/5"
-                        : "text-gray-500 hover:bg-white/5 border border-transparent"
-                        }`}
-                    >
-                      <History size={14} /> Accomplished{" "}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "accomplished" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-gray-500"}`}>
-                        {accomplishedEvents.length}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveTab("denied");
-                        setShowAll(false);
-                      }}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === "denied"
-                        ? "bg-red-500/20 border border-red-500/30 text-red-400 shadow-lg shadow-red-500/5"
-                        : "text-gray-500 hover:bg-white/5 border border-transparent"
-                        }`}
-                    >
-                      <XCircle size={14} /> Denied{" "}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ml-1 ${activeTab === "denied" ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-500"}`}>
-                        {deniedEvents.length}
-                      </span>
-                    </button>
+                {/* Monthly Summary Strip */}
+                <div className="flex-shrink-0 px-5 pt-4 pb-0">
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    {[
+                      { label: "Pending", tab: "pending" as const, count: pendingEvents.length, color: "text-[#e9c176]", bg: "bg-[#e9c176]/10 border-[#e9c176]/20", activeBorder: "ring-1 ring-[#e9c176]/40" },
+                      { label: "Upcoming", tab: "upcoming" as const, count: upcomingEvents.length, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", activeBorder: "ring-1 ring-blue-400/40" },
+                      { label: "Done", tab: "accomplished" as const, count: accomplishedEvents.length, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", activeBorder: "ring-1 ring-emerald-400/40" },
+                      { label: "Denied", tab: "denied" as const, count: deniedEvents.length, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20", activeBorder: "ring-1 ring-red-400/40" },
+                    ].map(({ label, tab, count, color, bg, activeBorder }) => {
+                      const isActive = activeTab === tab;
+                      return (
+                        <button
+                          key={label}
+                          onClick={() => { setActiveTab(tab); setShowAll(false); }}
+                          className={`flex flex-col items-center justify-center py-2 rounded-xl border transition-all cursor-pointer ${
+                            isActive
+                              ? `${bg} ${activeBorder}`
+                              : "bg-[#161616] border-white/[0.06] hover:bg-[#1c1c1c] hover:border-white/10"
+                          }`}
+                        >
+                          <span className={`text-lg font-bold leading-none transition-colors ${isActive ? color : "text-gray-600"}`}>
+                            {count}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 transition-colors ${isActive ? "text-white" : "text-gray-600"}`}>
+                            {label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
+                </div>
 
-                  {/* Search */}
+                {/* Search */}
+                <div className="flex-shrink-0 px-5 pb-3">
                   <div className="relative">
                     <Search
                       size={14}
@@ -2332,10 +2398,7 @@ export default function CalendarPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ delay: idx * 0.04 }}
-                            className={`bg-[#2A2A2A]/70 backdrop-blur border rounded-2xl p-4 hover:border-white/10 transition-all group cursor-pointer ${activeTab === "accomplished"
-                              ? "border-white/5 opacity-75"
-                              : "border-white/5"
-                              }`}
+                            className={`relative bg-[#111]/80 backdrop-blur border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/10 transition-all group cursor-pointer ${activeTab === "accomplished" ? "opacity-60" : ""}`}
                             onClick={() => {
                               setSelectedDayEvents([event]);
                               setSelectedDay(
@@ -2346,10 +2409,29 @@ export default function CalendarPage() {
                               setPanelView("details");
                             }}
                           >
-                            <div className="flex items-start gap-4 flex-1 min-w-0">
-                              <span
-                                className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${EVENT_COLORS[event.type].dot}`}
-                              />
+                            {/* Left accent border — red if missed, otherwise matches summary tile */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${
+                              (() => {
+                                const isPastEvt = new Date(event.date_time || event.dateTime || "").getTime() < now.getTime();
+                                const isMissed = isPastEvt && (event.status === "pending" || event.status === "tentative");
+                                if (isMissed) return "bg-red-400";
+                                if (activeTab === "pending") return "bg-[#e9c176]";
+                                if (activeTab === "upcoming") return "bg-blue-400";
+                                if (activeTab === "accomplished") return "bg-emerald-400";
+                                if (activeTab === "denied") return "bg-red-400";
+                                return "bg-gray-500";
+                              })()
+                            }`} />
+                            <div className="flex items-start gap-3 flex-1 min-w-0 pl-4 pr-3 py-3">
+                              <div className="flex flex-col gap-0 flex-shrink-0 items-center min-w-[40px]">
+                                <span className="text-[11px] font-bold text-white/50 uppercase tracking-wide leading-none">
+                                  {new Date(event.date_time || event.dateTime || "").toLocaleDateString([], { month: 'short' })}
+                                </span>
+                                <span className="text-xl font-bold text-white leading-none mt-0.5">
+                                  {new Date(event.date_time || event.dateTime || "").getDate()}
+                                </span>
+                              </div>
+                              <div className="w-px self-stretch bg-white/5 mx-1 flex-shrink-0" />
                               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-3">
                                   <h3
@@ -2513,7 +2595,17 @@ export default function CalendarPage() {
                       className="bg-[#2A2A2A]/40 backdrop-blur border border-white/5 rounded-2xl p-5 space-y-4 relative overflow-hidden group shadow-xl"
                     >
                       <div
-                        className={`absolute top-0 left-0 bottom-0 w-1 h-full ${EVENT_COLORS[event.type || "meeting"].dot}`}
+                        className={`absolute top-0 left-0 bottom-0 w-1 h-full ${
+                          (() => {
+                            const isPast = new Date(event.date_time || event.dateTime || "").getTime() < now.getTime();
+                            if (event.status === "pending") return isPast ? "bg-red-400" : "bg-[#e9c176]";
+                            if (event.status === "confirmed") return isPast ? "bg-emerald-400" : "bg-blue-400";
+                            if (event.status === "requested_change") return "bg-amber-400";
+                            if (event.status === "tentative") return isPast ? "bg-red-400" : "bg-orange-300";
+                            if (event.status === "denied" || event.status === "cancelled" || event.status === "canceled") return "bg-red-400";
+                            return "bg-gray-500";
+                          })()
+                        }`}
                       />
 
                       <div className="flex items-start justify-between gap-3">
@@ -2582,10 +2674,10 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {event.notes && (
+                      {event.notes && event.notes.replace(/\[type:[^\]]+\]\n?/, "").trim() && (
                         <div className="pt-2 border-t border-white/5">
                           <p className="text-xs text-gray-400 italic leading-relaxed whitespace-pre-wrap">
-                            {event.notes}
+                            {event.notes.replace(/\[type:[^\]]+\]\n?/, "").trim()}
                           </p>
                         </div>
                       )}

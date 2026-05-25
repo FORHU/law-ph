@@ -3,19 +3,16 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, Binoculars, PanelLeftClose, Bookmark, Mic, Library, Search } from 'lucide-react';
+import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, PanelLeftClose, Bookmark, Mic, Library } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
 import { SidebarNav } from './sidebar/sidebar-nav';
 import { RecentItem, SidebarPage, SIDEBAR_STYLES, SCROLL_THRESHOLD } from './sidebar/sidebar-constants';
-import { CreateCaseModal } from './create-case-modal';
-import { ViewCasesModal } from './view-cases-modal';
 import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
 import { ScrollToTop } from './sidebar/scroll-to-top';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
-import { useConversations } from '@/components/conversation-provider/conversation-context';
 interface AppSidebarProps {
   activePage?: SidebarPage;
   recentItems?: RecentItem[];
@@ -42,7 +39,7 @@ export const AppSidebar = React.memo(function AppSidebar({
   const router = useRouter();
 
   // Determine active page from pathname if not explicitly provided
-  const resolvedActivePage = activePage || (
+  const resolvedActivePage: SidebarPage = activePage || (
     pathname?.startsWith('/consultation') ? 'chat' :
       pathname?.startsWith('/documents') ? 'documents' :
         pathname?.startsWith('/transcribe') ? 'transcribe' :
@@ -50,19 +47,23 @@ export const AppSidebar = React.memo(function AppSidebar({
             pathname?.startsWith('/cases') ? 'cases' :
               pathname?.startsWith('/legal-library') ? 'library' :
                 pathname?.startsWith('/bookmarks') ? 'bookmarks' :
-                  pathname?.startsWith('/search') ? 'search' :
-                  'chat'
+                'chat'
   );
 
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
-  const [isCaseModalOpen, setIsCaseModalOpen] = useState(false);
-  const [isViewCasesModalOpen, setIsViewCasesModalOpen] = useState(false);
   const [isBookmarksModalOpen, setIsBookmarksModalOpen] = useState(false);
+  const [recentTab, setRecentTab] = useState<'consultation' | 'case'>(
+    resolvedActivePage === 'cases' ? 'case' : 'consultation'
+  );
   const [showAllRecent, setShowAllRecent] = useState(false);
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const isDocumentsOrCalendarOrTranscribe = resolvedActivePage === 'documents' || resolvedActivePage === 'calendar' || resolvedActivePage === 'transcribe' || resolvedActivePage === 'library';
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    if (resolvedActivePage === 'cases' || resolvedActivePage === 'documents') setRecentTab('case');
+    else setRecentTab('consultation');
+  }, [resolvedActivePage]);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const isDocumentsOrCalendarOrTranscribe = (['documents', 'calendar', 'transcribe', 'library', 'cases'] as const).includes(resolvedActivePage as any);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
@@ -112,10 +113,7 @@ export const AppSidebar = React.memo(function AppSidebar({
           {isDocumentsOrCalendarOrTranscribe ? (
             <>
               <button
-                onClick={() => {
-                  onNewItem?.();
-                  router.push('/consultation');
-                }}
+                onClick={() => router.push('/consultation')}
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <MessageSquare size={16} className="transition-colors" />
@@ -123,11 +121,11 @@ export const AppSidebar = React.memo(function AppSidebar({
               </button>
 
               <button
-                onClick={() => router.push('/search')}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+                onClick={() => router.push('/cases')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'cases' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
-                <Search size={16} className={(resolvedActivePage as string) === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search Chats</span>
+                <Briefcase size={16} className={resolvedActivePage === 'cases' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Cases</span>
               </button>
 
               <button
@@ -154,24 +152,13 @@ export const AppSidebar = React.memo(function AppSidebar({
                 <span className="text-xs font-medium">Calendar</span>
               </button>
 
-              {/* Cases section */}
-              <div className="pt-1 pb-0.5">
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 px-2 mb-1">Cases</p>
-                <button
-                  onClick={() => setIsCaseModalOpen(true)}
-                  className="w-full px-3 py-2 border border-transparent rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white"
-                >
-                  <Briefcase size={16} className="transition-colors" />
-                  <span className="text-xs font-medium">Create Case</span>
-                </button>
-                <button
-                  onClick={() => setIsViewCasesModalOpen(true)}
-                  className="w-full px-3 py-2 border border-transparent rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white"
-                >
-                  <Binoculars size={16} className="transition-colors" />
-                  <span className="text-xs font-medium">View Cases</span>
-                </button>
-              </div>
+              <button
+                onClick={() => router.push('/legal-library')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Library size={16} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Library</span>
+              </button>
 
               <button
                 onClick={() => router.push('/bookmarks')}
@@ -180,37 +167,24 @@ export const AppSidebar = React.memo(function AppSidebar({
                 <Bookmark size={16} className="transition-colors" />
                 <span className="text-xs font-medium">Bookmarks</span>
               </button>
-
-              <button
-                onClick={() => router.push('/legal-library')}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
-              >
-                <Library size={16} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Library</span>
-              </button>
             </>
           ) : (
             <>
               {/* Main nav */}
               <button
-                onClick={() => {
-                  onNewItem?.();
-                  if (pathname !== '/consultation') {
-                    router.push('/consultation');
-                  }
-                }}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'chat' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+                onClick={() => onNewItem?.()}
+                className="w-full px-3 py-2 bg-[rgba(114,47,55,0.15)] border border-[rgba(114,47,55,0.4)] rounded-lg hover:bg-[rgba(114,47,55,0.25)] hover:shadow-[0_0_15px_rgba(114,47,55,0.3)] transition-all duration-300 flex items-center gap-2.5 text-white"
               >
-                <MessageSquare size={16} className={resolvedActivePage === 'chat' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <MessageSquare size={16} className="text-[rgba(233,193,118,1)] transition-colors" />
                 <span className="text-xs font-medium">Chat</span>
               </button>
 
               <button
-                onClick={() => router.push('/search')}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+                onClick={() => router.push('/cases')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'cases' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
-                <Search size={16} className={resolvedActivePage === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search Chats</span>
+                <Briefcase size={16} className={resolvedActivePage === 'cases' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Cases</span>
               </button>
 
               <button
@@ -237,24 +211,13 @@ export const AppSidebar = React.memo(function AppSidebar({
                 <span className="text-xs font-medium">Calendar</span>
               </button>
 
-              {/* Cases section */}
-              <div className="pt-1 pb-0.5">
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 px-2 mb-1">Cases</p>
-                <button
-                  onClick={() => setIsCaseModalOpen(true)}
-                  className="w-full px-3 py-2 border border-transparent rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white"
-                >
-                  <Briefcase size={16} className="transition-colors" />
-                  <span className="text-xs font-medium">Create Case</span>
-                </button>
-                <button
-                  onClick={() => setIsViewCasesModalOpen(true)}
-                  className="w-full px-3 py-2 border border-transparent rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white"
-                >
-                  <Binoculars size={16} className="transition-colors" />
-                  <span className="text-xs font-medium">View Cases</span>
-                </button>
-              </div>
+              <button
+                onClick={() => router.push('/legal-library')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Library size={16} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Library</span>
+              </button>
 
               <button
                 onClick={() => router.push('/bookmarks')}
@@ -263,49 +226,64 @@ export const AppSidebar = React.memo(function AppSidebar({
                 <Bookmark size={16} className="transition-colors" />
                 <span className="text-xs font-medium">Bookmarks</span>
               </button>
-
-              <button
-                onClick={() => router.push('/legal-library')}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
-              >
-                <Library size={16} className={(resolvedActivePage as string) === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Library</span>
-              </button>
             </>
           )}
         </div>
 
         {/* Content Area (Recent) */}
         <div className={`${SIDEBAR_STYLES.contentArea} flex-shrink-0`}>
-          {/* Recent Section */}
-          {recentItems.length > 0 && (
-            <div className="mt-1 text-white">
-              <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 mb-1.5 px-2">{recentLabel}</h3>
-              <div className="space-y-0.5">
-                {(showAllRecent ? recentItems : recentItems.slice(0, 5)).map((item) => (
-                  <SidebarItem
-                    key={item.id}
-                    item={item}
-                    isOpen={activeMenuId === item.id}
-                    onToggle={() => toggleMenu(item.id)}
-                    currentConsultationId={currentConsultationId}
-                  />
-                ))}
-              </div>
-              {recentItems.length > 5 && (
+          <div className="mt-1 text-white">
+            <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 mb-2 px-2">{recentLabel}</h3>
+
+            {/* Tabs */}
+            <div className="flex gap-1 mb-2 px-1">
+              {(['consultation', 'case'] as const).map((tab) => (
                 <button
-                  onClick={() => setShowAllRecent(!showAllRecent)}
-                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all active:scale-[0.98]"
+                  key={tab}
+                  onClick={() => { setRecentTab(tab); setShowAllRecent(false); }}
+                  className={`flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all ${
+                    recentTab === tab
+                      ? 'bg-[rgba(114,47,55,0.25)] border border-[rgba(114,47,55,0.4)] text-white'
+                      : 'text-gray-600 hover:text-gray-400'
+                  }`}
                 >
-                  {showAllRecent ? (
-                    <>Show Less <ChevronUp size={14} /></>
-                  ) : (
-                    <>Show {recentItems.length - 5} More <ChevronDown size={14} /></>
-                  )}
+                  {tab === 'consultation' ? 'Consultations' : 'Cases'}
                 </button>
-              )}
+              ))}
             </div>
-          )}
+
+            {/* Filtered list */}
+            {(() => {
+              const filtered = recentItems.filter(i => (i.type ?? 'consultation') === recentTab);
+              if (filtered.length === 0) return (
+                <p className="text-[10px] text-gray-600 px-2 py-2">No recent {recentTab === 'consultation' ? 'consultations' : 'cases'}.</p>
+              );
+              const visible = showAllRecent ? filtered : filtered.slice(0, 5);
+              return (
+                <>
+                  <div className="space-y-0.5">
+                    {visible.map((item) => (
+                      <SidebarItem
+                        key={item.id}
+                        item={item}
+                        isOpen={activeMenuId === item.id}
+                        onToggle={() => toggleMenu(item.id)}
+                        currentConsultationId={currentConsultationId}
+                      />
+                    ))}
+                  </div>
+                  {filtered.length > 5 && (
+                    <button
+                      onClick={() => setShowAllRecent(!showAllRecent)}
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all active:scale-[0.98]"
+                    >
+                      {showAllRecent ? <>Show Less <ChevronUp size={14} /></> : <>Show {filtered.length - 5} More <ChevronDown size={14} /></>}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
         </div>
 
         {/* Bottom Navigation (Conditional Chat tab) */}
@@ -318,18 +296,6 @@ export const AppSidebar = React.memo(function AppSidebar({
 
       {/* Sticky Profile Section */}
       <SidebarProfile />
-
-      {/* Create Case Modal */}
-      <CreateCaseModal
-        isOpen={isCaseModalOpen}
-        onClose={() => setIsCaseModalOpen(false)}
-      />
-
-      {/* View Cases Modal */}
-      <ViewCasesModal
-        isOpen={isViewCasesModalOpen}
-        onClose={() => setIsViewCasesModalOpen(false)}
-      />
 
       {/* Bookmarks Modal */}
       <BookmarksModal

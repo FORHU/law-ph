@@ -8,7 +8,7 @@ export default function TranscribePage() {
   return (
     <PageLayout
       activePage="transcribe"
-      title="Transcription Workspace"
+      title="Transcribe"
       subtitle="Record or upload audio to generate AI transcripts."
       maxWidth="max-w-6xl"
       backgroundAngle={3}
