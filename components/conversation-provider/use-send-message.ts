@@ -100,7 +100,7 @@ export function useSendMessage({
             try {
               const uploadData = await uploadAndAnalyzeDocument(
                 file,
-                process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001',
+                process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
                 !skipAIResponse
               );
 
@@ -220,7 +220,6 @@ export function useSendMessage({
           let relatedCases: any[] | undefined;
           let timeline: any[] | undefined;
           let mindMap: any | undefined;
-          let streamSources: any[] | undefined;
           let aiResponseSuccessful = false;
           let retryCount = 0;
           const MAX_RETRIES = 3;
@@ -283,9 +282,7 @@ export function useSendMessage({
                 }
 
                 const processed = processChunk(raw);
-                if (processed.extractedSources) streamSources = processed.extractedSources;
                 accumulatedText += processed.text;
-                relatedCases = streamSources;
 
                 flushToUI(false);
               }

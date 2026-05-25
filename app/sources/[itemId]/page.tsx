@@ -3,9 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Loader2, BookOpen, Gavel } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import TurndownService from 'turndown';
-import { COLORS } from '@/lib/constants';
+import { LegalMarkdown } from '@/components/legal/legal-markdown';
 
 interface SourceData {
   item_id: string;
@@ -13,6 +12,7 @@ interface SourceData {
   title: string;
   url: string;
   text_content: string;
+  formatted_markdown?: string | null;
   gr_number?: string;
   law_number?: string;
   date?: string;
@@ -49,6 +49,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
   const isLaw = data?.type === 'lawphil_statute';
 
   const markdownContent = (() => {
+    if (data?.formatted_markdown?.trim()) return data.formatted_markdown.trim();
     if (!data?.text_content) return '';
     try {
       const turndownService = new TurndownService({
@@ -120,48 +121,8 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
               {data.title}
             </h1>
 
-            <div className="prose prose-invert max-w-none prose-headings:text-[#e9c176] prose-headings:font-serif prose-p:text-gray-300 prose-p:leading-relaxed prose-li:text-gray-300 prose-strong:text-white border-t border-white/10 pt-8 mt-8">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => (
-                    <h1 className="text-3xl font-serif text-[#e9c176] mb-6 mt-10 tracking-tight">
-                      {children}
-                    </h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="text-2xl font-serif text-[#e9c176] mb-4 mt-8 tracking-tight">
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-xl font-serif text-[#e9c176] mb-3 mt-6">
-                      {children}
-                    </h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="text-gray-300 mb-6 leading-relaxed text-lg">
-                      {children}
-                    </p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc ml-6 mb-6 space-y-3 text-gray-300">
-                      {children}
-                    </ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal ml-6 mb-6 space-y-3 text-gray-300">
-                      {children}
-                    </ol>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="text-white font-bold border-b border-[#e9c176]/30">
-                      {children}
-                    </strong>
-                  ),
-                }}
-              >
-                {markdownContent || '*No content available.*'}
-              </ReactMarkdown>
+            <div className="border-t border-white/10 pt-8 mt-8">
+              <LegalMarkdown content={markdownContent} />
             </div>
 
             {data.url && (

@@ -4,10 +4,23 @@ import { NextRequest } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const LEGAL_TAG = '[legal ai]';
+
+/** Strip any existing legal persona tag; proxy adds the canonical tag at the boundary. */
+function stripLegalTag(input: string): string {
+  const lower = input.toLowerCase();
+  if (!lower.startsWith(LEGAL_TAG)) return input;
+  return input.slice(LEGAL_TAG.length).trimStart();
+}
+
+function withLegalTag(input: string): string {
+  return `${LEGAL_TAG} ${stripLegalTag(input)}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_input, session_id, document_context, google_access_token } = body;
+    const { user_input, session_id, document_context } = body;
 
     if (!user_input) {
       return new Response(
@@ -16,95 +29,128 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const effectiveSessionId = session_id || `local-${Date.now()}`;
+    if (!session_id) {
+      return new Response(
+        JSON.stringify({ error: 'Missing session_id. Initialize via GET /api/chat/session first.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Get the WebSocket URL from environment
-    const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8001').replace(/\/+$/, '');
+    const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
     const wsUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://');
     const wsEndpoint = `${wsUrl}/chat-stream`;
     console.log('[chat/stream] Connecting WebSocket to:', wsEndpoint);
 
-    // Create a readable stream that will proxy the WebSocket messages
+    let streamClosed = false;
+    let wsClosed = false;
+    let ws: WebSocket | null = null;
+
+    const closeWebSocket = () => {
+      if (wsClosed || !ws) return;
+      wsClosed = true;
+      try {
+        ws.close();
+      } catch {
+        // Already closing
+      }
+    };
+
     const stream = new ReadableStream({
-      async start(controller) {
-        const ws = new WebSocket(wsEndpoint);
-        let isClosed = false;
+      start(controller) {
+        ws = new WebSocket(wsEndpoint);
 
         const closeStream = () => {
-          if (!isClosed) {
-            isClosed = true;
-            try {
-              controller.close();
-            } catch (err) {
-              // Controller already closed, ignore
-            }
-          }
-        };
-
-        // Handle WebSocket connection open
-        ws.onopen = () => {
-          console.log('WebSocket connected to chat-wonder-api');
-
-          // Send the chat message
-          const payload = {
-            user_input,
-            session_id: effectiveSessionId,
-            document_context,
-            google_access_token,
-          };
-          ws.send(JSON.stringify(payload));
-        };
-
-        // Handle incoming WebSocket messages
-        ws.onmessage = (event) => {
-          if (isClosed) return;
-
-          const message = event.data;
-
+          if (streamClosed) return;
+          streamClosed = true;
+          closeWebSocket();
           try {
-            if (message === '__END__') {
-              ws.close();
-              closeStream();
-            } else {
-              controller.enqueue(new TextEncoder().encode(message));
-            }
-          } catch (err) {
-            console.error('Streaming enqueue error:', err);
-            isClosed = true;
+            controller.close();
+          } catch {
+            // Consumer may have already closed/cancelled the stream
           }
         };
 
-        // Handle WebSocket errors
-        ws.onerror = (error) => {
-          if (isClosed) return;
-          console.error('WebSocket error:', error);
-          const errorMessage = '[Error] Connection error occurred';
+        const safeEnqueue = (text: string) => {
+          if (streamClosed) return;
           try {
-            if (!isClosed) {
-              controller.enqueue(new TextEncoder().encode(errorMessage));
-            }
-          } catch (err) {
-            // Controller already closed
+            controller.enqueue(new TextEncoder().encode(text));
+          } catch {
+            streamClosed = true;
+            closeWebSocket();
           }
+        };
+
+        const handleEnd = () => {
           closeStream();
         };
 
-        // Handle WebSocket close
+        ws.onopen = () => {
+          console.log('[chat/stream] WebSocket connected to chat-wonder');
+
+          const payload: {
+            type: string;
+            user_input: string;
+            session_id: string;
+            use_full_legal_chain: boolean;
+            document_context?: string;
+          } = {
+            type: 'chat',
+            user_input: withLegalTag(user_input),
+            session_id,
+            use_full_legal_chain: false,
+          };
+          if (document_context) {
+            payload.document_context = document_context;
+          }
+          ws!.send(JSON.stringify(payload));
+        };
+
+        ws.onmessage = (event) => {
+          if (streamClosed) return;
+
+          const message = typeof event.data === 'string' ? event.data : String(event.data);
+
+          if (message === '__END__') {
+            handleEnd();
+            return;
+          }
+
+          if (message.endsWith('__END__')) {
+            const content = message.slice(0, -'__END__'.length);
+            if (content) safeEnqueue(content);
+            handleEnd();
+            return;
+          }
+
+          safeEnqueue(message);
+        };
+
+        ws.onerror = (error) => {
+          if (streamClosed) return;
+          console.error('[chat/stream] WebSocket error:', error);
+          safeEnqueue('[Error] Connection error occurred');
+          closeStream();
+        };
+
         ws.onclose = () => {
-          console.log('WebSocket closed');
+          console.log('[chat/stream] WebSocket closed');
           closeStream();
         };
       },
+      cancel() {
+        // Fetch aborted (navigation, AbortController) — stop WS without enqueue errors
+        streamClosed = true;
+        closeWebSocket();
+      },
     });
 
-    // Return the streaming response
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
         'Transfer-Encoding': 'chunked',
-        'X-Accel-Buffering': 'no', // Disable nginx buffering
+        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error) {

@@ -15,7 +15,7 @@ export interface UploadedDocumentData {
  * Uploads a file to S3 using a presigned URL and triggers backend analysis.
  * 
  * @param file The file to upload
- * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001')
+ * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
  * @param analyze Whether to trigger backend analysis (default: true)
  * @returns Promise resolving to the uploaded document data
  */

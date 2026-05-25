@@ -6,7 +6,8 @@
     "start": "next start",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "format-documents": "node scripts/format-documents.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-polly": "^3.1035.0",

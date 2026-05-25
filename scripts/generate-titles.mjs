@@ -38,7 +38,7 @@ for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────
-const CHAT_WONDER_URL = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8001').replace(/\/+$/, '');
+const CHAT_WONDER_URL = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
 const WS_URL = CHAT_WONDER_URL.replace('http://', 'ws://').replace('https://', 'wss://') + '/chat-stream';
 const RAG_DB_URL = process.env.RAG_DATABASE_URL;
 const BATCH_SIZE = 5;
@@ -89,7 +89,7 @@ Respond with ONLY the title.`;
     const timeout = setTimeout(() => { ws.close(); resolve(null); }, TIMEOUT_MS);
 
     ws.on('open', () => {
-      ws.send(JSON.stringify({ user_input: prompt, session_id: sessionId }));
+      ws.send(JSON.stringify({ type: 'chat', user_input: prompt, session_id: sessionId }));
     });
 
     ws.on('message', (data) => {

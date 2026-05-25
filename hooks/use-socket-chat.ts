@@ -45,7 +45,9 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
             const res = await fetch('/api/chat/session');
             if (!res.ok) throw new Error("Failed to fetch session ID");
             const data = await res.json();
+            if (!data.session_id) throw new Error(data.error || "No session_id returned");
             setSessionId(data.session_id);
+            localStorage.setItem('chat_session_id', data.session_id);
             console.log("Session initialized:", data.session_id);
         } catch (err) {
             console.error("Session fetch error:", err);
@@ -92,8 +94,6 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
     }]);
 
     let accumulatedContent = '';
-    let streamSources: any[] | null = null;
-
 
     // Create abort controller for this request
     const abortController = new AbortController();
@@ -106,7 +106,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_input: `[Legal AI] ${text}`,
+          user_input: text,
           session_id: sessionId,
         }),
         signal: abortController.signal,
@@ -131,18 +131,7 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
 
           let chunk = decoder.decode(value, { stream: true });
 
-          // Parse [Sources] JSON sent from the Python server
-          if (chunk.startsWith("[Sources]")) {
-            try {
-              const sourcesJson = chunk.replace("[Sources] ", "");
-              const sourcesData: any[] = JSON.parse(sourcesJson);
-              streamSources = sourcesData;
-              console.log('[Legal Sources] Received from server stream:', sourcesData.length, 'sources');
-            } catch (e) {
-              console.warn('[Legal Sources] Failed to parse:', e);
-            }
-            continue;
-          }
+          // [Sources] stripped at api/chat/stream proxy — not used in law-ph UI
 
           // Strip END marker, don’t skip content
           if (chunk.includes("__END__")) {
@@ -169,23 +158,10 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
           setMessages(currentMessages => {
             const lastMsg = currentMessages[currentMessages.length - 1];
             if (lastMsg?.sender === 'ai') {
-              let streamRelated = lastMsg.relatedCases;
-              if (streamSources && streamSources.length > 0) {
-                streamRelated = streamSources.map((item: any) => ({
-                  caseNumber: item.gr_number || item.case_number || 'N/A',
-                  title: item.title || 'Philippine Legal Document',
-                  description: item.title || item.source_type || 'Legal Source',
-                  score: item.relevance,
-                  url: item.url,
-                  type: item.source_type,
-                  itemId: item.item_id,
-                }));
-              }
               const updated = [...currentMessages];
               updated[updated.length - 1] = {
                 ...lastMsg,
                 text: accumulatedContent,
-                relatedCases: streamRelated,
               };
               return updated;
             }

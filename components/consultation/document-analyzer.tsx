@@ -87,7 +87,7 @@ export function DocumentAnalyzer({ onDocumentAnalyzed, disabled = false }: Docum
     try {
       const data = await uploadAndAnalyzeDocument(
         file,
-        process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+        process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       );
 
       setUploadData(data);

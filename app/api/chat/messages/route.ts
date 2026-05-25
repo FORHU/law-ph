@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth/session";
-import { MessageRole } from "@/generated/prisma";
+import { MessageRole } from "@/generated/prisma/client";
 
 export async function POST(req: Request) {
   const user = await getServerSession();

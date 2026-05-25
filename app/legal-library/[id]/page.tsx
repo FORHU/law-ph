@@ -9,6 +9,7 @@ import {
   Bookmark, BookmarkCheck, Search, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { FormattedLegalText, cleanText } from '@/components/legal/formatted-legal-text';
+import { LegalMarkdown } from '@/components/legal/legal-markdown';
 
 interface Annotation {
   id: string;
@@ -28,7 +29,7 @@ interface RagDocument {
   source_url: string | null;
   concise_summary: string | null;
   full_text: string | null;
-  formatted_text: string | null;
+  formatted_markdown: string | null;
   summary: string | null;
 }
 
@@ -131,7 +132,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
   // ── Keyboard shortcut: Ctrl+F ──────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && doc?.full_text) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && (doc?.formatted_markdown || doc?.full_text)) {
         e.preventDefault();
         setShowFind(v => !v);
         setTimeout(() => findInputRef.current?.focus(), 50);
@@ -442,12 +443,14 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
             )}
 
             {/* Full text */}
-            {doc.full_text && (
+            {(doc.formatted_markdown || doc.full_text) && (
               <div className="border-t border-white/10 pt-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <BookOpen size={14} className="text-gray-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Full Text</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                      {doc.formatted_markdown ? 'Document' : 'Full Text'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 print:hidden">
                     <span className="text-[10px] text-gray-600 italic">Select text to highlight · Ctrl+F to search</span>
@@ -478,8 +481,12 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
                   </div>
                 )}
 
-                <div ref={fullTextRef} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 space-y-4" onMouseUp={handleTextSelect}>
-                  <FormattedLegalText text={doc.full_text} annotations={annotations} />
+                <div ref={fullTextRef} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 space-y-4" onMouseUp={doc.formatted_markdown ? undefined : handleTextSelect}>
+                  {doc.formatted_markdown ? (
+                    <LegalMarkdown content={doc.formatted_markdown} />
+                  ) : (
+                    <FormattedLegalText text={doc.full_text!} annotations={annotations} />
+                  )}
                 </div>
 
                 {/* Highlight popup */}
