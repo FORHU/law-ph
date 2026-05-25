@@ -30,8 +30,6 @@ export interface ProcessedChunk {
   text: string;
   /** Case/source references extracted from a [Sources] block, if one was present. */
   extractedSources?: StreamSource[];
-  /** Timeline and mindMap extracted from a [STRUCTURED_DATA] block, if one was present. */
-  structuredData?: { timeline?: any[]; mindMap?: any };
 }
 
 // ---------------------------------------------------------------------------
@@ -42,24 +40,48 @@ export interface ProcessedChunk {
 // requests made through the streaming hook.
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// CHAT_WONDER_RULES — reference copy only. DO NOT inject into user_input.
-// Paste this into the Chat Wonder backend system prompt.
-// ---------------------------------------------------------------------------
-//
-// export const CHAT_WONDER_RULES = `
-// At the end of your response, output this tag:
-//
-// [RELATED_QUERIES]["term1","term2","term3"][/RELATED_QUERIES]
-//
-// Replace the terms with 3–5 specific Philippine legal search terms drawn from
-// the question and your answer. Use precise terms — law names, legal concepts,
-// offense types, agency names. Be specific, not generic
-// (e.g. "illegal dismissal" not "employment").
-//
-// CRITICAL: NEVER mention "Related Queries" in your prose.
-// Output only the tag at the very bottom, after all text.
-// `;
+export const CHAT_WONDER_RULES = `
+[LEGAL_RULES]
+
+Markdown only.
+
+Response order:
+## Legal Assessment
+## Applicable Law
+## Analysis
+## Relevant Jurisprudence
+## Recommended Steps
+
+Rules:
+- Bold laws, cases, deadlines.
+- Use > for warnings, risks, deadlines, or quoted law.
+- Numbered lists for steps.
+- Cite:
+  - "Republic Act No. XXXX"
+  - "Article XX of the [Code]"
+  - "**Case Name** (G.R. No. XXXXXX, Month DD, YYYY)"
+- Apply law to facts directly.
+- Use qualified terms: "may", "likely", "court may find".
+- Never guarantee outcomes or invent citations/laws.
+- Mention risks or consequences of inaction.
+- State proper agency/lawyer if needed.
+
+End with:
+[TIMELINE]
+[
+{
+"title":"",
+"description":"",
+"status":"pending",
+"requires_previous":false
+}
+]
+[/TIMELINE]
+
+[/LEGAL_RULES]
+`.trim();
+
+//export const CHAT_WONDER_RULES = "";
 
 // ---------------------------------------------------------------------------
 // Part 2 — Stream rules applied to every incoming chunk from Chat Wonder
@@ -78,12 +100,12 @@ const STREAM_RULES = {
 
   /**
    * RULE — Sources block
-   * The Chat Wonder backend appends case/source metadata to the AI answer
-   * using the format:  [Sources] [{...}, ...]
-   * Strip it from the chat text entirely — law-ph discards source metadata.
+   * The Chat Wonder backend prepends case/source metadata before the AI
+   * answer using the format:  [Sources] [{...}, ...]
+   * Extract it as structured data and remove it from the chat text.
+   * law-ph drops this at the stream proxy (not routed to Related Cases tab).
    */
   SOURCES_PREFIX: '[Sources]',
-  STRIP_SOURCES: /\[Sources\][\s\S]*$/i,
 
   /**
    * RULE — Timeline block
@@ -98,21 +120,6 @@ const STREAM_RULES = {
    * Remove it from the chat bubble — it is rendered separately.
    */
   STRIP_MINDMAP: /\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i,
-
-  /**
-   * RULE — Related queries block
-   * [RELATED_QUERIES][...][/RELATED_QUERIES] contains search terms the AI
-   * selected to query the legal-rag DB. Strip from display — used by
-   * use-send-message.ts to populate the Related Cases tab.
-   */
-  STRIP_RELATED_QUERIES: /\[RELATED_QUERIES\][\s\S]*?(?:\[\/RELATED_QUERIES\]|$)/i,
-
-  /**
-   * RULE — Structured data block
-   * [STRUCTURED_DATA]{...} carries timeline/mindMap JSON from a second LLM call.
-   * Extracted and routed to UI components — never shown in chat bubble.
-   */
-  STRUCTURED_DATA_PREFIX: '[STRUCTURED_DATA]',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -174,47 +181,37 @@ function mapToStreamSource(item: any): StreamSource {
  */
 export function processChunk(rawChunk: string): ProcessedChunk {
   // RULE: strip internal [Tool] trace lines
-  let text = rawChunk.replace(STREAM_RULES.STRIP_TOOL_LINES, '');
+  // let text = rawChunk.replace(STREAM_RULES.STRIP_TOOL_LINES, '');
+  // console.log(rawChunk);
+  // debugger;
+  let text = rawChunk;
 
   // RULE: extract [Sources] block — never display in chat (proxy usually strips first)
   if (text.startsWith(STREAM_RULES.SOURCES_PREFIX)) {
     const rest = text.slice(STREAM_RULES.SOURCES_PREFIX.length).trimStart();
     const block = extractJsonBlock(rest);
 
-    if (block) {
-      try {
-        const parsed = JSON.parse(block.json);
-        const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
-        return {
-          text:             block.remainder,
-          extractedSources: items.map(mapToStreamSource),
-        };
-      } catch (_) {
-        // Malformed JSON — discard the whole [Sources] chunk silently
-      }
-    }
+  //   if (block) {
+  //     try {
+  //       const parsed = JSON.parse(block.json);
+  //       const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
+  //       return {
+  //         text:             block.remainder,
+  //         extractedSources: items.map(mapToStreamSource),
+  //       };
+  //     } catch (_) {
+  //       // Malformed JSON — discard the whole [Sources] chunk silently
+  //     }
+  //   }
 
-    // Could not parse (malformed or still streaming) — discard entirely
-    return { text: '' };
-  }
-
-  // RULE: extract [STRUCTURED_DATA] block — carries timeline/mindMap from second LLM call
-  if (text.startsWith(STREAM_RULES.STRUCTURED_DATA_PREFIX)) {
-    const rest = text.slice(STREAM_RULES.STRUCTURED_DATA_PREFIX.length).trimStart();
-    const block = extractJsonBlock(rest);
-    if (block) {
-      try {
-        const parsed = JSON.parse(block.json);
-        return { text: '', structuredData: { timeline: parsed.timeline, mindMap: parsed.mindMap } };
-      } catch (_) {
-        // Malformed JSON — discard silently
-      }
-    }
-    return { text: '' };
+  //   // Could not parse (malformed or still streaming) — discard entirely
+  //   return { text: '' };
+  // }
   }
 
   return { text };
 }
+
 
 /**
  * Applies display-only rules to the fully accumulated response text
@@ -223,9 +220,7 @@ export function processChunk(rawChunk: string): ProcessedChunk {
  */
 export function cleanAccumulatedText(text: string): string {
   return text
-    .replace(STREAM_RULES.STRIP_SOURCES, '')
     .replace(STREAM_RULES.STRIP_TIMELINE, '')
     .replace(STREAM_RULES.STRIP_MINDMAP, '')
-    .replace(STREAM_RULES.STRIP_RELATED_QUERIES, '')
     .trim();
 }

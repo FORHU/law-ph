@@ -1,8 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
-import { extractTimeline, extractMindMap, cleanMessageText, extractRelatedQueries } from '@/lib/citation-parser';
-import type { RelatedCase } from '@/lib/citation-parser';
-import { processChunk, cleanAccumulatedText } from '@/lib/stream-response-processor';
+import { extractTimeline, extractMindMap, cleanMessageText } from '@/lib/citation-parser';
+import { processChunk, cleanAccumulatedText, CHAT_WONDER_RULES } from '@/lib/stream-response-processor';
 import { Message } from './conversation-context';
 import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
 
@@ -204,12 +203,13 @@ export function useSendMessage({
 
           const doFetch = async (sId: string): Promise<Response> => {
             const baseInput = finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "");
+            const payloadUserInput = `[Legal AI] ${CHAT_WONDER_RULES}\n\n${baseInput}`;
 
             return fetch('/api/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                user_input: baseInput,
+                user_input: payloadUserInput,
                 session_id: sId,
                 document_context: currentDocumentContext
               }),
@@ -235,10 +235,8 @@ export function useSendMessage({
             const now = Date.now();
             if (!isFinal && now - lastRenderTime < RENDER_INTERVAL_MS) return;
             lastRenderTime = now;
-            const extractedTimeline = extractTimeline(accumulatedText);
-            const extractedMindMap = extractMindMap(accumulatedText);
-            if (extractedTimeline) timeline = extractedTimeline;
-            if (extractedMindMap) mindMap = extractedMindMap;
+            timeline = extractTimeline(accumulatedText);
+            mindMap = extractMindMap(accumulatedText);
             const cleanText = cleanAccumulatedText(accumulatedText);
             setMessages(prev => {
               const updated = [...prev];
@@ -284,24 +282,10 @@ export function useSendMessage({
                   break;
                 }
 
-                // __END__ = main response done; unlock input now and keep reading for structured data
-                if (raw === '__END__') {
-                  flushToUI(true);
-                  setIsLoading(false);
-                  aiResponseSuccessful = true;
-                  continue;
-                }
-
                 const processed = processChunk(raw);
                 accumulatedText += processed.text;
 
-                if (processed.structuredData) {
-                  if (processed.structuredData.timeline) timeline = processed.structuredData.timeline;
-                  if (processed.structuredData.mindMap) mindMap = processed.structuredData.mindMap;
-                  flushToUI(true);
-                } else {
-                  flushToUI(false);
-                }
+                flushToUI(false);
               }
               flushToUI(true); // always render the complete final text
               aiResponseSuccessful = true;
@@ -317,35 +301,8 @@ export function useSendMessage({
             }
           }
 
-          // Auto-populate Related Cases tab using AI-emitted [RELATED_QUERIES] terms
-          const relatedQueries = extractRelatedQueries(accumulatedText);
-          if (relatedQueries && relatedQueries.length > 0) {
-            fetch('/api/legal/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phrases: relatedQueries, limit: 10 }),
-            })
-              .then(res => res.ok ? res.json() : null)
-              .then(data => {
-                const cases: RelatedCase[] = (data?.results ?? []).map((item: any) => ({
-                  caseNumber: item.gr_number || item.item_id || 'N/A',
-                  title: item.title || 'Philippine Legal Document',
-                  description: item.title || '',
-                  url: item.url ?? undefined,
-                  type: item.type ?? undefined,
-                  itemId: item.item_id ?? undefined,
-                }));
-                if (cases.length > 0) {
-                  setMessages(prev => prev.map(m =>
-                    m.id === aiMessageId ? { ...m, relatedCases: cases } : m
-                  ));
-                }
-              })
-              .catch(() => {});
-          }
-
-          // Save AI response via API — clean before persisting so [Sources]/[RELATED_QUERIES] are never stored
-          const rawAiText = cleanAccumulatedText(accumulatedText).trim();
+          // Save AI response via API
+          const rawAiText = accumulatedText.trim();
           const aiSaveRes = await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
