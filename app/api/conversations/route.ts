@@ -2,14 +2,45 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth/session";
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getServerSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const conversations = await prisma.conversation.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get("search");
+
+  let conversations;
+  if (search) {
+    conversations = await prisma.conversation.findMany({
+      where: {
+        userId: user.id,
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          {
+            messages: {
+              some: {
+                content: {
+                  contains: search,
+                  mode: 'insensitive'
+                }
+              }
+            }
+          }
+        ]
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } else {
+    conversations = await prisma.conversation.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 
   return NextResponse.json({ conversations });
 }

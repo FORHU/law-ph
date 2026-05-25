@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, PanelLeftClose, Bookmark, Mic, Library } from 'lucide-react';
+import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, PanelLeftClose, Bookmark, Mic, Library, Search } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
@@ -13,6 +13,7 @@ import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
 import { ScrollToTop } from './sidebar/scroll-to-top';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 interface AppSidebarProps {
   activePage?: SidebarPage;
   recentItems?: RecentItem[];
@@ -47,7 +48,8 @@ export const AppSidebar = React.memo(function AppSidebar({
             pathname?.startsWith('/cases') ? 'cases' :
               pathname?.startsWith('/legal-library') ? 'library' :
                 pathname?.startsWith('/bookmarks') ? 'bookmarks' :
-                'chat'
+                  pathname?.startsWith('/search') ? 'search' :
+                  'chat'
   );
 
   const [activeMenuId, setActiveMenuId] = React.useState<string | number | null>(null);
@@ -64,6 +66,7 @@ export const AppSidebar = React.memo(function AppSidebar({
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const isDocumentsOrCalendarOrTranscribe = (['documents', 'calendar', 'transcribe', 'library', 'cases'] as const).includes(resolvedActivePage as any);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
 
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
@@ -113,11 +116,22 @@ export const AppSidebar = React.memo(function AppSidebar({
           {isDocumentsOrCalendarOrTranscribe ? (
             <>
               <button
-                onClick={() => router.push('/consultation')}
+                onClick={() => {
+                  onNewItem?.();
+                  router.push('/consultation');
+                }}
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <MessageSquare size={16} className="transition-colors" />
                 <span className="text-xs font-medium">Chat</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/search')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Search size={16} className={(resolvedActivePage as string) === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Search Chats</span>
               </button>
 
               <button
@@ -172,11 +186,24 @@ export const AppSidebar = React.memo(function AppSidebar({
             <>
               {/* Main nav */}
               <button
-                onClick={() => onNewItem?.()}
-                className="w-full px-3 py-2 bg-[rgba(114,47,55,0.15)] border border-[rgba(114,47,55,0.4)] rounded-lg hover:bg-[rgba(114,47,55,0.25)] hover:shadow-[0_0_15px_rgba(114,47,55,0.3)] transition-all duration-300 flex items-center gap-2.5 text-white"
+                onClick={() => {
+                  onNewItem?.();
+                  if (pathname !== '/consultation') {
+                    router.push('/consultation');
+                  }
+                }}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'chat' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
-                <MessageSquare size={16} className="text-[rgba(233,193,118,1)] transition-colors" />
+                <MessageSquare size={16} className={resolvedActivePage === 'chat' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-xs font-medium">Chat</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/search')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Search size={16} className={resolvedActivePage === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Search Chats</span>
               </button>
 
               <button
@@ -225,6 +252,14 @@ export const AppSidebar = React.memo(function AppSidebar({
               >
                 <Bookmark size={16} className="transition-colors" />
                 <span className="text-xs font-medium">Bookmarks</span>
+              </button>
+
+              <button
+                onClick={() => router.push('/legal-library')}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
+              >
+                <Library size={16} className={(resolvedActivePage as string) === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
+                <span className="text-xs font-medium">Library</span>
               </button>
             </>
           )}

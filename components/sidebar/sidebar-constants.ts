@@ -12,7 +12,7 @@ export interface RecentItem {
   onBookmark?: () => void;
 }
 
-export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth' | 'library' | 'bookmarks';
+export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth' | 'library' | 'bookmarks' | 'search';
 
 export interface NavItem {
   id: SidebarPage;

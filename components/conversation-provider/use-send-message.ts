@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
 import { extractTimeline, extractMindMap, cleanMessageText } from '@/lib/citation-parser';
-import { processChunk, cleanAccumulatedText, CHAT_WONDER_RULES } from '@/lib/stream-response-processor';
+import { processChunk, cleanAccumulatedText } from '@/lib/stream-response-processor';
 import { Message } from './conversation-context';
 import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
 
@@ -203,13 +203,12 @@ export function useSendMessage({
 
           const doFetch = async (sId: string): Promise<Response> => {
             const baseInput = finalPromptToAI || (file ? `Analyze the attached document: ${file.name}` : "");
-            const payloadUserInput = `[Legal AI] ${CHAT_WONDER_RULES}\n\n${baseInput}`;
 
             return fetch('/api/chat/stream', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                user_input: payloadUserInput,
+                user_input: baseInput,
                 session_id: sId,
                 document_context: currentDocumentContext
               }),
