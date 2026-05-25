@@ -486,6 +486,8 @@ export default function CalendarPage() {
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Fetch events from DB
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
@@ -495,7 +497,12 @@ export default function CalendarPage() {
       if (!res.ok) {
         console.error("Error fetching events:", res.status);
         setEventsError("Unable to load events. Retrying...");
-        setTimeout(() => fetchEvents(), 3000);
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        retryTimeoutRef.current = setTimeout(() => {
+          fetchEvents();
+        }, 3000);
       } else {
         const json = await res.json();
         const data = json.events;
@@ -749,6 +756,12 @@ export default function CalendarPage() {
       }
       checkGoogleAuth(userId);
     }
+
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
   }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
 
   // fetchEvents is called on mount and after mutations for sync.

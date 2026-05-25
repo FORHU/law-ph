@@ -9,7 +9,7 @@ import { useConversations } from '@/components/conversation-provider/conversatio
 
 interface PageLayoutProps {
   children: React.ReactNode;
-  activePage: 'chat' | 'documents' | 'calendar' | 'cases' | 'auth' | 'transcribe' | 'library' | 'bookmarks';
+  activePage: 'chat' | 'documents' | 'calendar' | 'cases' | 'auth' | 'transcribe' | 'library' | 'bookmarks' | 'search';
   title: string;
   subtitle?: string;
   headerActions?: React.ReactNode;

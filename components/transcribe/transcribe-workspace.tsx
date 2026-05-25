@@ -667,7 +667,7 @@ export default function TranscribeWorkspace({
         analyzer.smoothingTimeConstant = 0.4;
         source.connect(analyzer);
         analyzerNodeRef.current = analyzer;
-        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount as number) as Uint8Array<ArrayBuffer>;
         analyzerDataRef.current = dataArray;
         analyzerLastFrameRef.current = 0;
 
@@ -675,7 +675,7 @@ export default function TranscribeWorkspace({
           if (!analyzerNodeRef.current || !analyzerDataRef.current) return;
           // ~30fps: gives accurate response without excessive re-renders
           if (timestamp - analyzerLastFrameRef.current >= 33) {
-            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current);
+            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current as Uint8Array<ArrayBuffer>);
             // Focus on speech-band bins (~80Hz–4kHz for 44100Hz/1024 fftSize → bins 2–93)
             const speechBins = analyzerDataRef.current.slice(2, 93);
             const rms = Math.sqrt(

@@ -30,7 +30,12 @@
       "Bash(sed -i 's/The definitive digital workspace for the Philippine legal profession\\\\. ilovelawyer bridges centuries of jurisprudence with cutting-edge artificial intelligence\\\\./AI-powered legal assistance built for Philippine law./g' components/landing/hero-section.tsx)",
       "Bash(sed -i 's/The definitive digital workspace for the Philippine legal profession\\\\. Bridging centuries of jurisprudence with cutting-edge artificial intelligence\\\\./AI-powered legal assistance built for Philippine law./g' components/footer-default.tsx)",
       "Bash(sed -i 's/Your institutional privacy is our priority\\\\. We utilize ratified security protocols to protect all sensitive information\\\\./Your privacy is our priority. We use industry-standard security to protect all sensitive information./g' components/landing/trust-section.tsx)",
-      "Bash(sed -i 's/Direct access to ratified government portals and verified legal assistance programs in the Philippines\\\\./Direct access to official government portals and verified legal assistance programs in the Philippines./g' components/resources-section.tsx)"
+      "Bash(sed -i 's/Direct access to ratified government portals and verified legal assistance programs in the Philippines\\\\./Direct access to official government portals and verified legal assistance programs in the Philippines./g' components/resources-section.tsx)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('c:/Users/Jewish/Documents/GitHub/law-ph/.env.local','utf-8'\\); const lines=c.split\\('\\\\n'\\); const l=lines[23]; console.log\\('len:',l.length,'chars:',[...l].slice\\(0,20\\).map\\(c=>c.charCodeAt\\(0\\)\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('c:/Users/Jewish/Documents/GitHub/law-ph/.env.local','utf-8'\\); const lines=c.split\\('\\\\n'\\); const l=lines[24]; console.log\\('len:',l.length,'first10chars:',[...l].slice\\(0,10\\).map\\(c=>c.charCodeAt\\(0\\)\\)\\)\")",
+      "Bash(node -e \"require\\('dotenv'\\); console.log\\('ok'\\)\" --experimental-vm-modules)",
+      "Bash(node scripts/generate-titles.mjs)"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\Documents\\GitHub\\law-ph\\surreal_data"

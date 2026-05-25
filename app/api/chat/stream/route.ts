@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
 
           try {
             if (message === '__END__') {
-              // End sentinel — close cleanly, don't forward to the client
               ws.close();
               closeStream();
             } else {
