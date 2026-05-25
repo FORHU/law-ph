@@ -269,7 +269,7 @@ export default function LegalLibraryPage() {
   return (
     <PageLayout
       activePage="library"
-      title="Legal Library"
+      title="Library"
       subtitle="Browse Philippine legal documents"
       maxWidth="max-w-7xl"
       backgroundAngle={2}

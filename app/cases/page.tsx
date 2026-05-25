@@ -1,128 +1,220 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import {
-  Search, Plus, Filter, Folder, FileText, Clock, ChevronRight, Briefcase
-} from 'lucide-react';
-import { useAuth } from '@/components/auth/auth-provider';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Loader2, Briefcase } from 'lucide-react';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { PageLayout } from '@/components/ui/page-layout';
-
-interface Case {
-  id: string;
-  caseName: string;
-  partyInvolved: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import { CaseNameInput } from '@/components/create-case/case-name-input';
+import { PartyInputList } from '@/components/create-case/party-input-list';
+import { NotesTextarea } from '@/components/create-case/notes-textarea';
+import { RecordingControls } from '@/components/create-case/recording-controls';
+import { SimpleAudioPlayer } from '@/components/create-case/audio-player';
+import { useCaseRecording } from '@/components/create-case/use-recording';
+import { MODAL_STYLES, STRINGS } from '@/components/create-case/constants';
 
 export default function CasesPage() {
   const router = useRouter();
-  const { loggedIn } = useAuth();
-  const [cases, setCases] = useState<Case[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { handleCreateCase } = useConversations();
+
+  const [caseName, setCaseName] = useState('');
+  const [parties, setParties] = useState<{ id: string; value: string }[]>([
+    { id: crypto.randomUUID(), value: '' },
+  ]);
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    isRecording, isAudioRecording, recordings, duration, transcript,
+    toggleTranscription, toggleAudioRecording, removeRecording, clearRecordings,
+  } = useCaseRecording();
+
+  const partyInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    if (!loggedIn) return;
+    if (transcript) {
+      setNotes((prev) => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + transcript.trim());
+    }
+  }, [transcript]);
 
-    fetch('/api/cases')
-      .then((r) => r.json())
-      .then(({ cases }) => setCases(cases || []))
-      .catch((err) => console.error('Error fetching cases:', err))
-      .finally(() => setLoading(false));
-  }, [loggedIn]);
+  const handleCaseNameChange = React.useCallback((val: string) => setCaseName(val), []);
+  const handleNotesChange = React.useCallback((val: string) => setNotes(val), []);
 
-  const filteredCases = cases.filter((c) =>
-    c.caseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.partyInvolved || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleUpdateParty = React.useCallback((id: string, value: string) => {
+    setParties((prev) => prev.map((p) => (p.id === id ? { ...p, value } : p)));
+  }, []);
+
+  const handleRemoveParty = React.useCallback((id: string) => {
+    setParties((prev) => {
+      if (prev.length <= 1) return [{ id: crypto.randomUUID(), value: '' }];
+      return prev.filter((p) => p.id !== id);
+    });
+  }, []);
+
+  const addParty = () => {
+    setParties((prev) => [...prev, { id: crypto.randomUUID(), value: '' }]);
+    setTimeout(() => {
+      partyInputsRef.current[partyInputsRef.current.length - 1]?.focus();
+    }, 0);
+  };
+
+  const handlePartyKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (index === parties.length - 1 && parties[index].value.trim()) addParty();
+      else if (index < parties.length - 1) partyInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!caseName.trim() || isRecording || isAudioRecording) return;
+    const recordingsSnapshot = [...recordings];
+    setIsSubmitting(true);
+    try {
+      const partyString = parties.map((p) => p.value.trim()).filter(Boolean).join('\n');
+      const newCase = await handleCreateCase({ name: caseName, party: partyString, notes });
+      if (newCase) {
+        if (recordingsSnapshot.length > 0) {
+          const { uploadVoiceNote } = await import('@/lib/s3-utils');
+          const voiceNotes = await Promise.all(
+            recordingsSnapshot.map(async (r, i) => {
+              try {
+                const { file_url, s3_key } = await uploadVoiceNote(r.blob, `case_${newCase.id}_rec_${i + 1}.webm`);
+                if (!file_url) throw new Error('No URL');
+                return { id: r.id, url: file_url, s3_key, label: `Recording ${i + 1}`, duration: r.duration };
+              } catch {
+                return { id: r.id, url: r.url, label: `Recording ${i + 1} (Upload Failed)`, duration: r.duration };
+              }
+            })
+          );
+          const meta = { voiceNotes, recordingUrl: voiceNotes[0]?.url, hidden: true };
+          const content = `🎙️ ${voiceNotes.length} voice recording${voiceNotes.length > 1 ? 's' : ''} attached.\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
+          await fetch('/api/chat/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversationId: newCase.id, role: 'user', content }),
+          });
+        }
+        setCaseName(''); setNotes(''); clearRecordings();
+        setParties([{ id: crypto.randomUUID(), value: '' }]);
+        router.push('/cases/' + newCase.id);
+      }
+    } catch {
+      alert('Failed to create case.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <PageLayout activePage="cases" title="Case Management" subtitle="Organize and track your legal matters" backgroundAngle={2}>
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search cases or parties..."
-              className="w-full bg-[#1A1A1B] border border-white/5 rounded-2xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <PageLayout
+      activePage="cases"
+      title="Case"
+      subtitle="Record case details, parties, and initial notes"
+      maxWidth="max-w-7xl"
+      backgroundAngle={2}
+    >
+      <div className="flex-1 flex overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden p-6 gap-5">
 
-          <div className="flex gap-4 w-full md:w-auto">
-            <button className="flex-1 md:flex-none glass-panel px-6 py-3 rounded-xl flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all">
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
+          {/* LEFT — Case info, fixed width, full height */}
+          <div className="w-80 flex-shrink-0 flex flex-col gap-3 min-h-0">
+            <div className="flex-1 bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col min-h-0 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b border-[#722f37]/10 flex-shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-[#722f37]/20 border border-[#722f37]/30 flex items-center justify-center flex-shrink-0">
+                  <Briefcase size={13} className="text-[#e9c176]" />
+                </div>
+                <span className="text-xl font-serif text-white tracking-tight">Case Information</span>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className={MODAL_STYLES.label}>{STRINGS.caseNameLabel}</label>
+                  <CaseNameInput value={caseName} onChange={handleCaseNameChange} />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className={MODAL_STYLES.label}>{STRINGS.partyLabel}</label>
+                    <button
+                      type="button"
+                      onClick={addParty}
+                      className="w-6 h-6 flex items-center justify-center hover:bg-[#722f37]/20 rounded-lg text-[#e9c176] transition-colors"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <PartyInputList
+                    parties={parties}
+                    onUpdate={handleUpdateParty}
+                    onRemove={handleRemoveParty}
+                    onKeyDown={handlePartyKeyDown}
+                    inputRefs={partyInputsRef}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit — fixed at bottom, never grows */}
             <button
-              onClick={() => router.push('/create-case')}
-              className="flex-1 md:flex-none bg-[#722f37] hover:bg-[#8b3a44] text-white px-8 py-3 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-black/40 font-bold uppercase tracking-widest text-[10px]"
+              type="submit"
+              disabled={isSubmitting || !caseName.trim() || isRecording || isAudioRecording}
+              className="flex-shrink-0 w-full px-4 py-2.5 bg-[#722f37] hover:bg-[#8B3A44] text-white rounded-xl transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-[13px] uppercase tracking-wider"
             >
-              <Plus className="w-5 h-5" />
-              New Case
+              {isSubmitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : isRecording || isAudioRecording ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  Recording...
+                </span>
+              ) : STRINGS.createBtn}
             </button>
           </div>
-        </div>
 
-        <motion.div
-          variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } }}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 gap-6"
-        >
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-secondary"></div>
+          {/* RIGHT — Transcript / Notes, same full height */}
+          <div className="flex-1 bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col min-h-0 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#722f37]/10 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl font-serif text-white tracking-tight">Transcript / Notes</span>
+                <span className="text-[10px] text-gray-600 uppercase tracking-widest hidden sm:block">— type or record</span>
+              </div>
+              <RecordingControls
+                isRecording={isRecording}
+                isAudioRecording={isAudioRecording}
+                duration={duration}
+                onToggleTranscription={toggleTranscription}
+                onToggleAudio={toggleAudioRecording}
+              />
             </div>
-          ) : filteredCases.length > 0 ? (
-            filteredCases.map((c) => (
-              <motion.div
-                key={c.id}
-                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.6 } } }}
-                onClick={() => router.push(`/cases/${c.id}`)}
-                className="glass-panel p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all cursor-pointer group flex items-center justify-between bg-white/[0.01] hover:bg-white/[0.03]"
-                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}
-              >
-                <div className="flex items-center gap-8">
-                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover:bg-[#722f37]/20 group-hover:border-[#722f37]/30 transition-all">
-                    <Briefcase className="w-8 h-8 text-gray-400 group-hover:text-[#ffb2b8]" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-serif text-white mb-2 group-hover:text-[#ffb2b8] transition-colors">{c.caseName}</h3>
-                    <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 font-medium">
-                      {c.partyInvolved && (
-                        <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]">
-                          <Folder className="w-4 h-4 text-gray-600" /> {c.partyInvolved}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-2 uppercase tracking-wider text-[10px]">
-                        <Clock className="w-4 h-4 text-gray-600" /> {new Date(c.updatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-8">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-white/10 group-hover:translate-x-1 transition-all">
-                    <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white" />
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="text-center py-40 glass-panel rounded-[3rem] border-dashed border-white/10">
-              <Folder className="w-20 h-20 text-gray-800 mx-auto mb-8" />
-              <h3 className="text-3xl font-serif text-gray-500 mb-4">No cases found</h3>
-              <p className="text-gray-600 text-lg">Start by creating your first legal matter.</p>
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 flex flex-col gap-3">
+              <div className="flex-1 min-h-0 [&>div]:h-full [&_textarea]:h-full [&_textarea]:resize-none">
+                <NotesTextarea value={notes} onChange={handleNotesChange} />
+              </div>
+              <AnimatePresence>
+                {recordings.map((rec) => (
+                  <motion.div
+                    key={rec.id}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex-shrink-0"
+                  >
+                    <SimpleAudioPlayer url={rec.url} onDiscard={() => removeRecording(rec.id)} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
-          )}
-        </motion.div>
+          </div>
+
+        </form>
       </div>
     </PageLayout>
   );

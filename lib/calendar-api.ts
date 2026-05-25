@@ -148,9 +148,11 @@ export async function createCalendarEvent(
 
   try {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const typeTag = data.type ? `[type:${data.type}]` : "";
+    const descriptionWithType = [typeTag, data.description].filter(Boolean).join("\n");
     const eventBody: any = {
       summary: data.title,
-      description: data.description,
+      description: descriptionWithType,
       start: { dateTime: data.start_datetime, timeZone: userTimeZone },
       end: { dateTime: data.end_datetime, timeZone: userTimeZone },
       reminders: {
@@ -170,7 +172,7 @@ export async function createCalendarEvent(
     }
 
     const url = new URL(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
     );
 
     let token = providerToken;
@@ -239,9 +241,11 @@ export async function updateCalendarEvent(
 
   try {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const typeTag = data.type ? `[type:${data.type}]` : "";
+    const descriptionWithType = [typeTag, data.description].filter(Boolean).join("\n");
     const eventBody: any = {
       summary: data.title,
-      description: data.description,
+      description: descriptionWithType,
       start: { dateTime: data.start_datetime, timeZone: userTimeZone },
       end: { dateTime: data.end_datetime, timeZone: userTimeZone },
     };
@@ -252,7 +256,7 @@ export async function updateCalendarEvent(
     }
 
     const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=all`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
     );
 
     let token = providerToken;
@@ -306,7 +310,7 @@ export async function deleteCalendarEvent(
 
   try {
     const url = new URL(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=all`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
     );
 
     let token = providerToken;

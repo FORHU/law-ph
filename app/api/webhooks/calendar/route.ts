@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { refreshGoogleAccessToken } from '@/lib/google-token';
 
 function inferEventType(title?: string, description?: string): string {
+  const typeMatch = description?.match(/\[type:(meeting|appointment|hearing|deposition)\]/);
+  if (typeMatch) return typeMatch[1];
   const text = `${title ?? ''} ${description ?? ''}`.toLowerCase();
   if (text.includes('hearing')) return 'hearing';
   if (text.includes('deposition')) return 'deposition';
@@ -47,14 +49,16 @@ export async function POST(req: Request) {
     const userId = channel.userId;
 
     // Get the user's stored refresh token
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { googleRefreshToken: true },
+    });
     if (!user) {
       console.error('[Calendar Webhook] User not found:', userId);
       return new Response('User not found', { status: 200 });
     }
 
-    // TODO: Store providerRefreshToken in User model when implementing OAuth
-    const refreshToken = (user as any).providerRefreshToken;
+    const refreshToken = user.googleRefreshToken;
     if (!refreshToken) {
       console.error('[Calendar Webhook] No refresh token for user:', userId);
       return new Response('No refresh token', { status: 200 });
@@ -66,13 +70,19 @@ export async function POST(req: Request) {
       return new Response('Token refresh failed', { status: 200 });
     }
 
-    // Fetch upcoming events from Google Calendar
-    const now = new Date().toISOString();
+    // Fetch events from start of current month so past events in the same month are included
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
     const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
-    url.searchParams.set('timeMin', now);
-    url.searchParams.set('maxResults', '50');
+    url.searchParams.set('timeMin', monthStart.toISOString());
+    url.searchParams.set('maxResults', '100');
     url.searchParams.set('singleEvents', 'true');
     url.searchParams.set('orderBy', 'startTime');
+    url.searchParams.set(
+      'fields',
+      'items(id,summary,description,start,htmlLink,attendees(email,responseStatus,organizer),status,iCalUID)',
+    );
 
     const googleRes = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -109,7 +119,11 @@ export async function POST(req: Request) {
       if (localMatch) {
         await prisma.event.update({
           where: { id: localMatch.id },
-          data: { googleEventId: ge.id },
+          data: {
+            googleEventId: ge.id,
+            googleLink: ge.htmlLink ?? localMatch.googleLink,
+            status: getEventStatus(ge),
+          },
         });
       } else {
         await prisma.event.upsert({
@@ -120,12 +134,13 @@ export async function POST(req: Request) {
             title: geTitle,
             type: inferEventType(geTitle, ge.description),
             dateTime: new Date(geTime),
-            notes: ge.description ?? null,
+            notes: ge.description?.replace(/\[type:[^\]]+\]\n?/, '').trim() || null,
             googleLink: ge.htmlLink ?? null,
             status: getEventStatus(ge),
           },
           update: {
             title: geTitle,
+            type: inferEventType(geTitle, ge.description),
             status: getEventStatus(ge),
             googleLink: ge.htmlLink ?? null,
           },

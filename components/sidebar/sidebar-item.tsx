@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, Edit3, Trash2, Check, X } from 'lucide-react';
+import { MoreHorizontal, Edit3, Trash2, Check, X, Bookmark } from 'lucide-react';
 import { RecentItem, SIDEBAR_STYLES } from './sidebar-constants';
 const PortalWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mounted, setMounted] = useState(false);
@@ -117,8 +117,7 @@ export function SidebarItem({ item, isOpen = false, onToggle, currentConsultatio
           </div>
         ) : (
           <>
-            <div className={`truncate font-serif text-[12px] tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
-            <div className={`text-[8px] font-bold ${isActive ? 'text-gray-400' : 'text-gray-600'} truncate uppercase tracking-[0.2em]`}>{item.subtitle || 'CONSULTATION'}</div>
+            <div className={`truncate font-serif text-sm tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
           </>
         )}
       </div>
@@ -190,6 +189,17 @@ export function SidebarItem({ item, isOpen = false, onToggle, currentConsultatio
                         animate={{ opacity: 1 }}
                         className="space-y-0.5"
                       >
+                        {item.onBookmark && (
+                          <button
+                            type="button"
+                            onClick={() => { item.onBookmark?.(); onToggle?.(); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-[#722f37]/20 rounded-lg transition-all"
+                          >
+                            <Bookmark size={14} className="text-gray-500" />
+                            Bookmark
+                          </button>
+                        )}
+                        {item.onRename && (
                         <button
                           type="button"
                           onClick={() => {
@@ -200,6 +210,7 @@ export function SidebarItem({ item, isOpen = false, onToggle, currentConsultatio
                           <Edit3 size={14} className="text-gray-500" />
                           Rename
                         </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {

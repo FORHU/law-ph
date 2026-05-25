@@ -5,9 +5,11 @@ export interface RecentItem {
   id: string | number;
   title: string;
   subtitle?: string;
+  type?: 'consultation' | 'case';
   onClick: () => void;
   onRemove?: () => void;
   onRename?: (newTitle: string) => void;
+  onBookmark?: () => void;
 }
 
 export type SidebarPage = 'chat' | 'documents' | 'transcribe' | 'calendar' | 'cases' | 'auth' | 'library' | 'bookmarks';

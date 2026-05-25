@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { refreshGoogleAccessToken } from "@/lib/google-token";
 
 export async function POST(req: Request) {
   try {
@@ -17,7 +18,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing webhookUrl." }, { status: 400 });
     }
 
-    if (!providerToken) {
+    let googleAccessToken = user.googleAccessToken || providerToken;
+
+    if (!googleAccessToken) {
       return NextResponse.json({ error: "Missing Google provider token." }, { status: 400 });
     }
 
@@ -31,14 +34,29 @@ export async function POST(req: Request) {
 
     const channelId = crypto.randomUUID();
 
-    const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events/watch", {
+    const watchUrl = "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch";
+    const makeWatchRequest = (token: string) => fetch(watchUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${providerToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ id: channelId, type: "web_hook", address: webhookUrl }),
     });
+
+    let response = await makeWatchRequest(googleAccessToken);
+
+    if (response.status === 401 && user.googleRefreshToken) {
+      const refreshedToken = await refreshGoogleAccessToken(user.googleRefreshToken);
+      if (refreshedToken) {
+        googleAccessToken = refreshedToken;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { googleAccessToken },
+        });
+        response = await makeWatchRequest(googleAccessToken);
+      }
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
