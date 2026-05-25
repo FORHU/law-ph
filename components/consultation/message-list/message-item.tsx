@@ -427,9 +427,9 @@ export function MessageItem({
                           <Gavel size={40} className="text-gray-600" strokeWidth={1.5} />
                         </div>
                         <div>
-                          <h4 className="text-xl font-serif text-white mb-2">No Cases Found</h4>
+                          <h4 className="text-xl font-serif text-white mb-2">Citations in response</h4>
                           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest max-w-xs mx-auto">
-                            No matching documents found in the legal database.
+                            Use the source links in the answer above. Related case search here is not enabled yet.
                           </p>
                         </div>
                       </div>

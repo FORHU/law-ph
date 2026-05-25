@@ -103,14 +103,7 @@ export function MessageList({
 
   const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
-
-    // Lazy-load legal cases when user clicks Related Cases tab
-    if (tab === 'related') {
-      const msg = messages.find(m => m.id === messageId);
-      if (msg && (!msg.relatedCases || msg.relatedCases.length === 0)) {
-        await fetchRelatedCases(messageId, false);
-      }
-    }
+    // Related Cases tab intentionally empty for now (option C) — no lazy search, no [Sources] mapping
   };
 
   const scrollToMessage = (id: string | number) => {

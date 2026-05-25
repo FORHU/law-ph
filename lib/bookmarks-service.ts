@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { BookmarkType } from "@/generated/prisma";
+import { BookmarkType } from "@/generated/prisma/client";
 
 export interface Bookmark {
   id: string;

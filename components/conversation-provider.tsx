@@ -13,7 +13,6 @@ import { useParams, useRouter } from "next/navigation";
 import { CHAT_SENDER } from "@/lib/constants";
 import {
   extractLegalSources,
-  extractRelatedCases,
   extractTimeline,
   extractMindMap,
   cleanAiText,
@@ -357,8 +356,8 @@ export function ConversationProvider({
     // CRITICAL: Extract from raw text BEFORE cleaning it for display
     const sources =
       sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
-    const relatedCases =
-      sender === CHAT_SENDER.AI ? extractRelatedCases(text) : undefined;
+    // Related Cases tab kept empty for now — citations are inline in the answer only
+    const relatedCases = undefined;
     const timeline =
       sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
     const mindMap =
@@ -909,7 +908,7 @@ Please help me understand this document or answer questions based on it.`;
             file,
             process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL ||
             process.env.NEXT_PUBLIC_API_URL ||
-            "http://localhost:8001",
+            "http://localhost:8000",
             false, // Skip analysis
           );
 

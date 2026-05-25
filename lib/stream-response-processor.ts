@@ -103,7 +103,7 @@ const STREAM_RULES = {
    * The Chat Wonder backend prepends case/source metadata before the AI
    * answer using the format:  [Sources] [{...}, ...]
    * Extract it as structured data and remove it from the chat text.
-   * The data is routed to the Related Cases tab instead.
+   * law-ph drops this at the stream proxy (not routed to Related Cases tab).
    */
   SOURCES_PREFIX: '[Sources]',
 
@@ -157,13 +157,14 @@ function extractJsonBlock(text: string): { json: string; remainder: string } | n
 }
 
 function mapToStreamSource(item: any): StreamSource {
+  const itemId = item.item_id ?? item.id ?? undefined;
   return {
     caseNumber:  item.gr_number || item.case_number || item.title || 'N/A',
     title:       item.title || 'Philippine Legal Document',
     description: item.snippet || item.title || '',
-    url:         item.source_url  ?? undefined,
+    url:         itemId ? `/sources/${itemId}` : (item.source_url ?? undefined),
     type:        item.type        ?? undefined,
-    itemId:      item.item_id     ?? undefined,
+    itemId,
   };
 }
 
@@ -176,7 +177,7 @@ function mapToStreamSource(item: any): StreamSource {
  *
  * Call this for every chunk coming off the reader before touching
  * accumulatedText. Use `result.text` for the chat display and
- * `result.extractedSources` (when present) for the Related Cases tab.
+ * `result.extractedSources` (when present) — unused in law-ph; kept for defensive parsing only.
  */
 export function processChunk(rawChunk: string): ProcessedChunk {
   // RULE: strip internal [Tool] trace lines
@@ -185,10 +186,10 @@ export function processChunk(rawChunk: string): ProcessedChunk {
   // debugger;
   let text = rawChunk;
 
-  // RULE: extract [Sources] block — never display in chat
-  // if (text.startsWith(STREAM_RULES.SOURCES_PREFIX)) {
-  //   const rest = text.slice(STREAM_RULES.SOURCES_PREFIX.length).trimStart();
-  //   const block = extractJsonBlock(rest);
+  // RULE: extract [Sources] block — never display in chat (proxy usually strips first)
+  if (text.startsWith(STREAM_RULES.SOURCES_PREFIX)) {
+    const rest = text.slice(STREAM_RULES.SOURCES_PREFIX.length).trimStart();
+    const block = extractJsonBlock(rest);
 
   //   if (block) {
   //     try {
@@ -206,9 +207,11 @@ export function processChunk(rawChunk: string): ProcessedChunk {
   //   // Could not parse (malformed or still streaming) — discard entirely
   //   return { text: '' };
   // }
+  }
 
   return { text };
 }
+
 
 /**
  * Applies display-only rules to the fully accumulated response text

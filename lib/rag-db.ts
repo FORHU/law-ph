@@ -26,6 +26,7 @@ export interface RagDocument {
   concise_summary: string | null;
   full_text: string | null;
   full_text_source: string | null;
+  formatted_markdown: string | null;
   s3_json_path: string;
   s3_manifest_path: string;
   created_at: Date;
