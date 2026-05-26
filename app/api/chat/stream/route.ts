@@ -122,6 +122,8 @@ export async function POST(request: NextRequest) {
             return;
           }
 
+          if (message.startsWith('[Sources]')) return;
+
           safeEnqueue(message);
         };
 
