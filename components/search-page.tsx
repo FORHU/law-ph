@@ -25,17 +25,16 @@ function ChatCard({
 }) {
   const router = useRouter();
 
-  const formattedDate = conv.updatedAt
-    ? new Date(conv.updatedAt).toLocaleDateString('en-PH', {
+  const dateSource = conv.updatedAt || conv.createdAt;
+  const dateObj = dateSource ? new Date(dateSource) : null;
+  const now = new Date();
+  const isThisYear = dateObj && dateObj.getFullYear() === now.getFullYear();
+
+  const formattedDate = dateObj
+    ? dateObj.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
-      })
-    : conv.createdAt
-    ? new Date(conv.createdAt).toLocaleDateString('en-PH', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
+        ...(isThisYear ? {} : { year: 'numeric' }),
       })
     : null;
 
@@ -52,30 +51,24 @@ function ChatCard({
         <div className="w-10 h-10 rounded-xl bg-[#722f37]/10 border border-[#722f37]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
           <MessageSquare size={16} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-serif text-[15px] text-white truncate tracking-tight group-hover:text-[#e9c176] transition-colors leading-snug">
             {conv.title || 'Untitled Chat'}
           </h3>
-          <div className="flex items-center gap-1.5 mt-1">
-            {isSearchResult && (
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#722f37] bg-[#722f37]/10 px-1.5 py-0.5 rounded-md border border-[#722f37]/20">
-                Match
-              </span>
-            )}
-            {formattedDate && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                <Clock size={9} />
-                {formattedDate}
-              </span>
-            )}
-          </div>
+          {isSearchResult && (
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#722f37] bg-[#722f37]/10 px-1.5 py-0.5 rounded-md border border-[#722f37]/20 mt-1 inline-block">
+              Match
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
-        <span className="text-[11px] font-bold text-[#e9c176] uppercase tracking-widest whitespace-nowrap">
-          Open →
-        </span>
+      <div className="flex-shrink-0 flex items-center gap-3">
+        {formattedDate && (
+          <span className="text-[12px] text-gray-500 group-hover:text-[#e9c176]/80 transition-colors tabular-nums whitespace-nowrap">
+            {formattedDate}
+          </span>
+        )}
       </div>
     </motion.div>
   );

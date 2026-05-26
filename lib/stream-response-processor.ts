@@ -100,12 +100,12 @@ const STREAM_RULES = {
 
   /**
    * RULE — Sources block
-   * The Chat Wonder backend prepends case/source metadata before the AI
-   * answer using the format:  [Sources] [{...}, ...]
-   * Extract it as structured data and remove it from the chat text.
-   * law-ph drops this at the stream proxy (not routed to Related Cases tab).
+   * The Chat Wonder backend appends case/source metadata to the AI answer
+   * using the format:  [Sources] [{...}, ...]
+   * Strip it from the chat text entirely — law-ph discards source metadata.
    */
   SOURCES_PREFIX: '[Sources]',
+  STRIP_SOURCES: /\[Sources\][\s\S]*$/i,
 
   /**
    * RULE — Timeline block
@@ -215,6 +215,7 @@ export function processChunk(rawChunk: string): ProcessedChunk {
  */
 export function cleanAccumulatedText(text: string): string {
   return text
+    .replace(STREAM_RULES.STRIP_SOURCES, '')
     .replace(STREAM_RULES.STRIP_TIMELINE, '')
     .replace(STREAM_RULES.STRIP_MINDMAP, '')
     .trim();
