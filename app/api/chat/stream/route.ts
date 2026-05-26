@@ -17,6 +17,16 @@ function withLegalTag(input: string): string {
   return `${LEGAL_TAG} ${stripLegalTag(input)}`;
 }
 
+const RELATED_QUERIES_RULE = `
+
+At the end of your response, output this tag:
+
+[RELATED_QUERIES]["term1","term2","term3"][/RELATED_QUERIES]
+
+Replace the terms with 10-15 specific Philippine legal search terms drawn from the question and your answer. Use precise terms — law names, legal concepts, offense types, agency names. Be specific, not generic (e.g. "illegal dismissal" not "employment").
+
+CRITICAL: NEVER mention "Related Queries" in your prose. Output only the tag at the very bottom, after all text.`;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -95,7 +105,7 @@ export async function POST(request: NextRequest) {
             document_context?: string;
           } = {
             type: 'chat',
-            user_input: withLegalTag(user_input),
+            user_input: withLegalTag(user_input) + RELATED_QUERIES_RULE,
             session_id,
             use_full_legal_chain: false,
           };
