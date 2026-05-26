@@ -131,7 +131,10 @@ export function useSocketChat({ onMessageReceived, onStreamComplete, onError }: 
 
           let chunk = decoder.decode(value, { stream: true });
 
-          // [Sources] stripped at api/chat/stream proxy — not used in law-ph UI
+          // Strip [Sources] payload — not used in law-ph UI
+          if (chunk.includes("[Sources]")) {
+            chunk = chunk.replace(/\[Sources\][^\n]*/g, "");
+          }
 
           // Strip END marker, don’t skip content
           if (chunk.includes("__END__")) {
