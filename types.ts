@@ -27,6 +27,8 @@ export interface ConsultationSession {
   title: string;
   subtitle: string;
   messages: Message[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Conversation {

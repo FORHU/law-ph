@@ -461,6 +461,9 @@ export function cleanAiText(text: string): string {
   // 1. Remove the __END__ signal if present
   cleaned = cleaned.replace(/__END__$/g, "");
 
+  // Strip [Sources] block appended by Chat Wonder — always discarded
+  cleaned = cleaned.replace(/\[Sources\][\s\S]*$/i, "");
+
   // 2. Strip standard structures ONLY if they have a closing tag OR if we're not streaming (best effort)
   // We use a non-greedy match to avoid eating text between tags.
   // The '|$' is removed to prevent hiding the whole response during streaming.

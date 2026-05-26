@@ -429,6 +429,8 @@ export function ConversationProvider({
           title: conv.title,
           subtitle: '',
           messages: [], // Messages are fetched on demand
+          createdAt: conv.createdAt || conv.created_at,
+          updatedAt: conv.updatedAt || conv.updated_at,
         }));
         setRecentConsultations(mappedSessions);
 
