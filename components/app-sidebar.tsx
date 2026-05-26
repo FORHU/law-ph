@@ -3,15 +3,14 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { MessageSquare, Briefcase, X, ChevronDown, ChevronUp, PanelLeftClose, Bookmark, Mic, Library, Search } from 'lucide-react';
+import { MessageSquare, Briefcase, X, PanelLeftClose, Bookmark, Mic, Library, Search } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
 import { SidebarNav } from './sidebar/sidebar-nav';
-import { RecentItem, SidebarPage, SIDEBAR_STYLES, SCROLL_THRESHOLD } from './sidebar/sidebar-constants';
+import { RecentItem, SidebarPage, SIDEBAR_STYLES } from './sidebar/sidebar-constants';
 import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
-import { ScrollToTop } from './sidebar/scroll-to-top';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 interface AppSidebarProps {
@@ -57,28 +56,17 @@ export const AppSidebar = React.memo(function AppSidebar({
   const [recentTab, setRecentTab] = useState<'consultation' | 'case'>(
     resolvedActivePage === 'cases' ? 'case' : 'consultation'
   );
-  const [showAllRecent, setShowAllRecent] = useState(false);
+
 
   React.useEffect(() => {
     if (resolvedActivePage === 'cases' || resolvedActivePage === 'documents') setRecentTab('case');
     else setRecentTab('consultation');
   }, [resolvedActivePage]);
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const isDocumentsOrCalendarOrTranscribe = (['documents', 'calendar', 'transcribe', 'library', 'cases'] as const).includes(resolvedActivePage as any);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-
   const toggleMenu = (id: string | number) => {
     setActiveMenuId(prev => prev === id ? null : id);
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    setShowScrollToTop(scrollTop > SCROLL_THRESHOLD);
-  };
-
-  const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const sidebarContent = (
@@ -106,11 +94,8 @@ export const AppSidebar = React.memo(function AppSidebar({
       {/* Unified Scrollable Container for List and Nav */}
       <div
         ref={scrollContainerRef}
-        onScroll={handleScroll}
         className="flex flex-col flex-1 overflow-y-auto scroll-smooth custom-sidebar-scrollbar relative"
       >
-        <ScrollToTop isVisible={showScrollToTop} onClick={scrollToTop} />
-
         {/* Action Buttons & Primary Nav (NOW IN SCROLLABLE AREA) */}
         <div className="p-3 space-y-0.5 border-b border-[rgba(255,255,255,0.05)] flex-shrink-0">
           {isDocumentsOrCalendarOrTranscribe ? (
@@ -131,7 +116,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Search size={16} className={(resolvedActivePage as string) === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search Chats</span>
+                <span className="text-xs font-medium">Search</span>
               </button>
 
               <button
@@ -203,7 +188,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Search size={16} className={resolvedActivePage === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search Chats</span>
+                <span className="text-xs font-medium">Search</span>
               </button>
 
               <button
@@ -275,7 +260,7 @@ export const AppSidebar = React.memo(function AppSidebar({
               {(['consultation', 'case'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => { setRecentTab(tab); setShowAllRecent(false); }}
+                  onClick={() => setRecentTab(tab)}
                   className={`flex-1 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest transition-all ${
                     recentTab === tab
                       ? 'bg-[rgba(114,47,55,0.25)] border border-[rgba(114,47,55,0.4)] text-white'
@@ -293,29 +278,18 @@ export const AppSidebar = React.memo(function AppSidebar({
               if (filtered.length === 0) return (
                 <p className="text-[10px] text-gray-600 px-2 py-2">No recent {recentTab === 'consultation' ? 'consultations' : 'cases'}.</p>
               );
-              const visible = showAllRecent ? filtered : filtered.slice(0, 5);
               return (
-                <>
-                  <div className="space-y-0.5">
-                    {visible.map((item) => (
-                      <SidebarItem
-                        key={item.id}
-                        item={item}
-                        isOpen={activeMenuId === item.id}
-                        onToggle={() => toggleMenu(item.id)}
-                        currentConsultationId={currentConsultationId}
-                      />
-                    ))}
-                  </div>
-                  {filtered.length > 5 && (
-                    <button
-                      onClick={() => setShowAllRecent(!showAllRecent)}
-                      className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all active:scale-[0.98]"
-                    >
-                      {showAllRecent ? <>Show Less <ChevronUp size={14} /></> : <>Show {filtered.length - 5} More <ChevronDown size={14} /></>}
-                    </button>
-                  )}
-                </>
+                <div className="space-y-0.5">
+                  {filtered.map((item) => (
+                    <SidebarItem
+                      key={item.id}
+                      item={item}
+                      isOpen={activeMenuId === item.id}
+                      onToggle={() => toggleMenu(item.id)}
+                      currentConsultationId={currentConsultationId}
+                    />
+                  ))}
+                </div>
               );
             })()}
           </div>

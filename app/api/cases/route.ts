@@ -2,12 +2,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth/session";
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getServerSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get("search")?.trim();
+
   const raw = await prisma.case.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: user.id,
+      ...(search ? {
+        OR: [
+          { caseName: { contains: search, mode: 'insensitive' } },
+          { partyInvolved: { contains: search, mode: 'insensitive' } },
+          { notes: { contains: search, mode: 'insensitive' } },
+        ],
+      } : {}),
+    },
     orderBy: { updatedAt: "desc" },
   });
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2, Volume2, VolumeX, ArrowUpRight, ScrollText, BookMarked } from 'lucide-react';
 import { synthesizeSpeech } from '@/lib/aws-polly-utils';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
 import {
@@ -437,45 +437,65 @@ export function MessageItem({
                   }
 
                   return (
-                    <div className="py-4 space-y-4">
-                      <h4 className="text-lg font-serif text-white flex items-center gap-3 mb-6">
-                        <Gavel size={20} className="text-gray-400" /> Legal Sources
-                      </h4>
-                      <div className="space-y-4">
-                        {cases.map((caseItem: RelatedCase, i: number) => (
-                          <div
-                            key={i}
-                            className="bg-black/20 border border-[#722f37]/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/[0.02] transition-all cursor-pointer group shadow-sm"
-                            onClick={() => onCaseClick?.(caseItem, message.text)}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">SUPREME COURT ARCHIVE</span>
-                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{caseItem.caseNumber}</span>
+                    <div className="py-4 space-y-3">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="p-1.5 bg-[#722f37]/15 rounded-lg border border-[#722f37]/20">
+                          <ScrollText size={14} className="text-[#e9c176]" />
+                        </div>
+                        <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                          Legal Sources
+                        </h4>
+                        <span className="ml-auto text-[10px] font-bold text-gray-600 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                          {cases.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {cases.map((caseItem: RelatedCase, i: number) => {
+                          const sourceType = caseItem.type
+                            ? caseItem.type.replace(/_/g, ' ').toUpperCase()
+                            : 'LEGAL DOCUMENT';
+                          const isCase = caseItem.caseNumber && caseItem.caseNumber !== 'N/A';
+                          return (
+                            <div
+                              key={i}
+                              className="group relative bg-black/30 border border-white/5 hover:border-[#e9c176]/20 hover:bg-[#722f37]/5 rounded-xl p-4 cursor-pointer transition-all duration-200"
+                              onClick={() => onCaseClick?.(caseItem, message.text)}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 p-1.5 bg-[#722f37]/10 rounded-lg border border-[#722f37]/20 flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
+                                  <BookMarked size={12} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600">{sourceType}</span>
+                                    {isCase && (
+                                      <span className="text-[9px] font-bold text-[#e9c176]/70 bg-[#e9c176]/5 border border-[#e9c176]/10 px-1.5 py-0.5 rounded-md">
+                                        {caseItem.caseNumber}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[13px] text-gray-300 group-hover:text-white transition-colors leading-snug line-clamp-2">
+                                    {caseItem.title || caseItem.description}
+                                  </p>
+                                </div>
+                                <ArrowUpRight size={14} className="flex-shrink-0 mt-0.5 text-gray-700 group-hover:text-[#e9c176] transition-colors" />
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-300 group-hover:text-white transition-colors leading-relaxed">{caseItem.description}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {hasMoreRelatedCases && (
-                        <div className="pt-6 flex justify-center">
+                        <div className="pt-4 flex justify-center">
                           <button
                             onClick={onLoadMoreRelated}
                             disabled={relatedCasesLoading}
-                            className="bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 text-white rounded-xl px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
+                            className="bg-[#722f37]/10 hover:bg-[#722f37]/30 border border-[#722f37]/20 hover:border-[#722f37]/40 text-gray-400 hover:text-white rounded-xl px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {relatedCasesLoading ? (
-                              <>
-                                <Gavel size={14} className="animate-pulse" />
-                                {(() => {
-                                  const ref = message.sources?.[0]?.reference ||
-                                    message.relatedCases?.[0]?.caseNumber ||
-                                    'Jurisprudence';
-                                  return `Scanning ${ref}...`;
-                                })()}
-                              </>
+                              <><Loader2 size={12} className="animate-spin" /> Loading...</>
                             ) : (
-                              'Expand Research Archive'
+                              <><BookOpen size={12} /> Load More</>
                             )}
                           </button>
                         </div>
