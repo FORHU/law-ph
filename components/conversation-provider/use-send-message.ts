@@ -328,8 +328,8 @@ export function useSendMessage({
               .catch(() => {});
           }
 
-          // Save AI response via API
-          const rawAiText = accumulatedText.trim();
+          // Save AI response via API — clean before persisting so [Sources]/[RELATED_QUERIES] are never stored
+          const rawAiText = cleanAccumulatedText(accumulatedText).trim();
           const aiSaveRes = await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
