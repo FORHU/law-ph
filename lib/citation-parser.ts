@@ -239,6 +239,22 @@ export function extractRelatedCases(text: string): RelatedCase[] {
 }
 
 /**
+ * Extracts the [RELATED_QUERIES] tag emitted by the AI.
+ * Returns an array of search terms, or undefined if not present.
+ */
+export function extractRelatedQueries(text: string): string[] | undefined {
+  const match = text.match(/\[RELATED_QUERIES\]([\s\S]*?)\[\/RELATED_QUERIES\]/i);
+  if (!match) return undefined;
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    if (Array.isArray(parsed)) {
+      return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+    }
+  } catch {}
+  return undefined;
+}
+
+/**
  * Extracts a timeline from AI responses.
  * Supports: [TIMELINE]...[/TIMELINE] JSON wrapper, bare JSON array, and Markdown numbered list fallback.
  */
@@ -469,13 +485,14 @@ export function cleanAiText(text: string): string {
   // The '|$' is removed to prevent hiding the whole response during streaming.
   cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "");
   cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "");
+  cleaned = cleaned.replace(/\[RELATED_QUERIES\][\s\S]*?\[\/RELATED_QUERIES\]/gi, "");
   cleaned = cleaned.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/gi, "");
   cleaned = cleaned.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "");
 
   // 3. Handle the case where the tag started but hasn't closed yet (streaming)
-  // We hide only from the start tag onwards to keep the UI clean, 
+  // We hide only from the start tag onwards to keep the UI clean,
   // but we only do this for the specific tags we extract elsewhere.
-  const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
+  const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[RELATED_QUERIES\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
   let firstTagIdx = -1;
 
   for (const tag of startTags) {
@@ -509,8 +526,9 @@ export function cleanMessageText(text: string): string {
     .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "")
     .replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "")
     .replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "")
+    .replace(/\[RELATED_QUERIES\][\s\S]*?\[\/RELATED_QUERIES\]/gi, "")
     // Handle unclosed tags at end of string
-    .replace(/\[(ILM_META|HIDDEN_INSTRUCTION|TIMELINE|MINDMAP)\][\s\S]*$/gi, "")
+    .replace(/\[(ILM_META|HIDDEN_INSTRUCTION|TIMELINE|MINDMAP|RELATED_QUERIES)\][\s\S]*$/gi, "")
     .trim();
 }
 

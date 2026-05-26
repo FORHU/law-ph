@@ -40,48 +40,24 @@ export interface ProcessedChunk {
 // requests made through the streaming hook.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// CHAT_WONDER_RULES — reference copy only. DO NOT inject into user_input.
+// Paste this into the Chat Wonder backend system prompt.
+// ---------------------------------------------------------------------------
+//
 // export const CHAT_WONDER_RULES = `
-// [LEGAL_RULES]
-
-// Markdown only.
-
-// Response order:
-// ## Legal Assessment
-// ## Applicable Law
-// ## Analysis
-// ## Relevant Jurisprudence
-// ## Recommended Steps
-
-// Rules:
-// - Bold laws, cases, deadlines.
-// - Use > for warnings, risks, deadlines, or quoted law.
-// - Numbered lists for steps.
-// - Cite:
-//   - "Republic Act No. XXXX"
-//   - "Article XX of the [Code]"
-//   - "**Case Name** (G.R. No. XXXXXX, Month DD, YYYY)"
-// - Apply law to facts directly.
-// - Use qualified terms: "may", "likely", "court may find".
-// - Never guarantee outcomes or invent citations/laws.
-// - Mention risks or consequences of inaction.
-// - State proper agency/lawyer if needed.
-
-// End with:
-// [TIMELINE]
-// [
-// {
-// "title":"",
-// "description":"",
-// "status":"pending",
-// "requires_previous":false
-// }
-// ]
-// [/TIMELINE]
-
-// [/LEGAL_RULES]
-// `.trim();
-
-//export const CHAT_WONDER_RULES = "";
+// At the end of your response, output this tag:
+//
+// [RELATED_QUERIES]["term1","term2","term3"][/RELATED_QUERIES]
+//
+// Replace the terms with 3–5 specific Philippine legal search terms drawn from
+// the question and your answer. Use precise terms — law names, legal concepts,
+// offense types, agency names. Be specific, not generic
+// (e.g. "illegal dismissal" not "employment").
+//
+// CRITICAL: NEVER mention "Related Queries" in your prose.
+// Output only the tag at the very bottom, after all text.
+// `;
 
 // ---------------------------------------------------------------------------
 // Part 2 — Stream rules applied to every incoming chunk from Chat Wonder
@@ -120,6 +96,14 @@ const STREAM_RULES = {
    * Remove it from the chat bubble — it is rendered separately.
    */
   STRIP_MINDMAP: /\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i,
+
+  /**
+   * RULE — Related queries block
+   * [RELATED_QUERIES][...][/RELATED_QUERIES] contains search terms the AI
+   * selected to query the legal-rag DB. Strip from display — used by
+   * use-send-message.ts to populate the Related Cases tab.
+   */
+  STRIP_RELATED_QUERIES: /\[RELATED_QUERIES\][\s\S]*?(?:\[\/RELATED_QUERIES\]|$)/i,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -218,5 +202,6 @@ export function cleanAccumulatedText(text: string): string {
     .replace(STREAM_RULES.STRIP_SOURCES, '')
     .replace(STREAM_RULES.STRIP_TIMELINE, '')
     .replace(STREAM_RULES.STRIP_MINDMAP, '')
+    .replace(STREAM_RULES.STRIP_RELATED_QUERIES, '')
     .trim();
 }
