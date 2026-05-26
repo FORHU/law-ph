@@ -198,23 +198,54 @@ export async function searchDocumentsByKeyword(
 
   params.push(limit, offset);
 
-  // Build CASE expression to indicate where the match was found (title > summary > full_text)
-  const matchCaseExpr = keywords.map((_, idx) => {
-    const p = params.indexOf(`%${keywords[idx]}%`) + 1;
-    return `WHEN title ILIKE $${p} THEN 'title'
-            WHEN concise_summary ILIKE $${p} THEN 'summary'
-            ELSE 'full_text'`;
-  }).join('\n');
-
-  const { rows } = await ragPool.query<RagDocument & { matched_in?: string }>(
+  const { rows } = await ragPool.query<RagDocument>(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-            case_no, year, source_url, concise_summary, created_at, updated_at,
-            CASE ${matchCaseExpr} END AS matched_in
+            case_no, year, source_url, concise_summary, created_at, updated_at
      FROM documents
      WHERE ${andConditions.join(" AND ")}
      ORDER BY
        CASE WHEN title ILIKE $1 THEN 0 WHEN concise_summary ILIKE $1 THEN 1 ELSE 2 END,
        year ASC NULLS LAST, case_no ASC NULLS LAST
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
+  );
+  return rows;
+}
+
+/**
+ * Phrase search — each entry in `phrases` is searched as a complete phrase
+ * using ILIKE `%phrase%` (never split into words). Documents matching more
+ * phrases rank higher. Used by the Related Cases auto-populate path.
+ */
+export async function searchDocumentsByPhrases(
+  phrases: string[],
+  opts: ListOptions = {}
+): Promise<RagDocument[]> {
+  const { limit = 20, offset = 0 } = opts;
+  const cleaned = phrases.map(p => p.trim()).filter(p => p.length > 0);
+  if (cleaned.length === 0) return [];
+
+  const params: unknown[] = [];
+  const whereConditions: string[] = [];
+  const scoreTerms: string[] = [];
+
+  for (const phrase of cleaned) {
+    params.push(`%${phrase}%`);
+    const i = params.length;
+    const cond = `(title ILIKE $${i} OR concise_summary ILIKE $${i} OR full_text ILIKE $${i})`;
+    whereConditions.push(cond);
+    scoreTerms.push(`(CASE WHEN ${cond} THEN 1 ELSE 0 END)`);
+  }
+
+  params.push(limit, offset);
+
+  const { rows } = await ragPool.query<RagDocument>(
+    `SELECT id, source_hash, bucket_slug, category, subcategory, title,
+            case_no, year, source_url, concise_summary, created_at, updated_at
+     FROM documents
+     WHERE ${whereConditions.join(' OR ')}
+     ORDER BY (${scoreTerms.join(' + ')}) DESC,
+              year ASC NULLS LAST, case_no ASC NULLS LAST
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );

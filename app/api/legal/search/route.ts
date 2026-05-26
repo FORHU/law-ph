@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchDocumentsByKeyword, listDocuments } from '@/lib/rag-db';
+import { searchDocumentsByKeyword, searchDocumentsByPhrases, listDocuments } from '@/lib/rag-db';
 
 const STOP_WORDS = new Set([
   'a','an','the','and','or','but','in','on','at','to','for','of','with',
@@ -11,25 +11,34 @@ const STOP_WORDS = new Set([
 ]);
 
 function extractKeywords(prompt: string): string {
-  return prompt
+  const words = prompt
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 2 && !STOP_WORDS.has(w))
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+
+  // Keep the 5 longest words — longer words are more domain-specific
+  return [...new Set(words)]
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 5)
     .join(' ');
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { prompt, page = 1, limit = 10 } = body;
+    const { prompt, phrases, page = 1, limit = 10 } = body;
     const offset = (page - 1) * limit;
 
-    const keywords = prompt ? extractKeywords(prompt) : '';
-
-    const documents = keywords
-      ? await searchDocumentsByKeyword(keywords, { limit, offset })
-      : await listDocuments({ limit, offset });
+    let documents;
+    if (Array.isArray(phrases) && phrases.length > 0) {
+      documents = await searchDocumentsByPhrases(phrases, { limit, offset });
+    } else {
+      const keywords = prompt ? extractKeywords(prompt) : '';
+      documents = keywords
+        ? await searchDocumentsByKeyword(keywords, { limit, offset })
+        : await listDocuments({ limit, offset });
+    }
 
     const results = documents.map((doc) => ({
       item_id: String(doc.id),

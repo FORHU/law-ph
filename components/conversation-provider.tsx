@@ -566,7 +566,7 @@ export function ConversationProvider({
         return;
       }
 
-      if (loadedHistoryIdRef.current === syncedConversationId && !isLoading)
+      if (loadedHistoryIdRef.current === syncedConversationId)
         return;
 
       const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);

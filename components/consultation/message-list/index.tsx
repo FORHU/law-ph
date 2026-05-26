@@ -103,7 +103,12 @@ export function MessageList({
 
   const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
-    // Related Cases tab intentionally empty for now (option C) — no lazy search, no [Sources] mapping
+    if (tab === 'related') {
+      const msg = messages.find(m => m.id === messageId);
+      if (msg && (!msg.relatedCases || msg.relatedCases.length === 0)) {
+        fetchRelatedCases(messageId);
+      }
+    }
   };
 
   const scrollToMessage = (id: string | number) => {
