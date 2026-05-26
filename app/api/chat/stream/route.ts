@@ -17,6 +17,11 @@ function withLegalTag(input: string): string {
   return `${LEGAL_TAG} ${stripLegalTag(input)}`;
 }
 
+function stripSources(chunk: string): string {
+  const idx = chunk.indexOf('[Sources]');
+  return idx !== -1 ? chunk.slice(0, idx) : chunk;
+}
+
 const RELATED_QUERIES_RULE = `
 
 At the end of your response, output this tag:
@@ -54,6 +59,7 @@ export async function POST(request: NextRequest) {
     let streamClosed = false;
     let wsClosed = false;
     let ws: WebSocket | null = null;
+    let sourcesDropped = false;
 
     const closeWebSocket = () => {
       if (wsClosed || !ws) return;
@@ -127,8 +133,17 @@ export async function POST(request: NextRequest) {
 
           if (message.endsWith('__END__')) {
             const content = message.slice(0, -'__END__'.length);
-            if (content) safeEnqueue(content);
+            if (content) safeEnqueue(stripSources(content));
             handleEnd();
+            return;
+          }
+
+          if (sourcesDropped) return;
+
+          const idx = message.indexOf('[Sources]');
+          if (idx !== -1) {
+            sourcesDropped = true;
+            if (idx > 0) safeEnqueue(message.slice(0, idx));
             return;
           }
 
