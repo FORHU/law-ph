@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Loader2, ChevronRight, Gavel, Scale, Building2, X, FileText, ArrowRight, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { PageLayout } from '@/components/ui/page-layout';
+import { PageLoader } from '@/components/ui/page-loader';
 
 interface RagDocument {
   id: number;
@@ -513,14 +514,7 @@ export default function LegalLibraryPage() {
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
           {/* Loading */}
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
-                <Loader2 className="animate-spin text-[#e9c176]" size={24} />
-              </div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest animate-pulse">Loading documents...</p>
-            </div>
-          )}
+          {loading && <PageLoader label="Loading documents..." />}
 
           {/* Empty */}
           {!loading && documents.length === 0 && (

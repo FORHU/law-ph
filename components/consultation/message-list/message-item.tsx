@@ -78,6 +78,9 @@ export function MessageItem({
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
+  const [caseTypeFilter, setCaseTypeFilter] = useState<string>('all');
+  const [caseSortBy, setCaseSortBy] = useState<'relevance' | 'date'>('relevance');
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
 
   const bookmarkId = isBookmarked(message.id.toString());
   const bookmarked = !!bookmarkId;
@@ -436,72 +439,137 @@ export function MessageItem({
                     );
                   }
 
-                  return (
-                    <div className="py-4 space-y-3">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="p-1.5 bg-[#722f37]/15 rounded-lg border border-[#722f37]/20">
-                          <ScrollText size={14} className="text-[#e9c176]" />
-                        </div>
-                        <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                          Legal Sources
-                        </h4>
-                        <span className="ml-auto text-[10px] font-bold text-gray-600 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-                          {cases.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        {cases.map((caseItem: RelatedCase, i: number) => {
-                          const sourceType = caseItem.type
-                            ? caseItem.type.replace(/_/g, ' ').toUpperCase()
-                            : 'LEGAL DOCUMENT';
-                          const isCase = caseItem.caseNumber && caseItem.caseNumber !== 'N/A';
-                          return (
-                            <div
-                              key={i}
-                              className="group relative bg-black/30 border border-white/5 hover:border-[#e9c176]/20 hover:bg-[#722f37]/5 rounded-xl p-4 cursor-pointer transition-all duration-200"
-                              onClick={() => onCaseClick?.(caseItem, message.text)}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 p-1.5 bg-[#722f37]/10 rounded-lg border border-[#722f37]/20 flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
-                                  <BookMarked size={12} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600">{sourceType}</span>
-                                    {isCase && (
-                                      <span className="text-[9px] font-bold text-[#e9c176]/70 bg-[#e9c176]/5 border border-[#e9c176]/10 px-1.5 py-0.5 rounded-md">
-                                        {caseItem.caseNumber}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[13px] text-gray-300 group-hover:text-white transition-colors leading-snug line-clamp-2">
-                                    {caseItem.title || caseItem.description}
-                                  </p>
-                                </div>
-                                <ArrowUpRight size={14} className="flex-shrink-0 mt-0.5 text-gray-700 group-hover:text-[#e9c176] transition-colors" />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                  return (() => {
+                    // Build type groups
+                    const typeGroups = cases.reduce<Record<string, number>>((acc, c) => {
+                      const t = c.type || 'Other';
+                      acc[t] = (acc[t] || 0) + 1;
+                      return acc;
+                    }, {});
+                    const typeKeys = Object.keys(typeGroups).sort();
 
-                      {hasMoreRelatedCases && (
-                        <div className="pt-4 flex justify-center">
-                          <button
-                            onClick={onLoadMoreRelated}
-                            disabled={relatedCasesLoading}
-                            className="bg-[#722f37]/10 hover:bg-[#722f37]/30 border border-[#722f37]/20 hover:border-[#722f37]/40 text-gray-400 hover:text-white rounded-xl px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {relatedCasesLoading ? (
-                              <><Loader2 size={12} className="animate-spin" /> Loading...</>
-                            ) : (
-                              <><BookOpen size={12} /> Load More</>
-                            )}
-                          </button>
+                    // Filter
+                    const filtered = caseTypeFilter === 'all'
+                      ? cases
+                      : cases.filter(c => (c.type || 'Other') === caseTypeFilter);
+
+                    // Sort
+                    const sorted = [...filtered].sort((a, b) => {
+                      if (caseSortBy === 'date') {
+                        return (b.year ?? 0) - (a.year ?? 0);
+                      }
+                      return 0; // keep original relevance order
+                    });
+
+                    return (
+                      <div className="py-3 space-y-3">
+                        {showTypeMenu && <div className="fixed inset-0 z-20" onClick={() => setShowTypeMenu(false)} />}
+                        {/* Toolbar: filter + sort */}
+                        <div className="flex items-center gap-2">
+                          {/* Type filter dropdown */}
+                          {typeKeys.length > 1 && (
+                            <div className="relative flex-1">
+                              <button
+                                onClick={() => setShowTypeMenu(v => !v)}
+                                className="w-full flex items-center justify-between gap-2 bg-white/5 border border-white/8 hover:border-white/15 text-gray-300 text-[11px] font-bold uppercase tracking-wider rounded-lg pl-3 pr-3 py-2 transition-colors"
+                              >
+                                <span className="truncate">
+                                  {caseTypeFilter === 'all'
+                                    ? `All · ${cases.length}`
+                                    : `${caseTypeFilter.charAt(0).toUpperCase() + caseTypeFilter.slice(1)} · ${typeGroups[caseTypeFilter]}`}
+                                </span>
+                                <ScrollText size={11} className="text-gray-500 flex-shrink-0" />
+                              </button>
+                              {showTypeMenu && (
+                                <div className="absolute left-0 top-[calc(100%+4px)] z-30 w-full bg-[#111113] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                                  {[{ key: 'all', label: 'All', count: cases.length }, ...typeKeys.map(t => ({ key: t, label: t.charAt(0).toUpperCase() + t.slice(1), count: typeGroups[t] }))].map(({ key, label, count }) => (
+                                    <button
+                                      key={key}
+                                      onClick={() => { setCaseTypeFilter(key); setShowTypeMenu(false); }}
+                                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider transition-colors ${caseTypeFilter === key ? 'text-[#e9c176] bg-[#722f37]/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                    >
+                                      <span className="truncate">{label}</span>
+                                      <span className={`flex-shrink-0 ml-2 tabular-nums ${caseTypeFilter === key ? 'text-[#e9c176]/70' : 'text-gray-600'}`}>{count}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Sort toggle pills */}
+                          <div className="flex items-center gap-1 bg-white/5 border border-white/8 rounded-lg p-1 flex-shrink-0">
+                            {(['relevance', 'date'] as const).map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => setCaseSortBy(opt)}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${caseSortBy === opt ? 'bg-[#722f37]/60 text-[#e9c176] border border-[#722f37]/50' : 'text-gray-500 hover:text-gray-300'}`}
+                              >
+                                {opt === 'relevance' ? 'Relevance' : 'Date'}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  );
+
+                        {/* Cards */}
+                        <div className="space-y-2">
+                          {sorted.length === 0 ? (
+                            <p className="text-[11px] text-gray-600 text-center py-4">No results for this filter.</p>
+                          ) : sorted.map((caseItem: RelatedCase, i: number) => {
+                            const isCase = caseItem.caseNumber && caseItem.caseNumber !== 'N/A';
+                            return (
+                              <div
+                                key={i}
+                                className="group relative bg-black/30 border border-white/5 hover:border-[#e9c176]/20 hover:bg-[#722f37]/5 rounded-xl p-4 cursor-pointer transition-all duration-200"
+                                onClick={() => onCaseClick?.(caseItem, message.text)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5 p-1.5 bg-[#722f37]/10 rounded-lg border border-[#722f37]/20 flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
+                                    <BookMarked size={12} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                      {caseItem.subtype && (
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600">{caseItem.subtype}</span>
+                                      )}
+                                      {isCase && (
+                                        <span className="text-[9px] font-bold text-[#e9c176]/70 bg-[#e9c176]/5 border border-[#e9c176]/10 px-1.5 py-0.5 rounded-md">
+                                          {caseItem.caseNumber}
+                                        </span>
+                                      )}
+                                      {caseItem.year && (
+                                        <span className="text-[9px] text-gray-600 tabular-nums">{caseItem.year}</span>
+                                      )}
+                                    </div>
+                                    <p className="text-[13px] text-gray-300 group-hover:text-white transition-colors leading-snug line-clamp-2">
+                                      {caseItem.title || caseItem.description}
+                                    </p>
+                                  </div>
+                                  <ArrowUpRight size={14} className="flex-shrink-0 mt-0.5 text-gray-700 group-hover:text-[#e9c176] transition-colors" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {hasMoreRelatedCases && (
+                          <div className="pt-2 flex justify-center">
+                            <button
+                              onClick={onLoadMoreRelated}
+                              disabled={relatedCasesLoading}
+                              className="bg-[#722f37]/10 hover:bg-[#722f37]/30 border border-[#722f37]/20 hover:border-[#722f37]/40 text-gray-400 hover:text-white rounded-xl px-6 py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {relatedCasesLoading ? (
+                                <><Loader2 size={12} className="animate-spin" /> Loading...</>
+                              ) : (
+                                <><BookOpen size={12} /> Load More</>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })();
                 }
 
 

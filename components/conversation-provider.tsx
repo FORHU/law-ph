@@ -599,23 +599,30 @@ export function ConversationProvider({
         const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 
         setMessages(prev => {
-          // If we have local messages for the SAME conversation, merge them to avoid wiping live updates (like streaming AI)
+          // Build a lookup of client-only data (relatedCases, etc.) keyed by message ID
+          const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+
+          // Restore client-only fields that aren't persisted to the DB
+          const merged = cloudMessages.map(m => {
+            const existing = prevById.get(m.id.toString());
+            return existing?.relatedCases?.length
+              ? { ...m, relatedCases: existing.relatedCases }
+              : m;
+          });
+
+          // If we have local messages for the SAME conversation, keep any that aren't yet synced to cloud
           if (prev.length > 0 && currentConsultationId?.toString() === syncedConversationId) {
             const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
             const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
-
-            // Keep local messages that aren't yet in the cloud (by ID or Content match)
             const localOnlyMessages = prev.filter(m => {
               if (cloudIds.has(m.id.toString())) return false;
               if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
               return true;
             });
-
-            return [...cloudMessages, ...localOnlyMessages];
+            return [...merged, ...localOnlyMessages];
           }
 
-          // If loading a fundamentally different conversation or starting fresh
-          return cloudMessages;
+          return merged;
         });
 
         if (!isLoading) {
@@ -647,7 +654,13 @@ export function ConversationProvider({
                 if (retryRes.ok) {
                   const { messages: data } = await retryRes.json();
                   const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
-                  setMessages(cloudMessages);
+                  setMessages(prev => {
+                    const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+                    return cloudMessages.map(m => {
+                      const existing = prevById.get(m.id.toString());
+                      return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+                    });
+                  });
                   loadedHistoryIdRef.current = syncedConversationId.toString();
                   setCurrentConsultationId(syncedConversationId);
                 }
@@ -698,7 +711,13 @@ export function ConversationProvider({
 
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
-    setMessages(consultation.messages);
+    setMessages(prev => {
+      const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+      return consultation.messages.map(m => {
+        const existing = prevById.get(m.id.toString());
+        return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+      });
+    });
     setCurrentConsultationIdWrapper(consultation.id);
   };
 

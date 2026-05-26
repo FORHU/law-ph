@@ -15,6 +15,8 @@ export interface RelatedCase {
   score?: number;
   url?: string;
   type?: string;
+  subtype?: string | null;
+  year?: number | null;
   itemId?: string; // DB item_id used to fetch full case content
 }
 
