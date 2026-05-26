@@ -201,12 +201,9 @@ export function processChunk(rawChunk: string): ProcessedChunk {
       }
     }
 
-  //   // Could not parse (malformed or still streaming) — discard entirely
-  //   return { text: '' };
-  // }
+  }
 
   return { text };
-}
 }
 
 /**
