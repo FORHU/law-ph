@@ -282,10 +282,24 @@ export function useSendMessage({
                   break;
                 }
 
+                // __END__ = main response done; unlock input now and keep reading for structured data
+                if (raw === '__END__') {
+                  flushToUI(true);
+                  setIsLoading(false);
+                  aiResponseSuccessful = true;
+                  continue;
+                }
+
                 const processed = processChunk(raw);
                 accumulatedText += processed.text;
 
-                flushToUI(false);
+                if (processed.structuredData) {
+                  if (processed.structuredData.timeline) timeline = processed.structuredData.timeline;
+                  if (processed.structuredData.mindMap) mindMap = processed.structuredData.mindMap;
+                  flushToUI(true);
+                } else {
+                  flushToUI(false);
+                }
               }
               flushToUI(true); // always render the complete final text
               aiResponseSuccessful = true;

@@ -110,20 +110,29 @@ export async function POST(request: NextRequest) {
 
           const message = typeof event.data === 'string' ? event.data : String(event.data);
 
-          if (message === '__END__') {
+          // [DONE] = backend truly finished (after structured data) — close the stream
+          if (message === '[DONE]') {
             handleEnd();
+            return;
+          }
+
+          // __END__ = main response done — pass through so client can unlock input early,
+          // but keep the stream open for [STRUCTURED_DATA] that follows
+          if (message === '__END__') {
+            safeEnqueue('__END__');
             return;
           }
 
           if (message.endsWith('__END__')) {
             const content = message.slice(0, -'__END__'.length);
             if (content) safeEnqueue(content);
-            handleEnd();
+            safeEnqueue('__END__');
             return;
           }
 
           if (message.startsWith('[Sources]')) return;
 
+          // [STRUCTURED_DATA] carries timeline/mindMap JSON — pass through for the client to handle
           safeEnqueue(message);
         };
 

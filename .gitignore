@@ -47,3 +47,4 @@ CLAUDE.md
 
 # SurrealDB (not used — postgres/prisma is the DB)
 /surreal_data/
+/supabase

@@ -30,6 +30,8 @@ export interface ProcessedChunk {
   text: string;
   /** Case/source references extracted from a [Sources] block, if one was present. */
   extractedSources?: StreamSource[];
+  /** Timeline and mindMap extracted from a [STRUCTURED_DATA] block, if one was present. */
+  structuredData?: { timeline?: any[]; mindMap?: any };
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +106,13 @@ const STREAM_RULES = {
    * use-send-message.ts to populate the Related Cases tab.
    */
   STRIP_RELATED_QUERIES: /\[RELATED_QUERIES\][\s\S]*?(?:\[\/RELATED_QUERIES\]|$)/i,
+
+  /**
+   * RULE — Structured data block
+   * [STRUCTURED_DATA]{...} carries timeline/mindMap JSON from a second LLM call.
+   * Extracted and routed to UI components — never shown in chat bubble.
+   */
+  STRUCTURED_DATA_PREFIX: '[STRUCTURED_DATA]',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -186,6 +195,21 @@ export function processChunk(rawChunk: string): ProcessedChunk {
     }
 
     // Could not parse (malformed or still streaming) — discard entirely
+    return { text: '' };
+  }
+
+  // RULE: extract [STRUCTURED_DATA] block — carries timeline/mindMap from second LLM call
+  if (text.startsWith(STREAM_RULES.STRUCTURED_DATA_PREFIX)) {
+    const rest = text.slice(STREAM_RULES.STRUCTURED_DATA_PREFIX.length).trimStart();
+    const block = extractJsonBlock(rest);
+    if (block) {
+      try {
+        const parsed = JSON.parse(block.json);
+        return { text: '', structuredData: { timeline: parsed.timeline, mindMap: parsed.mindMap } };
+      } catch (_) {
+        // Malformed JSON — discard silently
+      }
+    }
     return { text: '' };
   }
 
