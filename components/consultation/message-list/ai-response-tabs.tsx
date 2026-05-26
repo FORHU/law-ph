@@ -35,6 +35,11 @@ export function AIResponseTabs({ activeTab, onTabChange, tabConfig, message }: A
           >
             <Icon size={14} className={isActive ? "text-gray-200" : "text-current"} />
             {tab.label}
+            {count != null && count > 0 && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${isActive ? 'bg-[#e9c176]/20 text-[#e9c176]' : 'bg-white/10 text-gray-400'}`}>
+                {count}
+              </span>
+            )}
           </button>
         );
       })}

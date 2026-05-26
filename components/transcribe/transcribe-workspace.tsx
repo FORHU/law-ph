@@ -918,10 +918,7 @@ export default function TranscribeWorkspace({
 
               {isPolling && (
                 <div className="mb-12 p-8 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20 flex items-center gap-6 shadow-2xl">
-                  <div className="relative">
-                    <div className="w-12 h-12 border-4 border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin"></div>
-                    <Loader2 className="absolute inset-0 m-auto text-[#e9c176]" size={20} />
-                  </div>
+                  <div className="w-10 h-10 border-[3px] border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin flex-shrink-0" />
                   <div>
                     <h3 className="text-xl font-serif text-white mb-1">AI Intelligence at work...</h3>
                     <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with speaker identification.</p>

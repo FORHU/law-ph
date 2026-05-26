@@ -161,9 +161,9 @@ export const AppSidebar = React.memo(function AppSidebar({
 
               <button
                 onClick={() => router.push('/bookmarks')}
-                className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'bookmarks' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
-                <Bookmark size={16} className="transition-colors" />
+                <Bookmark size={16} className={resolvedActivePage === 'bookmarks' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-xs font-medium">Bookmarks</span>
               </button>
             </>
@@ -233,19 +233,12 @@ export const AppSidebar = React.memo(function AppSidebar({
 
               <button
                 onClick={() => router.push('/bookmarks')}
-                className="w-full px-3 py-2 border border-transparent rounded-lg hover:bg-[rgba(255,255,255,0.05)] transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white"
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'bookmarks' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
-                <Bookmark size={16} className="transition-colors" />
+                <Bookmark size={16} className={resolvedActivePage === 'bookmarks' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
                 <span className="text-xs font-medium">Bookmarks</span>
               </button>
 
-              <button
-                onClick={() => router.push('/legal-library')}
-                className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
-              >
-                <Library size={16} className={(resolvedActivePage as string) === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Library</span>
-              </button>
             </>
           )}
         </div>
