@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       gr_number: doc.case_no,
       title: doc.title ?? doc.case_no ?? 'Philippine Legal Document',
       url: doc.source_url ?? null,
-      type: doc.subcategory ?? doc.category,
+      type: doc.bucket_slug,
+      subtype: doc.subcategory ?? doc.category ?? null,
+      year: doc.year ?? null,
       score: null,
     }));
 

@@ -5,6 +5,34 @@ import { Message } from './types';
 import { RelatedCase, cleanLegalTitle, isGenericTitle } from '@/lib/citation-parser';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 
+// Module-level memory cache — survives component unmounts
+const relatedCasesStore = new Map<string, RelatedCase[]>();
+const relatedCasesPagesStore = new Map<string, number>();
+const relatedCasesHasMoreStore = new Map<string, boolean>();
+
+const STORAGE_PREFIX = 'lex_rc_';
+
+function saveToStorage(messageId: string, cases: RelatedCase[]) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + messageId, JSON.stringify(cases));
+  } catch {}
+}
+
+function loadFromStorage(messageId: string): RelatedCase[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + messageId);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getResolved(messageId: string, messageCases?: RelatedCase[]): RelatedCase[] | undefined {
+  return relatedCasesStore.get(messageId)
+    ?? loadFromStorage(messageId)
+    ?? messageCases;
+}
+
 interface MessageListProps {
   messages: Message[];
   onDelete?: (id: string | number) => void;
@@ -33,22 +61,23 @@ export function MessageList({
   const [activeTabs, setActiveTabs] = useState<Record<string | number, string>>({});
   const [showOriginal, setShowOriginal] = useState<Record<string | number, boolean>>({});
   const [relatedCasesLoading, setRelatedCasesLoading] = useState<Record<string | number, boolean>>({});
-  const [relatedCasesPage, setRelatedCasesPage] = useState<Record<string | number, number>>({});
-  const [relatedCasesHasMore, setRelatedCasesHasMore] = useState<Record<string | number, boolean>>({});
+  const [storeVersion, setStoreVersion] = useState(0);
+  void storeVersion; // used to trigger re-renders when store updates
+
+  const key = (id: string | number) => String(id);
 
   const fetchRelatedCases = async (messageId: string | number, isLoadMore: boolean = false) => {
     const msgIndex = messages.findIndex(m => m.id === messageId);
     if (msgIndex === -1) return;
     const msg = messages[msgIndex];
 
-    const currentPage = isLoadMore ? (relatedCasesPage[messageId] || 1) + 1 : 1;
+    const currentPage = isLoadMore ? (relatedCasesPagesStore.get(key(messageId)) || 1) + 1 : 1;
     const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
     const aiErrorMessage = "I'm sorry, I'm having trouble connecting right now.";
-    const searchPrompt = precedingUserMsg?.text || (msg.text !== aiErrorMessage ? msg.text : '');
+    const rawUserText = precedingUserMsg?.text?.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/g, '').trim() ?? '';
+    const searchPrompt = rawUserText || (msg.text !== aiErrorMessage ? msg.text : '');
 
-    if (!searchPrompt) {
-      return;
-    }
+    if (!searchPrompt) return;
 
     setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
     try {
@@ -69,11 +98,9 @@ export function MessageList({
         const newCases: RelatedCase[] = apiResults.map((item: any) => {
           const rawTitle = item.title || 'Philippine Legal Document';
           const cleanedTitle = cleanLegalTitle(rawTitle);
-          // If the title is still a UUID or generic, try to use the case number
           const finalTitle = isGenericTitle(cleanedTitle) && (item.gr_number || item.case_number)
             ? (item.gr_number || item.case_number)
             : cleanedTitle;
-
           return {
             caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
             title: finalTitle,
@@ -81,18 +108,24 @@ export function MessageList({
             score: item.score,
             url: item.url,
             type: item.type,
+            subtype: item.subtype ?? null,
+            year: item.year ?? null,
             itemId: item.item_id,
           };
         });
 
-        let updatedCases: RelatedCase[] = newCases;
-        if (isLoadMore && msg.relatedCases) {
-          updatedCases = [...msg.relatedCases, ...newCases];
-        }
+        const existing = isLoadMore ? (relatedCasesStore.get(key(messageId)) ?? []) : [];
+        const updatedCases = [...existing, ...newCases];
 
+        relatedCasesStore.set(key(messageId), updatedCases);
+        relatedCasesPagesStore.set(key(messageId), currentPage);
+        relatedCasesHasMoreStore.set(key(messageId), newCases.length === 10);
+        saveToStorage(key(messageId), updatedCases);
+
+        // Also sync to message state so other consumers see it
         onUpdateMessage?.(messageId, { relatedCases: updatedCases });
-        setRelatedCasesPage(prev => ({ ...prev, [messageId]: currentPage }));
-        setRelatedCasesHasMore(prev => ({ ...prev, [messageId]: newCases.length === 10 }));
+        // Bump version to trigger re-render
+        setStoreVersion(v => v + 1);
       }
     } catch (err) {
       console.warn('[Related Cases] Fetch failed:', err);
@@ -103,7 +136,16 @@ export function MessageList({
 
   const handleTabChange = async (messageId: string | number, tab: string) => {
     setActiveTabs(prev => ({ ...prev, [messageId]: tab }));
-    // Related Cases tab intentionally empty for now (option C) — no lazy search, no [Sources] mapping
+    if (tab === 'related') {
+      const resolved = getResolved(key(messageId));
+      if (!resolved || resolved.length === 0) {
+        fetchRelatedCases(messageId);
+      } else if (!relatedCasesStore.has(key(messageId))) {
+        // Restore from localStorage into memory store and trigger re-render
+        relatedCasesStore.set(key(messageId), resolved);
+        setStoreVersion(v => v + 1);
+      }
+    }
   };
 
   const scrollToMessage = (id: string | number) => {
@@ -114,34 +156,38 @@ export function MessageList({
 
   return (
     <div className="space-y-8">
-      {messages.filter(m => !m.hidden).map((message) => (
-        <MessageItem
-          key={message.id}
-          message={message}
-          activeTab={activeTabs[message.id] || 'answer'}
-          onTabChange={(tab) => handleTabChange(message.id, tab)}
-          showOriginal={showOriginal[message.id] || false}
-          onToggleOriginal={() => setShowOriginal(prev => ({ ...prev, [message.id]: !prev[message.id] }))}
-          isRecording={isRecording[message.id] || false}
-          recordingTime={recordingTime[message.id] || 0}
-          onStartRecording={() => startRecording(message.id)}
-          onStopRecording={() => stopRecording(message.id)}
-          onDelete={onDelete}
-          onSourceClick={onSourceClick}
-          onCaseClick={onCaseClick}
-          onSourceLinkClick={onSourceLinkClick}
-          onUpdateMessage={onUpdateMessage}
-          onOpenNote={onOpenNote}
-          scrollToMessage={scrollToMessage}
-          formatTime={formatTime}
-          session={user}
-          relatedCasesLoading={relatedCasesLoading[message.id]}
-          hasMoreRelatedCases={relatedCasesHasMore[message.id]}
-          onLoadMoreRelated={() => fetchRelatedCases(message.id, true)}
-          isLoading={isLoading}
-          onSendMessage={onSendMessage}
-        />
-      ))}
+      {messages.filter(m => !m.hidden).map((message) => {
+        // Always read from store/localStorage first — never rely on message.relatedCases alone
+        const resolvedCases = getResolved(key(message.id), message.relatedCases);
+        return (
+          <MessageItem
+            key={message.id}
+            message={{ ...message, relatedCases: resolvedCases }}
+            activeTab={activeTabs[message.id] || 'answer'}
+            onTabChange={(tab) => handleTabChange(message.id, tab)}
+            showOriginal={showOriginal[message.id] || false}
+            onToggleOriginal={() => setShowOriginal(prev => ({ ...prev, [message.id]: !prev[message.id] }))}
+            isRecording={isRecording[message.id] || false}
+            recordingTime={recordingTime[message.id] || 0}
+            onStartRecording={() => startRecording(message.id)}
+            onStopRecording={() => stopRecording(message.id)}
+            onDelete={onDelete}
+            onSourceClick={onSourceClick}
+            onCaseClick={onCaseClick}
+            onSourceLinkClick={onSourceLinkClick}
+            onUpdateMessage={onUpdateMessage}
+            onOpenNote={onOpenNote}
+            scrollToMessage={scrollToMessage}
+            formatTime={formatTime}
+            session={user}
+            relatedCasesLoading={relatedCasesLoading[message.id]}
+            hasMoreRelatedCases={relatedCasesHasMoreStore.get(key(message.id))}
+            onLoadMoreRelated={() => fetchRelatedCases(message.id, true)}
+            isLoading={isLoading}
+            onSendMessage={onSendMessage}
+          />
+        );
+      })}
     </div>
   );
 }
