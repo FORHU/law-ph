@@ -43,6 +43,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lawph-redis
+    command: redis-server --requirepass password
     ports:
       - "6379:6379"
     restart: always
@@ -51,7 +52,7 @@ services:
     image: rediscommander/redis-commander:latest
     container_name: lawph-redis-ui
     environment:
-      - REDIS_HOSTS=local:redis:6379
+      - REDIS_HOSTS=local:redis:6379:0:password
     ports:
       - "8081:8081"
     depends_on:
