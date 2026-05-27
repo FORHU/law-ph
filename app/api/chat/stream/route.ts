@@ -28,7 +28,14 @@ At the end of your response, output this tag:
 
 [RELATED_QUERIES]["term1","term2","term3"][/RELATED_QUERIES]
 
-Replace the terms with 10-15 specific Philippine legal search terms drawn from the question and your answer. Use precise terms — law names, legal concepts, offense types, agency names. Be specific, not generic (e.g. "illegal dismissal" not "employment").
+Rules for the terms:
+- 5 to 8 terms maximum
+- Each term must be SHORT (1-3 words) and DISTINCT — no variations of the same word
+- Focus on the core legal subjects: the specific laws, articles, concepts, and parties central to the question
+- Include: primary legal topic, law/statute name, specific article numbers if cited, key parties or agencies involved
+- Exclude: generic words, rephrasing of the same concept, procedural filler unless central to the question
+- Bad example for "abortion": ["abortion law Philippines","criminal offense abortion","legal consequences abortion","Philippine abortion laws","abortion cases"] — all the same word repeated
+- Good example for "abortion": ["abortion","Revised Penal Code","Article 256","Article 257","reproductive rights","maternal health"]
 
 CRITICAL: NEVER mention "Related Queries" in your prose. Output only the tag at the very bottom, after all text.`;
 

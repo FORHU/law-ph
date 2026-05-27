@@ -357,10 +357,18 @@ export function ConversationProvider({
 
     // Auto-extract citations for AI messages on load/map
     // CRITICAL: Extract from raw text BEFORE cleaning it for display
+    const rawContent = sender === CHAT_SENDER.AI ? text : undefined;
     const sources =
       sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
-    // Related Cases tab kept empty for now — citations are inline in the answer only
-    const relatedCases = undefined;
+    // Don't hardcode undefined — restore from localStorage if previously fetched
+    const storedCases = (() => {
+      if (sender !== CHAT_SENDER.AI || !msg.id) return undefined;
+      try {
+        const raw = localStorage.getItem(`lex_rc_${msg.id}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch { return undefined; }
+    })();
+    const relatedCases = storedCases;
     const timeline =
       sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
     const mindMap =
@@ -374,12 +382,11 @@ export function ConversationProvider({
         ? cleanAiText(text)
         : text;
 
-    console.log("Fetched file attachments for message:", msg.id, meta.fileAttachments);
-
     return {
       ...msg,
       text: cleanText,
       sender,
+      rawContent,
       sources,
       relatedCases,
       timeline,

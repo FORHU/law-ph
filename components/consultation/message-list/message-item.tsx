@@ -198,6 +198,7 @@ export function MessageItem({
               onTabChange={onTabChange}
               tabConfig={TAB_CONFIG}
               message={message}
+              loadingTabId={relatedCasesLoading ? 'related' : undefined}
             />
           </div>
         )}
@@ -409,16 +410,39 @@ export function MessageItem({
 
                   if (relatedCasesLoading && cases.length === 0) {
                     return (
-                      <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className="p-5 bg-[#722f37]/10 rounded-full border border-[#722f37]/20 shadow-inner">
-                          <Gavel size={40} className="text-gray-600 animate-pulse" strokeWidth={1.5} />
+                      <div className="py-3 space-y-3">
+                        {/* Toolbar skeleton */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-8 rounded-lg bg-white/5 animate-pulse" />
+                          <div className="w-28 h-8 rounded-lg bg-white/5 animate-pulse" />
                         </div>
-                        <div>
-                          <h4 className="text-xl font-serif text-white mb-2">Searching Jurisprudence</h4>
-                          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest max-w-xs mx-auto">
-                            Browsing supreme court archives...
-                          </p>
-                        </div>
+                        {/* Card skeletons */}
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="bg-black/30 border border-white/5 rounded-xl p-4"
+                            style={{ opacity: 1 - i * 0.15 }}>
+                            <div className="flex items-start gap-3">
+                              {/* Icon placeholder */}
+                              <div className="mt-0.5 w-7 h-7 rounded-lg bg-[#722f37]/10 border border-[#722f37]/20 flex-shrink-0 animate-pulse" />
+                              <div className="flex-1 space-y-2">
+                                {/* Badge row */}
+                                <div className="flex items-center gap-2">
+                                  <div className="h-3 w-24 rounded bg-white/5 animate-pulse" />
+                                  <div className="h-3 w-16 rounded bg-[#e9c176]/5 animate-pulse" />
+                                </div>
+                                {/* Title */}
+                                <div className="h-3.5 rounded bg-white/8 animate-pulse"
+                                  style={{ width: `${70 + (i % 3) * 10}%` }} />
+                                <div className="h-3.5 w-1/2 rounded bg-white/5 animate-pulse" />
+                              </div>
+                              {/* Arrow placeholder */}
+                              <div className="w-3.5 h-3.5 rounded bg-white/5 animate-pulse flex-shrink-0 mt-0.5" />
+                            </div>
+                          </div>
+                        ))}
+                        {/* Label */}
+                        <p className="text-center text-[10px] font-bold text-gray-600 uppercase tracking-widest animate-pulse pt-1">
+                          Searching jurisprudence...
+                        </p>
                       </div>
                     );
                   }
@@ -430,9 +454,9 @@ export function MessageItem({
                           <Gavel size={40} className="text-gray-600" strokeWidth={1.5} />
                         </div>
                         <div>
-                          <h4 className="text-xl font-serif text-white mb-2">Citations in response</h4>
+                          <h4 className="text-xl font-serif text-white mb-2">No related cases found</h4>
                           <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest max-w-xs mx-auto">
-                            Use the source links in the answer above. Related case search here is not enabled yet.
+                            No matching documents found for this topic in the legal archive.
                           </p>
                         </div>
                       </div>

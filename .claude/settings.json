@@ -33,7 +33,9 @@
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\app\\\\api\\\\documents\" -Recurse -File | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\app\\\\api\\\\s3-upload\" -Recurse -File | ForEach-Object { $_.FullName })",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\USER\\\\Documents\\\\GitHub\\\\law-ph\\\\app\\\\transcribe\" -Recurse -File)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(npx tsc *)",
+      "PowerShell(docker exec lawph-redis redis-cli ping)"
     ],
     "additionalDirectories": [
       "C:\\Users\\USER\\Documents\\GitHub\\law-ph\\app\\case-invite\\[id]",

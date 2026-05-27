@@ -300,6 +300,11 @@ export function useSendMessage({
             }
           }
 
+          // Related Cases search is now handled exclusively by message-list/index.tsx
+          // via a single fetchRelatedCases path with in-flight deduplication.
+          // This avoids a race condition where two simultaneous Postgres queries fired
+          // (one here, one from the tab click) with no coordination.
+
           // Save AI response via API
           const rawAiText = accumulatedText.trim();
           const aiSaveRes = await fetch('/api/chat/messages', {

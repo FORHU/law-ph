@@ -213,9 +213,19 @@ export async function searchDocumentsByKeyword(
 }
 
 /**
- * Phrase search — each entry in `phrases` is searched as a complete phrase
- * using ILIKE `%phrase%` (never split into words). Documents matching more
- * phrases rank higher. Used by the Related Cases auto-populate path.
+ * Phrase search using [RELATED_QUERIES] terms via PostgreSQL FTS.
+ *
+ * Uses plainto_tsquery on full_text — matches the actual content of legal
+ * documents (e.g. "illegal dismissal" found inside an Agabon v. NLRC document).
+ *
+ * Also checks title ILIKE as a fast fallback for law/statute name matches.
+ *
+ * REQUIRED: GIN index on full_text for fast results. Run once in pgAdmin:
+ *   CREATE INDEX idx_documents_fulltext_fts
+ *   ON documents USING GIN (to_tsvector('english', full_text));
+ *
+ * Without the index the query falls back to sequential scan (slow).
+ * With the index: < 1s for any number of phrases.
  */
 export async function searchDocumentsByPhrases(
   phrases: string[],
@@ -225,31 +235,89 @@ export async function searchDocumentsByPhrases(
   const cleaned = phrases.map(p => p.trim()).filter(p => p.length > 0);
   if (cleaned.length === 0) return [];
 
+  // Build one combined tsquery: term1 | term2 | term3 ...
+  // This lets Postgres use the GIN index in a single bitmap scan instead of
+  // one bitmap scan per phrase (which is what multiple OR conditions produce).
   const params: unknown[] = [];
-  const whereConditions: string[] = [];
-  const scoreTerms: string[] = [];
+  const ilikeConds: string[] = [];
+  const tsqueries: string[] = [];
 
   for (const phrase of cleaned) {
     params.push(`%${phrase}%`);
-    const i = params.length;
-    const cond = `(title ILIKE $${i} OR concise_summary ILIKE $${i} OR full_text ILIKE $${i})`;
-    whereConditions.push(cond);
-    scoreTerms.push(`(CASE WHEN ${cond} THEN 1 ELSE 0 END)`);
+    ilikeConds.push(`title ILIKE $${params.length}`);
+
+    params.push(phrase);
+    tsqueries.push(`plainto_tsquery('english', $${params.length})`);
   }
 
+  // Combined tsquery joined with || (OR) — single index lookup
+  const combinedTsq = tsqueries.join(' || ');
   params.push(limit, offset);
+  const limitIdx  = params.length - 1;
+  const offsetIdx = params.length;
 
-  const { rows } = await ragPool.query<RagDocument>(
-    `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-            case_no, year, source_url, concise_summary, created_at, updated_at
-     FROM documents
-     WHERE ${whereConditions.join(' OR ')}
-     ORDER BY (${scoreTerms.join(' + ')}) DESC,
-              year ASC NULLS LAST, case_no ASC NULLS LAST
-     LIMIT $${params.length - 1} OFFSET $${params.length}`,
-    params
-  );
-  return rows;
+  const client = await ragPool.connect();
+  try {
+    // Single GIN bitmap scan via combined tsquery — should be < 1s with idx_documents_fulltext_fts
+    await client.query('SET statement_timeout = 8000');
+    const { rows } = await client.query<RagDocument>(
+      `SELECT id, source_hash, bucket_slug, category, subcategory, title,
+              case_no, year, source_url, concise_summary, created_at, updated_at,
+              ts_rank(to_tsvector('english', full_text), (${combinedTsq})) AS _rank
+       FROM documents
+       WHERE (${ilikeConds.join(' OR ')})
+          OR full_text @@ (${combinedTsq})
+       ORDER BY
+         -- title matches first, then by FTS rank, then by year
+         (CASE WHEN ${ilikeConds.join(' OR ')} THEN 1 ELSE 0 END) DESC,
+         _rank DESC,
+         year ASC NULLS LAST,
+         case_no ASC NULLS LAST
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      params
+    );
+    return rows;
+  } catch (err: any) {
+    // GIN index not ready yet — fall back to individual keyword search on title
+    if (err.code === '57014') {
+      console.warn('[searchDocumentsByPhrases] FTS timed out — falling back to keyword title search');
+
+      // Break phrases into individual meaningful words (len > 3, not stop words)
+      const STOPS = new Set(['the','and','for','with','from','this','that','are','was',
+        'were','has','have','been','will','would','could','should','may','might',
+        'about','what','when','where','how','which','than','into','over','also',
+        'law','act','code','case','rule','section','article','republic','philippines',
+        'philippine','due','per','any','all']);
+      const keywords = [...new Set(
+        cleaned.flatMap(p =>
+          p.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !STOPS.has(w))
+        )
+      )].slice(0, 10); // top 10 keywords
+
+      if (keywords.length === 0) return [];
+
+      const titleParams: unknown[] = [];
+      const titleConditions: string[] = [];
+      for (const kw of keywords) {
+        titleParams.push(`%${kw}%`);
+        titleConditions.push(`title ILIKE $${titleParams.length}`);
+      }
+      titleParams.push(limit, offset);
+      const { rows } = await client.query<RagDocument>(
+        `SELECT id, source_hash, bucket_slug, category, subcategory, title,
+                case_no, year, source_url, concise_summary, created_at, updated_at
+         FROM documents
+         WHERE ${titleConditions.join(' OR ')}
+         ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
+         LIMIT $${titleParams.length - 1} OFFSET $${titleParams.length}`,
+        titleParams
+      );
+      return rows;
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /** Get the full text of a document (heavy — only load when needed). */
