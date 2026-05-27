@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { uploadToS3Direct } from '@/lib/s3-utils';
 import { startAWSBatchTranscription, getTranscriptionJobStatus, fetchTranscriptionText } from '@/lib/aws-transcribe-utils';
 import { COLORS } from '@/lib/constants';
+import { useAlert } from '@/components/alert-provider';
 
 interface ChatInputProps {
   onSend: (message: string, file?: File | null, skipAIResponse?: boolean) => void;
@@ -42,6 +43,7 @@ export function ChatInput({
   status: externalStatus = 'idle',
   onStatusChange
 }: ChatInputProps) {
+  const { showAlert } = useAlert();
   const [value, setValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -156,7 +158,7 @@ export function ChatInput({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 20 * 1024 * 1024) {
-        alert("File is too large. Maximum size is 20MB.");
+        showAlert("File is too large. Maximum size is 20MB.", "File Too Large");
         return;
       }
       setSelectedFile(file);
@@ -232,8 +234,10 @@ export function ChatInput({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/mp3' });
-        const file = new File([audioBlob], `voice-note-${Date.now()}.mp3`, { type: 'audio/mp3' });
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+        const file = new File([audioBlob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
 
         setStatus('thinking');
 
@@ -381,7 +385,7 @@ export function ChatInput({
               {/* Compact Note above input */}
               <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] font-black text-[#722f37] opacity-60 px-4 mb-2 landscape:hidden">
                 <AlertTriangle size={10} />
-                <span>IMAGE ANALYSIS LIMITED</span>
+                <span>Image analysis is limited</span>
               </div>
 
               {/* Attached File Preview */}
@@ -505,7 +509,7 @@ export function ChatInput({
                 {/* Voice Mode button */}
                 <button
                   type="button"
-                  title={isRecording ? "Stop Transmission" : "Solicit Institutional Record (Talk to AI)"}
+                  title={isRecording ? "Stop Recording" : "Record Voice Message"}
                   onClick={handleVoiceToggle}
                   className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
                   disabled={disabled || status === 'thinking'}

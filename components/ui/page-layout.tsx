@@ -9,7 +9,7 @@ import { useConversations } from '@/components/conversation-provider/conversatio
 
 interface PageLayoutProps {
   children: React.ReactNode;
-  activePage: 'chat' | 'documents' | 'calendar' | 'cases' | 'auth' | 'transcribe';
+  activePage: 'chat' | 'documents' | 'calendar' | 'cases' | 'auth' | 'transcribe' | 'library' | 'bookmarks' | 'search';
   title: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
@@ -66,11 +66,11 @@ export function PageLayout({
         />
 
         <div className="flex-1 relative z-10 flex flex-col overflow-hidden">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className={`${maxWidth} mx-auto h-full w-full flex flex-col`}
+            className={`${maxWidth} mx-auto h-full w-full flex flex-col px-0`}
           >
             {children}
           </motion.div>

@@ -16,7 +16,7 @@ interface ViewCasesModalProps {
 
 function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelete: (id: string) => void; onClose: () => void }) {
   const router = useRouter();
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [deleting, setDeleting] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
 
@@ -58,7 +58,7 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
         </div>
         <div className="flex flex-col gap-2 flex-shrink-0">
           <AnimatePresence mode="wait">
-            {caseItem.user_id === session?.user?.id && !showConfirm ? (
+            {caseItem.user_id === user?.id && !showConfirm ? (
               <motion.button
                 key="delete-btn"
                 initial={{ opacity: 0 }}

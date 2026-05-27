@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Play, Pause, RotateCcw, RotateCw, Mic, Divide, ZoomIn, ZoomOut, Bookmark, Upload,
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon,
-  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square
+  CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square,
+  Edit2, Check, MoreVertical
 } from 'lucide-react';
 import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import {
@@ -13,13 +14,8 @@ import {
   fetchTranscriptionText
 } from '@/lib/aws-transcribe-utils';
 import { useAuth } from '@/components/auth/auth-provider';
-import {
-  getTranscriptions,
-  addTranscription,
-  updateTranscription,
-  deleteTranscription,
-  Transcription
-} from '@/lib/transcriptions-service';
+import type { Transcription } from '@/lib/transcriptions-service';
+import { useAlert } from '@/components/alert-provider';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -73,8 +69,9 @@ export default function TranscribeWorkspace({
   onOpenSidebar?: () => void;
   isSidebarOpen?: boolean;
 }) {
-  const { session } = useAuth();
-  const userId = session?.user?.id;
+  const { user } = useAuth();
+  const userId = user?.id;
+  const { showAlert } = useAlert();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -128,7 +125,11 @@ export default function TranscribeWorkspace({
   // Visualizer Live Tracking
   const audioHistoryRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyzerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const analyzerRafRef = useRef<number | null>(null);
+  const analyzerNodeRef = useRef<AnalyserNode | null>(null);
+  const analyzerDataRef = useRef<Uint8Array | null>(null);
+  const analyzerLastFrameRef = useRef<number>(0);
+  const [recordingTick, setRecordingTick] = useState(0);
   const [waveformPeaks, setWaveformPeaks] = useState<number[]>([]);
 
   // History state
@@ -138,6 +139,57 @@ export default function TranscribeWorkspace({
   const [activeTranscriptionId, setActiveTranscriptionId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Title editing & deleting state and handlers
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const saveTitle = async (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    try {
+      const res = await fetch(`/api/transcriptions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (res.ok) {
+        loadHistory();
+        setEditingId(null);
+      }
+    } catch (err) {
+      console.error("Failed to save title:", err);
+    }
+  };
+
+  const handleDelete = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
+    setDeleteTargetId(null);
+    try {
+      const res = await fetch(`/api/transcriptions/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        if (activeTranscriptionId === id) {
+          // Clear active workspace
+          setTranscript('');
+          setAudioUrl(null);
+          setTotalDuration(0);
+          setActiveTranscriptionId(null);
+        }
+        loadHistory();
+      }
+    } catch (err) {
+      console.error("Failed to delete transcription:", err);
+    }
+  };
 
   // Unified duration for the entire UI
   const displayTotalDuration = isRecording ? activeDuration : (totalDuration > 0 ? totalDuration : (duration > 0 ? duration : 0.1));
@@ -276,8 +328,11 @@ export default function TranscribeWorkspace({
 
   const loadHistory = async () => {
     if (!userId) return;
-    const data = await getTranscriptions(userId);
-    setHistory(data);
+    const res = await fetch("/api/transcriptions");
+    if (res.ok) {
+      const { transcriptions } = await res.json();
+      setHistory(transcriptions ?? []);
+    }
   };
 
   const startPolling = (dbId: string, jobName: string) => {
@@ -299,7 +354,11 @@ export default function TranscribeWorkspace({
           const text = await fetchTranscriptionText(job.Transcript!.TranscriptFileUri!);
           setTranscript(text);
           setIsPolling(false);
-          await updateTranscription(dbId, { transcript: text });
+          await fetch(`/api/transcriptions/${dbId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript: text }),
+          });
           loadHistory();
           stopPolling();
         } else if (job.TranscriptionJobStatus === 'FAILED') {
@@ -328,17 +387,18 @@ export default function TranscribeWorkspace({
 
   const saveToHistory = async (title: string, url: string, initialTranscript: string, initialDuration: number, jobName?: string) => {
     if (!userId) return;
-    const newEntry = await addTranscription(userId, {
-      title,
-      audio_url: url,
-      transcript: initialTranscript,
-      duration: initialDuration,
-      job_name: jobName
+    const res = await fetch("/api/transcriptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, audioUrl: url, transcript: initialTranscript, duration: initialDuration, jobName }),
     });
-    if (newEntry) {
-      setActiveTranscriptionId(newEntry.id);
-      loadHistory();
-      if (jobName) startPolling(newEntry.id, jobName);
+    if (res.ok) {
+      const { transcription: newEntry } = await res.json();
+      if (newEntry) {
+        setActiveTranscriptionId(newEntry.id);
+        loadHistory();
+        if (jobName) startPolling(newEntry.id, jobName);
+      }
     }
   };
 
@@ -373,7 +433,7 @@ export default function TranscribeWorkspace({
       const s3Uri = `s3://${bucket}/${s3Data.s3_key}`;
 
       await startAWSBatchTranscription(s3Uri, jobName);
-      setUploadStatus("Transcription job successfully initiated!");
+      setUploadStatus("Transcription started successfully!");
 
       saveToHistory(file.name, s3Data.file_url, "Transcription in progress...", fileDuration, jobName);
 
@@ -400,7 +460,8 @@ export default function TranscribeWorkspace({
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      if (analyzerTimerRef.current) clearInterval(analyzerTimerRef.current);
+      if (analyzerRafRef.current) cancelAnimationFrame(analyzerRafRef.current);
+      analyzerNodeRef.current = null;
       if (audioContextRef.current) audioContextRef.current.close();
     } else {
       if (audioUrl || transcript) {
@@ -472,22 +533,21 @@ export default function TranscribeWorkspace({
       if (isFirst) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#111';
         ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW / 2, 100);
-        ctx.font = 'bold 44px serif'; ctx.fillText('INSTITUTIONAL CASE INTELLIGENCE SYSTEM', CW / 2, 160);
-        ctx.font = '36px serif'; ctx.fillText('SOVEREIGN LEGAL HUB', CW / 2, 210);
+        ctx.font = 'bold 44px serif'; ctx.fillText('I LOVE LAWYER', CW / 2, 160);
+        ctx.font = '36px serif'; ctx.fillText('AI-POWERED LEGAL PLATFORM', CW / 2, 210);
 
         ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(300, 250); ctx.lineTo(CW - 300, 250); ctx.stroke();
 
         ctx.font = 'bold 50px serif';
-        ctx.fillText('TRANSCRIPTION OF STENOGRAPHIC NOTES', CW / 2, 340);
+        ctx.fillText('AUDIO TRANSCRIPTION RECORD', CW / 2, 340);
 
         ctx.textAlign = 'left'; ctx.font = '34px serif';
         ctx.fillText(`DATE OF SESSION: ${new Date().toLocaleDateString()}`, MX + LNW, 420);
         ctx.fillText(`TIME GENERATED: ${new Date().toLocaleTimeString()}`, MX + LNW, 470);
-        ctx.fillText(`ENGINE: AWS TRANSCRIBE (MULITLINGUAL)`, MX + LNW, 520);
       } else {
         ctx.font = 'italic 28px serif'; ctx.fillStyle = '#666';
-        ctx.fillText(`TRANSCRIPTION OF STENOGRAPHIC NOTES - Page ${pageNum} (Continued)`, MX + LNW, 100);
+        ctx.fillText(`AUDIO TRANSCRIPTION RECORD - Page ${pageNum} (Continued)`, MX + LNW, 100);
       }
 
       drawActions(ctx);
@@ -586,7 +646,7 @@ export default function TranscribeWorkspace({
   };
 
 
-  // Close menu when clicking outside
+  // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
@@ -596,6 +656,20 @@ export default function TranscribeWorkspace({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close the kebab menu when clicking/tapping outside it
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    // Use bubble phase (no capture) so clicks inside the dropdown
+    // can stopPropagation before this fires.
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [openMenuId]);
 
   const startMediaRecording = async () => {
     try {
@@ -611,16 +685,31 @@ export default function TranscribeWorkspace({
         audioContextRef.current = audioContext;
         const source = audioContext.createMediaStreamSource(stream);
         const analyzer = audioContext.createAnalyser();
+        analyzer.fftSize = 1024;
+        analyzer.smoothingTimeConstant = 0.4;
         source.connect(analyzer);
-        analyzer.fftSize = 256;
-        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        analyzerNodeRef.current = analyzer;
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount as number) as Uint8Array<ArrayBuffer>;
+        analyzerDataRef.current = dataArray;
+        analyzerLastFrameRef.current = 0;
 
-        analyzerTimerRef.current = setInterval(() => {
-          analyzer.getByteFrequencyData(dataArray);
-          const maxVal = Math.max(...Array.from(dataArray));
-          const peak = Math.max(10, Math.min(100, (maxVal / 128) * 100 + 5));
-          audioHistoryRef.current.push(peak);
-        }, 100);
+        const sampleAudio = (timestamp: number) => {
+          if (!analyzerNodeRef.current || !analyzerDataRef.current) return;
+          // ~12fps: one sample per bar for iOS-style scrolling waveform
+          if (timestamp - analyzerLastFrameRef.current >= 80) {
+            analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current as Uint8Array<ArrayBuffer>);
+            const speechBins = analyzerDataRef.current.slice(2, 93);
+            const rms = Math.sqrt(
+              speechBins.reduce((acc, v) => acc + v * v, 0) / speechBins.length
+            );
+            const peak = Math.max(4, Math.min(96, (rms / 70) * 100));
+            audioHistoryRef.current.push(peak);
+            setRecordingTick((t) => t + 1);
+            analyzerLastFrameRef.current = timestamp;
+          }
+          analyzerRafRef.current = requestAnimationFrame(sampleAudio);
+        };
+        analyzerRafRef.current = requestAnimationFrame(sampleAudio);
       }
 
       mediaRecorder.ondataavailable = (event) => {
@@ -628,8 +717,24 @@ export default function TranscribeWorkspace({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
-        const file = new File([audioBlob], `recording-${Date.now()}.mp3`, { type: 'audio/mp3' });
+        // Immediately convert recording amplitude history → playback peaks
+        const recordedHist = [...audioHistoryRef.current];
+        if (recordedHist.length > 0) {
+          const PLAYBACK_BARS = 250;
+          const peaks = Array.from({ length: PLAYBACK_BARS }, (_, i) => {
+            const srcIdx = (i / (PLAYBACK_BARS - 1)) * (recordedHist.length - 1);
+            const lo = Math.floor(srcIdx);
+            const hi = Math.min(lo + 1, recordedHist.length - 1);
+            const t = srcIdx - lo;
+            return recordedHist[lo] * (1 - t) + recordedHist[hi] * t;
+          });
+          setWaveformPeaks(peaks);
+        }
+
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const file = new File([audioBlob], `recording-${Date.now()}.${ext}`, { type: mimeType });
 
         setIsUploading(true);
         setUploadStatus("Saving recording...");
@@ -643,10 +748,10 @@ export default function TranscribeWorkspace({
 
           const result = await startAWSBatchTranscription(s3Uri, jobName);
           if (!result) {
-            setUploadStatus("Failed to initiate transcription job. Please check AWS configuration.");
+            setUploadStatus("Transcription failed. Please try again.");
             return;
           }
-          setUploadStatus("Transcription job successfully initiated!");
+          setUploadStatus("Transcription started successfully!");
 
           saveToHistory(`Recording ${new Date().toLocaleString()}`, s3Data.file_url, "Transcription in progress...", duration, jobName);
         } catch (error) {
@@ -662,7 +767,7 @@ export default function TranscribeWorkspace({
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   };
 
@@ -738,7 +843,7 @@ export default function TranscribeWorkspace({
               </div>
               <h1 className="text-4xl font-serif text-white mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
               <p className="text-gray-400 mb-10 leading-relaxed text-lg font-medium">
-                Record or upload audio to generate high-fidelity legal transcripts.
+                Record or upload audio to generate accurate legal transcripts.
               </p>
               <div className="flex gap-4 w-full">
                 <button
@@ -785,7 +890,7 @@ export default function TranscribeWorkspace({
               <div className="mb-4">
                 {isUploading ? <Loader2 size={48} className="animate-spin text-[#e9c176]" /> : <CheckCircle size={48} className="text-emerald-400" />}
               </div>
-              <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Digital Assistant Working...' : 'Success'}</h2>
+              <h2 className="text-2xl font-serif text-white mb-2">{isUploading ? 'Processing...' : 'Success'}</h2>
               <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">{uploadStatus || 'Preparing your transcription'}</p>
             </div>
           )}
@@ -817,24 +922,23 @@ export default function TranscribeWorkspace({
                   >
                     <Plus size={16} /> <span className="text-sm">New</span>
                   </button>
-                  <button
-                    onClick={exportToPDF}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all border text-[#e9c176] bg-[#722f37]/20 hover:bg-[#722f37]/30 border-[#722f37]/30 whitespace-nowrap shadow-lg shadow-black/20"
-                  >
-                    <ExternalLink size={16} /> <span className="text-sm">Download PDF</span>
-                  </button>
+                  {transcript && transcript !== 'Transcription in progress...' && !isPolling && !isUploading && (
+                    <button
+                      onClick={exportToPDF}
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all border text-[#e9c176] bg-[#722f37]/20 hover:bg-[#722f37]/30 border-[#722f37]/30 whitespace-nowrap shadow-lg shadow-black/20 animate-in fade-in zoom-in duration-300"
+                    >
+                      <ExternalLink size={16} /> <span className="text-sm">Download PDF</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
               {isPolling && (
                 <div className="mb-12 p-8 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20 flex items-center gap-6 shadow-2xl">
-                  <div className="relative">
-                    <div className="w-12 h-12 border-4 border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin"></div>
-                    <Loader2 className="absolute inset-0 m-auto text-[#e9c176]" size={20} />
-                  </div>
+                  <div className="w-10 h-10 border-[3px] border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin flex-shrink-0" />
                   <div>
                     <h3 className="text-xl font-serif text-white mb-1">AI Intelligence at work...</h3>
-                    <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with high precision speaker diarization.</p>
+                    <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with speaker identification.</p>
                   </div>
                 </div>
               )}
@@ -866,7 +970,11 @@ export default function TranscribeWorkspace({
                               if (newTranscript !== transcript) {
                                 setTranscript(newTranscript);
                                 if (activeTranscriptionId) {
-                                  updateTranscription(activeTranscriptionId, { transcript: newTranscript });
+                                  fetch(`/api/transcriptions/${activeTranscriptionId}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ transcript: newTranscript }),
+                                  });
                                 }
                               }
                             }}
@@ -981,7 +1089,7 @@ export default function TranscribeWorkspace({
                 className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 ${isPlaying ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent text-white border-white/20 hover:border-white/40'}`}
                 onClick={() => {
                   if (!audioUrl) {
-                    alert("No recording available to play.");
+                    showAlert("No recording available to play. Please record or upload audio first.", "No Recording");
                     return;
                   }
                   if (isPlaying) {
@@ -1055,36 +1163,91 @@ export default function TranscribeWorkspace({
               />
             )}
 
-            {/* Waveform Visualization */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex items-center gap-[2px] md:gap-1 w-full h-24 md:h-32 opacity-60">
-                {(() => {
-                  return Array.from({ length: 150 }).map((_, i) => {
-                    const hasAudioData = waveformPeaks.length > 0;
-                    // Use a deterministic pattern (sine wave) for placeholder if no data, to avoid hydration mismatch
-                    const placeholderHeight = 10 + (Math.sin(i * 0.5) * 5 + 5);
-                    const peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
+            {/* Waveform Visualization — iOS Voice Memos style */}
+            <div className="absolute inset-0 overflow-hidden flex items-center">
+              {(() => {
+                void recordingTick;
 
-                    const timeAtBar = (i / 150) * displayTotalDuration;
-                    const isPlayed = !isRecording && timeAtBar <= currentTime;
-                    const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
+                /* ── RECORDING waveform ── */
+                if (isRecording) {
+                  const BARS = 250;
+                  const hist = audioHistoryRef.current;
+
+                  // Right-align real samples; left side pads with tiny stubs
+                  const peaks = Array.from({ length: BARS }, (_, i) => {
+                    const dataIdx = hist.length - BARS + i;
+                    if (dataIdx < 0) return 4; // silent stub before recording started
+                    return Math.max(5, hist[dataIdx]);
+                  });
+
+                  const recordedCount = Math.min(hist.length, BARS);
+
+                  return (
+                    <div className="flex items-center gap-[1px] w-full h-full">
+                      {peaks.map((peak, i) => {
+                        const isRecordedBar = i >= BARS - recordedCount;
+                        const isCursor = i === BARS - 1 && isRecordedBar;
+                        const heightPct = isRecordedBar ? peak : 4;
+
+                        return (
+                          <div
+                            key={i}
+                            className="flex-1 rounded-full"
+                            style={{
+                              height: `${Number(heightPct).toFixed(2)}%`,
+                              background: isRecordedBar
+                                ? isCursor
+                                  ? '#f0d080'
+                                  : 'rgba(233,193,118,0.82)'
+                                : 'rgba(255,255,255,0.07)',
+                              boxShadow: isCursor
+                                ? '0 0 10px rgba(233,193,118,0.85)'
+                                : undefined,
+                              transition: 'height 0.07s ease-out',
+                              minHeight: 3,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                /* ── PLAYBACK / static waveform ── */
+                const BARS = 250;
+                const hasAudioData = waveformPeaks.length > 0;
+
+                // Idle state — nothing recorded or uploaded yet
+                if (!hasAudioData && !audioUrl) {
+                  return (
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/10 rounded-full" />
+                  );
+                }
+
+                return (
+                  <div className="flex items-center gap-[1px] w-full h-full">
+                    {Array.from({ length: BARS }, (_, i) => {
+                      const peak = waveformPeaks[i] ?? 5;
+                      const timeAtBar = ((i + 0.5) / BARS) * displayTotalDuration;
+                      const isPlayed = !isRecording && timeAtBar <= currentTime;
 
                       return (
                         <div
                           key={i}
-                          className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
-                            ? 'bg-[#e9c176] shadow-[0_0_8px_rgba(233,193,118,0.3)]'
-                            : 'bg-white/10'
-                            }`}
+                          className="flex-1 rounded-full"
                           style={{
-                            height: `${Math.max(4, peakHeight).toFixed(2)}%`,
-                            opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
+                            height: `${Math.max(4, peak).toFixed(2)}%`,
+                            background: isPlayed
+                              ? 'rgba(233,193,118,0.9)'
+                              : 'rgba(255,255,255,0.12)',
+                            minHeight: 3,
                           }}
                         />
                       );
-                  });
-                })()}
-              </div>
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Scrubber Line */}
@@ -1095,7 +1258,6 @@ export default function TranscribeWorkspace({
                   left: `${(currentTime / displayTotalDuration) * 100}%`
                 }}
               >
-                <div className="w-4 h-4 rounded-full bg-[#e9c176] absolute top-0 -left-[7px] shadow-lg border-4 border-[#0B0B0C]" />
               </div>
             )}
 
@@ -1124,6 +1286,9 @@ export default function TranscribeWorkspace({
           />
 
           <div className="w-[85%] md:w-80 h-full bg-[#0B0B0C]/95 backdrop-blur-2xl border-l border-[#722f37]/30 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
+            {deleteTargetId && (
+              <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm pointer-events-none" />
+            )}
             <div className="p-6 border-b border-[#722f37]/20 flex items-center justify-between bg-white/[0.02]">
               <div className="flex flex-col">
                 <h3 className="font-serif text-lg text-white flex items-center gap-2 tracking-tight">
@@ -1150,49 +1315,143 @@ export default function TranscribeWorkspace({
                 </div>
               ) : (
                 history.map((item) => {
-                  const isRecorded = item.title.startsWith('Recording');
+                  const isRecorded = (item.title ?? '').startsWith('Recording');
                   const isActive = activeTranscriptionId === item.id;
                   return (
-                    <button
+                    <div
                       key={item.id}
                       onClick={() => {
-                        setAudioUrl(item.audio_url);
+                        if (editingId === item.id) return;
+                        setAudioUrl(item.audioUrl);
                         setTranscript(item.transcript || '');
-                        if (item.duration > 0 || !totalDuration) setTotalDuration(item.duration);
+                        if ((item.duration ?? 0) > 0 || !totalDuration) setTotalDuration(item.duration ?? 0);
                         setActiveTranscriptionId(item.id);
                         if (window.innerWidth < 768) setIsHistoryOpen(false);
-                        if (item.audio_url) generateWaveform(item.audio_url);
-                        if (item.transcript === "Transcription in progress..." && item.job_name) {
-                          startPolling(item.id, item.job_name);
+                        if (item.audioUrl) generateWaveform(item.audioUrl);
+                        if (item.transcript === "Transcription in progress..." && item.jobName) {
+                          startPolling(item.id, item.jobName);
                         }
                       }}
-                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none group ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
+                      className={`w-full text-left p-4 rounded-2xl transition-all border outline-none cursor-pointer relative group/item flex flex-col ${isActive ? 'bg-[#722f37] text-white border-[#722f37] shadow-lg shadow-[#722f37]/20' : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/5 text-gray-300'}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isRecorded ? (
-                            <Mic size={14} className={isActive ? 'text-white' : 'text-red-400'} />
+                            <Mic size={14} className={isActive ? 'text-white flex-shrink-0' : 'text-red-400 flex-shrink-0'} />
                           ) : (
-                            <Upload size={14} className={isActive ? 'text-white' : 'text-blue-400'} />
+                            <Upload size={14} className={isActive ? 'text-white flex-shrink-0' : 'text-blue-400 flex-shrink-0'} />
                           )}
-                          <div className="font-bold text-sm truncate">{item.title}</div>
+
+                          {editingId === item.id ? (
+                            <div className="flex items-center gap-1 flex-1">
+                              <input
+                                type="text"
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-black/50 border border-white/10 text-white text-xs px-2 py-1 rounded-lg w-full focus:outline-none focus:border-[#e9c176]"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.stopPropagation();
+                                    saveTitle(item.id, editingTitle);
+                                  } else if (e.key === 'Escape') {
+                                    e.stopPropagation();
+                                    setEditingId(null);
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveTitle(item.id, editingTitle);
+                                }}
+                                className="p-1 hover:bg-white/10 text-green-400 rounded-lg flex-shrink-0"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingId(null);
+                                }}
+                                className="p-1 hover:bg-white/10 text-red-400 rounded-lg flex-shrink-0"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="font-bold text-sm truncate flex-1">{item.title}</div>
+                          )}
                         </div>
-                        <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
-                          {formatTimelineTime(item.duration)}
-                        </div>
+
+                        {editingId !== item.id && (
+                          <div className="relative flex-shrink-0 flex items-center gap-1.5">
+                            {/* Duration tag — hidden when menu is open */}
+                            {openMenuId !== item.id && (
+                              <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
+                                {formatTimelineTime(item.duration ?? 0)}
+                              </div>
+                            )}
+
+                            {/* ⋮ kebab — always visible, works on touch & desktop */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === item.id ? null : item.id);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:bg-white/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+                              title="More options"
+                            >
+                              <MoreVertical size={13} />
+                            </button>
+
+                            {/* Dropdown menu */}
+                            {openMenuId === item.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingId(item.id);
+                                    setEditingTitle(item.title || '');
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-left"
+                                >
+                                  <Edit2 size={12} /> Rename
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    handleDelete(item.id, e);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left border-t border-white/5"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 ${isActive ? 'text-white' : 'text-gray-500'}`}>
-                        <Clock size={10} /> {new Date(item.created_at).toLocaleDateString()}
+                      <div className={`text-[10px] font-medium flex items-center gap-2 opacity-60 mt-1.5 ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
+                        <Clock size={10} /> {new Date(item.createdAt).toLocaleDateString()}
                       </div>
 
                       {item.transcript === "Transcription in progress..." && (
                         <div className={`mt-3 flex items-center gap-2 text-[10px] font-bold ${isActive ? 'text-white' : 'text-[#e9c176]'}`}>
                           <Loader2 size={10} className="animate-spin" />
-                          <span className="uppercase tracking-[0.2em]">Ratifying Record...</span>
+                          <span className="uppercase tracking-[0.2em]">Processing...</span>
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })
               )}
@@ -1210,6 +1469,37 @@ export default function TranscribeWorkspace({
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0B0B0C] border border-[#722f37]/40 rounded-2xl w-[90%] max-w-md p-6 shadow-2xl shadow-black/60 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <div className="w-12 h-12 bg-[#722f37]/15 border border-[#722f37]/30 rounded-2xl flex items-center justify-center mb-1">
+                <Trash2 className="text-[#e9c176]" size={22} />
+              </div>
+              <h2 className="text-xl font-serif text-white tracking-tight">Delete session?</h2>
+              <p className="text-gray-500 text-[13px] leading-relaxed">
+                This transcription session will be permanently removed. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#722f37]/10">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-lg shadow-[#722f37]/20 transition-all active:scale-[0.98] flex items-center gap-2"
+              >
+                <Trash2 size={13} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Overwrite Confirmation Modal */}
       {showOverwriteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1220,7 +1510,7 @@ export default function TranscribeWorkspace({
               </div>
               <h2 className="text-xl font-bold text-white tracking-tight">Active session detected</h2>
               <p className="text-gray-400 text-sm leading-relaxed">
-                You currently have an active transcription session. Starting a new recording will discard your current timeline context. Are you sure you want to proceed?
+                You currently have an active transcription session. Starting a new recording will discard your current session. Are you sure you want to proceed?
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">

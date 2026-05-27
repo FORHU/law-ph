@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Lock, Mail, CheckCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { AUTH_ROUTES } from '@/lib/constants';
 import { AuthLayout } from './auth/shared/auth-layout';
 import { AuthCard } from './auth/shared/auth-card';
@@ -25,13 +24,15 @@ export function ForgotPasswordForm() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}${AUTH_ROUTES.UPDATE_PASSWORD}`,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
-
-      if (resetError) throw resetError;
-
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to send reset email');
+      }
       setIsSubmitted(true);
     } catch (err: any) {
       console.error('Reset password error:', err);
@@ -127,7 +128,7 @@ export function ForgotPasswordForm() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              We have dispatched recovery instructions to <span className="text-[#e9c176] font-bold">{email}</span>. Please verify your institutional inbox.
+              We sent recovery instructions to <span className="text-[#e9c176] font-bold">{email}</span>. Please check your inbox.
             </motion.p>
 
             <motion.div
@@ -143,11 +144,11 @@ export function ForgotPasswordForm() {
                 <ul className="text-white/40 text-[10px] font-medium space-y-2 list-none">
                   <li className="flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-[#722f37]" />
-                    Inspect institutional spam or quarantine filters.
+                    Check your spam folder.
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-[#722f37]" />
-                    Observe the 1-minute ratification interval.
+                    Wait 1 minute before trying again.
                   </li>
                 </ul>
               </div>

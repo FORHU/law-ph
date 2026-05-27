@@ -1,30 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  try {
-    const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8001').replace(/\/+$/, '');
-    const sessionUrl = `${apiUrl}/session-id`;
-    console.log('[chat/session] Fetching session from:', sessionUrl);
+const SESSION_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
-    const response = await fetch(sessionUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch session ID: ${response.statusText}`);
+export async function GET(_request: NextRequest) {
+  const apiUrl = (process.env.CHAT_WONDER_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+  const sessionUrl = `${apiUrl}/session-id`;
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= SESSION_RETRIES; attempt++) {
+    try {
+      console.log(`[chat/session] Fetching session (attempt ${attempt}/${SESSION_RETRIES}):`, sessionUrl);
+
+      const response = await fetch(sessionUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch session ID: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data?.session_id) {
+        throw new Error('Chat Wonder returned no session_id');
+      }
+
+      return NextResponse.json(data);
+    } catch (error) {
+      lastError = error;
+      console.error(`[chat/session] Attempt ${attempt} failed:`, error);
+      if (attempt < SESSION_RETRIES) {
+        await sleep(RETRY_DELAY_MS * attempt);
+      }
     }
-
-    const data = await response.json();
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Session initialization error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize session. Please try again.' },
-      { status: 500 }
-    );
   }
+
+  console.error('[chat/session] All retries exhausted:', lastError);
+  return NextResponse.json(
+    { error: 'Could not initialize chat session. Chat Wonder may be unreachable.' },
+    { status: 503 }
+  );
 }

@@ -1,4 +1,15 @@
-import { createClient } from "@/lib/supabase/client";
+// Calls /api/auth/google/refresh to get a new access token, then retries the request.
+// Returns the new token on success, null if refresh failed.
+export async function refreshGoogleToken(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/auth/google/refresh", { method: "POST" });
+    if (!res.ok) return null;
+    const { access_token } = await res.json();
+    return access_token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export interface CalendarAuthStatus {
   session_id: string;
@@ -52,42 +63,28 @@ export interface DeleteEventResult {
 }
 
 export async function checkAuthStatus(
-  sessionId: string,
+  _sessionId: string,
+  providerToken?: string | null,
 ): Promise<CalendarAuthStatus> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const providerToken =
-    session?.provider_token || session?.user?.user_metadata?.provider_token;
   return {
-    session_id: sessionId,
+    session_id: _sessionId,
     authenticated: !!providerToken,
     service: "google",
   };
 }
 
 export function getGoogleAuthUrl(
-  sessionId: string,
+  _sessionId: string,
   returnPath: string = "/calendar",
 ): string {
-  // Use Next.js auth page since we migrated to Supabase frontend direct OAuth
   return `/auth/login?redirect=${returnPath}`;
 }
 
-/**
- * List upcoming Google Calendar events.
- */
 export async function listCalendarEvents(
-  sessionId: string,
+  _sessionId: string,
   opts: { maxResults?: number; timeMin?: string; timeMax?: string } = {},
+  providerToken?: string | null,
 ): Promise<ListEventsResult> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const providerToken =
-    session?.provider_token || session?.user?.user_metadata?.provider_token;
   if (!providerToken) return { success: false, needs_auth: true };
 
   try {
@@ -99,15 +96,22 @@ export async function listCalendarEvents(
       "items(id,summary,description,location,start,end,htmlLink,attendees(email,responseStatus,organizer),status,iCalUID,organizer)",
     );
     url.searchParams.set("singleEvents", "true");
-    if (opts.maxResults)
-      url.searchParams.set("maxResults", String(opts.maxResults));
+    if (opts.maxResults) url.searchParams.set("maxResults", String(opts.maxResults));
     if (opts.timeMin) url.searchParams.set("timeMin", opts.timeMin);
     if (opts.timeMax) url.searchParams.set("timeMax", opts.timeMax);
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${providerToken}` },
+    let token = providerToken;
+    let res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    }
+    if (res.status === 401) return { success: false, needs_auth: true };
     if (!res.ok) throw new Error(`Google API Error: ${res.status}`);
     const data = await res.json();
     const events = (data.items || []).map((i: any) => ({
@@ -128,7 +132,7 @@ export async function listCalendarEvents(
 }
 
 export async function createCalendarEvent(
-  sessionId: string,
+  _sessionId: string,
   data: {
     title: string;
     start_datetime: string;
@@ -138,27 +142,24 @@ export async function createCalendarEvent(
     client_email?: string;
     clientEmail?: string;
   },
+  providerToken?: string | null,
 ): Promise<CreateEventResult> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const providerToken =
-    session?.provider_token || session?.user?.user_metadata?.provider_token;
   if (!providerToken) return { success: false, needs_auth: true };
 
   try {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const typeTag = data.type ? `[type:${data.type}]` : "";
+    const descriptionWithType = [typeTag, data.description].filter(Boolean).join("\n");
     const eventBody: any = {
       summary: data.title,
-      description: data.description,
+      description: descriptionWithType,
       start: { dateTime: data.start_datetime, timeZone: userTimeZone },
       end: { dateTime: data.end_datetime, timeZone: userTimeZone },
       reminders: {
         useDefault: false,
         overrides: [
-          { method: "email", minutes: 1440 }, // 1 day before
-          { method: "popup", minutes: 60 }, // 1 hour before
+          { method: "email", minutes: 1440 },
+          { method: "popup", minutes: 60 },
         ],
       },
     };
@@ -174,21 +175,24 @@ export async function createCalendarEvent(
       "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none",
     );
 
-    const res = await fetch(url.toString(), {
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${providerToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
       body: JSON.stringify(eventBody),
     });
+
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
+    }
 
     const responseText = await res.text();
 
     if (res.status === 401) {
-      console.error(
-        "[createCalendarEvent] 401 Unauthorized - Token may be expired.",
-      );
       return { success: false, needs_auth: true };
     }
 
@@ -197,7 +201,6 @@ export async function createCalendarEvent(
       try {
         const errorData = JSON.parse(responseText);
         errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
-        console.error("[createCalendarEvent] Error:", errorMsg);
       } catch (e) {
         console.error("[createCalendarEvent] Error response:", responseText);
       }
@@ -205,8 +208,6 @@ export async function createCalendarEvent(
     }
 
     const result = JSON.parse(responseText);
-    console.log("[createCalendarEvent] ✅ Event created:", result.id);
-
     return {
       success: true,
       event_id: result.id,
@@ -217,130 +218,128 @@ export async function createCalendarEvent(
       end: result.end?.dateTime,
     };
   } catch (error: any) {
-    console.error("[createCalendarEvent] ❌ Error:", error.message);
+    console.error("[createCalendarEvent] Error:", error.message);
     return { success: false, error: error.message };
   }
 }
 
 export async function updateCalendarEvent(
-    sessionId: string,
-    googleEventId: string,
-    data: {
-        title: string;
-        start_datetime: string;
-        end_datetime: string;
-        description?: string;
-        type?: "meeting" | "appointment" | "hearing" | "deposition";
-        client_email?: string;
-        clientEmail?: string;
-    },
+  _sessionId: string,
+  googleEventId: string,
+  data: {
+    title: string;
+    start_datetime: string;
+    end_datetime: string;
+    description?: string;
+    type?: "meeting" | "appointment" | "hearing" | "deposition";
+    client_email?: string;
+    clientEmail?: string;
+  },
+  providerToken?: string | null,
 ): Promise<CreateEventResult> {
-    const supabase = createClient();
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
-    const providerToken =
-        session?.provider_token || session?.user?.user_metadata?.provider_token;
-    if (!providerToken) return { success: false, needs_auth: true };
+  if (!providerToken) return { success: false, needs_auth: true };
 
-    try {
-        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const eventBody: any = {
-            summary: data.title,
-            description: data.description,
-            start: { dateTime: data.start_datetime, timeZone: userTimeZone },
-            end: { dateTime: data.end_datetime, timeZone: userTimeZone },
-        };
+  try {
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const typeTag = data.type ? `[type:${data.type}]` : "";
+    const descriptionWithType = [typeTag, data.description].filter(Boolean).join("\n");
+    const eventBody: any = {
+      summary: data.title,
+      description: descriptionWithType,
+      start: { dateTime: data.start_datetime, timeZone: userTimeZone },
+      end: { dateTime: data.end_datetime, timeZone: userTimeZone },
+    };
 
-        const clientEmailStr = data.clientEmail || data.client_email;
-        if (clientEmailStr) {
-            eventBody.attendees = clientEmailStr.split(',').map((e: string) => ({ email: e.trim() }));
-        }
-
-        const url = new URL(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
-        );
-
-        const res = await fetch(url.toString(), {
-            method: "PUT",
-            headers: {
-                Authorization: `Bearer ${providerToken}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(eventBody),
-        });
-
-        const responseText = await res.text();
-
-        if (res.status === 401) {
-            return { success: false, needs_auth: true };
-        }
-
-        if (!res.ok) {
-            let errorMsg = `HTTP ${res.status}`;
-            try {
-                const errorData = JSON.parse(responseText);
-                errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
-            } catch (e) {}
-            throw new Error(errorMsg);
-        }
-
-        const result = JSON.parse(responseText);
-        return {
-            success: true,
-            event_id: result.id,
-            iCalUID: result.iCalUID,
-            link: result.htmlLink,
-            title: result.summary,
-            start: result.start?.dateTime,
-            end: result.end?.dateTime,
-        };
-    } catch (error: any) {
-        console.error('[updateCalendarEvent] ❌ Error:', error.message);
-        return { success: false, error: error.message };
+    const clientEmailStr = data.clientEmail || data.client_email;
+    if (clientEmailStr) {
+      eventBody.attendees = clientEmailStr.split(',').map((e: string) => ({ email: e.trim() }));
     }
+
+    const url = new URL(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+    );
+
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify(eventBody),
+    });
+
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
+    }
+
+    const responseText = await res.text();
+    if (res.status === 401) return { success: false, needs_auth: true };
+    if (!res.ok) {
+      let errorMsg = `HTTP ${res.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+      } catch (e) {}
+      throw new Error(errorMsg);
+    }
+
+    const result = JSON.parse(responseText);
+    return {
+      success: true,
+      event_id: result.id,
+      iCalUID: result.iCalUID,
+      link: result.htmlLink,
+      title: result.summary,
+      start: result.start?.dateTime,
+      end: result.end?.dateTime,
+    };
+  } catch (error: any) {
+    console.error('[updateCalendarEvent] Error:', error.message);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function deleteCalendarEvent(
-    sessionId: string,
-    googleEventId: string,
+  _sessionId: string,
+  googleEventId: string,
+  providerToken?: string | null,
 ): Promise<DeleteEventResult> {
-    const supabase = createClient();
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
-    const providerToken =
-        session?.provider_token || session?.user?.user_metadata?.provider_token;
-    if (!providerToken) return { success: false, needs_auth: true };
+  if (!providerToken) return { success: false, needs_auth: true };
 
-    try {
-        const url = new URL(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
-        );
+  try {
+    const url = new URL(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}?sendUpdates=none`,
+    );
 
-        const res = await fetch(url.toString(), {
-            method: "DELETE",
-            headers: {
-                Authorization: `Bearer ${providerToken}`,
-            },
-        });
+    let token = providerToken;
+    const makeRequest = (t: string) => fetch(url.toString(), {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${t}` },
+    });
 
-        if (res.status === 401) return { success: false, needs_auth: true };
-        
-        // Handle successfully deleted (204) or already gone (410/404)
-        if (res.status === 204 || res.status === 410 || res.status === 404 || res.ok) {
-            return { success: true, event_id: googleEventId };
-        }
-
-        const responseText = await res.text();
-        let errorMsg = `HTTP ${res.status}`;
-        try {
-            const errorData = JSON.parse(responseText);
-            errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
-        } catch (e) {}
-        throw new Error(errorMsg);
-    } catch (error: any) {
-        console.error('[deleteCalendarEvent] ❌ Error:', error.message);
-        return { success: false, error: error.message };
+    let res = await makeRequest(token);
+    if (res.status === 401) {
+      const newToken = await refreshGoogleToken();
+      if (!newToken) return { success: false, needs_auth: true };
+      token = newToken;
+      res = await makeRequest(token);
     }
+    if (res.status === 401) return { success: false, needs_auth: true };
+    if (res.status === 204 || res.status === 410 || res.status === 404 || res.ok) {
+      return { success: true, event_id: googleEventId };
+    }
+
+    const responseText = await res.text();
+    let errorMsg = `HTTP ${res.status}`;
+    try {
+      const errorData = JSON.parse(responseText);
+      errorMsg = errorData?.error?.message || errorData?.message || errorMsg;
+    } catch (e) {}
+    throw new Error(errorMsg);
+  } catch (error: any) {
+    console.error('[deleteCalendarEvent] Error:', error.message);
+    return { success: false, error: error.message };
+  }
 }

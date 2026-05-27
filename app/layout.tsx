@@ -1,8 +1,7 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "@/lib/auth/session";
 import AuthProvider from "@/components/auth/auth-provider";
 import { ConversationProvider } from "@/components/conversation-provider";
 import { Suspense } from "react";
@@ -11,6 +10,7 @@ import { GlobalRecorder } from "@/components/global-recorder";
 import { PersistentBackground } from "@/components/ui/persistent-background";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PersistentSidebar } from "@/components/persistent-sidebar";
+import { AlertProvider } from "@/components/alert-provider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -24,22 +24,16 @@ export const metadata: Metadata = {
   description: "AI Legal Assistant",
 };
 
-
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let session = null;
+  let user = null;
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: { session: fetchedSession } } = await supabase.auth.getSession();
-      session = fetchedSession;
-    }
+    user = await getServerSession();
   } catch (error) {
-    console.error("Critical: Failed to retrieve session in RootLayout", error);
+    console.error("Failed to retrieve session in RootLayout", error);
   }
 
   return (
@@ -69,7 +63,8 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={<AuthLoading />}>
-            <AuthProvider initialSession={session}>
+            <AuthProvider initialUser={user}>
+              <AlertProvider>
               <ConversationProvider>
                 <PersistentBackground />
                 <div className="flex h-screen w-full relative overflow-hidden bg-transparent">
@@ -82,6 +77,7 @@ export default async function RootLayout({
                 </div>
                 <GlobalRecorder />
               </ConversationProvider>
+              </AlertProvider>
             </AuthProvider>
           </Suspense>
         </ThemeProvider>

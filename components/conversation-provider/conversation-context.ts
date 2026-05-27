@@ -2,7 +2,7 @@
 import { createContext, useContext } from 'react';
 import { Conversation, ConsultationSession, CaseData } from '@/types';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
-import { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
+import type { Bookmark, NewBookmark } from '@/lib/bookmarks-service';
 
 export interface Message {
   id: string | number;
@@ -18,6 +18,7 @@ export interface Message {
   originalText?: string;
   editedAt?: string;
   editedBy?: string;
+  authorName?: string;
   highlights?: { id: string, snippet: string, note: string }[];
   isAnalysis?: boolean;
   hidden?: boolean;
@@ -47,7 +48,7 @@ export type ConversationContextType = {
   documentContext: string | null;
   setDocumentContext: React.Dispatch<React.SetStateAction<string | null>>;
   analyzeDocuments: (files: File[], caseId: string, customPrompt?: string) => Promise<void>;
-  // Supabase/Cloud state
+  // Cloud state
   conversations: Conversation[];
   refreshConversations: () => Promise<void>;
 
@@ -86,6 +87,8 @@ export type ConversationContextType = {
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
   openSourceByItemId: (itemId: string, title?: string, context?: string) => void;
   closeDetailSidebar: () => void;
+
+  isSharedCase: boolean;
 
   cases: CaseData[];
   refreshCases: () => Promise<void>;

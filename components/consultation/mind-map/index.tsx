@@ -29,7 +29,7 @@ const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), 
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-[#050505]/40 animate-pulse flex items-center justify-center text-white/20 text-xs font-black uppercase tracking-widest">
-      Initializing 3D Reality...
+      Loading mind map...
     </div>
   ),
 }) as React.ForwardRefExoticComponent<MindMap3DProps & React.RefAttributes<MindMap3DHandle>>;
@@ -615,7 +615,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   { id: 'horizontal', name: 'Strategic Flow', icon: '→' },
                   { id: 'vertical', name: 'Legal Hierarchy', icon: '↓' },
                   { id: 'dual', name: 'Dual Perspective', icon: '↔' },
-                  { id: 'radial', name: 'Radial Brainstorm', icon: '○' },
+                  { id: 'radial', name: 'Radial Layout', icon: '○' },
                   { id: 'compact', name: 'Dense Analysis', icon: '▩' }
                 ].map((item) => (
                   <button
@@ -795,7 +795,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                       const lines = desc.split('\n').map((l: string) => l.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
                       return (
                         <div className="flex flex-col gap-3">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Key Evidence Synthesis</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Key Evidence</span>
                           <ul className="space-y-2">
                             {lines.map((line: string, i: number) => (
                               <li key={i} className="text-[14px] text-white/70 flex items-start gap-2 leading-tight">
@@ -832,7 +832,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                   {/* LEGAL EVIDENCE GALLERY (Shared between 2D/3D) */}
                   {selectedNodeData.media && selectedNodeData.media.length > 0 && (
                     <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "mt-8 border-t border-white/5 pt-6 space-y-4"}>
-                      {!isAttachment && <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Ratified Evidence ({selectedNodeData.media.length})</span>}
+                      {!isAttachment && <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e9c176]">Attached Files ({selectedNodeData.media.length})</span>}
                       <div className={isAttachment ? "flex-1 min-h-0 flex flex-col" : "flex flex-col gap-3"}>
                         {selectedNodeData.media.map((item: any, idx: number) => {
                           if (item.type === 'image') return (
@@ -918,7 +918,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                     <div className="w-8 h-8 bg-[#e9c176] text-black flex items-center justify-center rounded-lg font-bold">📄</div>
                                     <div className="flex flex-col">
                                       <span className="text-[12px] font-bold text-white/90 truncate max-w-[160px]">{item.name}</span>
-                                      <span className="text-[9px] text-[#e9c176] font-bold uppercase tracking-[0.2em]">Institutional Document</span>
+                                      <span className="text-[9px] text-[#e9c176] font-bold uppercase tracking-[0.2em]">Document</span>
                                     </div>
                                   </div>
                                   <div className="text-[#e9c176] text-[9px] font-bold px-3 py-1 bg-[#722f37]/20 border border-[#722f37]/30 rounded-lg group-open:hidden uppercase tracking-[0.15em]">Expand</div>

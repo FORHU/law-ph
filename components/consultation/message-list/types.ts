@@ -16,5 +16,6 @@ export interface Message {
   mindMap?: any;
   editedAt?: string;
   editedBy?: string;
+  authorName?: string;
   [key: string]: any;
 }

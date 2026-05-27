@@ -55,23 +55,29 @@ function BookmarkCard({
 
   const { exists: consultationExists, id: consultationId } = getConsultationStatus();
 
+  const isLibraryDoc = !isAIResponse && /^\d+$/.test(bookmark.itemId);
+
   const handleOpenLink = () => {
     if (isAIResponse) {
       if (consultationExists && bookmark.url) {
-        const targetUrl = `${bookmark.url}#message-${bookmark.item_id}`;
-
+        const targetUrl = `${bookmark.url}#message-${bookmark.itemId}`;
         if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
-          // If already on the page, natively set the hash to trigger the hashchange event reliably
-          window.location.hash = `message-${bookmark.item_id}`;
+          window.location.hash = `message-${bookmark.itemId}`;
         } else {
           router.push(targetUrl);
         }
-
-        onOpen('__NAVIGATE__'); // Signal navigation to close sidebar
+        onOpen('__NAVIGATE__');
       }
       return;
     }
-    onOpen(bookmark.item_id);
+
+    if (isLibraryDoc) {
+      router.push(`/legal-library/${bookmark.itemId}`);
+      onOpen('__NAVIGATE__');
+      return;
+    }
+
+    onOpen(bookmark.itemId);
   };
 
   return (
@@ -122,6 +128,13 @@ function BookmarkCard({
           {bookmark.title}
         </h3>
 
+        {isLibraryDoc && (
+          <div className="flex items-center gap-1.5 mb-3 -mt-1">
+            <BookOpen size={11} className="text-[#722f37]" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#722f37]">Legal Library</span>
+          </div>
+        )}
+
         {/* AI Summary Section */}
         <div className="flex gap-3 mb-3">
           <div className="mt-0.5 flex-shrink-0">
@@ -137,15 +150,15 @@ function BookmarkCard({
           <div className="flex-1">
             <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isAIResponse && !consultationExists ? "text-gray-500" : "text-gray-400"
               }`}>
-              {isAIResponse ? 'Response Intelligence' : 'Institutional Summary'}
+              {isAIResponse ? 'AI Response' : 'AI Summary'}
             </h4>
             <div className="relative">
               <p className={`text-[13px] leading-relaxed italic ${isAIResponse && !isExpanded ? 'line-clamp-4' : ''
                 } ${isAIResponse && !consultationExists ? "text-gray-400" : "text-gray-400"}`}>
-                {bookmark.ai_summary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
+                {bookmark.aiSummary || (isAIResponse ? "No content." : "Bookmark saved. Click the title to view the full legal details and capture an AI summary.")}
               </p>
 
-              {isAIResponse && bookmark.ai_summary && bookmark.ai_summary.length > 200 && (
+              {isAIResponse && bookmark.aiSummary && bookmark.aiSummary.length > 200 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -253,7 +266,7 @@ export function BookmarksModal({ isOpen, onClose, onOpenSource }: BookmarksModal
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed z-[101] inset-0 flex items-center justify-center p-6 pointer-events-none"
             >
-              <div className="relative w-full max-w-3xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] pointer-events-auto">
+              <div className="relative w-full max-w-5xl bg-[#0B0B0C] border border-[#722f37]/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto">
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-[#722f37]/20 flex items-center justify-between flex-shrink-0">
                   <div className="flex flex-col">

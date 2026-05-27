@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Shield, Scale } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { AUTH_ROUTES } from '@/lib/constants';
 import { GoogleLoginButton } from './auth/google-login-button';
 import { AuthLayout } from './auth/shared/auth-layout';
@@ -20,9 +19,14 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const oauthError = searchParams?.get('error');
+  const oauthErrorMessage =
+    oauthError === 'google_denied' ? 'Google sign-in was cancelled.' :
+    oauthError === 'google_auth_failed' ? 'Google sign-in failed. Please try again.' :
+    null;
+
+  const [error, setError] = useState<string | null>(oauthErrorMessage);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,14 +34,18 @@ const LoginScreen = () => {
     setError(null);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (signInError) throw signInError;
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Sign in failed');
+      }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message || 'An error occurred during sign in');
     } finally {
@@ -104,11 +112,10 @@ const LoginScreen = () => {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-white/5" />
           </div>
-
         </div>
 
         <div>
-          <GoogleLoginButton />
+          <GoogleLoginButton redirectUrl={redirectUrl} />
         </div>
 
         <div className="mt-8 text-center border-t border-white/5 pt-8">

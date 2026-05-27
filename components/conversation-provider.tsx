@@ -7,14 +7,12 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Conversation, ConsultationSession, CaseData } from "@/types";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { CHAT_SENDER } from "@/lib/constants";
 import {
   extractLegalSources,
-  extractRelatedCases,
   extractTimeline,
   extractMindMap,
   cleanAiText,
@@ -29,25 +27,22 @@ import {
 import { useDetailSidebar } from "./conversation-provider/use-detail-sidebar";
 import { useSendMessage } from "./conversation-provider/use-send-message";
 import { useChatSession } from "./conversation-provider/use-chat-session";
-import {
-  Bookmark,
-  NewBookmark,
-  getBookmarks,
-  addBookmark as svcAddBookmark,
-  removeBookmark as svcRemoveBookmark,
-} from "@/lib/bookmarks-service";
+import type { Bookmark, NewBookmark } from "@/lib/bookmarks-service";
+import { useAlert } from "./alert-provider";
 
 export function ConversationProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { loggedIn, session, supabase } = useAuth();
+  const { loggedIn, user } = useAuth();
   const params = useParams();
+  const router = useRouter();
+  const { showAlert } = useAlert();
   const syncedConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
-  const userId = session?.user?.id;
+  const userId = user?.id;
 
   // Local/UI state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -61,6 +56,7 @@ export function ConversationProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSharedCase, setIsSharedCase] = useState(false);
 
   // Voice Recording Persistent State
   const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
@@ -212,15 +208,11 @@ export function ConversationProvider({
               newContent += `\n\n[ILM_META]${JSON.stringify(meta)}[/ILM_META]`;
             }
 
-            const { error } = await supabase
-              .from("messages")
-              .update({ content: newContent })
-              .eq("id", id);
-            if (error)
-              console.error(
-                "[ConversationProvider] DB Update message failed:",
-                error.message,
-              );
+            await fetch(`/api/messages/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: newContent }),
+            });
           }
         } catch (err) {
           console.error(
@@ -230,7 +222,7 @@ export function ConversationProvider({
         }
       }
     },
-    [loggedIn, supabase, messages],
+    [loggedIn, messages],
   );
 
   // Bookmarks state
@@ -254,13 +246,13 @@ export function ConversationProvider({
   // Chat session hook
   const { chatSessionId, setChatSessionId } = useChatSession();
 
-  // Supabase state
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [casesLoaded, setCasesLoaded] = useState(false);
 
   // Ref to track all IDs deleted during this session to prevent any "resurrection" from stale API data
   const deletedIdsRef = useRef<Set<string>>(new Set());
+  const notFoundIdsRef = useRef<Set<string>>(new Set());
 
   // Load shadow-deleted IDs from local storage on mount
   useEffect(() => {
@@ -302,18 +294,10 @@ export function ConversationProvider({
 
     // 2. Cloud removal
     try {
-      const { error, status } = await supabase
-        .from("conversations")
-        .delete()
-        .eq("id", idStr);
+      const res = await fetch(`/api/conversations/${idStr}`, { method: "DELETE" });
 
-      if (error || (status !== 200 && status !== 204)) {
-        // Only shadow-delete if the DB delete actually failed
-        console.warn(
-          "[ConversationProvider] DB Delete failed. Shadow-deleting locally.",
-          status,
-          error?.message,
-        );
+      if (!res.ok) {
+        console.warn("[ConversationProvider] DB Delete failed. Shadow-deleting locally.");
         persistDeletedId(idStr);
       } else {
         // Success: ensure it's NOT in the shadow list (clean up any old entry)
@@ -347,25 +331,14 @@ export function ConversationProvider({
 
     if (isUuid) {
       try {
-        const { error } = await supabase
-          .from("messages")
-          .delete()
-          .eq("id", messageId);
-        if (error) {
-          console.error(
-            "Failed to delete message (likely RLS). Item hidden locally.",
-            error.message,
-          );
-          // Shadow Delete: We do NOT restore it. We assume the user wants it gone.
-        }
+        await fetch(`/api/messages/${messageId}`, { method: "DELETE" });
       } catch (err) {
         console.error("Unexpected error during message deletion:", err);
-        // Do NOT restore.
       }
     }
   };
 
-  // Helper to map Supabase/Cloud messages to UI format
+  // Helper to map cloud messages to UI format
   const mapCloudMessage = useCallback((msg: any): Message => {
     let text = msg.content || msg.text || "";
     const role = msg.role || msg.sender;
@@ -384,10 +357,18 @@ export function ConversationProvider({
 
     // Auto-extract citations for AI messages on load/map
     // CRITICAL: Extract from raw text BEFORE cleaning it for display
+    const rawContent = sender === CHAT_SENDER.AI ? text : undefined;
     const sources =
       sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
-    const relatedCases =
-      sender === CHAT_SENDER.AI ? extractRelatedCases(text) : undefined;
+    // Don't hardcode undefined — restore from localStorage if previously fetched
+    const storedCases = (() => {
+      if (sender !== CHAT_SENDER.AI || !msg.id) return undefined;
+      try {
+        const raw = localStorage.getItem(`lex_rc_${msg.id}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch { return undefined; }
+    })();
+    const relatedCases = storedCases;
     const timeline =
       sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
     const mindMap =
@@ -401,12 +382,11 @@ export function ConversationProvider({
         ? cleanAiText(text)
         : text;
 
-    console.log("Fetched file attachments for message:", msg.id, meta.fileAttachments);
-
     return {
       ...msg,
       text: cleanText,
       sender,
+      rawContent,
       sources,
       relatedCases,
       timeline,
@@ -421,11 +401,11 @@ export function ConversationProvider({
       hidden: meta.hidden || !!meta.hidden,
       fileAttachment: meta.fileAttachment,
       fileAttachments: meta.fileAttachments,
-      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
+      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ""),
+      authorName: sender === 'user' ? (msg.user?.name || msg.user?.email?.split('@')[0] || undefined) : undefined,
     };
   }, []);
 
-  // Sync Supabase Conversations
   const fetchConversations = useCallback(async () => {
     if (!loggedIn || !userId) return;
     console.log(
@@ -434,42 +414,19 @@ export function ConversationProvider({
     );
 
     try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        if (error.message === "Failed to fetch") {
-          console.warn(
-            "[ConversationProvider] fetchConversations: Network connection issues (Failed to fetch).",
-          );
-        } else {
-          // If it's just a missing table, handle it gracefully without screaming in the console
-          if (error.message.includes("not find the table")) {
-            console.warn("[ConversationProvider] Conversations table not found. Using demo data.");
-            const mockConversations = [
-              { id: 'c1', user_id: userId, title: 'Legal Research: Rule 138-A', created_at: new Date().toISOString() },
-              { id: 'c2', user_id: userId, title: 'Jurisprudence: Property Law', created_at: new Date(Date.now() - 3600000).toISOString() },
-            ];
-            setConversations(mockConversations);
-          } else {
-            console.error(
-              "[ConversationProvider] fetchConversations error:",
-              error.message,
-            );
-          }
-        }
+      const res = await fetch("/api/conversations");
+      if (!res.ok) {
+        console.warn("[ConversationProvider] fetchConversations: Request failed", res.status);
         return;
       }
 
+      const { conversations: data } = await res.json();
+
       if (data) {
-        // Double-check: Filter out ANY ID that was deleted in this session
-        // AND exclude cases so they don't appear in the standard consultation history UI
         const liveData = data.filter(
-          (c) =>
+          (c: any) =>
             !deletedIdsRef.current.has(c.id.toString()) &&
-            !c.title.startsWith("[CASE]"),
+            !(c.title || "").startsWith("[CASE]"),
         );
         console.log(
           "[ConversationProvider] Sync complete. Filtered items:",
@@ -478,11 +435,13 @@ export function ConversationProvider({
 
         setConversations(liveData);
         // Map basic conversation list to ConsultationSession format for UI compatibility
-        const mappedSessions: ConsultationSession[] = liveData.map((conv) => ({
+        const mappedSessions: ConsultationSession[] = liveData.map((conv: any) => ({
           id: conv.id,
           title: conv.title,
           subtitle: '',
           messages: [], // Messages are fetched on demand
+          createdAt: conv.createdAt || conv.created_at,
+          updatedAt: conv.updatedAt || conv.updated_at,
         }));
         setRecentConsultations(mappedSessions);
 
@@ -496,9 +455,16 @@ export function ConversationProvider({
     } finally {
       console.log("[ConversationProvider] fetchConversations complete.");
     }
-  }, [loggedIn, userId, supabase]);
+  }, [loggedIn, userId]);
 
   const loadedHistoryIdRef = useRef<string | null>(null);
+  // Mirror `conversations` in a ref so fetchCloudMessages can read the latest list
+  // without having `conversations` in its dependency array. If conversations were a
+  // dep, every sidebar refresh (e.g. after creating a new conversation) would give
+  // fetchCloudMessages a new reference → the useEffect would re-fire mid-stream →
+  // setMessages would replace the streaming text → visible flicker on first message.
+  const conversationsRef = useRef(conversations);
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // Wrapper to keep loaded history in sync when we jump to an active / new chat
   const setCurrentConsultationIdWrapper = useCallback(
@@ -527,7 +493,6 @@ export function ConversationProvider({
     userId,
     fetchConversations,
     mapCloudMessage,
-    supabase,
     documentContext
   });
 
@@ -562,12 +527,9 @@ export function ConversationProvider({
       );
 
       for (const id of idsToRetry) {
-        const { error, status } = await supabase
-          .from("conversations")
-          .delete()
-          .eq("id", id);
+        const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
         // On success OR if not found (already gone), remove from shadow list
-        if (!error || status === 404) {
+        if (res.ok || res.status === 404) {
           deletedIdsRef.current.delete(id);
         }
       }
@@ -594,6 +556,9 @@ export function ConversationProvider({
   // Fetch Cloud Messages if needed
   const fetchCloudMessages = useCallback(
     async (ignore: boolean) => {
+      // If this ID previously returned 404, never retry it
+      if (syncedConversationId && notFoundIdsRef.current.has(syncedConversationId.toString())) return;
+
       // If we're on the root /consultation route (no ID), clear state and bail
       if (!syncedConversationId) {
         if (isLoading) return;
@@ -619,16 +584,14 @@ export function ConversationProvider({
         return;
       }
 
-      if (loadedHistoryIdRef.current === syncedConversationId && !isLoading)
+      if (loadedHistoryIdRef.current === syncedConversationId)
         return;
 
-      const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);
+      const existsInConversations = conversationsRef.current.some((c) => c.id.toString() === syncedConversationId);
       const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
       const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
 
-      // If we're on a case route, we might not have `cases` loaded from Supabase yet.
-      // Easiest is to just allow the fetch to proceed and fail gracefully if not found,
-      // or at least not clear the screen if cases are empty but we specifically routed to a case.
+      // If we're on a case route, allow the fetch to proceed and fail gracefully if not found.
       const isCaseRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
 
       if (!existsInConversations && !existsInCases && !matchesCurrent && !isCaseRoute) {
@@ -642,58 +605,107 @@ export function ConversationProvider({
       }
 
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", syncedConversationId)
-        .order("created_at", { ascending: true });
+      const msgRes = await fetch(`/api/conversations/${syncedConversationId}/messages`);
 
       if (ignore) {
         setIsLoading(false);
         return;
       }
 
-      if (!error && data) {
-        const cloudMessages = data.map(mapCloudMessage);
+      if (msgRes.ok) {
+        const { messages: data, isShared } = await msgRes.json();
+        setIsSharedCase(!!isShared);
+        const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 
         setMessages(prev => {
-          // If we have local messages for the SAME conversation, merge them to avoid wiping live updates (like streaming AI)
+          // Build a lookup of client-only data (relatedCases, etc.) keyed by message ID
+          const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+
+          // Restore client-only fields that aren't persisted to the DB
+          const merged = cloudMessages.map(m => {
+            const existing = prevById.get(m.id.toString());
+            return existing?.relatedCases?.length
+              ? { ...m, relatedCases: existing.relatedCases }
+              : m;
+          });
+
+          // If we have local messages for the SAME conversation, keep any that aren't yet synced to cloud
           if (prev.length > 0 && currentConsultationId?.toString() === syncedConversationId) {
             const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
             const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
-
-            // Keep local messages that aren't yet in the cloud (by ID or Content match)
             const localOnlyMessages = prev.filter(m => {
               if (cloudIds.has(m.id.toString())) return false;
               if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
               return true;
             });
-
-            return [...cloudMessages, ...localOnlyMessages];
+            return [...merged, ...localOnlyMessages];
           }
 
-          // If loading a fundamentally different conversation or starting fresh
-          return cloudMessages;
+          return merged;
         });
 
         if (!isLoading) {
           loadedHistoryIdRef.current = syncedConversationId.toString();
         }
         setCurrentConsultationId(syncedConversationId);
-      } else if (error) {
-        console.error("Error fetching messages:", error);
+      } else {
+        console.error("Error fetching messages:", msgRes.status);
+        if (msgRes.status === 404) {
+          const isCaseRoute =
+            typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/cases/");
+
+          if (isCaseRoute || existsInCases) {
+            try {
+              const caseRes = await fetch(`/api/cases/${syncedConversationId}`);
+              const caseName = caseRes.ok
+                ? (await caseRes.json()).case?.caseName ?? "Case"
+                : "Case";
+
+              const provisionRes = await fetch("/api/conversations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: syncedConversationId, title: `[CASE] ${caseName}` }),
+              });
+
+              if (provisionRes.ok) {
+                const retryRes = await fetch(`/api/conversations/${syncedConversationId}/messages`);
+                if (retryRes.ok) {
+                  const { messages: data } = await retryRes.json();
+                  const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
+                  setMessages(prev => {
+                    const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+                    return cloudMessages.map(m => {
+                      const existing = prevById.get(m.id.toString());
+                      return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+                    });
+                  });
+                  loadedHistoryIdRef.current = syncedConversationId.toString();
+                  setCurrentConsultationId(syncedConversationId);
+                }
+              }
+            } catch (err) {
+              console.error("[ConversationProvider] Error provisioning conversation:", err);
+            }
+          } else {
+            notFoundIdsRef.current.add(syncedConversationId.toString());
+            loadedHistoryIdRef.current = syncedConversationId.toString();
+            persistDeletedId(syncedConversationId.toString());
+            router.replace("/consultation");
+          }
+        } else {
+          // Prevent infinite loops on non-404 failure by marking this ID as loaded/attempted
+          loadedHistoryIdRef.current = syncedConversationId.toString();
+        }
       }
       setIsLoading(false);
     },
     [
       syncedConversationId,
-      isLoading,
       userId,
       loggedIn,
       loaded,
-      conversations,
       cases,
-      supabase,
       mapCloudMessage,
       handleNewConsultation,
       currentConsultationId,
@@ -715,9 +727,50 @@ export function ConversationProvider({
     }
   }, [loggedIn, loaded, fetchConversations]);
 
+  // Poll for new messages every 3s when viewing a shared case (other participants can write)
+  useEffect(() => {
+    if (!isSharedCase || !syncedConversationId || !loggedIn) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/conversations/${syncedConversationId}/messages`);
+        if (!res.ok) return;
+        const { messages: data } = await res.json();
+        const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
+
+        setMessages(prev => {
+          // Don't disturb an in-progress AI stream
+          if (isLoading) return prev;
+
+          const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
+          const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
+          const localOnly = prev.filter(m => {
+            if (cloudIds.has(m.id.toString())) return false;
+            if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
+            return true;
+          });
+
+          // Only update state if there's something new to avoid needless re-renders
+          if (localOnly.length === 0 && cloudMessages.length === prev.length) return prev;
+          return [...cloudMessages, ...localOnly];
+        });
+      } catch {
+        // silent — polling failure should never surface to the user
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isSharedCase, syncedConversationId, loggedIn, isLoading, mapCloudMessage]);
+
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
-    setMessages(consultation.messages);
+    setMessages(prev => {
+      const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+      return consultation.messages.map(m => {
+        const existing = prevById.get(m.id.toString());
+        return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+      });
+    });
     setCurrentConsultationIdWrapper(consultation.id);
   };
 
@@ -742,27 +795,15 @@ export function ConversationProvider({
     if (loggedIn) {
       try {
         console.log(`[ConversationProvider] Cloud Syncing rename: ${idStr}`);
-        const { data, error } = await supabase
-          .from("conversations")
-          .update({ title: newTitle })
-          .eq("id", idStr)
-          .select();
-
-        if (error) {
-          console.error(
-            "[ConversationProvider] DB Rename failed:",
-            error.message,
-          );
-        } else if (data && data.length === 0) {
-          console.warn(
-            "[ConversationProvider] DB Update returned 0 rows. RLS likely blocking update for ID:",
-            idStr,
-          );
+        const res = await fetch(`/api/conversations/${idStr}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: newTitle }),
+        });
+        if (!res.ok) {
+          console.error("[ConversationProvider] DB Rename failed:", res.status);
         } else {
-          console.log(
-            "[ConversationProvider] DB Rename successful. Updated rows:",
-            data?.length,
-          );
+          console.log("[ConversationProvider] DB Rename successful.");
         }
       } catch (err) {
         console.error("[ConversationProvider] Critical rename error:", err);
@@ -774,16 +815,16 @@ export function ConversationProvider({
   const fetchCases = useCallback(async () => {
     if (!loggedIn || !userId) return;
     try {
-      const { data, error } = await supabase
-        .from("cases")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) setCases(data as CaseData[]);
+      const res = await fetch("/api/cases");
+      if (res.ok) {
+        const json = await res.json();
+        setCases(json.cases as CaseData[]);
+      }
       setCasesLoaded(true);
     } catch (err) {
       console.error("[ConversationProvider] fetchCases error:", err);
     }
-  }, [loggedIn, userId, supabase]);
+  }, [loggedIn, userId]);
 
   const handleCreateCase = useCallback(
     async (caseData: {
@@ -799,52 +840,27 @@ export function ConversationProvider({
       }
 
       try {
-        const { data, error } = await supabase
-          .from("cases")
-          .insert({
-            user_id: userId,
-            case_name: caseData.name,
-            party_involved: caseData.party,
-            notes: caseData.notes,
-          })
-          .select()
-          .single();
+        const res = await fetch("/api/cases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ caseName: caseData.name, partyInvolved: caseData.party, notes: caseData.notes }),
+        });
 
-        if (!error && data) {
-          // Create an associated invisible conversation for the case chat
-          const { error: convError } = await supabase
-            .from("conversations")
-            .insert({
-              id: data.id,
-              user_id: userId,
-              title: `[CASE] ${caseData.name}`,
-            });
-
-          if (convError) {
-            console.error(
-              "[ConversationProvider] Failed to link conversation to case:",
-              convError.message,
-            );
-          }
-
-          setCases((prev) => [data as CaseData, ...prev]);
-          return data as CaseData;
+        if (res.ok) {
+          const json = await res.json();
+          const newCase = json.case as CaseData;
+          setCases((prev) => [newCase, ...prev]);
+          return newCase;
         } else {
-          console.error(
-            "[ConversationProvider] handleCreateCase error:",
-            error?.message,
-          );
+          console.error("[ConversationProvider] handleCreateCase error:", res.status);
           return null;
         }
       } catch (err) {
-        console.error(
-          "[ConversationProvider] Unexpected error in handleCreateCase:",
-          err,
-        );
+        console.error("[ConversationProvider] Unexpected error in handleCreateCase:", err);
         return null;
       }
     },
-    [userId, loggedIn, supabase],
+    [userId, loggedIn],
   );
 
   const handleDeleteCase = useCallback(
@@ -853,34 +869,19 @@ export function ConversationProvider({
       setCases((prev) => prev.filter((c) => c.id !== id));
 
       try {
-        const { data: dbCase } = await supabase.from("cases").select("*").eq("id", id).single();
-        if (dbCase && dbCase.user_id !== userId) {
-          alert(`Wait! You are not the owner. Owner: ${dbCase.user_id}, You: ${userId}`);
-        }
-
-        const convRes = await supabase.from("conversations").delete().eq("id", id);
-        if (convRes.error) {
-          alert(`Conv Delete Error: ${convRes.error.message}`);
-        }
-
-        const caseRes = await supabase.from("cases").delete().eq("id", id).select();
-
-        if (caseRes.error) {
-          alert(`Case Delete Error: ${caseRes.error.message}`);
-          await fetchCases(); // Revert on failure
-        } else if (!caseRes.data || caseRes.data.length === 0) {
-          alert(`Case delete failed silently. ID: ${id}, user_id: ${dbCase?.user_id}, my id: ${userId}`);
+        const res = await fetch(`/api/cases/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          console.error("[ConversationProvider] handleDeleteCase error:", res.status);
           await fetchCases();
         } else {
-          // Success
-          console.log("Successfully deleted case:", caseRes.data);
+          console.log("[ConversationProvider] Successfully deleted case:", id);
         }
       } catch (err: any) {
-        alert(`Critical delete error: ${err?.message || 'Unknown'}`);
+        console.error("[ConversationProvider] Critical delete error:", err?.message || "Unknown");
         await fetchCases();
       }
     },
-    [supabase, fetchCases, userId],
+    [fetchCases],
   );
 
   useEffect(() => {
@@ -890,28 +891,37 @@ export function ConversationProvider({
   // ---- Bookmarks ----
   const fetchBookmarks = useCallback(async () => {
     if (!loggedIn || !userId) return;
-    const data = await getBookmarks(userId);
-    setBookmarks(data);
+    const res = await fetch("/api/bookmarks");
+    if (res.ok) {
+      const { bookmarks: data } = await res.json();
+      setBookmarks(data ?? []);
+    }
   }, [loggedIn, userId]);
 
   const handleAddBookmark = useCallback(
     async (bookmark: NewBookmark): Promise<Bookmark | null> => {
-      if (!userId || !loggedIn) return null;
-      const result = await svcAddBookmark(userId, bookmark);
+      if (!loggedIn) return null;
+      const res = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookmark),
+      });
+      if (!res.ok) return null;
+      const { bookmark: result } = await res.json();
       if (result) setBookmarks((prev) => [result, ...prev]);
-      return result;
+      return result ?? null;
     },
-    [userId, loggedIn],
+    [loggedIn],
   );
 
   const handleRemoveBookmark = useCallback(async (id: string) => {
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
-    await svcRemoveBookmark(id);
+    await fetch(`/api/bookmarks/${id}`, { method: "DELETE" });
   }, []);
 
   const isBookmarked = useCallback(
     (itemId: string): string | null => {
-      const found = bookmarks.find((b) => b.item_id === itemId);
+      const found = bookmarks.find((b) => b.itemId === itemId);
       return found ? found.id : null;
     },
     [bookmarks],
@@ -972,7 +982,7 @@ Please help me understand this document or answer questions based on it.`;
             file,
             process.env.NEXT_PUBLIC_CHAT_WONDER_API_URL ||
             process.env.NEXT_PUBLIC_API_URL ||
-            "http://localhost:8001",
+            "http://localhost:8000",
             false, // Skip analysis
           );
 
@@ -989,20 +999,20 @@ Please help me understand this document or answer questions based on it.`;
 
         // Save documents to DB
         if (loggedIn && userId) {
-          await supabase
-            .from("documents")
-            .insert(
-              newDocs.map((doc) => ({
+          await fetch("/api/documents", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              documents: newDocs.map((doc) => ({
                 id: doc.id,
-                user_id: userId,
                 name: doc.name,
                 case_id: doc.caseId || null,
                 file_url: doc.file_url || null,
                 s3_key: doc.s3_key || null,
                 ai_summary: null,
               })),
-            )
-            .select();
+            }),
+          });
         }
 
         // 3. Clear processing and send to chat
@@ -1047,7 +1057,6 @@ Please help me understand this document or answer questions based on it.`;
     [
       loggedIn,
       userId,
-      supabase,
       handleSendMessage,
       setIsLoading,
       setMessages,
@@ -1119,7 +1128,7 @@ Please help me understand this document or answer questions based on it.`;
 
     } catch (err) {
       console.error('Microphone access denied or error:', err);
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   }, [updateMessage, recentConsultations, currentConsultationId]);
 
@@ -1173,6 +1182,7 @@ Please help me understand this document or answer questions based on it.`;
       value={{
         conversations,
         refreshConversations: fetchConversations,
+        isSharedCase,
         messages,
         setMessages,
         isLoading,

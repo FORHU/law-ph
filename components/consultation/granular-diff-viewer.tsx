@@ -117,7 +117,13 @@ export function GranularDiffViewer({
       }}
       remarkPlugins={[remarkGfm, remarkBreaks]}
     >
-      {safeCurrent.replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "").trim()}
+      {/* ReactMarkdown can sometimes swallow text that looks like HTML tags. */}
+      {/* We escape < and > to prevent this. */}
+      {safeCurrent
+        .replace(/\[AUTH_URL\]\s*https?:\/\/[^\s]+/g, "")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .trim()}
     </ReactMarkdown>
   );
 }

@@ -24,9 +24,9 @@ import {
   Check
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
+import { PageLoader } from "@/components/ui/page-loader";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
 import { uploadAndAnalyzeDocument, formatS3Url } from "@/lib/s3-utils";
-import { Session } from "@supabase/supabase-js";
 import { Conversation } from "@/types";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -35,6 +35,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { useConversations, Message } from "@/components/conversation-provider/conversation-context";
 
 import { PageLayout } from "@/components/ui/page-layout";
+import { DateBox } from "@/components/ui/datebox";
 
 // Sub-components
 import { ConsultationHeader } from "./consultation/consultation-header";
@@ -66,7 +67,7 @@ export default function Consultation() {
   const activeConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
-  const { loggedIn, supabase, session } = useAuth();
+  const { loggedIn, user } = useAuth();
 
   useEffect(() => {
     if (!loggedIn) {
@@ -139,7 +140,7 @@ export default function Consultation() {
 
   const handleGetCaseInsight = () => {
     if (activeCase) {
-      const prompt = `[Case Analysis Request] I have opened a new case. Please provide your professional insight, a strategic plan, and a proposed timeline of actionable steps. Do not repeat the facts or notes in your insight, just provide pure strategy and advice.
+      const prompt = `[Case Analysis] I have opened a new case. Please provide your professional insight, a strategic plan, and a proposed timeline of actionable steps. Do not repeat the facts or notes in your insight, just provide pure strategy and advice.
 
 Case Name: ${activeCase.case_name}
 Party Involved: ${activeCase.party_involved || "N/A"}
@@ -188,7 +189,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             m.voiceNotes &&
             m.voiceNotes.length > 0 &&
             m.text &&
-            !m.text.startsWith("[Case Analysis Request]") &&
+            !m.text.startsWith("[Case Analysis]") &&
             !m.text.includes("voice recording attached to this case") // Exclude meta placeholder
         )
         .map((m) => m.text.trim())
@@ -220,12 +221,12 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      checkAuthStatus(session.user.id)
+    if (user?.id) {
+      checkAuthStatus(user.id)
         .then((status) => setIsGoogleConnected(status.authenticated))
         .catch(() => setIsGoogleConnected(false));
     }
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   console.log(
     "[Consultation] Render. Messages:",
@@ -242,10 +243,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     messages,
     activeCase,
     scrollContainerRef,
-    supabase,
-    userId: session?.user?.id,
-    userEmail: session?.user?.email,
-    userName: session?.user?.user_metadata?.full_name,
+    userId: user?.id,
+    userEmail: user?.email,
+    userName: user?.name ?? undefined,
     isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),
@@ -257,6 +257,25 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   useConsultationEffects({
     messages, isLoading, router, currentConsultationId, activeConversationId, scrollContainerRef, handleSendMessage
   });
+
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (globalTab === 'schedule') {
+      const fetchEvents = async () => {
+        try {
+          const res = await fetch("/api/events");
+          if (res.ok) {
+            const json = await res.json();
+            setCalendarEvents(json.events || []);
+          }
+        } catch (error) {
+          console.error("Failed to fetch calendar events:", error);
+        }
+      };
+      fetchEvents();
+    }
+  }, [globalTab]);
 
 
   let activeTimeline = derivedData.activeTimeline;
@@ -322,107 +341,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   };
 
 
-  const lastIdRef = useRef<string | null>(null);
-
-  // Handle URL hash scrolling (e.g., from bookmarks)
-  useEffect(() => {
-    const handleHashScroll = () => {
-      if (messages.length === 0) return;
-      const hash = window.location.hash;
-      if (hash && hash.startsWith("#message-")) {
-        const messageId = hash.replace("#message-", "");
-        setTimeout(() => {
-          const el = document.getElementById(`message-bubble-${messageId}`);
-          if (el && scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const topPos =
-              el.getBoundingClientRect().top -
-              container.getBoundingClientRect().top +
-              container.scrollTop;
-            container.scrollTo({
-              top: topPos - 100, // Extra padding for the header
-              behavior: "smooth",
-            });
-            // Clear hash after scrolling to allow re-triggering
-            router.replace(window.location.pathname, { scroll: false });
-          }
-        }, 300); // Wait for potential rendering/loading
-      }
-    };
-
-    // Attempt to scroll when messages array changes
-    handleHashScroll();
-
-    // Listen to hashchange event if already on the page
-    window.addEventListener("hashchange", handleHashScroll);
-    return () => window.removeEventListener("hashchange", handleHashScroll);
-  }, [messages.length, router]);
-
-
-  // Sync state to URL for new consultations
-  useEffect(() => {
-    // Only redirect if we have a real UUID (string), and we aren't already on that URL
-    const shouldRedirect =
-      currentConsultationId &&
-      typeof currentConsultationId === "string" &&
-      !activeConversationId &&
-      currentConsultationId !== lastIdRef.current;
-
-    if (shouldRedirect) {
-      lastIdRef.current = currentConsultationId as string;
-      // Use replace so we don't blow up the history stack, and it transitions smoothly
-      router.replace(`/consultation/${currentConsultationId}`);
-    }
-  }, [currentConsultationId, activeConversationId, router]);
-
-  // Handle Legal Wizard Data
-  useEffect(() => {
-    const wizardDataStr = sessionStorage.getItem("legal_wizard_data");
-
-    // Check if we have data, no messages, no active consultation, AND checking isLoading to ensure socket is likely ready
-    if (
-      wizardDataStr &&
-      messages.length === 0 &&
-      !currentConsultationId &&
-      !isLoading
-    ) {
-      try {
-        const data = JSON.parse(wizardDataStr);
-
-        // Construct a more natural "User" message
-        // Handle "Other" vs specific categories text
-        const issueText = data.specificIssue
-          ? `specifically regarding ${data.specificIssue}`
-          : "";
-        const descriptionText = data.description
-          ? `Here are the details: "${data.description}"`
-          : "";
-
-        const prompt = `I am a ${data.userType} dealing with a ${data.legalArea} matter ${issueText}. ${descriptionText} ${data.consultationHistory}. My primary goal is to ${data.primaryGoal}. The situation is ${data.urgency}.`;
-
-        // Store wizard data in sessionStorage with a special flag for title generation
-        sessionStorage.setItem(
-          "wizard_title_data",
-          JSON.stringify({
-            userType: data.userType,
-            legalArea: data.legalArea,
-            specificIssue:
-              data.specificIssue || data.description?.substring(0, 30),
-          }),
-        );
-
-        // Small delay to ensure socket/auth is stable
-        const timer = setTimeout(() => {
-          handleSendMessage(prompt);
-          sessionStorage.removeItem("legal_wizard_data");
-        }, 500);
-
-        return () => clearTimeout(timer);
-      } catch (e) {
-        console.error("Failed to parse wizard data", e);
-      }
-    }
-  }, [messages.length, currentConsultationId, handleSendMessage, isLoading]);
 
 
 
@@ -496,7 +414,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-serif text-white flex items-center gap-2 tracking-tight">
                 <Sparkles className="w-5 h-5 text-[#e9c176]" />
-                Upload Evidence
+                Upload Documents
               </h2>
               <button
                 onClick={() => setIsAnalysisModalOpen(false)}
@@ -535,7 +453,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
                 <div>
                   <p className="text-xl font-serif text-white mb-1 tracking-tight">
-                    Drop evidence here or click to browse
+                    Drop files here or click to browse
                   </p>
                   <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] max-w-[280px] mx-auto leading-relaxed">
                     PDF, DOC(X), TXT, Image, or Audio (Max 20MB). Analysis will start automatically.
@@ -573,7 +491,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
-          className="bg-[#141414] border border-[#10B981]/30 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+          className="bg-[#141414] border border-[#10B981]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-8">
@@ -640,7 +558,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   className="w-full py-4 bg-[#10B981] hover:bg-[#0da270] text-black font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#10B981]/20"
                 >
                   {isScheduling ? <Loader2 className="w-5 h-4 animate-spin text-black" /> : <Send className="w-4 h-4" />}
-                  {isScheduling ? "Sending Invitation..." : "Approve & Send"}
+                  {isScheduling ? "Sending..." : "Send Invitation"}
                 </button>
                 <button
                   onClick={() => setIsSchedulePreviewOpen(false)}
@@ -671,7 +589,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           initial={{ scale: 0.9, opacity: 0, y: 30 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 30 }}
-          className="bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+          className="bg-[#0B0B0C]/95 backdrop-blur-xl border border-[#722f37]/30 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-8">
@@ -680,7 +598,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 <div className="p-2.5 bg-[#722f37]/20 rounded-xl border border-[#722f37]/30">
                   <Send className="w-5 h-5 text-[#e9c176]" />
                 </div>
-                Review Institutional Correspondence
+                Review Invitation
               </h2>
               <button
                 onClick={() => setIsEmailPreviewOpen(false)}
@@ -730,7 +648,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   className="w-full py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#722f37]/20 uppercase tracking-[0.2em] text-[11px]"
                 >
                   {isSendingEmail ? <Loader2 className="w-5 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {isSendingEmail ? "Ratifying Transmission..." : "Approve & Dispatch"}
+                  {isSendingEmail ? "Sending..." : "Send"}
                 </button>
                 <button
                   onClick={() => setIsEmailPreviewOpen(false)}
@@ -792,13 +710,13 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   // Find active conversation for title
   const activeConversation =
-    recentConsultations.find((c: any) => c.id === currentConsultationId) ||
+    recentConsultations.find((c: any) => String(c.id) === String(currentConsultationId)) ||
     (activeConversationId
-      ? recentConsultations.find((c: any) => c.id === activeConversationId)
+      ? recentConsultations.find((c: any) => String(c.id) === String(activeConversationId))
       : null);
 
   let headerTitle = activeConversation?.title || "Consultation";
-  let headerSubtitle = activeConversation ? "Institutional Consultation Session" : "Immediate guidance based on Philippine law";
+  let headerSubtitle = activeConversation ? "AI Legal Consultation" : "Immediate guidance based on Philippine law";
   if (isCaseMode && activeCase) {
     headerTitle = activeCase.case_name;
   }
@@ -829,7 +747,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       activePage="chat"
       title={headerTitle}
       subtitle={headerSubtitle}
-      maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"}
+      maxWidth={globalTab === "mindmap" ? "max-w-6xl" : "w-full"}
       onNewItem={handleNewConsultation}
       newItemLabel="Consultation"
       recentItems={sidebarRecentItems}
@@ -838,13 +756,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
       onTitleChange={(newTitle) => {
         if (currentConsultationId) {
           handleRenameConsultation(currentConsultationId, newTitle);
-        }
-      }}
-      onBack={() => {
-        if (!currentConsultationId && !isCaseMode) {
-          router.push("/");
-        } else {
-          handleNewConsultation();
         }
       }}
       headerActions={
@@ -869,7 +780,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           className={`flex-1 ${globalTab === "mindmap" || globalTab === "transcribe" ? "overflow-hidden" : "overflow-y-auto"} ${globalTab === "mindmap" ? "px-2 md:px-4 py-2" : globalTab === "transcribe" ? "p-0" : "px-4 md:px-6 py-4 md:pt-8 md:pb-16 pb-2"} scroll-smooth landscape:py-2`}
         >
           <div
-            className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-4xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
+            className={`${globalTab === "mindmap" ? "max-w-6xl" : "max-w-5xl"} mx-auto w-full ${messages.length === 0 ? "h-full flex flex-col justify-start pt-4 md:pt-8" : ""}`}
           >
 
             {globalTab === "chat" ? (
@@ -883,8 +794,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       exit={{ opacity: 0 }}
                       className="h-full flex flex-col items-center justify-center py-20"
                     >
-                      <Loader2 size={40} className="text-[#722f37] animate-spin mb-4" />
-                      <p className="text-gray-500 font-medium animate-pulse">Syncing case history...</p>
+                      <PageLoader label="Loading case history..." />
                     </motion.div>
                   ) : (messages.length === 0) && !isLoading && casesLoaded && (
                     <motion.div
@@ -914,7 +824,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             className="bg-[#722f37] hover:bg-[#8b3a44] text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest text-[11px] transition-all shadow-xl shadow-[#722f37]/20 flex items-center gap-3 active:scale-95"
                           >
                             <Sparkles size={18} className="text-[#e9c176]" />
-                            Solicit AI Insight
+                            Ask AI
                           </button>
                         </div>
                       ) : (
@@ -957,7 +867,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                   messages={messages.map((m) => {
                     if (
                       m.sender === CHAT_SENDER.USER &&
-                      m.text.startsWith("[Case Analysis Request]")
+                      m.text.startsWith("[Case Analysis]")
                     ) {
                       return {
                         ...m,
@@ -1013,7 +923,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 )}
               </div>
             ) : globalTab === 'email' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-3xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden w-full">
                   <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
@@ -1132,10 +1042,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       >
                         {isSendingEmail ? (
                           <span className="flex items-center gap-2">
-                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <Loader2 className="animate-spin h-4 w-4" />
                             Sending...
                           </span>
                         ) : emailSentStatus === 'success' ? (
@@ -1163,7 +1070,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                 </div>
               </div>
             ) : globalTab === 'schedule' ? (
-              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-2xl mx-auto py-8 px-4 h-full flex items-center">
+              <div className="animate-in fade-in zoom-in duration-300 w-full max-w-3xl mx-auto py-8 px-4 h-full flex items-center">
                 <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative w-full">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-[#722f37]/10 text-[#722f37] rounded-xl flex-shrink-0">
@@ -1221,16 +1128,15 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       {/* Date & Time Input */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Date & Time</label>
-                        <input
-                          type="datetime-local"
-                          min={getMinDateTime()}
+                        <DateBox
                           value={scheduleDateTime}
-                          onChange={(e) => {
-                            setScheduleDateTime(e.target.value);
+                          min={getMinDateTime()}
+                          onChange={(val) => {
+                            setScheduleDateTime(val);
                             setScheduleValidationErrors(prev => prev.filter(err => !err.toLowerCase().includes('date') && !err.toLowerCase().includes('past')));
                             // Validate past date immediately on change
-                            if (e.target.value) {
-                              const selected = new Date(e.target.value);
+                            if (val) {
+                              const selected = new Date(val);
                               const now = new Date();
                               now.setSeconds(0, 0);
                               selected.setSeconds(0, 0);
@@ -1239,7 +1145,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                               }
                             }
                           }}
-                          className={`w-full bg-black/40 border ${scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past')) ? 'border-red-500/50' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#722f37]/50 focus:ring-1 focus:ring-[#722f37]/50 transition-all [color-scheme:dark]`}
+                          hasError={scheduleValidationErrors.some(e => e.toLowerCase().includes('date') || e.toLowerCase().includes('past'))}
+                          calendarEvents={calendarEvents}
                         />
                       </div>
                     </div>
@@ -1469,7 +1376,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                     style={{ animationDelay: "300ms" }}
                   ></span>
                 </div>
-                <span>Institutional Intelligence is thinking...</span>
+                <span>AI is thinking...</span>
               </motion.div>
             )}
           </div>

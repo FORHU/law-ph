@@ -10,12 +10,12 @@ export function Footer() {
     <footer className="relative bg-[#0B0B0C] border-t border-white/5 py-24 z-10 overflow-hidden">
       {/* Decorative background element */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
-      
+
       <div className="max-w-[1280px] mx-auto px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 mb-20">
           {/* Brand Column */}
           <div className="md:col-span-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -27,7 +27,7 @@ export function Footer() {
               </span>
             </motion.div>
             <p className="text-on-surface/40 text-sm leading-relaxed max-w-sm mb-10">
-              The definitive digital workspace for the Philippine legal profession. Bridging centuries of jurisprudence with cutting-edge artificial intelligence.
+              AI-powered legal assistance built for Philippine law.
             </p>
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-on-surface/30 hover:text-white hover:border-white/20 transition-all cursor-pointer">
@@ -70,7 +70,6 @@ export function Footer() {
             </div>
           </div>
         </div>
-
 
       </div>
     </footer>

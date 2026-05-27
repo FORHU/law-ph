@@ -22,21 +22,21 @@ export default function NotFound() {
           transition={{ duration: 0.6 }}
         >
           {/* Heading */}
-          <h1 
+          <h1
             className="text-6xl md:text-8xl font-bold mb-4 tracking-tighter"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             404
           </h1>
-          
+
           <div className={`h-1 w-24 bg-[${COLORS.PRIMARY}] mx-auto mb-8 rounded-full`}></div>
 
           <h2 className="text-2xl md:text-3xl font-medium mb-6 text-white/90">
             Page Not Found
           </h2>
-          
+
           <p className="text-lg text-white/60 mb-12 max-w-md mx-auto leading-relaxed">
-            The page you're looking for isn't here. 
+            The page you're looking for isn't here.
             The page may have been moved, deleted, or never existed in the first place.
           </p>
 
@@ -52,7 +52,7 @@ export default function NotFound() {
                 Return to the Homepage
               </motion.button>
             </Link>
-            
+
             <button
               onClick={() => window.history.back()}
               className="flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all font-medium"
@@ -64,7 +64,7 @@ export default function NotFound() {
         </motion.div>
 
         {/* Branding Footer */}
-        <motion.div 
+        <motion.div
           className="mt-20 opacity-40 flex items-center justify-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.4 }}

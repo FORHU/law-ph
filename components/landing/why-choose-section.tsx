@@ -12,13 +12,12 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
   const [time, setTime] = useState('0:00.00');
 
   useEffect(() => {
-    let frame = 0;
     const targetMs = 6000;
     const startTime = Date.now();
+    let frame = 0;
 
     const animate = () => {
-      const now = Date.now();
-      const elapsed = (now - startTime) % targetMs;
+      const elapsed = (Date.now() - startTime) % targetMs;
       const totalSeconds = Math.floor(elapsed / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = (totalSeconds % 60).toString().padStart(2, '0');
@@ -34,7 +33,7 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
   return (
     <section
       id="why-choose"
-      className="py-48 overflow-hidden bg-background"
+      className="py-16 sm:py-24 lg:py-48 overflow-hidden bg-background"
       onMouseEnter={() => setActiveAngle?.(2)}
     >
       <motion.div
@@ -42,72 +41,63 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className="max-w-[1440px] mx-auto px-12 grid grid-cols-12 gap-24 items-center"
+        className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-24 items-center"
       >
-        <div className="col-span-12 lg:col-span-7">
-          <h2 className="text-6xl font-serif text-white mb-12 leading-[1.1]">
+        {/* Left */}
+        <div className="lg:col-span-7">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif text-white mb-6 sm:mb-8 lg:mb-12 leading-[1.1]">
             Why Choose <br />
             <span className="text-[#e9c176]">ilovelawyer?</span>
           </h2>
-          <p className="text-lg text-on-surface/50 mb-16 leading-relaxed max-w-2xl font-light">
-            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, institutional-grade guidance when precision is paramount.
+          <p className="text-base sm:text-lg text-on-surface/50 mb-8 sm:mb-12 lg:mb-16 leading-relaxed max-w-2xl font-light">
+            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, professional guidance when precision is paramount.
           </p>
 
           <motion.div
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.15
-                }
-              }
-            }}
+            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.15 } } }}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-12"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-12"
           >
             {[
-              { title: '24/7 Availability', desc: 'Secure institutional guidance at any hour.', icon: <Clock className="w-6 h-6" /> },
-              { title: 'Instant Responses', desc: 'Immediate synthesis of relevant legal codes.', icon: <Zap className="w-6 h-6" /> },
-              { title: 'Ratified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-6 h-6" /> },
-              { title: 'Affordable Access', desc: 'Professional legal records at institutional efficiency.', icon: <LayoutGrid className="w-6 h-6" /> },
-            ].map((item, i) => (
+              { title: '24/7 Availability', desc: 'Professional guidance at any hour.', icon: <Clock className="w-5 h-5 sm:w-6 sm:h-6" /> },
+              { title: 'Instant Responses', desc: 'Quick access to current legal codes.', icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6" /> },
+              { title: 'Verified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-5 h-5 sm:w-6 sm:h-6" /> },
+              { title: 'Affordable Access', desc: 'Professional legal guidance at an affordable price.', icon: <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" /> },
+            ].map((item) => (
               <motion.div
                 key={item.title}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
-                }}
-                className="flex gap-8 items-start group"
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } } }}
+                className="flex gap-4 sm:gap-6 lg:gap-8 items-start group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#722f37]/10 flex items-center justify-center text-[#e9c176] border border-[#722f37]/20 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#e9c176]/30">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[#722f37]/10 flex items-center justify-center text-[#e9c176] border border-[#722f37]/20 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#e9c176]/30">
                   {item.icon}
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-white mb-2 group-hover:text-[#e9c176] transition-colors">{item.title}</h4>
-                  <p className="text-on-surface/40 text-lg leading-relaxed">{item.desc}</p>
+                  <h4 className="text-base sm:text-lg lg:text-xl font-bold text-white mb-1 sm:mb-2 group-hover:text-[#e9c176] transition-colors">{item.title}</h4>
+                  <p className="text-on-surface/40 text-sm sm:text-base lg:text-lg leading-relaxed">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
           </motion.div>
         </div>
 
-        <div className="col-span-12 lg:col-span-5 flex justify-center">
+        {/* Right — clock widget */}
+        <div className="lg:col-span-5 flex justify-center mt-4 lg:mt-0">
           <motion.div
             whileHover={{ scale: 1.02, rotate: 1 }}
-            className="glass-panel rounded-[3rem] p-20 border border-white/5 w-full max-w-xl text-center relative overflow-hidden group shadow-2xl bg-[#0B0B0C]/40 backdrop-blur-3xl"
+            className="glass-panel rounded-[2rem] lg:rounded-[3rem] p-8 sm:p-12 lg:p-20 border border-white/5 w-full max-w-sm lg:max-w-xl text-center relative overflow-hidden group shadow-2xl bg-[#0B0B0C]/40 backdrop-blur-3xl"
           >
-            <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mx-auto mb-12 text-[#e9c176] border border-[#722f37]/20">
-              <Clock className="w-8 h-8" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mx-auto mb-6 sm:mb-10 lg:mb-12 text-[#e9c176] border border-[#722f37]/20">
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
-            <div className="text-6xl font-serif text-white mb-6 tracking-tighter tabular-nums">
+            <div className="text-4xl sm:text-5xl lg:text-6xl font-serif text-white mb-4 sm:mb-6 tracking-tighter tabular-nums">
               {time}
             </div>
-            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-16 font-bold">Institutional Response Time</p>
-            <button className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-4 rounded-xl text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95">
-              Initiate Consultation
+            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-8 sm:mb-12 lg:mb-16 font-bold">Response Time</p>
+            <button className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-3 sm:py-4 rounded-xl text-sm sm:text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95">
+              Start Consultation
             </button>
           </motion.div>
         </div>

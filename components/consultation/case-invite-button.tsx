@@ -7,7 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function CaseInviteButton({ caseId }: { caseId: string }) {
-  const { supabase, session } = useAuth();
+  const { loggedIn } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -20,50 +20,33 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
   }, []);
 
   const handleGenerateLink = async () => {
-    if (!supabase || !session?.user?.id) return;
+    if (!loggedIn) return;
     setIsGenerating(true);
     setError(null);
 
     try {
-      // 1. Check if invite already exists
-      const { data: existing, error: fetchError } = await supabase
-        .from('conversation_invites')
-        .select('*')
-        .eq('conversation_id', caseId)
-        .single();
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: caseId }),
+      });
 
-      let linkToken = existing?.id;
+      if (!res.ok) throw new Error('Failed to create invite');
+      const json = await res.json();
+      const linkToken = json.invite.id;
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      setInviteLink(`${origin}/case-invite/${linkToken}`);
 
-      if (!existing && fetchError?.code === 'PGRST116') {
-        // 2. Generate a new invite
-        const { data: newInvite, error: insertError } = await supabase
-          .from('conversation_invites')
-          .insert({
-            conversation_id: caseId,
-            created_by: session.user.id
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        linkToken = newInvite.id;
-
-        // Automatically inject a system message denoting the group chat was started
-        const displayName = session.user.user_metadata?.full_name || session.user.email || 'You';
-        await supabase.from('messages').insert({
+      // Inject system message for group chat start
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           conversation_id: caseId,
           role: 'system',
-          content: `${displayName} started the group chat with a group link.`
-        });
-
-      } else if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
-      }
-
-      if (linkToken) {
-        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-        setInviteLink(`${origin}/case-invite/${linkToken}`);
-      }
+          content: 'A group invite link was created for this case.',
+        }),
+      });
     } catch (err: any) {
       console.error("Failed to generate link", err);
       setError("Failed to create invite link. Please try again.");
@@ -97,7 +80,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                     <UserPlus className="w-5 h-5 text-[#e9c176]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-serif text-white tracking-tight">Institutional <span className="text-[#e9c176] italic">Invite</span></h2>
+                    <h2 className="text-xl font-serif text-white tracking-tight">Case <span className="text-[#e9c176] italic">Invite</span></h2>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Secure Collaboration Access</p>
                   </div>
                 </div>
@@ -110,7 +93,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
               </div>
 
               <p className="text-[12px] text-gray-400 mb-8 leading-relaxed font-medium">
-                Distribute this institutional link to authorize third-party participation. All sessions are ratified and recorded.
+                Share this link to invite someone to view this case. All sessions are logged and recorded.
               </p>
 
               {isGenerating ? (
@@ -118,7 +101,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                   <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
                     <Loader2 className="w-8 h-8 animate-spin text-[#e9c176]" />
                   </div>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">Ratifying Secure Token...</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">Generating link...</p>
                 </div>
               ) : error ? (
                 <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg text-sm text-red-200">

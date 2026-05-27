@@ -33,7 +33,7 @@ function ViewerContent() {
               <FileText size={16} className="text-[#e9c176]" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none mb-1">Institutional Record</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none mb-1">Case Document</span>
               <span className="text-sm font-bold text-white truncate max-w-[300px] md:max-w-[600px] tracking-tight">
                 {decodeURIComponent(fileName)}
               </span>

@@ -43,3 +43,8 @@ next-env.d.ts
 
 # Claude
 CLAUDE.md
+/.agents
+
+# SurrealDB (not used — postgres/prisma is the DB)
+/surreal_data/
+/supabase

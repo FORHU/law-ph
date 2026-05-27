@@ -4,10 +4,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, Edit3, Trash2, Check, X } from 'lucide-react';
+import { MoreHorizontal, Edit3, Trash2, Check, X, Bookmark } from 'lucide-react';
 import { RecentItem, SIDEBAR_STYLES } from './sidebar-constants';
-import { useConversations } from '@/components/conversation-provider/conversation-context';
-
 const PortalWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -19,10 +17,10 @@ interface SidebarItemProps {
   item: RecentItem;
   isOpen?: boolean;
   onToggle?: () => void;
+  currentConsultationId?: string | number | null;
 }
 
-export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps) {
-  const { currentConsultationId } = useConversations();
+export function SidebarItem({ item, isOpen = false, onToggle, currentConsultationId }: SidebarItemProps) {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -113,14 +111,13 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                   if (e.key === 'Escape') setEditingId(null);
                 }}
                 className="flex-1 bg-[#0B0B0C] border border-[#722f37]/40 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all font-inter"
-                placeholder="Institutional Record Title..."
+                placeholder="Conversation Title..."
               />
             </div>
           </div>
         ) : (
           <>
-            <div className={`truncate font-serif text-[13px] tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
-            <div className={`text-[9px] font-bold ${isActive ? 'text-gray-400' : 'text-gray-600'} mt-0.5 truncate uppercase tracking-[0.2em]`}>{item.subtitle || 'CONSULTATION'}</div>
+            <div className={`truncate font-serif text-sm tracking-tight ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`}>{item.title}</div>
           </>
         )}
       </div>
@@ -192,6 +189,17 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                         animate={{ opacity: 1 }}
                         className="space-y-0.5"
                       >
+                        {item.onBookmark && (
+                          <button
+                            type="button"
+                            onClick={() => { item.onBookmark?.(); onToggle?.(); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-[#722f37]/20 rounded-lg transition-all"
+                          >
+                            <Bookmark size={14} className="text-gray-500" />
+                            Bookmark
+                          </button>
+                        )}
+                        {item.onRename && (
                         <button
                           type="button"
                           onClick={() => {
@@ -202,6 +210,7 @@ export function SidebarItem({ item, isOpen = false, onToggle }: SidebarItemProps
                           <Edit3 size={14} className="text-gray-500" />
                           Rename
                         </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {

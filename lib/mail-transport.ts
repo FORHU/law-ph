@@ -13,6 +13,7 @@ if ((!smtpUser || !smtpPass) && process.env.NODE_ENV === 'production') {
 export const transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
+  secure: smtpPort === 465, // true for 465, false for other ports (like 587)
   auth: {
     user: smtpUser,
     pass: smtpPass

@@ -1,66 +1,55 @@
 'use client'
 
-import { createClient } from "@/lib/supabase/client" 
 import React, { useEffect, useState } from "react"
-import { Toast } from "@/components/ui/toast"
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
 }
-export default function LoginForm({onLoginSuccess} : LoginFormProps) {
+export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-    const [email, setEmail ] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess ] = useState(false)
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setError(null);
+    setSuccess(false);
+    setLoading(false);
+  }, []);
 
-    useEffect(() => {
-      setEmail('');
-      setPassword('');
-      setError(null);
-      setSuccess(false);
-      setLoading(false);
-    }, []);
-
-    const supabase = createClient()
-    async function signInWithEmail(e: React.FormEvent<HTMLFormElement>){
-        e.preventDefault()
-        setError('')
-        setLoading(true)
-        setSuccess(false)
-        try {
-            const { data : { session }, error } = await supabase.auth.signInWithPassword({
-            email, password
-        })
-
-        if(error){
-            setError(error?.message || "Something went wrong. Please try again later.")
-        }
-
-        if(session){
-            setSuccess(true)
-            setTimeout(() => {
-                onLoginSuccess()
-            }, 500)
-        }
-            
-        } catch (error: any) {
-            setError(error?.message || "Something went wrong. Please try again later.")
-        } finally {
-            setLoading(false)
-        }
+  async function signInWithEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    setSuccess(false)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again later.");
+      } else {
+        setSuccess(true)
+        setTimeout(() => { onLoginSuccess() }, 500)
+      }
+    } catch (error: any) {
+      setError(error?.message || "Something went wrong. Please try again later.")
+    } finally {
+      setLoading(false)
     }
-
-    function handleEmailChange(email: string){
-        setEmail(email)
-    }
+  }
 
   return (
     <>
       <div className="flex min-h-full flex-col justify-center px-6 lg:px-8 py-10">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <h2 className="mt-10 text-center text-2xl font-serif tracking-tight text-white uppercase letter-spacing-[0.1em]">Institutional Access</h2>
+          <h2 className="mt-10 text-center text-2xl font-serif tracking-tight text-white uppercase letter-spacing-[0.1em]">Sign In</h2>
           <p className="mt-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Authorize your credentials</p>
         </div>
 
@@ -79,7 +68,7 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  placeholder="name@institutional.legal"
+                  placeholder="name@example.com"
                   className="block w-full rounded-xl bg-[#0B0B0C] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 transition-all outline-none"
                 />
               </div>
@@ -124,23 +113,23 @@ export default function LoginForm({onLoginSuccess} : LoginFormProps) {
                   </div>
                 ) : "Authenticate Access"}
               </button>
-              
+
               {error && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                   <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest text-center">{error}</p>
                 </div>
               )}
-              
+
               {success && (
                 <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                  <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest text-center">Ratification Successful. Redirecting...</p>
+                  <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest text-center">Login successful. Redirecting...</p>
                 </div>
               )}
             </div>
 
-            <div className="pt-4 text-center"> 
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest inline-block mr-2">No institutional record?</p>
-              <a href="/auth/sign-up" className="text-[10px] font-bold text-[#e9c176] hover:text-white uppercase tracking-[0.2em] transition-colors">Enlist Now</a>
+            <div className="pt-4 text-center">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest inline-block mr-2">No account yet?</p>
+              <a href="/auth/sign-up" className="text-[10px] font-bold text-[#e9c176] hover:text-white uppercase tracking-[0.2em] transition-colors">Sign Up</a>
             </div>
           </form>
         </div>

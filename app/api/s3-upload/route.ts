@@ -3,13 +3,40 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const filename = formData.get("filename") as string;
-    const targetBucket = formData.get("bucket") as string || process.env.AWS_S3_BUCKET || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
+    let fileBuffer: Uint8Array;
+    let filename: string | null = null;
+    let targetBucket: string | null = null;
+    let contentType: string = "application/octet-stream";
 
-    if (!file || !filename) {
-      return NextResponse.json({ error: "Missing file or filename" }, { status: 400 });
+    const contentTypeHeader = req.headers.get("content-type") || "";
+
+    if (contentTypeHeader.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file") as File;
+      filename = formData.get("filename") as string;
+      targetBucket = formData.get("bucket") as string;
+      contentType = file.type || "application/octet-stream";
+
+      if (!file || !filename) {
+        return NextResponse.json({ error: "Missing file or filename in form data" }, { status: 400 });
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      fileBuffer = new Uint8Array(arrayBuffer);
+    } else {
+      const { searchParams } = new URL(req.url);
+      filename = searchParams.get("filename");
+      targetBucket = searchParams.get("bucket");
+      contentType = contentTypeHeader || "application/octet-stream";
+
+      if (!filename) {
+        return NextResponse.json({ error: "Missing filename parameter in query" }, { status: 400 });
+      }
+      const arrayBuffer = await req.arrayBuffer();
+      fileBuffer = new Uint8Array(arrayBuffer);
+    }
+
+    if (!targetBucket) {
+      targetBucket = process.env.AWS_S3_BUCKET || process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "ilovelawyer-dev";
     }
 
     // IMPORTANT: Drop process.env.AWS_REGION completely. Vercel forcefully injects its own Lambda execution region (e.g., us-east-1), overriding your S3 bucket's actual region.
@@ -23,12 +50,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const arrayBuffer = await file.arrayBuffer();
     const command = new PutObjectCommand({
       Bucket: targetBucket,
       Key: filename,
-      Body: new Uint8Array(arrayBuffer),
-      ContentType: file.type || 'audio/webm',
+      Body: fileBuffer,
+      ContentType: contentType,
     });
 
     await client.send(command);

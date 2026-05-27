@@ -15,7 +15,7 @@ export interface UploadedDocumentData {
  * Uploads a file to S3 using a presigned URL and triggers backend analysis.
  * 
  * @param file The file to upload
- * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001')
+ * @param apiUrl Context for API (e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
  * @param analyze Whether to trigger backend analysis (default: true)
  * @returns Promise resolving to the uploaded document data
  */
@@ -62,15 +62,16 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
     throw new Error(urlData.detail || urlData.error || `Failed to get upload URL for ${file.name}`);
   }
 
-  // Step 2: Upload file directly to S3 using PUT
-  const s3Response = await fetch(urlData.url, {
-    method: 'PUT',
-    headers: { 'Content-Type': urlData.content_type },
+  // Step 2: Upload file through server-side proxy to avoid browser CORS restrictions on direct S3 PUT
+  const s3Response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(urlData.s3_key)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
     body: file,
   });
 
-  if (!s3Response.ok && s3Response.status !== 204) {
-    throw new Error(`Failed to upload ${file.name} to S3.`);
+  if (!s3Response.ok) {
+    const s3Err = await s3Response.json().catch(() => ({}));
+    throw new Error(s3Err.error || `Failed to upload ${file.name} to S3.`);
   }
 
   // Step 3: Determine final file URL
@@ -139,16 +140,14 @@ export async function uploadVoiceNote(blob: Blob, filename?: string): Promise<{ 
 
   console.log(`[S3-Utils] Uploading voice note via direct S3 route: ${name} (${blob.size} bytes)`);
 
-  // Use our stable server-side S3 upload route instead of the backend proxy.
-  // This ensures files always land in ilovelawyer-dev (served by CloudFront)
-  // even when the backend EC2 instance is unavailable.
-  const formData = new FormData();
-  formData.append("file", blob, name);
-  formData.append("filename", name);
-
-  const response = await fetch("/api/s3-upload", {
+  // Use raw binary streams with query parameters instead of FormData to completely bypass
+  // browser and framework-level multipart parsing size limitations and CORS issues.
+  const response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(name)}`, {
     method: "POST",
-    body: formData,
+    headers: {
+      "Content-Type": blob.type || "application/octet-stream",
+    },
+    body: blob,
   });
 
   const data = await response.json();
@@ -184,14 +183,12 @@ export async function uploadToS3Direct(
   console.log(`[S3-Direct] Uploading ${filename} to ${targetBucket} via local proxy API (${blob.size} bytes)`);
 
   try {
-    const formData = new FormData();
-    formData.append("file", blob, filename);
-    formData.append("filename", filename);
-    if (bucket) formData.append("bucket", bucket);
-
-    const response = await fetch("/api/s3-upload", {
+    const response = await fetch(`/api/s3-upload?filename=${encodeURIComponent(filename)}&bucket=${encodeURIComponent(targetBucket)}`, {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": blob.type || "application/octet-stream",
+      },
+      body: blob,
     });
 
     const data = await response.json();

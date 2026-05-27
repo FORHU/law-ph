@@ -59,7 +59,7 @@ export function ConsultationHeader({
 
   return (
     <header className="relative z-10 border-b border-white/5 bg-[#0B0B0C]/40 backdrop-blur-lg">
-      <div className="flex items-center px-4 md:px-5 py-1 gap-2.5">
+      <div className="flex items-center px-3 sm:px-4 md:px-5 py-1 gap-2 sm:gap-2.5">
         {/* Left: Action Group (Menu + Back) */}
         <div className="flex items-center gap-1.5 shrink-0">
           {showMenuButton && onMenuClick && (
@@ -71,12 +71,14 @@ export function ConsultationHeader({
               <Menu size={16} className="text-gray-500 group-hover:text-white" />
             </button>
           )}
-          <button 
-            onClick={onBack || (() => router.push('/consultation'))}
-            className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0 relative flex items-center justify-center w-8 h-8"
-          >
-            <ArrowLeft size={14} className="text-gray-500 group-hover:text-white" />
-          </button>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="p-1.5 hover:bg-white/5 rounded-md transition-all border border-transparent hover:border-white/10 group shrink-0 relative flex items-center justify-center w-8 h-8"
+            >
+              <ArrowLeft size={14} className="text-gray-500 group-hover:text-white" />
+            </button>
+          )}
         </div>
 
         {/* Center: Title Region */}
@@ -89,14 +91,14 @@ export function ConsultationHeader({
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-transparent text-2xl md:text-3xl font-serif font-medium text-white tracking-tight focus:outline-none border-b border-[#722f37]/50 pb-0.5"
+                className="w-full bg-transparent text-xl sm:text-2xl md:text-3xl font-serif font-medium text-white tracking-tight focus:outline-none border-b border-[#722f37]/50 pb-0.5"
               />
             ) : (
               <div 
                 className={`flex items-center gap-2 ${isEditable ? 'cursor-pointer group/title' : ''}`}
                 onClick={() => isEditable && setIsEditing(true)}
               >
-                <span className="text-2xl md:text-3xl font-serif font-medium text-white tracking-tight truncate antialiased">
+                <span className="text-xl sm:text-2xl md:text-3xl font-serif font-medium text-white tracking-tight truncate antialiased">
                   {title}
                 </span>
                 {isEditable && (

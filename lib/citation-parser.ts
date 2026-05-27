@@ -15,6 +15,8 @@ export interface RelatedCase {
   score?: number;
   url?: string;
   type?: string;
+  subtype?: string | null;
+  year?: number | null;
   itemId?: string; // DB item_id used to fetch full case content
 }
 
@@ -239,6 +241,23 @@ export function extractRelatedCases(text: string): RelatedCase[] {
 }
 
 /**
+ * Extracts the [RELATED_QUERIES] tag emitted by the AI.
+ * Returns an array of search terms, or undefined if not present.
+ */
+export function extractRelatedQueries(text: string): string[] | undefined {
+  // Accept with OR without closing tag — stream may cut off before [/RELATED_QUERIES]
+  const match = text.match(/\[RELATED_QUERIES\]([\s\S]*?)(?:\[\/RELATED_QUERIES\]|$)/i);
+  if (!match) return undefined;
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    if (Array.isArray(parsed)) {
+      return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+    }
+  } catch {}
+  return undefined;
+}
+
+/**
  * Extracts a timeline from AI responses.
  * Supports: [TIMELINE]...[/TIMELINE] JSON wrapper, bare JSON array, and Markdown numbered list fallback.
  */
@@ -273,23 +292,55 @@ export function extractTimeline(text: string): TimelineItem[] | undefined {
     }
   }
 
-  // 3. Final fallback: parse Markdown numbered list timeline
-  const mdTimelineSection = text.match(/(?:timeline|actionable steps)[^\n]*\n((?:\d+\..+\n?)+)/i);
+  // 3. Final fallback: parse Markdown numbered list from actionable/strategy sections
+  // Matches sections like "Practical Litigation Posture", "Actionable Steps", "Strategic Plan", "Timeline"
+  const sectionRe = /(?:practical\s+litigation\s+posture|actionable\s+steps?|strategic\s+plan|recommended\s+steps?|next\s+steps?|timeline|course\s+of\s+action)[^\n]*\n((?:(?:\d+\.|\-|\*).+\n?(?:[ \t]+.+\n?)*)+)/i;
+  const mdTimelineSection = text.match(sectionRe);
+
   if (mdTimelineSection) {
     const items: TimelineItem[] = [];
-    const lineRe = /^\d+\.\s+\*?\*?([^*\n-]+)\*?\*?\s*[-–]\s*(\d{4}-\d{2}-\d{2})(?:[^:]*)?:\s*(.+)/;
     const lines = mdTimelineSection[1].split('\n');
+
+    // Pattern A: "1. **Title** - YYYY-MM-DD: Description"
+    const patternWithDate = /^\d+\.\s+\*?\*?([^*\n:–-]+?)\*?\*?\s*[-–]\s*(\d{4}-\d{2}-\d{2})[^:]*:\s*(.+)/;
+    // Pattern B: "1. **Title:** Description" (AI's actual format)
+    const patternBold = /^\d+\.\s+\*?\*?([^*\n:]+?)\*?\*?[:]\s*(.+)/;
+    // Pattern C: "1. Title - Description"
+    const patternPlain = /^\d+\.\s+([^:\n-]+?)\s*[-–:]\s*(.+)/;
+
     for (const line of lines) {
-      const m = line.trim().match(lineRe);
-      if (m) {
-        items.push({
-          title: m[1].trim(),
-          date: m[2].trim(),
-          description: m[3].trim(),
-          status: 'pending',
-        });
+      const trimmed = line.trim();
+      if (!trimmed || !/^\d+\./.test(trimmed)) continue;
+
+      let title = "";
+      let date: string | undefined;
+      let description = "";
+
+      const mA = trimmed.match(patternWithDate);
+      const mB = trimmed.match(patternBold);
+      const mC = trimmed.match(patternPlain);
+
+      if (mA) {
+        title = mA[1].trim();
+        date = mA[2].trim();
+        description = mA[3].trim();
+      } else if (mB) {
+        title = mB[1].trim();
+        description = mB[2].trim();
+      } else if (mC) {
+        title = mC[1].trim();
+        description = mC[2].trim();
+      } else {
+        // Plain numbered item with no separator — use whole line as title
+        title = trimmed.replace(/^\d+\.\s+/, "").replace(/\*\*/g, "").trim();
+        description = "";
+      }
+
+      if (title) {
+        items.push({ title, date, description, status: 'pending' });
       }
     }
+
     if (items.length > 0) return items;
   }
 
@@ -429,20 +480,24 @@ export function cleanAiText(text: string): string {
   // 1. Remove the __END__ signal if present
   cleaned = cleaned.replace(/__END__$/g, "");
 
+  // Strip [Sources] block appended by Chat Wonder — always discarded
+  cleaned = cleaned.replace(/\[Sources\][\s\S]*$/i, "");
+
   // 2. Strip standard structures ONLY if they have a closing tag OR if we're not streaming (best effort)
   // We use a non-greedy match to avoid eating text between tags.
   // The '|$' is removed to prevent hiding the whole response during streaming.
   cleaned = cleaned.replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "");
   cleaned = cleaned.replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "");
+  cleaned = cleaned.replace(/\[RELATED_QUERIES\][\s\S]*?\[\/RELATED_QUERIES\]/gi, "");
   cleaned = cleaned.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/gi, "");
   cleaned = cleaned.replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "");
 
   // 3. Handle the case where the tag started but hasn't closed yet (streaming)
-  // We hide only from the start tag onwards to keep the UI clean, 
+  // We hide only from the start tag onwards to keep the UI clean,
   // but we only do this for the specific tags we extract elsewhere.
-  const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
+  const startTags = [/\[TIMELINE\]/i, /\[MINDMAP\]/i, /\[RELATED_QUERIES\]/i, /\[ILM_META\]/i, /\[HIDDEN_INSTRUCTION\]/i];
   let firstTagIdx = -1;
-  
+
   for (const tag of startTags) {
     const match = cleaned.search(tag);
     if (match !== -1) {
@@ -454,9 +509,10 @@ export function cleanAiText(text: string): string {
     cleaned = cleaned.substring(0, firstTagIdx);
   }
 
-  // 4. Strip any weird introductory timeline prose the AI likes to add at the end
-  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?(?:Proposed |Given |Following )?Timeline[\s\S]{0,200}?:?\*?\*?\s*(?:```(?:json)?)?\s*$/i, "");
-  cleaned = cleaned.replace(/(?:\n|^)?\s*\*?\*?Here is[\s\S]*?(?:timeline|plan)[\s\S]*?:?\*?\*?\s*$/i, "");
+  // 4. Strip trailing timeline/plan intro lines the AI adds before a JSON block
+  // Only match if followed immediately by a ``` code fence (i.e. actual JSON block intro)
+  cleaned = cleaned.replace(/(?:\n|^)\s*\*?\*?(?:Proposed |Given |Following )?Timeline[^\n]{0,100}:?\*?\*?\s*```(?:json)?\s*$/i, "");
+  cleaned = cleaned.replace(/(?:\n|^)\s*\*?\*?Here is[^\n]{0,80}(?:timeline|plan)[^\n]{0,80}:?\*?\*?\s*```(?:json)?\s*$/i, "");
 
   return cleaned.trim();
 }
@@ -473,8 +529,9 @@ export function cleanMessageText(text: string): string {
     .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, "")
     .replace(/\[TIMELINE\][\s\S]*?\[\/TIMELINE\]/gi, "")
     .replace(/\[MINDMAP\][\s\S]*?\[\/MINDMAP\]/gi, "")
+    .replace(/\[RELATED_QUERIES\][\s\S]*?\[\/RELATED_QUERIES\]/gi, "")
     // Handle unclosed tags at end of string
-    .replace(/\[(ILM_META|HIDDEN_INSTRUCTION|TIMELINE|MINDMAP)\][\s\S]*$/gi, "")
+    .replace(/\[(ILM_META|HIDDEN_INSTRUCTION|TIMELINE|MINDMAP|RELATED_QUERIES)\][\s\S]*$/gi, "")
     .trim();
 }
 
@@ -581,58 +638,58 @@ function safeJsonParse(str: string): any {
         let finalAttempt = processed.trim();
         // Remove trailing comma if it exists before closing
         finalAttempt = finalAttempt.replace(/,\s*$/, "");
-          
-          // Use a stack to track open structures and string state
-          let isStringOpen = false;
-          let isEscape = false;
-          const stack: string[] = [];
-          
-          for (let i = 0; i < finalAttempt.length; i++) {
-            const char = finalAttempt[i];
-            if (isEscape) {
-              isEscape = false;
-              continue;
-            }
-            if (char === '\\') {
-              isEscape = true;
-              continue;
-            }
-            if (char === '"') {
-              isStringOpen = !isStringOpen;
-              continue;
-            }
-            if (!isStringOpen) {
-              if (char === '{') stack.push('}');
-              else if (char === '[') stack.push(']');
-              else if (char === '}' || char === ']') {
-                if (stack.length > 0 && stack[stack.length - 1] === char) {
-                  stack.pop();
-                }
+
+        // Use a stack to track open structures and string state
+        let isStringOpen = false;
+        let isEscape = false;
+        const stack: string[] = [];
+
+        for (let i = 0; i < finalAttempt.length; i++) {
+          const char = finalAttempt[i];
+          if (isEscape) {
+            isEscape = false;
+            continue;
+          }
+          if (char === '\\') {
+            isEscape = true;
+            continue;
+          }
+          if (char === '"') {
+            isStringOpen = !isStringOpen;
+            continue;
+          }
+          if (!isStringOpen) {
+            if (char === '{') stack.push('}');
+            else if (char === '[') stack.push(']');
+            else if (char === '}' || char === ']') {
+              if (stack.length > 0 && stack[stack.length - 1] === char) {
+                stack.pop();
               }
             }
           }
+        }
 
-          if (isStringOpen) finalAttempt += '"';
-          while (stack.length > 0) {
-            finalAttempt += stack.pop();
-          }
+        if (isStringOpen) finalAttempt += '"';
+        while (stack.length > 0) {
+          finalAttempt += stack.pop();
+        }
 
-          // 6b. Final emergency repair: if we have a trailing colon or incomplete key, remove it
-          finalAttempt = finalAttempt.trim()
-            .replace(/,\s*$/, "")
-            .replace(/:\s*$/, "")
-            .replace(/,\s*"\w*"\s*$/, "")
-            .replace(/\{\s*"\w*"\s*$/, "{");
+        // 6b. Final emergency repair: if we have a trailing colon or incomplete key, remove it
+        finalAttempt = finalAttempt.trim()
+          .replace(/,\s*$/, "")
+          .replace(/:\s*$/, "")
+          .replace(/,\s*"\w*"\s*$/, "")
+          .replace(/\{\s*"\w*"\s*$/, "{");
 
-          try {
-            return JSON.parse(finalAttempt);
-          } catch (finalError) {
-            // Silence noisy warnings during streaming; only log if actually needed for debugging
-            // console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
-            return null;
-          }
+        try {
+          return JSON.parse(finalAttempt);
+        } catch (finalError) {
+          // Silence noisy warnings during streaming; only log if actually needed for debugging
+          // console.warn("safeJsonParse: All sanitization attempts failed.", finalError);
+          return null;
         }
       }
+    }
   } catch (globalError) {
     // console.error("safeJsonParse: Critical failure during parsing logic", globalError);
     return null;

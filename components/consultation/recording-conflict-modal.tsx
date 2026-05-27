@@ -6,10 +6,10 @@ import { AlertCircle, Mic, StopCircle, CornerDownRight } from "lucide-react";
 import { useConversations } from "../conversation-provider/conversation-context";
 
 export function RecordingConflictModal() {
-  const { 
-    conflictRecordingId, 
-    activeRecordingTitle, 
-    resolveRecordingConflict 
+  const {
+    conflictRecordingId,
+    activeRecordingTitle,
+    resolveRecordingConflict
   } = useConversations();
 
   if (!conflictRecordingId) return null;
@@ -23,7 +23,7 @@ export function RecordingConflictModal() {
         onClick={() => resolveRecordingConflict(false)}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -32,7 +32,7 @@ export function RecordingConflictModal() {
       >
         {/* Header Decor */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#722f37] to-transparent opacity-40" />
-        
+
         <div className="p-6">
           <div className="flex items-center gap-3.5 mb-5">
             <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">

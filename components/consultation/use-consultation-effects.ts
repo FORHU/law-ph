@@ -34,7 +34,9 @@ export function useConsultationEffects({
   const handleSendMessageRef = useRef(handleSendMessage);
   useEffect(() => { handleSendMessageRef.current = handleSendMessage; }, [handleSendMessage]);
 
-  // Auto-scroll logic: scroll to top of new AI messages, bottom for user messages
+  // Auto-scroll logic: scroll to top of new AI messages, bottom for user messages.
+  // Depends on messages.length (not the full array reference) so streaming text
+  // updates don't re-run this effect on every chunk.
   useEffect(() => {
     if (
       scrollContainerRef.current &&
@@ -70,7 +72,7 @@ export function useConsultationEffects({
       }
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages, isLoading, scrollContainerRef]);
+  }, [messages.length, scrollContainerRef]);
 
   // Handle URL hash scrolling (e.g., from bookmarks)
   useEffect(() => {

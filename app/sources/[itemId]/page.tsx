@@ -3,9 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Loader2, BookOpen, Gavel } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import TurndownService from 'turndown';
-import { COLORS } from '@/lib/constants';
+import { LegalMarkdown } from '@/components/legal/legal-markdown';
 
 interface SourceData {
   item_id: string;
@@ -13,6 +12,7 @@ interface SourceData {
   title: string;
   url: string;
   text_content: string;
+  formatted_markdown?: string | null;
   gr_number?: string;
   law_number?: string;
   date?: string;
@@ -49,6 +49,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
   const isLaw = data?.type === 'lawphil_statute';
 
   const markdownContent = (() => {
+    if (data?.formatted_markdown?.trim()) return data.formatted_markdown.trim();
     if (!data?.text_content) return '';
     try {
       const turndownService = new TurndownService({
@@ -78,7 +79,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
             <div className="w-16 h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
               <Loader2 className="animate-spin text-[#e9c176]" size={32} />
             </div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Ratifying Institutional Source...</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading source...</p>
           </div>
         )}
 
@@ -103,7 +104,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                   }`}
               >
                 {isLaw ? <BookOpen size={12} /> : <Gavel size={12} />}
-                {isLaw ? 'Institutional Law' : 'Jurisprudence'}
+                {isLaw ? 'Philippine Law' : 'Case Law'}
               </span>
               {data.gr_number && (
                 <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.gr_number}</span>
@@ -112,7 +113,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                 <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-wider bg-white/5 px-3 py-1 rounded-md">{data.law_number}</span>
               )}
               {data.year && (
-                <span className="text-[10px] font-mono text-[#e9c176] font-bold uppercase tracking-wider">Ratified {data.year}</span>
+                <span className="text-[10px] font-mono text-[#e9c176] font-bold uppercase tracking-wider">Published {data.year}</span>
               )}
             </div>
 
@@ -120,48 +121,8 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
               {data.title}
             </h1>
 
-            <div className="prose prose-invert max-w-none prose-headings:text-[#e9c176] prose-headings:font-serif prose-p:text-gray-300 prose-p:leading-relaxed prose-li:text-gray-300 prose-strong:text-white border-t border-white/10 pt-8 mt-8">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => (
-                    <h1 className="text-3xl font-serif text-[#e9c176] mb-6 mt-10 tracking-tight">
-                      {children}
-                    </h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="text-2xl font-serif text-[#e9c176] mb-4 mt-8 tracking-tight">
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-xl font-serif text-[#e9c176] mb-3 mt-6">
-                      {children}
-                    </h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="text-gray-300 mb-6 leading-relaxed text-lg">
-                      {children}
-                    </p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc ml-6 mb-6 space-y-3 text-gray-300">
-                      {children}
-                    </ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal ml-6 mb-6 space-y-3 text-gray-300">
-                      {children}
-                    </ol>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="text-white font-bold border-b border-[#e9c176]/30">
-                      {children}
-                    </strong>
-                  ),
-                }}
-              >
-                {markdownContent || '*No content available.*'}
-              </ReactMarkdown>
+            <div className="border-t border-white/10 pt-8 mt-8">
+              <LegalMarkdown content={markdownContent} />
             </div>
 
             {data.url && (
@@ -173,7 +134,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
                   className="inline-flex items-center gap-3 px-8 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all bg-[#722f37] text-white hover:bg-[#8b3a44] shadow-xl shadow-[#722f37]/20 active:scale-95"
                 >
                   <ExternalLink size={16} />
-                  Solicit Original Document
+                  View Original Document
                 </a>
               </div>
             )}
