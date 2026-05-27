@@ -447,6 +447,13 @@ export function ConversationProvider({
   }, [loggedIn, userId]);
 
   const loadedHistoryIdRef = useRef<string | null>(null);
+  // Mirror `conversations` in a ref so fetchCloudMessages can read the latest list
+  // without having `conversations` in its dependency array. If conversations were a
+  // dep, every sidebar refresh (e.g. after creating a new conversation) would give
+  // fetchCloudMessages a new reference → the useEffect would re-fire mid-stream →
+  // setMessages would replace the streaming text → visible flicker on first message.
+  const conversationsRef = useRef(conversations);
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
   // Wrapper to keep loaded history in sync when we jump to an active / new chat
   const setCurrentConsultationIdWrapper = useCallback(
@@ -569,7 +576,7 @@ export function ConversationProvider({
       if (loadedHistoryIdRef.current === syncedConversationId)
         return;
 
-      const existsInConversations = conversations.some((c) => c.id.toString() === syncedConversationId);
+      const existsInConversations = conversationsRef.current.some((c) => c.id.toString() === syncedConversationId);
       const existsInCases = cases.some((c) => c.id.toString() === syncedConversationId);
       const matchesCurrent = currentConsultationId?.toString() === syncedConversationId;
 
@@ -673,7 +680,6 @@ export function ConversationProvider({
       userId,
       loggedIn,
       loaded,
-      conversations,
       cases,
       mapCloudMessage,
       handleNewConsultation,
