@@ -1,46 +1,19 @@
 /**
  * Stream Response Processor
  *
- * Two responsibilities:
- *
- * 1. PROMPT RULES  — Instructions injected into every request to Chat Wonder
- *    so the AI formats its responses correctly. Edit CHAT_WONDER_RULES to
- *    change what the AI is told to do.
- *
- * 2. STREAM RULES  — Client-side rules that process every incoming chunk
- *    before it reaches the chat UI. These handle things the AI cannot
- *    control (e.g. backend-injected [Sources] metadata).
+ * Applies client-side rules to every incoming chunk from Chat Wonder before
+ * it reaches the chat UI. These handle things the AI cannot control
+ * (e.g. backend-injected structured data blocks).
  */
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export interface StreamSource {
-  caseNumber: string;
-  title: string;
-  description: string;
-  url?: string;
-  type?: string;
-  itemId?: string;
-}
-
 export interface ProcessedChunk {
   /** Text that is safe to append to the chat display. Empty string means nothing to show. */
   text: string;
-  /** Case/source references extracted from a [Sources] block, if one was present. */
-  extractedSources?: StreamSource[];
-  /** Timeline and mindMap extracted from a [STRUCTURED_DATA] block, if one was present. */
-  structuredData?: { timeline?: any[]; mindMap?: any };
 }
-
-// ---------------------------------------------------------------------------
-// Part 1 — Prompt rules sent to Chat Wonder on every request
-//
-// These are injected into user_input so Chat Wonder knows how to format
-// its responses. Add or edit rules here; they automatically apply to all
-// requests made through the streaming hook.
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // CHAT_WONDER_RULES — reference copy only. DO NOT inject into user_input.
@@ -62,10 +35,7 @@ export interface ProcessedChunk {
 // `;
 
 // ---------------------------------------------------------------------------
-// Part 2 — Stream rules applied to every incoming chunk from Chat Wonder
-//
-// These rules run client-side after the AI has responded. They handle
-// backend-injected content that the AI itself does not control.
+// Stream rules applied to every incoming chunk from Chat Wonder
 // ---------------------------------------------------------------------------
 
 const STREAM_RULES = {
@@ -75,15 +45,6 @@ const STREAM_RULES = {
    * Strip them entirely — never show to the user.
    */
   STRIP_TOOL_LINES: /^(?:\[Tool\][^\n]*\n?)+/,
-
-  /**
-   * RULE — Sources block
-   * The Chat Wonder backend appends case/source metadata to the AI answer
-   * using the format:  [Sources] [{...}, ...]
-   * Strip it from the chat text entirely — law-ph discards source metadata.
-   */
-  SOURCES_PREFIX: '[Sources]',
-  STRIP_SOURCES: /\[Sources\][\s\S]*$/i,
 
   /**
    * RULE — Timeline block
@@ -100,126 +61,37 @@ const STREAM_RULES = {
   STRIP_MINDMAP: /\[MINDMAP\][\s\S]*?(?:\[\/MINDMAP\]|$)/i,
 
   /**
+   * RULE — Sources block
+   * [Sources][...JSON...] is backend-injected metadata. Strip from display.
+   */
+  STRIP_SOURCES: /\[Sources\][\s\S]*$/i,
+
+  /**
    * RULE — Related queries block
    * [RELATED_QUERIES][...][/RELATED_QUERIES] contains search terms the AI
    * selected to query the legal-rag DB. Strip from display — used by
    * use-send-message.ts to populate the Related Cases tab.
    */
   STRIP_RELATED_QUERIES: /\[RELATED_QUERIES\][\s\S]*?(?:\[\/RELATED_QUERIES\]|$)/i,
-
-  /**
-   * RULE — Structured data block
-   * [STRUCTURED_DATA]{...} carries timeline/mindMap JSON from a second LLM call.
-   * Extracted and routed to UI components — never shown in chat bubble.
-   */
-  STRUCTURED_DATA_PREFIX: '[STRUCTURED_DATA]',
 } as const;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Finds the closing bracket/brace of the first JSON value in `text`,
- * respecting nested structures and quoted strings.
- * Returns the extracted JSON string and whatever comes after it,
- * or null if the JSON is incomplete (e.g. still streaming).
- */
-function extractJsonBlock(text: string): { json: string; remainder: string } | null {
-  const startChar = text[0];
-  if (startChar !== '[' && startChar !== '{') return null;
-
-  const endChar = startChar === '[' ? ']' : '}';
-  let depth = 0, inString = false, escaped = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (escaped)          { escaped = false; continue; }
-    if (ch === '\\')      { escaped = true;  continue; }
-    if (ch === '"')       { inString = !inString; continue; }
-    if (inString)         continue;
-    if (ch === startChar) { depth++; continue; }
-    if (ch === endChar && --depth === 0) {
-      return {
-        json:      text.slice(0, i + 1),
-        remainder: text.slice(i + 1).replace(/^\s*\n?/, '').trimStart(),
-      };
-    }
-  }
-  return null; // incomplete — still streaming
-}
-
-function mapToStreamSource(item: any): StreamSource {
-  const itemId = item.item_id ?? item.id ?? undefined;
-  return {
-    caseNumber:  item.gr_number || item.case_number || item.title || 'N/A',
-    title:       item.title || 'Philippine Legal Document',
-    description: item.snippet || item.title || '',
-    url:         itemId ? `/sources/${itemId}` : (item.source_url ?? undefined),
-    type:        item.type        ?? undefined,
-    itemId,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Applies all response rules to a single raw stream chunk.
- *
- * Call this for every chunk coming off the reader before touching
- * accumulatedText. Use `result.text` for the chat display and
- * `result.extractedSources` (when present) — unused in law-ph; kept for defensive parsing only.
+ * Applies all stream rules to a single raw chunk.
+ * Call this for every chunk coming off the reader before touching accumulatedText.
  */
 export function processChunk(rawChunk: string): ProcessedChunk {
-  // RULE: strip internal [Tool] trace lines
   let text = rawChunk.replace(STREAM_RULES.STRIP_TOOL_LINES, '');
-
-  // RULE: extract [Sources] block — never display in chat (proxy usually strips first)
-  if (text.startsWith(STREAM_RULES.SOURCES_PREFIX)) {
-    const rest = text.slice(STREAM_RULES.SOURCES_PREFIX.length).trimStart();
-    const block = extractJsonBlock(rest);
-
-    if (block) {
-      try {
-        const parsed = JSON.parse(block.json);
-        const items: any[] = Array.isArray(parsed) ? parsed : [parsed];
-        return {
-          text:             block.remainder,
-          extractedSources: items.map(mapToStreamSource),
-        };
-      } catch (_) {
-        // Malformed JSON — discard the whole [Sources] chunk silently
-      }
-    }
-
-    // Could not parse (malformed or still streaming) — discard entirely
-    return { text: '' };
-  }
-
-  // RULE: extract [STRUCTURED_DATA] block — carries timeline/mindMap from second LLM call
-  if (text.startsWith(STREAM_RULES.STRUCTURED_DATA_PREFIX)) {
-    const rest = text.slice(STREAM_RULES.STRUCTURED_DATA_PREFIX.length).trimStart();
-    const block = extractJsonBlock(rest);
-    if (block) {
-      try {
-        const parsed = JSON.parse(block.json);
-        return { text: '', structuredData: { timeline: parsed.timeline, mindMap: parsed.mindMap } };
-      } catch (_) {
-        // Malformed JSON — discard silently
-      }
-    }
-    return { text: '' };
-  }
-
+  text = text.replace(STREAM_RULES.STRIP_SOURCES, '');
   return { text };
 }
 
 /**
  * Applies display-only rules to the fully accumulated response text
  * before it is stored as the message's visible content.
- * This removes structured-data blocks that have already been extracted.
  */
 export function cleanAccumulatedText(text: string): string {
   return text

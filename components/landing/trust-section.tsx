@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, EyeOff, ShieldCheck, ExternalLink, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Shield, Lock, EyeOff, ShieldAlert, CheckCircle2, ExternalLink } from 'lucide-react';
 
 interface TrustSectionProps {
   setActiveAngle?: (angle: number) => void;
@@ -10,101 +10,78 @@ interface TrustSectionProps {
 
 export function TrustSection({ setActiveAngle }: TrustSectionProps) {
   const trustItems = [
-    {
-      icon: <Lock className="w-8 h-8 text-gray-500" />,
-      title: 'AES-256 Encryption',
-      desc: 'Military-grade encryption protects all your data in transit and at rest.'
-    },
-    {
-      icon: <EyeOff className="w-8 h-8 text-gray-500" />,
-      title: 'Zero Knowledge Architecture',
-      desc: 'Your conversations and documents are encrypted end-to-end.'
-    },
-    {
-      icon: <ShieldAlert className="w-8 h-8 text-gray-500" />,
-      title: 'No Third-Party Sharing',
-      desc: 'We never share your data with third parties without explicit consent.'
-    },
-    {
-      icon: <CheckCircle2 className="w-8 h-8 text-gray-500" />,
-      title: 'DPA Compliant',
-      desc: 'Fully compliant with the Philippine Data Privacy Act of 2012 (R.A. 10173).'
-    }
+    { icon: <Lock className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />, title: 'AES-256 Encryption', desc: 'Military-grade encryption protects all your data in transit and at rest.' },
+    { icon: <EyeOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />, title: 'Zero Knowledge Architecture', desc: 'Your conversations and documents are encrypted end-to-end.' },
+    { icon: <ShieldAlert className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />, title: 'No Third-Party Sharing', desc: 'We never share your data with third parties without explicit consent.' },
+    { icon: <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />, title: 'DPA Compliant', desc: 'Fully compliant with the Philippine Data Privacy Act of 2012 (R.A. 10173).' },
   ];
 
   return (
     <section
-      className="py-48 px-12 bg-background"
+      className="py-16 sm:py-24 lg:py-48 px-4 sm:px-8 lg:px-12 bg-background"
       onMouseEnter={() => setActiveAngle?.(2)}
     >
       <div className="max-w-[1200px] mx-auto">
         <motion.div
-          className="glass-panel rounded-[3rem] p-24 border border-white/10 text-center shadow-2xl bg-white/[0.01]"
+          className="glass-panel rounded-[2rem] lg:rounded-[3rem] p-6 sm:p-10 lg:p-24 border border-white/10 text-center shadow-2xl bg-white/[0.01]"
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <div className="text-center mb-24">
-            <h2 className="text-6xl font-serif text-white mb-8 leading-tight">Built on Trust & Security</h2>
-            <p className="text-on-surface/50 text-lg mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+          {/* Header */}
+          <div className="text-center mb-8 sm:mb-16 lg:mb-24">
+            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-serif text-white mb-4 sm:mb-6 lg:mb-8 leading-tight">
+              Built on Trust &amp; Security
+            </h2>
+            <p className="text-on-surface/50 text-base sm:text-lg mb-6 sm:mb-8 lg:mb-12 max-w-3xl mx-auto leading-relaxed font-light">
               Legal matters require absolute confidentiality. We prioritize your data security and privacy above all else.
             </p>
             <motion.div whileHover={{ scale: 1.05 }}>
               <a
                 href="#"
-                className="text-white text-lg font-bold border-b-2 border-white/20 pb-2 inline-flex items-center gap-3 hover:text-secondary hover:border-secondary transition-all"
+                className="text-white text-base sm:text-lg font-bold border-b-2 border-white/20 pb-2 inline-flex items-center gap-2 sm:gap-3 hover:text-secondary hover:border-secondary transition-all"
               >
-                Read Our Privacy Policy <ExternalLink size={20} />
+                Read Our Privacy Policy <ExternalLink size={18} />
               </a>
             </motion.div>
           </div>
 
+          {/* Trust grid */}
           <motion.div
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.15
-                }
-              }
-            }}
+            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.15 } } }}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-12 text-left"
           >
             {trustItems.map((item, index) => (
               <motion.div
                 key={index}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
-                }}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                animate={{ backgroundColor: "#ffffff0d" }}
-                className="border border-white/5 rounded-[2rem] p-12 group transition-all shadow-lg cursor-default"
+                variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } } }}
+                animate={{ backgroundColor: '#ffffff0d' }}
                 whileHover={{ y: -8, backgroundColor: '#ffffff14', borderColor: '#e9c17633' }}
+                className="border border-white/5 rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-8 lg:p-12 group transition-all shadow-lg cursor-default"
               >
-                <div className="mb-10 transition-transform group-hover:scale-110">{item.icon}</div>
-                <h4 className="text-xl font-bold text-white mb-4 leading-tight group-hover:text-secondary transition-colors">{item.title}</h4>
-                <p className="text-on-surface/40 text-base leading-relaxed font-medium">{item.desc}</p>
+                <div className="mb-4 sm:mb-6 lg:mb-10 transition-transform group-hover:scale-110">{item.icon}</div>
+                <h4 className="text-base sm:text-lg lg:text-xl font-bold text-white mb-2 sm:mb-3 lg:mb-4 leading-tight group-hover:text-secondary transition-colors">{item.title}</h4>
+                <p className="text-on-surface/40 text-sm sm:text-base leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>
 
+          {/* Shield badge */}
           <motion.div
-            className="mt-16 p-10 bg-[#722f37]/5 rounded-[2rem] border border-[#722f37]/20 inline-flex items-center gap-6 text-lg text-gray-500 font-medium"
+            className="mt-8 sm:mt-12 lg:mt-16 p-5 sm:p-8 lg:p-10 bg-[#722f37]/5 rounded-[1.5rem] sm:rounded-[2rem] border border-[#722f37]/20 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 text-left sm:text-left"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.8 }}
           >
-            <Shield className="w-10 h-10 text-[#722f37] shrink-0" />
-            <span className="max-w-2xl text-left text-gray-400">Your privacy is our priority. We use industry-standard security to protect all sensitive information.</span>
+            <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-[#722f37] shrink-0" />
+            <span className="text-sm sm:text-base lg:text-lg text-gray-400 font-medium leading-relaxed">
+              Your privacy is our priority. We use industry-standard security to protect all sensitive information.
+            </span>
           </motion.div>
         </motion.div>
       </div>

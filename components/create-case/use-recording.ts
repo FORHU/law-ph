@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAlert } from '@/components/alert-provider';
 
 interface RecordingResult {
   id: string;
@@ -10,6 +11,7 @@ interface RecordingResult {
 }
 
 export function useCaseRecording() {
+  const { showAlert } = useAlert();
   const [isRecording, setIsRecording] = useState(false); // Speech-to-text
   const [isAudioRecording, setIsAudioRecording] = useState(false); // Raw audio
   const [recordings, setRecordings] = useState<RecordingResult[]>([]);
@@ -46,7 +48,7 @@ export function useCaseRecording() {
         if (event.error !== 'no-speech' && event.error !== 'aborted') {
           console.error('Speech recognition error:', event.error);
           if (event.error === 'not-allowed') {
-            alert('Microphone access is denied.');
+            showAlert('Microphone access is denied.', 'Permission Denied');
           }
         }
         setIsRecording(false);
@@ -81,8 +83,8 @@ export function useCaseRecording() {
       setIsRecording(false);
       try { recognitionRef.current?.stop(); } catch (e) {}
     } else {
-      if (isAudioRecording) return alert('Stop audio recording first.');
-      if (!recognitionRef.current) return alert('Speech recognition not supported.');
+      if (isAudioRecording) { showAlert('Stop audio recording first.', 'Recording Active'); return; }
+      if (!recognitionRef.current) { showAlert('Speech recognition is not supported in this browser.', 'Not Supported'); return; }
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -97,7 +99,7 @@ export function useCaseRecording() {
       setIsAudioRecording(false);
       mediaRecorderRef.current?.stop();
     } else {
-      if (isRecording) return alert('Stop transcription first.');
+      if (isRecording) { showAlert('Stop transcription first.', 'Recording Active'); return; }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
@@ -117,7 +119,7 @@ export function useCaseRecording() {
 
           if (blob.size === 0) {
             console.error('[Use-Recording] Recorded blob is empty. Check microphone permissions or input.');
-            alert('Recording contains no audio data. Please ensure your microphone is working and try again.');
+            showAlert('Recording contains no audio data. Please ensure your microphone is working and try again.', 'Recording Error');
           } else {
             setRecordings(prev => [...prev, { 
               id: crypto.randomUUID(), 
@@ -133,10 +135,10 @@ export function useCaseRecording() {
         mediaRecorder.start();
         setIsAudioRecording(true);
       } catch (err) {
-        alert('Could not access microphone.');
+        showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
       }
     }
-  }, [isRecording, isAudioRecording]);
+  }, [isRecording, isAudioRecording, showAlert]);
 
   const removeRecording = useCallback((id: string) => {
     setRecordings(prev => {

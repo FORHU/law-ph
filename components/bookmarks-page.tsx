@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bookmark, BookmarkCheck, Trash2, ChevronDown, ChevronUp,
   BookOpen, MessageSquare, ExternalLink, Search, X, Building2,
-  Scale, Gavel, FileText,
+  Scale, Gavel, FileText, Briefcase,
 } from 'lucide-react';
 import { PageLayout } from '@/components/ui/page-layout';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
@@ -22,25 +22,32 @@ function BookmarkCard({
   bookmark,
   onRemove,
   conversations = [],
+  cases = [],
   currentConsultationId,
 }: {
   bookmark: BookmarkType;
   onRemove: (id: string) => void;
   conversations?: any[];
+  cases?: any[];
   currentConsultationId?: string | number | null;
 }) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [removing, setRemoving] = useState(false);
 
-  const isAIResponse = bookmark.reference === 'AI_RESPONSE';
-  const isLibraryDoc = !isAIResponse && /^\d+$/.test(bookmark.itemId);
+  const isLibraryDoc = bookmark.reference !== 'AI_RESPONSE' && /^\d+$/.test(bookmark.itemId);
+  const urlId = bookmark.url ? bookmark.url.split('/').pop() ?? '' : '';
+  const isFromCase = bookmark.reference === 'AI_RESPONSE' && cases.some((c: any) => c.id.toString() === urlId);
+  const isAIResponse = bookmark.reference === 'AI_RESPONSE' && !isFromCase;
+  const isCaseBookmark = bookmark.type === 'case' || isFromCase;
 
   const getConsultationStatus = () => {
     if (!isAIResponse || !bookmark.url) return { exists: true };
     const parts = bookmark.url.split('/');
     const id = parts[parts.length - 1];
-    const exists = conversations.some((c: any) => c.id.toString() === id) ||
+    const exists =
+      conversations.some((c: any) => c.id.toString() === id) ||
+      cases.some((c: any) => c.id.toString() === id) ||
       (currentConsultationId && currentConsultationId.toString() === id);
     return { exists };
   };
@@ -48,10 +55,8 @@ function BookmarkCard({
   const { exists: consultationExists } = getConsultationStatus();
 
   const handleOpen = () => {
-    if (isLibraryDoc) {
-      router.push(`/legal-library/${bookmark.itemId}`);
-      return;
-    }
+    if (isCaseBookmark) { router.push(`/cases/${bookmark.itemId}`); return; }
+    if (isLibraryDoc) { router.push(`/legal-library/${bookmark.itemId}`); return; }
     if (isAIResponse && consultationExists && bookmark.url) {
       router.push(`${bookmark.url}#message-${bookmark.itemId}`);
     }
@@ -64,7 +69,7 @@ function BookmarkCard({
     setRemoving(false);
   };
 
-  const Icon = isLibraryDoc ? (CATEGORY_ICONS[bookmark.type] ?? FileText) : (isAIResponse ? MessageSquare : Bookmark);
+  const Icon = isCaseBookmark ? Briefcase : isLibraryDoc ? (CATEGORY_ICONS[bookmark.type] ?? FileText) : (isAIResponse ? MessageSquare : Bookmark);
 
   return (
     <motion.div
@@ -86,8 +91,14 @@ function BookmarkCard({
               {bookmark.reference && bookmark.reference !== 'No Reference' && bookmark.reference !== 'AI_RESPONSE' && (
                 <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em] truncate">{bookmark.reference}</p>
               )}
+              {isCaseBookmark && (
+                <p className="text-[10px] font-bold text-[#e9c176]/70 uppercase tracking-widest">Case</p>
+              )}
               {isLibraryDoc && (
                 <p className="text-[10px] font-bold text-[#722f37] uppercase tracking-widest">Legal Library</p>
+              )}
+              {isAIResponse && consultationExists && (
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Consultation</p>
               )}
               {isAIResponse && !consultationExists && (
                 <p className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest">Consultation Deleted</p>
@@ -181,13 +192,13 @@ function BookmarkCard({
         )}
 
         {/* Open link button */}
-        {(isLibraryDoc || (isAIResponse && consultationExists)) && (
+        {(isCaseBookmark || isLibraryDoc || (isAIResponse && consultationExists)) && (
           <button
             onClick={handleOpen}
             className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#722f37] hover:text-[#e9c176] transition-colors mt-3"
           >
             <ExternalLink size={11} />
-            {isLibraryDoc ? 'Open in Library' : 'Go to Consultation'}
+            {isCaseBookmark ? 'Open Case' : isLibraryDoc ? 'Open in Library' : 'Go to Consultation'}
           </button>
         )}
       </div>
@@ -196,17 +207,23 @@ function BookmarkCard({
 }
 
 export function BookmarksPage() {
-  const { bookmarks, removeBookmark, refreshBookmarks, conversations, currentConsultationId } = useConversations();
+  const { bookmarks, removeBookmark, refreshBookmarks, conversations, cases, currentConsultationId } = useConversations();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'library' | 'consultation'>('all');
+  const [filter, setFilter] = useState<'all' | 'library' | 'consultation' | 'case'>('all');
 
   useEffect(() => { refreshBookmarks(); }, []);
 
+  const caseIds = new Set((cases ?? []).map((c: any) => c.id.toString()));
+
   const filtered = bookmarks.filter(b => {
     const isLibrary = /^\d+$/.test(b.itemId) && b.reference !== 'AI_RESPONSE';
-    const isConsultation = b.reference === 'AI_RESPONSE';
+    const urlId = b.url ? b.url.split('/').pop() ?? '' : '';
+    const isFromCase = b.reference === 'AI_RESPONSE' && caseIds.has(urlId);
+    const isConsultation = b.reference === 'AI_RESPONSE' && !isFromCase;
+    const isCase = (b.type === 'case' && !isLibrary) || isFromCase;
     if (filter === 'library' && !isLibrary) return false;
     if (filter === 'consultation' && !isConsultation) return false;
+    if (filter === 'case' && !isCase) return false;
     if (search) {
       const q = search.toLowerCase();
       return b.title.toLowerCase().includes(q) ||
@@ -216,18 +233,39 @@ export function BookmarksPage() {
     return true;
   });
 
+  const categorize = (b: BookmarkType) => {
+    const isLibrary = /^\d+$/.test(b.itemId) && b.reference !== 'AI_RESPONSE';
+    const urlId = b.url ? b.url.split('/').pop() ?? '' : '';
+    const isFromCase = b.reference === 'AI_RESPONSE' && caseIds.has(urlId);
+    if (isLibrary) return 'library';
+    if (isFromCase || b.type === 'case') return 'case';
+    return 'consultation';
+  };
+
+  const grouped = {
+    case: filtered.filter(b => categorize(b) === 'case'),
+    consultation: filtered.filter(b => categorize(b) === 'consultation'),
+    library: filtered.filter(b => categorize(b) === 'library'),
+  };
+
+  const SECTION_LABELS: Record<string, string> = {
+    case: 'Cases',
+    consultation: 'Consultations',
+    library: 'Legal Library',
+  };
+
   return (
     <PageLayout
-      activePage="chat"
+      activePage="bookmarks"
       title="Bookmarks"
       subtitle={`${bookmarks.length} saved item${bookmarks.length !== 1 ? 's' : ''}`}
       maxWidth="max-w-3xl"
     >
-      <div className="flex flex-col gap-4 px-4 py-6 overflow-y-auto h-full">
+      <div className="flex flex-col gap-4 px-4 py-6 overflow-y-auto h-full custom-scrollbar">
 
         {/* Search + filter */}
         {bookmarks.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <div className="flex-1 flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 focus-within:border-[#722f37]/40 transition-all">
               <Search size={14} className="text-gray-600 flex-shrink-0" />
               <input
@@ -243,7 +281,7 @@ export function BookmarksPage() {
               )}
             </div>
             <div className="flex gap-1 bg-white/[0.03] border border-white/10 rounded-xl p-1">
-              {(['all', 'library', 'consultation'] as const).map(f => (
+              {(['all', 'case', 'library', 'consultation'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -278,18 +316,50 @@ export function BookmarksPage() {
           </div>
         )}
 
-        {/* Bookmark list */}
-        <AnimatePresence mode="popLayout">
-          {filtered.map(bm => (
-            <BookmarkCard
-              key={bm.id}
-              bookmark={bm}
-              onRemove={removeBookmark}
-              conversations={conversations}
-              currentConsultationId={currentConsultationId}
-            />
-          ))}
-        </AnimatePresence>
+        {/* Grouped sections (All view) or flat list (filtered view) */}
+        {filter === 'all' ? (
+          (['case', 'consultation', 'library'] as const).map(group => grouped[group].length === 0 ? null : (
+            <div key={group} className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-600">{SECTION_LABELS[group]}</p>
+                <div className="flex-1 h-px bg-white/[0.05]" />
+                <span className="text-[10px] text-gray-700 font-bold">{grouped[group].length}</span>
+              </div>
+              <AnimatePresence mode="popLayout">
+                {grouped[group].map(bm => (
+                  <BookmarkCard
+                    key={bm.id}
+                    bookmark={bm}
+                    onRemove={removeBookmark}
+                    conversations={conversations}
+                    cases={cases}
+                    currentConsultationId={currentConsultationId}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          ))
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-600">{SECTION_LABELS[filter]}</p>
+              <div className="flex-1 h-px bg-white/[0.05]" />
+              <span className="text-[10px] text-gray-700 font-bold">{filtered.length}</span>
+            </div>
+          <AnimatePresence mode="popLayout">
+            {filtered.map(bm => (
+              <BookmarkCard
+                key={bm.id}
+                bookmark={bm}
+                onRemove={removeBookmark}
+                conversations={conversations}
+                cases={cases}
+                currentConsultationId={currentConsultationId}
+              />
+            ))}
+          </AnimatePresence>
+          </div>
+        )}
 
       </div>
     </PageLayout>

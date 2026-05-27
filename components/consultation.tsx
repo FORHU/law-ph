@@ -24,6 +24,7 @@ import {
   Check
 } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
+import { PageLoader } from "@/components/ui/page-loader";
 import { CHAT_SENDER, STORAGE_KEYS, ASSETS } from "@/lib/constants";
 import { uploadAndAnalyzeDocument, formatS3Url } from "@/lib/s3-utils";
 import { Conversation } from "@/types";
@@ -757,13 +758,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           handleRenameConsultation(currentConsultationId, newTitle);
         }
       }}
-      onBack={() => {
-        if (!currentConsultationId && !isCaseMode) {
-          router.push("/");
-        } else {
-          handleNewConsultation();
-        }
-      }}
       headerActions={
         <div className="flex items-center gap-2">
           {isCaseMode && activeCase && messages.length > 0 && (
@@ -800,8 +794,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       exit={{ opacity: 0 }}
                       className="h-full flex flex-col items-center justify-center py-20"
                     >
-                      <Loader2 size={40} className="text-[#722f37] animate-spin mb-4" />
-                      <p className="text-gray-500 font-medium animate-pulse">Loading case history...</p>
+                      <PageLoader label="Loading case history..." />
                     </motion.div>
                   ) : (messages.length === 0) && !isLoading && casesLoaded && (
                     <motion.div
@@ -1049,10 +1042,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       >
                         {isSendingEmail ? (
                           <span className="flex items-center gap-2">
-                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <Loader2 className="animate-spin h-4 w-4" />
                             Sending...
                           </span>
                         ) : emailSentStatus === 'success' ? (

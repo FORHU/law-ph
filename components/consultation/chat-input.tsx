@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { uploadToS3Direct } from '@/lib/s3-utils';
 import { startAWSBatchTranscription, getTranscriptionJobStatus, fetchTranscriptionText } from '@/lib/aws-transcribe-utils';
 import { COLORS } from '@/lib/constants';
+import { useAlert } from '@/components/alert-provider';
 
 interface ChatInputProps {
   onSend: (message: string, file?: File | null, skipAIResponse?: boolean) => void;
@@ -42,6 +43,7 @@ export function ChatInput({
   status: externalStatus = 'idle',
   onStatusChange
 }: ChatInputProps) {
+  const { showAlert } = useAlert();
   const [value, setValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -156,7 +158,7 @@ export function ChatInput({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 20 * 1024 * 1024) {
-        alert("File is too large. Maximum size is 20MB.");
+        showAlert("File is too large. Maximum size is 20MB.", "File Too Large");
         return;
       }
       setSelectedFile(file);

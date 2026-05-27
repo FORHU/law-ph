@@ -15,6 +15,8 @@ export interface RelatedCase {
   score?: number;
   url?: string;
   type?: string;
+  subtype?: string | null;
+  year?: number | null;
   itemId?: string; // DB item_id used to fetch full case content
 }
 
@@ -243,7 +245,8 @@ export function extractRelatedCases(text: string): RelatedCase[] {
  * Returns an array of search terms, or undefined if not present.
  */
 export function extractRelatedQueries(text: string): string[] | undefined {
-  const match = text.match(/\[RELATED_QUERIES\]([\s\S]*?)\[\/RELATED_QUERIES\]/i);
+  // Accept with OR without closing tag — stream may cut off before [/RELATED_QUERIES]
+  const match = text.match(/\[RELATED_QUERIES\]([\s\S]*?)(?:\[\/RELATED_QUERIES\]|$)/i);
   if (!match) return undefined;
   try {
     const parsed = JSON.parse(match[1].trim());

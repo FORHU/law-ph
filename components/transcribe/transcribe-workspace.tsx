@@ -5,7 +5,7 @@ import {
   Play, Pause, RotateCcw, RotateCw, Mic, Divide, ZoomIn, ZoomOut, Bookmark, Upload,
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon,
   CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square,
-  Edit2, Check
+  Edit2, Check, MoreVertical
 } from 'lucide-react';
 import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/lib/aws-transcribe-utils';
 import { useAuth } from '@/components/auth/auth-provider';
 import type { Transcription } from '@/lib/transcriptions-service';
+import { useAlert } from '@/components/alert-provider';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -70,6 +71,7 @@ export default function TranscribeWorkspace({
 }) {
   const { user } = useAuth();
   const userId = user?.id;
+  const { showAlert } = useAlert();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -141,6 +143,8 @@ export default function TranscribeWorkspace({
   // Title editing & deleting state and handlers
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const saveTitle = async (id: string, newTitle: string) => {
     if (!newTitle.trim()) return;
@@ -161,8 +165,13 @@ export default function TranscribeWorkspace({
 
   const handleDelete = async (id: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (!confirm("Are you sure you want to delete this transcription session?")) return;
+    setDeleteTargetId(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
+    setDeleteTargetId(null);
     try {
       const res = await fetch(`/api/transcriptions/${id}`, {
         method: "DELETE",
@@ -524,22 +533,21 @@ export default function TranscribeWorkspace({
       if (isFirst) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#111';
         ctx.font = '32px serif'; ctx.fillText('REPUBLIC OF THE PHILIPPINES', CW / 2, 100);
-        ctx.font = 'bold 44px serif'; ctx.fillText('INSTITUTIONAL CASE INTELLIGENCE SYSTEM', CW / 2, 160);
-        ctx.font = '36px serif'; ctx.fillText('SOVEREIGN LEGAL HUB', CW / 2, 210);
+        ctx.font = 'bold 44px serif'; ctx.fillText('I LOVE LAWYER', CW / 2, 160);
+        ctx.font = '36px serif'; ctx.fillText('AI-POWERED LEGAL PLATFORM', CW / 2, 210);
 
         ctx.strokeStyle = '#333'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(300, 250); ctx.lineTo(CW - 300, 250); ctx.stroke();
 
         ctx.font = 'bold 50px serif';
-        ctx.fillText('TRANSCRIPTION OF STENOGRAPHIC NOTES', CW / 2, 340);
+        ctx.fillText('AUDIO TRANSCRIPTION RECORD', CW / 2, 340);
 
         ctx.textAlign = 'left'; ctx.font = '34px serif';
         ctx.fillText(`DATE OF SESSION: ${new Date().toLocaleDateString()}`, MX + LNW, 420);
         ctx.fillText(`TIME GENERATED: ${new Date().toLocaleTimeString()}`, MX + LNW, 470);
-        ctx.fillText(`ENGINE: AWS TRANSCRIBE (MULITLINGUAL)`, MX + LNW, 520);
       } else {
         ctx.font = 'italic 28px serif'; ctx.fillStyle = '#666';
-        ctx.fillText(`TRANSCRIPTION OF STENOGRAPHIC NOTES - Page ${pageNum} (Continued)`, MX + LNW, 100);
+        ctx.fillText(`AUDIO TRANSCRIPTION RECORD - Page ${pageNum} (Continued)`, MX + LNW, 100);
       }
 
       drawActions(ctx);
@@ -638,7 +646,7 @@ export default function TranscribeWorkspace({
   };
 
 
-  // Close menu when clicking outside
+  // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
@@ -648,6 +656,20 @@ export default function TranscribeWorkspace({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close the kebab menu when clicking/tapping outside it
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    // Use bubble phase (no capture) so clicks inside the dropdown
+    // can stopPropagation before this fires.
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [openMenuId]);
 
   const startMediaRecording = async () => {
     try {
@@ -673,15 +695,14 @@ export default function TranscribeWorkspace({
 
         const sampleAudio = (timestamp: number) => {
           if (!analyzerNodeRef.current || !analyzerDataRef.current) return;
-          // ~30fps: gives accurate response without excessive re-renders
-          if (timestamp - analyzerLastFrameRef.current >= 33) {
+          // ~12fps: one sample per bar for iOS-style scrolling waveform
+          if (timestamp - analyzerLastFrameRef.current >= 80) {
             analyzerNodeRef.current.getByteFrequencyData(analyzerDataRef.current as Uint8Array<ArrayBuffer>);
-            // Focus on speech-band bins (~80Hz–4kHz for 44100Hz/1024 fftSize → bins 2–93)
             const speechBins = analyzerDataRef.current.slice(2, 93);
             const rms = Math.sqrt(
               speechBins.reduce((acc, v) => acc + v * v, 0) / speechBins.length
             );
-            const peak = Math.max(5, Math.min(100, (rms / 70) * 100));
+            const peak = Math.max(4, Math.min(96, (rms / 70) * 100));
             audioHistoryRef.current.push(peak);
             setRecordingTick((t) => t + 1);
             analyzerLastFrameRef.current = timestamp;
@@ -696,6 +717,20 @@ export default function TranscribeWorkspace({
       };
 
       mediaRecorder.onstop = async () => {
+        // Immediately convert recording amplitude history → playback peaks
+        const recordedHist = [...audioHistoryRef.current];
+        if (recordedHist.length > 0) {
+          const PLAYBACK_BARS = 250;
+          const peaks = Array.from({ length: PLAYBACK_BARS }, (_, i) => {
+            const srcIdx = (i / (PLAYBACK_BARS - 1)) * (recordedHist.length - 1);
+            const lo = Math.floor(srcIdx);
+            const hi = Math.min(lo + 1, recordedHist.length - 1);
+            const t = srcIdx - lo;
+            return recordedHist[lo] * (1 - t) + recordedHist[hi] * t;
+          });
+          setWaveformPeaks(peaks);
+        }
+
         const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
         const ext = mimeType.includes('mp4') ? 'm4a' : (mimeType.includes('ogg') ? 'ogg' : 'webm');
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
@@ -732,7 +767,7 @@ export default function TranscribeWorkspace({
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   };
 
@@ -900,10 +935,7 @@ export default function TranscribeWorkspace({
 
               {isPolling && (
                 <div className="mb-12 p-8 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20 flex items-center gap-6 shadow-2xl">
-                  <div className="relative">
-                    <div className="w-12 h-12 border-4 border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin"></div>
-                    <Loader2 className="absolute inset-0 m-auto text-[#e9c176]" size={20} />
-                  </div>
+                  <div className="w-10 h-10 border-[3px] border-[#722f37]/30 border-t-[#e9c176] rounded-full animate-spin flex-shrink-0" />
                   <div>
                     <h3 className="text-xl font-serif text-white mb-1">AI Intelligence at work...</h3>
                     <p className="text-[#e9c176]/80 text-[11px] font-bold uppercase tracking-[0.1em] mt-1">Sit tight! We're processing your audio with speaker identification.</p>
@@ -1057,7 +1089,7 @@ export default function TranscribeWorkspace({
                 className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 ${isPlaying ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent text-white border-white/20 hover:border-white/40'}`}
                 onClick={() => {
                   if (!audioUrl) {
-                    alert("No recording available to play.");
+                    showAlert("No recording available to play. Please record or upload audio first.", "No Recording");
                     return;
                   }
                   if (isPlaying) {
@@ -1131,50 +1163,91 @@ export default function TranscribeWorkspace({
               />
             )}
 
-            {/* Waveform Visualization */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex items-center gap-[2px] md:gap-1 w-full h-24 md:h-32 opacity-60">
-                {(() => {
-                  // recordingTick read here so React re-renders the bars on each audio sample
-                  void recordingTick;
-                  return Array.from({ length: 150 }).map((_, i) => {
-                    const hasAudioData = waveformPeaks.length > 0;
-                    const placeholderHeight = 10 + (Math.sin(i * 0.5) * 5 + 5);
+            {/* Waveform Visualization — iOS Voice Memos style */}
+            <div className="absolute inset-0 overflow-hidden flex items-center">
+              {(() => {
+                void recordingTick;
 
-                    let peakHeight: number;
-                    if (isRecording) {
-                      const hist = audioHistoryRef.current;
-                      if (hist.length > 0) {
-                        // Map bar i proportionally across all collected samples
-                        const sampleIdx = Math.floor((i / 150) * hist.length);
-                        peakHeight = hist[Math.min(sampleIdx, hist.length - 1)];
-                      } else {
-                        peakHeight = placeholderHeight;
-                      }
-                    } else {
-                      peakHeight = hasAudioData ? waveformPeaks[i] : placeholderHeight;
-                    }
+                /* ── RECORDING waveform ── */
+                if (isRecording) {
+                  const BARS = 250;
+                  const hist = audioHistoryRef.current;
 
-                    const timeAtBar = (i / 150) * displayTotalDuration;
-                    const isPlayed = !isRecording && timeAtBar <= currentTime;
-                    const isRecordingProgress = isRecording && timeAtBar <= activeDuration;
-
-                    return (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-full ${isPlayed || isRecordingProgress
-                          ? 'bg-[#e9c176] shadow-[0_0_8px_rgba(233,193,118,0.3)]'
-                          : 'bg-white/10'
-                          }`}
-                        style={{
-                          height: `${Math.max(4, peakHeight).toFixed(2)}%`,
-                          opacity: isPlayed || isRecordingProgress ? '1' : '0.3'
-                        }}
-                      />
-                    );
+                  // Right-align real samples; left side pads with tiny stubs
+                  const peaks = Array.from({ length: BARS }, (_, i) => {
+                    const dataIdx = hist.length - BARS + i;
+                    if (dataIdx < 0) return 4; // silent stub before recording started
+                    return Math.max(5, hist[dataIdx]);
                   });
-                })()}
-              </div>
+
+                  const recordedCount = Math.min(hist.length, BARS);
+
+                  return (
+                    <div className="flex items-center gap-[1px] w-full h-full">
+                      {peaks.map((peak, i) => {
+                        const isRecordedBar = i >= BARS - recordedCount;
+                        const isCursor = i === BARS - 1 && isRecordedBar;
+                        const heightPct = isRecordedBar ? peak : 4;
+
+                        return (
+                          <div
+                            key={i}
+                            className="flex-1 rounded-full"
+                            style={{
+                              height: `${Number(heightPct).toFixed(2)}%`,
+                              background: isRecordedBar
+                                ? isCursor
+                                  ? '#f0d080'
+                                  : 'rgba(233,193,118,0.82)'
+                                : 'rgba(255,255,255,0.07)',
+                              boxShadow: isCursor
+                                ? '0 0 10px rgba(233,193,118,0.85)'
+                                : undefined,
+                              transition: 'height 0.07s ease-out',
+                              minHeight: 3,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  );
+                }
+
+                /* ── PLAYBACK / static waveform ── */
+                const BARS = 250;
+                const hasAudioData = waveformPeaks.length > 0;
+
+                // Idle state — nothing recorded or uploaded yet
+                if (!hasAudioData && !audioUrl) {
+                  return (
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/10 rounded-full" />
+                  );
+                }
+
+                return (
+                  <div className="flex items-center gap-[1px] w-full h-full">
+                    {Array.from({ length: BARS }, (_, i) => {
+                      const peak = waveformPeaks[i] ?? 5;
+                      const timeAtBar = ((i + 0.5) / BARS) * displayTotalDuration;
+                      const isPlayed = !isRecording && timeAtBar <= currentTime;
+
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-full"
+                          style={{
+                            height: `${Math.max(4, peak).toFixed(2)}%`,
+                            background: isPlayed
+                              ? 'rgba(233,193,118,0.9)'
+                              : 'rgba(255,255,255,0.12)',
+                            minHeight: 3,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Scrubber Line */}
@@ -1185,7 +1258,6 @@ export default function TranscribeWorkspace({
                   left: `${(currentTime / displayTotalDuration) * 100}%`
                 }}
               >
-                <div className="w-4 h-4 rounded-full bg-[#e9c176] absolute top-0 -left-[7px] shadow-lg border-4 border-[#0B0B0C]" />
               </div>
             )}
 
@@ -1214,6 +1286,9 @@ export default function TranscribeWorkspace({
           />
 
           <div className="w-[85%] md:w-80 h-full bg-[#0B0B0C]/95 backdrop-blur-2xl border-l border-[#722f37]/30 flex flex-col relative z-10 animate-in slide-in-from-right duration-500 shadow-2xl">
+            {deleteTargetId && (
+              <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm pointer-events-none" />
+            )}
             <div className="p-6 border-b border-[#722f37]/20 flex items-center justify-between bg-white/[0.02]">
               <div className="flex flex-col">
                 <h3 className="font-serif text-lg text-white flex items-center gap-2 tracking-tight">
@@ -1311,33 +1386,57 @@ export default function TranscribeWorkspace({
                         </div>
 
                         {editingId !== item.id && (
-                          <div className="relative flex-shrink-0 w-16 h-6 flex items-center justify-end">
-                            {/* Duration Tag (Default state) */}
-                            <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full transition-all duration-200 group-hover/item:opacity-0 group-hover/item:pointer-events-none ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
-                              {formatTimelineTime(item.duration ?? 0)}
-                            </div>
+                          <div className="relative flex-shrink-0 flex items-center gap-1.5">
+                            {/* Duration tag — hidden when menu is open */}
+                            {openMenuId !== item.id && (
+                              <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
+                                {formatTimelineTime(item.duration ?? 0)}
+                              </div>
+                            )}
 
-                            {/* Action Buttons (Fades in on hover) */}
-                            <div className="absolute inset-0 flex items-center justify-end gap-1.5 opacity-0 group-hover/item:opacity-100 transition-all duration-200 pointer-events-none group-hover/item:pointer-events-auto">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingId(item.id);
-                                  setEditingTitle(item.title || '');
-                                }}
-                                className={`p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-                                title="Rename Session"
+                            {/* ⋮ kebab — always visible, works on touch & desktop */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === item.id ? null : item.id);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:bg-white/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+                              title="More options"
+                            >
+                              <MoreVertical size={13} />
+                            </button>
+
+                            {/* Dropdown menu */}
+                            {openMenuId === item.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
                               >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                onClick={(e) => handleDelete(item.id, e)}
-                                className={`p-1 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:text-red-300' : 'text-gray-400 hover:text-red-400'}`}
-                                title="Delete Session"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingId(item.id);
+                                    setEditingTitle(item.title || '');
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-left"
+                                >
+                                  <Edit2 size={12} /> Rename
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    handleDelete(item.id, e);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left border-t border-white/5"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1364,6 +1463,37 @@ export default function TranscribeWorkspace({
                 className="w-full flex items-center justify-center gap-3 py-4 bg-[#722f37] hover:bg-[#8b3a44] text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-xl shadow-[#722f37]/10 uppercase tracking-[0.2em] text-[11px]"
               >
                 <Plus size={20} /> <span className="tracking-tight text-sm">Start New Session</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0B0B0C] border border-[#722f37]/40 rounded-2xl w-[90%] max-w-md p-6 shadow-2xl shadow-black/60 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <div className="w-12 h-12 bg-[#722f37]/15 border border-[#722f37]/30 rounded-2xl flex items-center justify-center mb-1">
+                <Trash2 className="text-[#e9c176]" size={22} />
+              </div>
+              <h2 className="text-xl font-serif text-white tracking-tight">Delete session?</h2>
+              <p className="text-gray-500 text-[13px] leading-relaxed">
+                This transcription session will be permanently removed. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#722f37]/10">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-[#722f37] hover:bg-[#8b3a44] text-white shadow-lg shadow-[#722f37]/20 transition-all active:scale-[0.98] flex items-center gap-2"
+              >
+                <Trash2 size={13} /> Delete
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { GlobalRecorder } from "@/components/global-recorder";
 import { PersistentBackground } from "@/components/ui/persistent-background";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PersistentSidebar } from "@/components/persistent-sidebar";
+import { AlertProvider } from "@/components/alert-provider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -63,6 +64,7 @@ export default async function RootLayout({
         >
           <Suspense fallback={<AuthLoading />}>
             <AuthProvider initialUser={user}>
+              <AlertProvider>
               <ConversationProvider>
                 <PersistentBackground />
                 <div className="flex h-screen w-full relative overflow-hidden bg-transparent">
@@ -75,6 +77,7 @@ export default async function RootLayout({
                 </div>
                 <GlobalRecorder />
               </ConversationProvider>
+              </AlertProvider>
             </AuthProvider>
           </Suspense>
         </ThemeProvider>

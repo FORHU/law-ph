@@ -28,6 +28,7 @@ import { useDetailSidebar } from "./conversation-provider/use-detail-sidebar";
 import { useSendMessage } from "./conversation-provider/use-send-message";
 import { useChatSession } from "./conversation-provider/use-chat-session";
 import type { Bookmark, NewBookmark } from "@/lib/bookmarks-service";
+import { useAlert } from "./alert-provider";
 
 export function ConversationProvider({
   children,
@@ -37,6 +38,7 @@ export function ConversationProvider({
   const { loggedIn, user } = useAuth();
   const params = useParams();
   const router = useRouter();
+  const { showAlert } = useAlert();
   const syncedConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
@@ -355,10 +357,18 @@ export function ConversationProvider({
 
     // Auto-extract citations for AI messages on load/map
     // CRITICAL: Extract from raw text BEFORE cleaning it for display
+    const rawContent = sender === CHAT_SENDER.AI ? text : undefined;
     const sources =
       sender === CHAT_SENDER.AI ? extractLegalSources(text) : undefined;
-    // Related Cases tab kept empty for now — citations are inline in the answer only
-    const relatedCases = undefined;
+    // Don't hardcode undefined — restore from localStorage if previously fetched
+    const storedCases = (() => {
+      if (sender !== CHAT_SENDER.AI || !msg.id) return undefined;
+      try {
+        const raw = localStorage.getItem(`lex_rc_${msg.id}`);
+        return raw ? JSON.parse(raw) : undefined;
+      } catch { return undefined; }
+    })();
+    const relatedCases = storedCases;
     const timeline =
       sender === CHAT_SENDER.AI ? extractTimeline(text) : undefined;
     const mindMap =
@@ -372,12 +382,11 @@ export function ConversationProvider({
         ? cleanAiText(text)
         : text;
 
-    console.log("Fetched file attachments for message:", msg.id, meta.fileAttachments);
-
     return {
       ...msg,
       text: cleanText,
       sender,
+      rawContent,
       sources,
       relatedCases,
       timeline,
@@ -609,23 +618,30 @@ export function ConversationProvider({
         const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 
         setMessages(prev => {
-          // If we have local messages for the SAME conversation, merge them to avoid wiping live updates (like streaming AI)
+          // Build a lookup of client-only data (relatedCases, etc.) keyed by message ID
+          const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+
+          // Restore client-only fields that aren't persisted to the DB
+          const merged = cloudMessages.map(m => {
+            const existing = prevById.get(m.id.toString());
+            return existing?.relatedCases?.length
+              ? { ...m, relatedCases: existing.relatedCases }
+              : m;
+          });
+
+          // If we have local messages for the SAME conversation, keep any that aren't yet synced to cloud
           if (prev.length > 0 && currentConsultationId?.toString() === syncedConversationId) {
             const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
             const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
-
-            // Keep local messages that aren't yet in the cloud (by ID or Content match)
             const localOnlyMessages = prev.filter(m => {
               if (cloudIds.has(m.id.toString())) return false;
               if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
               return true;
             });
-
-            return [...cloudMessages, ...localOnlyMessages];
+            return [...merged, ...localOnlyMessages];
           }
 
-          // If loading a fundamentally different conversation or starting fresh
-          return cloudMessages;
+          return merged;
         });
 
         if (!isLoading) {
@@ -657,7 +673,13 @@ export function ConversationProvider({
                 if (retryRes.ok) {
                   const { messages: data } = await retryRes.json();
                   const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
-                  setMessages(cloudMessages);
+                  setMessages(prev => {
+                    const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+                    return cloudMessages.map(m => {
+                      const existing = prevById.get(m.id.toString());
+                      return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+                    });
+                  });
                   loadedHistoryIdRef.current = syncedConversationId.toString();
                   setCurrentConsultationId(syncedConversationId);
                 }
@@ -742,7 +764,13 @@ export function ConversationProvider({
 
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
-    setMessages(consultation.messages);
+    setMessages(prev => {
+      const prevById = new Map(prev.map(m => [m.id.toString(), m]));
+      return consultation.messages.map(m => {
+        const existing = prevById.get(m.id.toString());
+        return existing?.relatedCases?.length ? { ...m, relatedCases: existing.relatedCases } : m;
+      });
+    });
     setCurrentConsultationIdWrapper(consultation.id);
   };
 
@@ -1100,7 +1128,7 @@ Please help me understand this document or answer questions based on it.`;
 
     } catch (err) {
       console.error('Microphone access denied or error:', err);
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   }, [updateMessage, recentConsultations, currentConsultationId]);
 

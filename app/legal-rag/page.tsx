@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Gavel, Search, Loader2, ExternalLink, ChevronRight, BookOpen, X } from 'lucide-react';
+import { PageLoader } from '@/components/ui/page-loader';
 
 interface RagDocument {
   id: number;
@@ -110,16 +111,7 @@ export default function LegalRagPage() {
         </form>
 
         {/* Loading */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#722f37]/10 flex items-center justify-center border border-[#722f37]/20">
-              <Loader2 className="animate-spin text-[#e9c176]" size={28} />
-            </div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">
-              Searching legal database...
-            </p>
-          </div>
-        )}
+        {loading && <PageLoader label="Searching legal database..." />}
 
         {/* Empty state */}
         {!loading && keyword && documents.length === 0 && (
