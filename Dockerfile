@@ -26,6 +26,13 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+# Dummy values so Next.js can evaluate server modules during build without connecting.
+# Real values are injected at runtime via --env-file.
+ARG DATABASE_URL=postgresql://build-placeholder@localhost:5432/placeholder
+ARG RAG_DATABASE_URL=postgresql://build-placeholder@localhost:5432/placeholder
+ENV DATABASE_URL=$DATABASE_URL
+ENV RAG_DATABASE_URL=$RAG_DATABASE_URL
+
 # VERCEL_ENV is unset here so migrate-on-deploy.mjs skips migrations
 RUN npm run build
 
