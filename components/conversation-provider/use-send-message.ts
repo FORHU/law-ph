@@ -1,7 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import { CHAT_SENDER, S3_CONFIG } from '@/lib/constants';
-import { extractTimeline, extractMindMap, cleanMessageText, extractRelatedQueries } from '@/lib/citation-parser';
-import type { RelatedCase } from '@/lib/citation-parser';
+import { extractTimeline, extractMindMap, cleanMessageText } from '@/lib/citation-parser';
 import { processChunk, cleanAccumulatedText } from '@/lib/stream-response-processor';
 import { Message } from './conversation-context';
 import { uploadAndAnalyzeDocument, formatS3Url } from '@/lib/s3-utils';
@@ -301,32 +300,10 @@ export function useSendMessage({
             }
           }
 
-          // Auto-populate Related Cases tab using AI-emitted [RELATED_QUERIES] terms
-          const relatedQueries = extractRelatedQueries(accumulatedText);
-          if (relatedQueries && relatedQueries.length > 0) {
-            fetch('/api/legal/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phrases: relatedQueries, limit: 10 }),
-            })
-              .then(res => res.ok ? res.json() : null)
-              .then(data => {
-                const cases: RelatedCase[] = (data?.results ?? []).map((item: any) => ({
-                  caseNumber: item.gr_number || item.item_id || 'N/A',
-                  title: item.title || 'Philippine Legal Document',
-                  description: item.title || '',
-                  url: item.url ?? undefined,
-                  type: item.type ?? undefined,
-                  itemId: item.item_id ?? undefined,
-                }));
-                if (cases.length > 0) {
-                  setMessages(prev => prev.map(m =>
-                    m.id === aiMessageId ? { ...m, relatedCases: cases } : m
-                  ));
-                }
-              })
-              .catch(() => {});
-          }
+          // Related Cases search is now handled exclusively by message-list/index.tsx
+          // via a single fetchRelatedCases path with in-flight deduplication.
+          // This avoids a race condition where two simultaneous Postgres queries fired
+          // (one here, one from the tab click) with no coordination.
 
           // Save AI response via API
           const rawAiText = accumulatedText.trim();

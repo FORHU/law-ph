@@ -110,6 +110,23 @@ export default function CasesPage() {
     }
   };
 
+  const submitButton = (
+    <button
+      type="submit"
+      disabled={isSubmitting || !caseName.trim() || isRecording || isAudioRecording}
+      className="w-full px-4 py-3 bg-[#722f37] hover:bg-[#8B3A44] text-white rounded-xl transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-[13px] uppercase tracking-wider flex-shrink-0"
+    >
+      {isSubmitting ? (
+        <Loader2 size={16} className="animate-spin" />
+      ) : isRecording || isAudioRecording ? (
+        <span className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          Recording...
+        </span>
+      ) : STRINGS.createBtn}
+    </button>
+  );
+
   return (
     <PageLayout
       activePage="cases"
@@ -118,22 +135,32 @@ export default function CasesPage() {
       maxWidth="max-w-7xl"
       backgroundAngle={2}
     >
-      <div className="flex-1 flex overflow-hidden">
-        <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden p-6 gap-5">
+      {/*
+        Mobile  : full-height scroll, panels stacked, button pinned at bottom
+        Desktop : two columns side-by-side, button inside left column
+      */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex-1 flex flex-col overflow-hidden p-3 sm:p-4 md:p-6 gap-3 md:gap-5"
+      >
 
-          {/* LEFT — Case info, fixed width, full height */}
-          <div className="w-80 flex-shrink-0 flex flex-col gap-3 min-h-0">
-            <div className="flex-1 bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col min-h-0 overflow-hidden">
+        {/* ── Panels ─────────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col md:flex-row gap-3 md:gap-5 min-h-0 overflow-y-auto md:overflow-hidden">
+
+          {/* LEFT — Case information */}
+          <div className="w-full md:w-80 md:flex-shrink-0 flex flex-col gap-3 md:min-h-0">
+
+            <div className="bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden md:flex-1">
               {/* Header */}
-              <div className="flex items-center gap-2.5 px-5 pt-5 pb-4 border-b border-[#722f37]/10 flex-shrink-0">
+              <div className="flex items-center gap-2.5 px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-[#722f37]/10 flex-shrink-0">
                 <div className="w-7 h-7 rounded-lg bg-[#722f37]/20 border border-[#722f37]/30 flex items-center justify-center flex-shrink-0">
                   <Briefcase size={13} className="text-[#e9c176]" />
                 </div>
-                <span className="text-xl font-serif text-white tracking-tight">Case Information</span>
+                <span className="text-lg sm:text-xl font-serif text-white tracking-tight">Case Information</span>
               </div>
 
-              {/* Scrollable body */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 flex flex-col gap-4">
+              {/* Body */}
+              <div className="overflow-y-auto custom-scrollbar px-4 sm:px-5 py-4 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className={MODAL_STYLES.label}>{STRINGS.caseNameLabel}</label>
                   <CaseNameInput value={caseName} onChange={handleCaseNameChange} />
@@ -161,30 +188,17 @@ export default function CasesPage() {
               </div>
             </div>
 
-            {/* Submit — fixed at bottom, never grows */}
-            <button
-              type="submit"
-              disabled={isSubmitting || !caseName.trim() || isRecording || isAudioRecording}
-              className="flex-shrink-0 w-full px-4 py-2.5 bg-[#722f37] hover:bg-[#8B3A44] text-white rounded-xl transition-all font-bold flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-[13px] uppercase tracking-wider"
-            >
-              {isSubmitting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : isRecording || isAudioRecording ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  Recording...
-                </span>
-              ) : STRINGS.createBtn}
-            </button>
+            {/* Submit — inside left column on desktop only */}
+            <div className="hidden md:block">{submitButton}</div>
           </div>
 
-          {/* RIGHT — Transcript / Notes, same full height */}
-          <div className="flex-1 bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col min-h-0 overflow-hidden">
+          {/* RIGHT — Transcript / Notes */}
+          <div className="flex-1 min-h-[220px] md:min-h-0 bg-[#0B0B0C]/80 backdrop-blur-xl border border-[#722f37]/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#722f37]/10 flex-shrink-0">
-              <div className="flex items-center gap-2.5">
-                <span className="text-xl font-serif text-white tracking-tight">Transcript / Notes</span>
-                <span className="text-[10px] text-gray-600 uppercase tracking-widest hidden sm:block">— type or record</span>
+            <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-[#722f37]/10 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                <span className="text-lg sm:text-xl font-serif text-white tracking-tight truncate">Transcript / Notes</span>
+                <span className="text-[10px] text-gray-600 uppercase tracking-widest hidden lg:block flex-shrink-0">— type or record</span>
               </div>
               <RecordingControls
                 isRecording={isRecording}
@@ -195,8 +209,8 @@ export default function CasesPage() {
               />
             </div>
 
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 flex flex-col gap-3">
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-5 py-4 flex flex-col gap-3 min-h-0">
               <div className="flex-1 min-h-0 [&>div]:h-full [&_textarea]:h-full [&_textarea]:resize-none">
                 <NotesTextarea value={notes} onChange={handleNotesChange} />
               </div>
@@ -215,9 +229,12 @@ export default function CasesPage() {
               </AnimatePresence>
             </div>
           </div>
+        </div>
 
-        </form>
-      </div>
+        {/* ── Submit button — mobile only, pinned at bottom ────── */}
+        <div className="md:hidden flex-shrink-0">{submitButton}</div>
+
+      </form>
     </PageLayout>
   );
 }

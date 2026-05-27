@@ -347,7 +347,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
     <div className="min-h-screen text-gray-100">
 
       {/* Top bar */}
-      <div className="sticky top-0 z-10 px-6 py-4 border-b border-white/5 backdrop-blur-md bg-black/20 print:hidden">
+      <div className="sticky top-0 z-10 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 backdrop-blur-md bg-black/20 print:hidden">
         <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-white transition-all uppercase tracking-[0.2em]">
           <ArrowLeft size={14} /> Back to Legal Library
         </button>
@@ -355,7 +355,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
 
       {/* Find in page bar */}
       {showFind && (
-        <div className="sticky top-[53px] z-20 px-6 py-3 bg-[#0B0B0C]/95 border-b border-white/5 backdrop-blur-md flex items-center gap-3 print:hidden">
+        <div className="sticky top-[53px] z-20 px-4 sm:px-6 py-3 bg-[#0B0B0C]/95 border-b border-white/5 backdrop-blur-md flex items-center gap-3 print:hidden">
           <Search size={14} className="text-gray-500 flex-shrink-0" />
           <input
             ref={findInputRef}
@@ -373,7 +373,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-6">
@@ -407,26 +407,46 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
             </div>
 
             {/* Title + actions */}
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="text-3xl md:text-4xl font-serif text-white leading-tight tracking-tight flex-1">{resolvedTitle}</h1>
-              <div className="flex items-center gap-2 flex-shrink-0 print:hidden">
-                <button onClick={handleBookmark} disabled={bookmarkLoading} title={bookmarked ? 'Remove bookmark' : 'Bookmark this document'}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-[11px] font-bold uppercase tracking-widest ${bookmarked ? 'border-[#e9c176]/40 bg-[#e9c176]/10 text-[#e9c176]' : 'border-white/10 bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.07]'}`}>
+            <div className="flex flex-col gap-4">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-white leading-tight tracking-tight">{resolvedTitle}</h1>
+
+              {/* Action buttons — icon-only on mobile, icon+label on sm+ */}
+              <div className="flex items-center gap-2 flex-wrap print:hidden">
+                <button
+                  onClick={handleBookmark}
+                  disabled={bookmarkLoading}
+                  title={bookmarked ? 'Remove bookmark' : 'Bookmark this document'}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border transition-all text-[11px] font-bold uppercase tracking-widest ${bookmarked ? 'border-[#e9c176]/40 bg-[#e9c176]/10 text-[#e9c176]' : 'border-white/10 bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.07]'}`}
+                >
                   {bookmarked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
-                  {bookmarked ? 'Saved' : 'Save'}
+                  <span className="hidden sm:inline">{bookmarked ? 'Saved' : 'Save'}</span>
                 </button>
-                <button onClick={() => { setShowFind(v => !v); setTimeout(() => findInputRef.current?.focus(), 50); }}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all text-[11px] font-bold uppercase tracking-widest ${showFind ? 'border-[#722f37]/40 bg-[#722f37]/10 text-white' : 'border-white/10 bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.07]'}`}>
-                  <Search size={13} /> Find
+
+                <button
+                  onClick={() => { setShowFind(v => !v); setTimeout(() => findInputRef.current?.focus(), 50); }}
+                  title="Find in document (Ctrl+F)"
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border transition-all text-[11px] font-bold uppercase tracking-widest ${showFind ? 'border-[#722f37]/40 bg-[#722f37]/10 text-white' : 'border-white/10 bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.07]'}`}
+                >
+                  <Search size={13} />
+                  <span className="hidden sm:inline">Find</span>
                 </button>
-                <button onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-gray-400 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest">
+
+                <button
+                  onClick={handleCopy}
+                  title="Copy full text"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-gray-400 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest"
+                >
                   {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
-                  {copied ? 'Copied' : 'Copy'}
+                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
                 </button>
-                <button onClick={handlePrint}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-gray-400 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest">
-                  <Printer size={13} /> Print / PDF
+
+                <button
+                  onClick={handlePrint}
+                  title="Print / Export PDF"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-gray-400 hover:text-white transition-all text-[11px] font-bold uppercase tracking-widest"
+                >
+                  <Printer size={13} />
+                  <span className="hidden sm:inline">Print / PDF</span>
                 </button>
               </div>
             </div>
@@ -452,8 +472,8 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
                       {doc.formatted_markdown ? 'Document' : 'Full Text'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 print:hidden">
-                    <span className="text-[10px] text-gray-600 italic">Select text to highlight · Ctrl+F to search</span>
+                  <div className="flex items-center gap-2 print:hidden flex-wrap justify-end">
+                    <span className="text-[10px] text-gray-600 italic hidden sm:inline">Select text to highlight · Ctrl+F to search</span>
                     {annotations.length > 0 && (
                       <button onClick={() => setShowAnnotations(v => !v)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e9c176]/30 bg-[#e9c176]/10 text-[#e9c176] text-[10px] font-bold uppercase tracking-widest hover:bg-[#e9c176]/20 transition-all">
@@ -481,7 +501,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
                   </div>
                 )}
 
-                <div ref={fullTextRef} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 space-y-4" onMouseUp={doc.formatted_markdown ? undefined : handleTextSelect}>
+                <div ref={fullTextRef} className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-6 md:p-8 space-y-4" onMouseUp={doc.formatted_markdown ? undefined : handleTextSelect}>
                   {doc.formatted_markdown ? (
                     <LegalMarkdown content={doc.formatted_markdown} />
                   ) : (
@@ -491,7 +511,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
 
                 {/* Highlight popup */}
                 {pendingHighlight && (
-                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md bg-[#0B0B0C] border border-[#722f37]/40 rounded-2xl shadow-2xl p-4 print:hidden">
+                  <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md bg-[#0B0B0C] border border-[#722f37]/40 rounded-2xl shadow-2xl p-4 print:hidden">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <PenLine size={13} className="text-[#e9c176]" />

@@ -43,14 +43,14 @@ function ChatCard({ conv, index, isSearchResult }: { conv: ConvResult; index: nu
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.18, delay: index * 0.04 }}
       onClick={() => router.push(`/consultation/${conv.id}`)}
-      className="group p-5 bg-black/40 border border-[#722f37]/20 hover:border-[#e9c176]/30 hover:bg-white/[0.02] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+      className="group p-3 sm:p-5 bg-black/40 border border-[#722f37]/20 hover:border-[#e9c176]/30 hover:bg-white/[0.02] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-3 sm:gap-4"
     >
-      <div className="flex items-center gap-4 min-w-0 flex-1">
-        <div className="w-10 h-10 rounded-xl bg-[#722f37]/10 border border-[#722f37]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
-          <MessageSquare size={16} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#722f37]/10 border border-[#722f37]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
+          <MessageSquare size={15} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-serif text-[15px] text-white truncate tracking-tight group-hover:text-[#e9c176] transition-colors leading-snug">
+          <h3 className="font-serif text-[14px] sm:text-[15px] text-white truncate tracking-tight group-hover:text-[#e9c176] transition-colors leading-snug">
             {conv.title || 'Untitled Chat'}
           </h3>
           {isSearchResult && (
@@ -61,7 +61,7 @@ function ChatCard({ conv, index, isSearchResult }: { conv: ConvResult; index: nu
         </div>
       </div>
       {formattedDate && (
-        <span className="flex-shrink-0 text-[12px] text-gray-500 group-hover:text-[#e9c176]/80 transition-colors tabular-nums whitespace-nowrap">
+        <span className="flex-shrink-0 text-[11px] sm:text-[12px] text-gray-500 group-hover:text-[#e9c176]/80 transition-colors tabular-nums whitespace-nowrap">
           {formattedDate}
         </span>
       )}
@@ -87,14 +87,14 @@ function CaseCard({ c, index, isSearchResult }: { c: CaseResult; index: number; 
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.18, delay: index * 0.04 }}
       onClick={() => router.push(`/cases/${c.id}`)}
-      className="group p-5 bg-black/40 border border-[#722f37]/20 hover:border-[#e9c176]/30 hover:bg-white/[0.02] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+      className="group p-3 sm:p-5 bg-black/40 border border-[#722f37]/20 hover:border-[#e9c176]/30 hover:bg-white/[0.02] rounded-2xl cursor-pointer transition-all duration-200 flex items-center justify-between gap-3 sm:gap-4"
     >
-      <div className="flex items-center gap-4 min-w-0 flex-1">
-        <div className="w-10 h-10 rounded-xl bg-[#722f37]/10 border border-[#722f37]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
-          <Briefcase size={16} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#722f37]/10 border border-[#722f37]/20 flex items-center justify-center flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
+          <Briefcase size={15} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-serif text-[15px] text-white truncate tracking-tight group-hover:text-[#e9c176] transition-colors leading-snug">
+          <h3 className="font-serif text-[14px] sm:text-[15px] text-white truncate tracking-tight group-hover:text-[#e9c176] transition-colors leading-snug">
             {c.case_name || 'Untitled Case'}
           </h3>
           {c.party_involved && (
@@ -108,7 +108,7 @@ function CaseCard({ c, index, isSearchResult }: { c: CaseResult; index: number; 
         </div>
       </div>
       {formattedDate && (
-        <span className="flex-shrink-0 text-[12px] text-gray-500 group-hover:text-[#e9c176]/80 transition-colors tabular-nums whitespace-nowrap">
+        <span className="flex-shrink-0 text-[11px] sm:text-[12px] text-gray-500 group-hover:text-[#e9c176]/80 transition-colors tabular-nums whitespace-nowrap">
           {formattedDate}
         </span>
       )}
@@ -231,24 +231,24 @@ export function SearchPage() {
       subtitle="Find past consultations and cases by keyword"
       maxWidth="max-w-3xl"
     >
-      <div className="flex flex-col gap-6 px-4 py-6 h-full overflow-y-auto">
+      <div className="flex flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-4 sm:py-6 h-full overflow-y-auto">
 
         {/* Search input */}
         <div className="relative flex items-center group">
-          <span className="absolute left-5 pointer-events-none text-gray-500 group-focus-within:text-[#e9c176] transition-colors duration-300">
+          <span className="absolute left-4 sm:left-5 pointer-events-none text-gray-500 group-focus-within:text-[#e9c176] transition-colors duration-300">
             {isLoading ? (
-              <Loader2 size={18} className="text-[#e9c176] animate-spin" />
+              <Loader2 size={17} className="text-[#e9c176] animate-spin" />
             ) : (
-              <Search size={18} />
+              <Search size={17} />
             )}
           </span>
           <input
             ref={inputRef}
             type="text"
-            placeholder={activeTab === 'chats' ? 'Search by title or message content…' : 'Search by case name, party, or notes…'}
+            placeholder={activeTab === 'chats' ? 'Search chats…' : 'Search cases…'}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="w-full bg-black/50 border border-[#722f37]/30 hover:border-[#722f37]/50 focus:border-[#e9c176]/50 focus:ring-2 focus:ring-[#e9c176]/10 rounded-full pl-14 pr-12 py-4 text-[15px] text-white placeholder-gray-600 outline-none transition-all duration-300 font-inter shadow-lg"
+            className="w-full bg-black/50 border border-[#722f37]/30 hover:border-[#722f37]/50 focus:border-[#e9c176]/50 focus:ring-2 focus:ring-[#e9c176]/10 rounded-full pl-11 sm:pl-14 pr-10 sm:pr-12 py-3 sm:py-4 text-[15px] text-white placeholder-gray-600 outline-none transition-all duration-300 font-inter shadow-lg"
             autoFocus
           />
           <AnimatePresence>
@@ -259,7 +259,7 @@ export function SearchPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.7 }}
                 onClick={handleClear}
-                className="absolute right-4 p-1.5 text-gray-500 hover:text-white rounded-full hover:bg-white/5 transition-all"
+                className="absolute right-3 sm:right-4 p-1.5 text-gray-500 hover:text-white rounded-full hover:bg-white/5 transition-all"
               >
                 <X size={15} />
               </motion.button>
@@ -267,29 +267,35 @@ export function SearchPage() {
           </AnimatePresence>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-black/30 border border-[#722f37]/20 rounded-xl w-fit">
+        {/* Tabs — full width on mobile, auto on sm+ */}
+        <div className="flex gap-1 p-1 bg-black/30 border border-[#722f37]/20 rounded-xl w-full sm:w-fit">
           {(['chats', 'cases'] as SearchTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all ${
+              className={`flex-1 sm:flex-none px-3 sm:px-5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all ${
                 activeTab === tab
                   ? 'bg-[#722f37]/30 border border-[#722f37]/50 text-white'
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {tab === 'chats' ? (
-                <span className="flex items-center gap-1.5"><MessageSquare size={12} />{isSearching ? `Chats (${displayChats.length})` : 'Chats'}</span>
+                <span className="flex items-center justify-center gap-1.5">
+                  <MessageSquare size={12} />
+                  <span>{isSearching ? `Chats (${displayChats.length})` : 'Chats'}</span>
+                </span>
               ) : (
-                <span className="flex items-center gap-1.5"><Briefcase size={12} />{isSearching ? `Cases (${displayCases.length})` : 'Cases'}</span>
+                <span className="flex items-center justify-center gap-1.5">
+                  <Briefcase size={12} />
+                  <span>{isSearching ? `Cases (${displayCases.length})` : 'Cases'}</span>
+                </span>
               )}
             </button>
           ))}
         </div>
 
         {/* Section label */}
-        <div className="flex items-center justify-between -mb-2">
+        <div className="flex items-center justify-between flex-wrap gap-y-1 -mb-2">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-gray-500">
             {isSearching
               ? `${activeItems.length} result${activeItems.length !== 1 ? 's' : ''} for "${inputValue}"`
@@ -321,13 +327,13 @@ export function SearchPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-24 text-center gap-4"
+              className="flex flex-col items-center justify-center py-12 sm:py-24 text-center gap-4"
             >
-              <div className="p-6 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20">
-                <Search size={36} className="text-[#722f37]" strokeWidth={1.5} />
+              <div className="p-5 sm:p-6 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20">
+                <Search size={32} className="text-[#722f37]" strokeWidth={1.5} />
               </div>
               <div>
-                <p className="text-lg font-serif text-white mb-1">No {activeTab} found.</p>
+                <p className="text-base sm:text-lg font-serif text-white mb-1">No {activeTab} found.</p>
                 <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest">
                   Try a different keyword or check spelling
                 </p>
@@ -341,13 +347,17 @@ export function SearchPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-24 text-center gap-4"
+              className="flex flex-col items-center justify-center py-12 sm:py-24 text-center gap-4"
             >
-              <div className="p-6 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20">
-                {activeTab === 'chats' ? <MessageSquare size={36} className="text-[#722f37]" strokeWidth={1.5} /> : <Briefcase size={36} className="text-[#722f37]" strokeWidth={1.5} />}
+              <div className="p-5 sm:p-6 bg-[#722f37]/10 rounded-3xl border border-[#722f37]/20">
+                {activeTab === 'chats'
+                  ? <MessageSquare size={32} className="text-[#722f37]" strokeWidth={1.5} />
+                  : <Briefcase size={32} className="text-[#722f37]" strokeWidth={1.5} />}
               </div>
               <div>
-                <p className="text-lg font-serif text-white mb-1">No {activeTab === 'chats' ? 'conversations' : 'cases'} yet.</p>
+                <p className="text-base sm:text-lg font-serif text-white mb-1">
+                  No {activeTab === 'chats' ? 'conversations' : 'cases'} yet.
+                </p>
                 <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest">
                   {activeTab === 'chats' ? 'Start a new chat to get going' : 'Create a case to get started'}
                 </p>
@@ -361,7 +371,7 @@ export function SearchPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="grid grid-cols-1 gap-3"
+              className="grid grid-cols-1 gap-2 sm:gap-3"
             >
               {activeTab === 'chats'
                 ? displayChats.map((conv, i) => (

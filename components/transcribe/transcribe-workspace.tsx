@@ -5,7 +5,7 @@ import {
   Play, Pause, RotateCcw, RotateCw, Mic, Divide, ZoomIn, ZoomOut, Bookmark, Upload,
   Wand2, Scissors, Settings2, Subtitles, Video, FileAudio, Users, Image as ImageIcon,
   CheckCircle, PenTool, Layout, Menu, History, Clock, Trash2, X, Plus, ExternalLink, Loader2, Square,
-  Edit2, Check
+  Edit2, Check, MoreVertical
 } from 'lucide-react';
 import { uploadToS3Direct, getProxiedUrl } from '@/lib/s3-utils';
 import {
@@ -144,6 +144,7 @@ export default function TranscribeWorkspace({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const saveTitle = async (id: string, newTitle: string) => {
     if (!newTitle.trim()) return;
@@ -645,7 +646,7 @@ export default function TranscribeWorkspace({
   };
 
 
-  // Close menu when clicking outside
+  // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
@@ -655,6 +656,20 @@ export default function TranscribeWorkspace({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close the kebab menu when clicking/tapping outside it
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => setOpenMenuId(null);
+    // Use bubble phase (no capture) so clicks inside the dropdown
+    // can stopPropagation before this fires.
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, [openMenuId]);
 
   const startMediaRecording = async () => {
     try {
@@ -1371,33 +1386,57 @@ export default function TranscribeWorkspace({
                         </div>
 
                         {editingId !== item.id && (
-                          <div className="relative flex-shrink-0 w-16 h-6 flex items-center justify-end">
-                            {/* Duration Tag (Default state) */}
-                            <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full transition-all duration-200 group-hover/item:opacity-0 group-hover/item:pointer-events-none ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
-                              {formatTimelineTime(item.duration ?? 0)}
-                            </div>
+                          <div className="relative flex-shrink-0 flex items-center gap-1.5">
+                            {/* Duration tag — hidden when menu is open */}
+                            {openMenuId !== item.id && (
+                              <div className={`text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-black/20'}`}>
+                                {formatTimelineTime(item.duration ?? 0)}
+                              </div>
+                            )}
 
-                            {/* Action Buttons (Fades in on hover) */}
-                            <div className="absolute inset-0 flex items-center justify-end gap-1.5 opacity-0 group-hover/item:opacity-100 transition-all duration-200 pointer-events-none group-hover/item:pointer-events-auto">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingId(item.id);
-                                  setEditingTitle(item.title || '');
-                                }}
-                                className={`p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-                                title="Rename Session"
+                            {/* ⋮ kebab — always visible, works on touch & desktop */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === item.id ? null : item.id);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:bg-white/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+                              title="More options"
+                            >
+                              <MoreVertical size={13} />
+                            </button>
+
+                            {/* Dropdown menu */}
+                            {openMenuId === item.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 z-30 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
                               >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                onClick={(e) => handleDelete(item.id, e)}
-                                className={`p-1 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0 ${isActive ? 'text-white hover:text-red-300' : 'text-gray-400 hover:text-red-400'}`}
-                                title="Delete Session"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingId(item.id);
+                                    setEditingTitle(item.title || '');
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-left"
+                                >
+                                  <Edit2 size={12} /> Rename
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    handleDelete(item.id, e);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left border-t border-white/5"
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
