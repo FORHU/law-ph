@@ -121,7 +121,7 @@ jobs:
 
             docker run --rm \
               --entrypoint npx \
-              --env-file /home/ec2-user/law-ph.env \
+              -v /home/ec2-user/law-ph.env:/app/.env:ro \
               ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
               prisma migrate deploy
 
