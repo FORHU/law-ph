@@ -235,8 +235,10 @@ export function useSendMessage({
             const now = Date.now();
             if (!isFinal && now - lastRenderTime < RENDER_INTERVAL_MS) return;
             lastRenderTime = now;
-            timeline = extractTimeline(accumulatedText);
-            mindMap = extractMindMap(accumulatedText);
+            const extractedTimeline = extractTimeline(accumulatedText);
+            const extractedMindMap = extractMindMap(accumulatedText);
+            if (extractedTimeline) timeline = extractedTimeline;
+            if (extractedMindMap) mindMap = extractedMindMap;
             const cleanText = cleanAccumulatedText(accumulatedText);
             setMessages(prev => {
               const updated = [...prev];
