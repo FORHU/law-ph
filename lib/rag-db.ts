@@ -263,10 +263,10 @@ export async function searchDocumentsByPhrases(
     const { rows } = await client.query<RagDocument>(
       `SELECT id, source_hash, bucket_slug, category, subcategory, title,
               case_no, year, source_url, concise_summary, created_at, updated_at,
-              ts_rank(to_tsvector('english', full_text), (${combinedTsq})) AS _rank
+              ts_rank(full_text_vector, (${combinedTsq})) AS _rank
        FROM documents
        WHERE (${ilikeConds.join(' OR ')})
-          OR full_text @@ (${combinedTsq})
+          OR full_text_vector @@ (${combinedTsq})
        ORDER BY
          -- title matches first, then by FTS rank, then by year
          (CASE WHEN ${ilikeConds.join(' OR ')} THEN 1 ELSE 0 END) DESC,
