@@ -30,6 +30,7 @@ import { DateBox } from "@/components/ui/datebox";
 import { useConversations } from "@/components/conversation-provider/conversation-context";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ASSETS } from "@/lib/constants";
+import { useAlert } from "@/components/alert-provider";
 import {
   checkAuthStatus,
   getGoogleAuthUrl,
@@ -251,6 +252,7 @@ export default function CalendarPage() {
   const { isSidebarOpen, setIsSidebarOpen } = useConversations();
   const { user, loggedIn } = useAuth();
   const userId = user?.id;
+  const { showAlert } = useAlert();
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -1506,7 +1508,7 @@ export default function CalendarPage() {
       }
     } catch (err: any) {
       console.error("[Calendar] RSVP failed:", err.message || err);
-      alert("Failed to update RSVP status. Please try again.");
+      showAlert("Failed to update RSVP status. Please try again.", "RSVP Error");
     } finally {
       setSubmittingRSVP(null);
     }
@@ -1568,7 +1570,7 @@ export default function CalendarPage() {
     } catch (err) {
       console.warn("[Calendar] Remind event failed:", err);
       if (!opts.silent) {
-        alert("Failed to send reminder. Please try again.");
+        showAlert("Failed to send reminder. Please try again.", "Reminder Error");
       }
     }
   };

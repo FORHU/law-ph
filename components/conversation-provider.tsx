@@ -28,6 +28,7 @@ import { useDetailSidebar } from "./conversation-provider/use-detail-sidebar";
 import { useSendMessage } from "./conversation-provider/use-send-message";
 import { useChatSession } from "./conversation-provider/use-chat-session";
 import type { Bookmark, NewBookmark } from "@/lib/bookmarks-service";
+import { useAlert } from "./alert-provider";
 
 export function ConversationProvider({
   children,
@@ -37,6 +38,7 @@ export function ConversationProvider({
   const { loggedIn, user } = useAuth();
   const params = useParams();
   const router = useRouter();
+  const { showAlert } = useAlert();
   const syncedConversationId = (params?.conversationId || params?.id) as
     | string
     | undefined;
@@ -1119,7 +1121,7 @@ Please help me understand this document or answer questions based on it.`;
 
     } catch (err) {
       console.error('Microphone access denied or error:', err);
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   }, [updateMessage, recentConsultations, currentConsultationId]);
 
