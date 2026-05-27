@@ -54,6 +54,7 @@ export function ConversationProvider({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSharedCase, setIsSharedCase] = useState(false);
 
   // Voice Recording Persistent State
   const [isRecording, setIsRecording] = useState<Record<string | number, boolean>>({});
@@ -391,7 +392,8 @@ export function ConversationProvider({
       hidden: meta.hidden || !!meta.hidden,
       fileAttachment: meta.fileAttachment,
       fileAttachments: meta.fileAttachments,
-      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : "")
+      time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ""),
+      authorName: sender === 'user' ? (msg.user?.name || msg.user?.email?.split('@')[0] || undefined) : undefined,
     };
   }, []);
 
@@ -602,7 +604,8 @@ export function ConversationProvider({
       }
 
       if (msgRes.ok) {
-        const { messages: data } = await msgRes.json();
+        const { messages: data, isShared } = await msgRes.json();
+        setIsSharedCase(!!isShared);
         const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 
         setMessages(prev => {
@@ -701,6 +704,41 @@ export function ConversationProvider({
       fetchConversations();
     }
   }, [loggedIn, loaded, fetchConversations]);
+
+  // Poll for new messages every 3s when viewing a shared case (other participants can write)
+  useEffect(() => {
+    if (!isSharedCase || !syncedConversationId || !loggedIn) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/conversations/${syncedConversationId}/messages`);
+        if (!res.ok) return;
+        const { messages: data } = await res.json();
+        const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
+
+        setMessages(prev => {
+          // Don't disturb an in-progress AI stream
+          if (isLoading) return prev;
+
+          const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
+          const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
+          const localOnly = prev.filter(m => {
+            if (cloudIds.has(m.id.toString())) return false;
+            if (m.text.trim() && cloudContents.has(m.text.trim())) return false;
+            return true;
+          });
+
+          // Only update state if there's something new to avoid needless re-renders
+          if (localOnly.length === 0 && cloudMessages.length === prev.length) return prev;
+          return [...cloudMessages, ...localOnly];
+        });
+      } catch {
+        // silent — polling failure should never surface to the user
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isSharedCase, syncedConversationId, loggedIn, isLoading, mapCloudMessage]);
 
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
@@ -1116,6 +1154,7 @@ Please help me understand this document or answer questions based on it.`;
       value={{
         conversations,
         refreshConversations: fetchConversations,
+        isSharedCase,
         messages,
         setMessages,
         isLoading,

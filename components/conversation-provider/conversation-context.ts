@@ -18,6 +18,7 @@ export interface Message {
   originalText?: string;
   editedAt?: string;
   editedBy?: string;
+  authorName?: string;
   highlights?: { id: string, snippet: string, note: string }[];
   isAnalysis?: boolean;
   hidden?: boolean;
@@ -86,6 +87,8 @@ export type ConversationContextType = {
   openCaseDetail: (caseItem: RelatedCase, context?: string) => void;
   openSourceByItemId: (itemId: string, title?: string, context?: string) => void;
   closeDetailSidebar: () => void;
+
+  isSharedCase: boolean;
 
   cases: CaseData[];
   refreshCases: () => Promise<void>;

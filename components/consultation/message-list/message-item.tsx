@@ -72,7 +72,7 @@ export function MessageItem({
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
-  const { addBookmark, removeBookmark, isBookmarked, currentConsultationId } = useConversations();
+  const { addBookmark, removeBookmark, isBookmarked, currentConsultationId, isSharedCase } = useConversations();
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -587,6 +587,11 @@ export function MessageItem({
             )}
           </div>
           <div className="mt-3 text-[10px] text-gray-500 flex items-center gap-1.5 font-medium">
+            {isSharedCase && isUser && message.authorName && (
+              <span className="text-[#e9c176]/70 font-bold uppercase tracking-widest mr-1">
+                {message.authorName}
+              </span>
+            )}
             <span>{message.time}</span>
             {message.editedAt && (
               <span className="flex items-center gap-1">

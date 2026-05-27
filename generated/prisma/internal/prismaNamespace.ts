@@ -1483,7 +1483,8 @@ export const MessageScalarFieldEnum = {
   content: 'content',
   imagePreview: 'imagePreview',
   timestamp: 'timestamp',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  userId: 'userId'
 } as const
 
 export type MessageScalarFieldEnum = (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum]

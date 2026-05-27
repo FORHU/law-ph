@@ -3,12 +3,15 @@
 import { AuthButton } from "./shared/auth-button";
 import { useState } from "react";
 
-export function GoogleLoginButton() {
+export function GoogleLoginButton({ redirectUrl }: { redirectUrl?: string }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    window.location.href = "/api/auth/google";
+    const url = redirectUrl
+      ? `/api/auth/google?redirect=${encodeURIComponent(redirectUrl)}`
+      : "/api/auth/google";
+    window.location.href = url;
   };
 
   return (

@@ -304,6 +304,7 @@ export type UserWhereInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelListRelationFilter
   createdInvites?: Prisma.ConversationInviteListRelationFilter
   conversationParticipants?: Prisma.ConversationParticipantListRelationFilter
+  messages?: Prisma.MessageListRelationFilter
   events?: Prisma.EventListRelationFilter
 }
 
@@ -337,6 +338,7 @@ export type UserOrderByWithRelationInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelOrderByRelationAggregateInput
   createdInvites?: Prisma.ConversationInviteOrderByRelationAggregateInput
   conversationParticipants?: Prisma.ConversationParticipantOrderByRelationAggregateInput
+  messages?: Prisma.MessageOrderByRelationAggregateInput
   events?: Prisma.EventOrderByRelationAggregateInput
 }
 
@@ -373,6 +375,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   calendarWatchChannels?: Prisma.CalendarWatchChannelListRelationFilter
   createdInvites?: Prisma.ConversationInviteListRelationFilter
   conversationParticipants?: Prisma.ConversationParticipantListRelationFilter
+  messages?: Prisma.MessageListRelationFilter
   events?: Prisma.EventListRelationFilter
 }, "id" | "email" | "username" | "googleId">
 
@@ -455,6 +458,7 @@ export type UserCreateInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -487,6 +491,7 @@ export type UserUncheckedCreateInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -519,6 +524,7 @@ export type UserUpdateInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -551,6 +557,7 @@ export type UserUncheckedUpdateInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -700,6 +707,11 @@ export type UserOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null
+  isNot?: Prisma.UserWhereInput | null
+}
+
 export type StringFieldUpdateOperationsInput = {
   set?: string
 }
@@ -792,6 +804,22 @@ export type UserUpdateOneRequiredWithoutConversationsNestedInput = {
   upsert?: Prisma.UserUpsertWithoutConversationsInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutConversationsInput, Prisma.UserUpdateWithoutConversationsInput>, Prisma.UserUncheckedUpdateWithoutConversationsInput>
+}
+
+export type UserCreateNestedOneWithoutMessagesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMessagesInput, Prisma.UserUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMessagesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutMessagesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMessagesInput, Prisma.UserUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMessagesInput
+  upsert?: Prisma.UserUpsertWithoutMessagesInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMessagesInput, Prisma.UserUpdateWithoutMessagesInput>, Prisma.UserUncheckedUpdateWithoutMessagesInput>
 }
 
 export type UserCreateNestedOneWithoutCasesInput = {
@@ -934,6 +962,7 @@ export type UserCreateWithoutSessionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -965,6 +994,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1012,6 +1042,7 @@ export type UserUpdateWithoutSessionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1043,6 +1074,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1074,6 +1106,7 @@ export type UserCreateWithoutAvatarInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1105,6 +1138,7 @@ export type UserUncheckedCreateWithoutAvatarInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1187,6 +1221,7 @@ export type UserCreateWithoutConversationsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1218,6 +1253,7 @@ export type UserUncheckedCreateWithoutConversationsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1265,6 +1301,7 @@ export type UserUpdateWithoutConversationsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1289,6 +1326,151 @@ export type UserUncheckedUpdateWithoutConversationsInput = {
   otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   otpExpiry?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
+  documents?: Prisma.UserDocumentUncheckedUpdateManyWithoutUserNestedInput
+  bookmarks?: Prisma.BookmarkUncheckedUpdateManyWithoutUserNestedInput
+  transcriptions?: Prisma.TranscriptionUncheckedUpdateManyWithoutUserNestedInput
+  calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
+  conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMessagesInput = {
+  id?: string
+  email: string
+  password?: string | null
+  name?: string | null
+  username: string
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  provider?: string | null
+  googleId?: string | null
+  googleAccessToken?: string | null
+  googleRefreshToken?: string | null
+  isEmailVerified?: boolean
+  onboardingCompleted?: boolean
+  otpCode?: string | null
+  otpExpiry?: Date | string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  avatar?: Prisma.FileCreateNestedOneWithoutUsersInput
+  conversations?: Prisma.ConversationCreateNestedManyWithoutUserInput
+  cases?: Prisma.CaseCreateNestedManyWithoutUserInput
+  documents?: Prisma.UserDocumentCreateNestedManyWithoutUserInput
+  bookmarks?: Prisma.BookmarkCreateNestedManyWithoutUserInput
+  transcriptions?: Prisma.TranscriptionCreateNestedManyWithoutUserInput
+  calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
+  conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  events?: Prisma.EventCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutMessagesInput = {
+  id?: string
+  email: string
+  password?: string | null
+  name?: string | null
+  username: string
+  role?: $Enums.Role
+  isActive?: boolean
+  lastLoginAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  provider?: string | null
+  googleId?: string | null
+  googleAccessToken?: string | null
+  googleRefreshToken?: string | null
+  avatarId?: string | null
+  isEmailVerified?: boolean
+  onboardingCompleted?: boolean
+  otpCode?: string | null
+  otpExpiry?: Date | string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  conversations?: Prisma.ConversationUncheckedCreateNestedManyWithoutUserInput
+  cases?: Prisma.CaseUncheckedCreateNestedManyWithoutUserInput
+  documents?: Prisma.UserDocumentUncheckedCreateNestedManyWithoutUserInput
+  bookmarks?: Prisma.BookmarkUncheckedCreateNestedManyWithoutUserInput
+  transcriptions?: Prisma.TranscriptionUncheckedCreateNestedManyWithoutUserInput
+  calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
+  createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
+  conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutMessagesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMessagesInput, Prisma.UserUncheckedCreateWithoutMessagesInput>
+}
+
+export type UserUpsertWithoutMessagesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMessagesInput, Prisma.UserUncheckedUpdateWithoutMessagesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMessagesInput, Prisma.UserUncheckedCreateWithoutMessagesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMessagesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMessagesInput, Prisma.UserUncheckedUpdateWithoutMessagesInput>
+}
+
+export type UserUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  otpExpiry?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  avatar?: Prisma.FileUpdateOneWithoutUsersNestedInput
+  conversations?: Prisma.ConversationUpdateManyWithoutUserNestedInput
+  cases?: Prisma.CaseUpdateManyWithoutUserNestedInput
+  documents?: Prisma.UserDocumentUpdateManyWithoutUserNestedInput
+  bookmarks?: Prisma.BookmarkUpdateManyWithoutUserNestedInput
+  transcriptions?: Prisma.TranscriptionUpdateManyWithoutUserNestedInput
+  calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
+  createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
+  conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  events?: Prisma.EventUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  provider?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleAccessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleRefreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isEmailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  otpCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  otpExpiry?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  conversations?: Prisma.ConversationUncheckedUpdateManyWithoutUserNestedInput
   cases?: Prisma.CaseUncheckedUpdateManyWithoutUserNestedInput
   documents?: Prisma.UserDocumentUncheckedUpdateManyWithoutUserNestedInput
   bookmarks?: Prisma.BookmarkUncheckedUpdateManyWithoutUserNestedInput
@@ -1327,6 +1509,7 @@ export type UserCreateWithoutCasesInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1358,6 +1541,7 @@ export type UserUncheckedCreateWithoutCasesInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1405,6 +1589,7 @@ export type UserUpdateWithoutCasesInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1436,6 +1621,7 @@ export type UserUncheckedUpdateWithoutCasesInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1467,6 +1653,7 @@ export type UserCreateWithoutDocumentsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1498,6 +1685,7 @@ export type UserUncheckedCreateWithoutDocumentsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1545,6 +1733,7 @@ export type UserUpdateWithoutDocumentsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1576,6 +1765,7 @@ export type UserUncheckedUpdateWithoutDocumentsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1607,6 +1797,7 @@ export type UserCreateWithoutBookmarksInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1638,6 +1829,7 @@ export type UserUncheckedCreateWithoutBookmarksInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1685,6 +1877,7 @@ export type UserUpdateWithoutBookmarksInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1716,6 +1909,7 @@ export type UserUncheckedUpdateWithoutBookmarksInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1747,6 +1941,7 @@ export type UserCreateWithoutCreatedInvitesInput = {
   transcriptions?: Prisma.TranscriptionCreateNestedManyWithoutUserInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1778,6 +1973,7 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   transcriptions?: Prisma.TranscriptionUncheckedCreateNestedManyWithoutUserInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1825,6 +2021,7 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   transcriptions?: Prisma.TranscriptionUpdateManyWithoutUserNestedInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1856,6 +2053,7 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   transcriptions?: Prisma.TranscriptionUncheckedUpdateManyWithoutUserNestedInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1887,6 +2085,7 @@ export type UserCreateWithoutConversationParticipantsInput = {
   transcriptions?: Prisma.TranscriptionCreateNestedManyWithoutUserInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -1918,6 +2117,7 @@ export type UserUncheckedCreateWithoutConversationParticipantsInput = {
   transcriptions?: Prisma.TranscriptionUncheckedCreateNestedManyWithoutUserInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1965,6 +2165,7 @@ export type UserUpdateWithoutConversationParticipantsInput = {
   transcriptions?: Prisma.TranscriptionUpdateManyWithoutUserNestedInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -1996,6 +2197,7 @@ export type UserUncheckedUpdateWithoutConversationParticipantsInput = {
   transcriptions?: Prisma.TranscriptionUncheckedUpdateManyWithoutUserNestedInput
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2027,6 +2229,7 @@ export type UserCreateWithoutCalendarWatchChannelsInput = {
   transcriptions?: Prisma.TranscriptionCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -2058,6 +2261,7 @@ export type UserUncheckedCreateWithoutCalendarWatchChannelsInput = {
   transcriptions?: Prisma.TranscriptionUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2105,6 +2309,7 @@ export type UserUpdateWithoutCalendarWatchChannelsInput = {
   transcriptions?: Prisma.TranscriptionUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -2136,6 +2341,7 @@ export type UserUncheckedUpdateWithoutCalendarWatchChannelsInput = {
   transcriptions?: Prisma.TranscriptionUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2167,6 +2373,7 @@ export type UserCreateWithoutTranscriptionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
   events?: Prisma.EventCreateNestedManyWithoutUserInput
 }
 
@@ -2198,6 +2405,7 @@ export type UserUncheckedCreateWithoutTranscriptionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2245,6 +2453,7 @@ export type UserUpdateWithoutTranscriptionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -2276,6 +2485,7 @@ export type UserUncheckedUpdateWithoutTranscriptionsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2308,6 +2518,7 @@ export type UserCreateWithoutEventsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEventsInput = {
@@ -2339,6 +2550,7 @@ export type UserUncheckedCreateWithoutEventsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedCreateNestedManyWithoutUserInput
   createdInvites?: Prisma.ConversationInviteUncheckedCreateNestedManyWithoutCreatorInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedCreateNestedManyWithoutUserInput
+  messages?: Prisma.MessageUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEventsInput = {
@@ -2386,6 +2598,7 @@ export type UserUpdateWithoutEventsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEventsInput = {
@@ -2417,6 +2630,7 @@ export type UserUncheckedUpdateWithoutEventsInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyAvatarInput = {
@@ -2468,6 +2682,7 @@ export type UserUpdateWithoutAvatarInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUpdateManyWithoutUserNestedInput
 }
 
@@ -2499,6 +2714,7 @@ export type UserUncheckedUpdateWithoutAvatarInput = {
   calendarWatchChannels?: Prisma.CalendarWatchChannelUncheckedUpdateManyWithoutUserNestedInput
   createdInvites?: Prisma.ConversationInviteUncheckedUpdateManyWithoutCreatorNestedInput
   conversationParticipants?: Prisma.ConversationParticipantUncheckedUpdateManyWithoutUserNestedInput
+  messages?: Prisma.MessageUncheckedUpdateManyWithoutUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2538,6 +2754,7 @@ export type UserCountOutputType = {
   calendarWatchChannels: number
   createdInvites: number
   conversationParticipants: number
+  messages: number
   events: number
 }
 
@@ -2551,6 +2768,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   calendarWatchChannels?: boolean | UserCountOutputTypeCountCalendarWatchChannelsArgs
   createdInvites?: boolean | UserCountOutputTypeCountCreatedInvitesArgs
   conversationParticipants?: boolean | UserCountOutputTypeCountConversationParticipantsArgs
+  messages?: boolean | UserCountOutputTypeCountMessagesArgs
   events?: boolean | UserCountOutputTypeCountEventsArgs
 }
 
@@ -2630,6 +2848,13 @@ export type UserCountOutputTypeCountConversationParticipantsArgs<ExtArgs extends
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MessageWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.EventWhereInput
 }
@@ -2665,6 +2890,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   calendarWatchChannels?: boolean | Prisma.User$calendarWatchChannelsArgs<ExtArgs>
   createdInvites?: boolean | Prisma.User$createdInvitesArgs<ExtArgs>
   conversationParticipants?: boolean | Prisma.User$conversationParticipantsArgs<ExtArgs>
+  messages?: boolean | Prisma.User$messagesArgs<ExtArgs>
   events?: boolean | Prisma.User$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -2749,6 +2975,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   calendarWatchChannels?: boolean | Prisma.User$calendarWatchChannelsArgs<ExtArgs>
   createdInvites?: boolean | Prisma.User$createdInvitesArgs<ExtArgs>
   conversationParticipants?: boolean | Prisma.User$conversationParticipantsArgs<ExtArgs>
+  messages?: boolean | Prisma.User$messagesArgs<ExtArgs>
   events?: boolean | Prisma.User$eventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -2772,6 +2999,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     calendarWatchChannels: Prisma.$CalendarWatchChannelPayload<ExtArgs>[]
     createdInvites: Prisma.$ConversationInvitePayload<ExtArgs>[]
     conversationParticipants: Prisma.$ConversationParticipantPayload<ExtArgs>[]
+    messages: Prisma.$MessagePayload<ExtArgs>[]
     events: Prisma.$EventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -3198,6 +3426,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   calendarWatchChannels<T extends Prisma.User$calendarWatchChannelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$calendarWatchChannelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CalendarWatchChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdInvites<T extends Prisma.User$createdInvitesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdInvitesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConversationInvitePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   conversationParticipants<T extends Prisma.User$conversationParticipantsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$conversationParticipantsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConversationParticipantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  messages<T extends Prisma.User$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.User$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -3880,6 +4109,30 @@ export type User$conversationParticipantsArgs<ExtArgs extends runtime.Types.Exte
   take?: number
   skip?: number
   distinct?: Prisma.ConversationParticipantScalarFieldEnum | Prisma.ConversationParticipantScalarFieldEnum[]
+}
+
+/**
+ * User.messages
+ */
+export type User$messagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Message
+   */
+  select?: Prisma.MessageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Message
+   */
+  omit?: Prisma.MessageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MessageInclude<ExtArgs> | null
+  where?: Prisma.MessageWhereInput
+  orderBy?: Prisma.MessageOrderByWithRelationInput | Prisma.MessageOrderByWithRelationInput[]
+  cursor?: Prisma.MessageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MessageScalarFieldEnum | Prisma.MessageScalarFieldEnum[]
 }
 
 /**

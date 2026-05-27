@@ -42,7 +42,7 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          conversationId: caseId,
+          conversation_id: caseId,
           role: 'system',
           content: 'A group invite link was created for this case.',
         }),

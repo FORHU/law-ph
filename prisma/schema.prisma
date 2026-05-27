@@ -40,6 +40,7 @@ model User {
   calendarWatchChannels    CalendarWatchChannel[]
   createdInvites           ConversationInvite[]
   conversationParticipants ConversationParticipant[]
+  messages                 Message[]
   events                   Event[]
 }
 
@@ -94,10 +95,13 @@ model Message {
   imagePreview   String?
   timestamp      DateTime?
   createdAt      DateTime    @default(now())
+  userId         String?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([conversationId])
+  @@index([userId])
 }
 
 enum MessageRole {

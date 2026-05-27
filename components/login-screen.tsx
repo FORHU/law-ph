@@ -115,7 +115,7 @@ const LoginScreen = () => {
         </div>
 
         <div>
-          <GoogleLoginButton />
+          <GoogleLoginButton redirectUrl={redirectUrl} />
         </div>
 
         <div className="mt-8 text-center border-t border-white/5 pt-8">

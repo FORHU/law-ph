@@ -38,10 +38,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
-  const messages = await prisma.message.findMany({
-    where: { conversationId: id },
-    orderBy: { createdAt: "asc" },
-  });
+  const [messages, participantCount] = await Promise.all([
+    prisma.message.findMany({
+      where: { conversationId: id },
+      orderBy: { createdAt: "asc" },
+      include: {
+        user: { select: { name: true, email: true } },
+      },
+    }),
+    prisma.conversationParticipant.count({ where: { conversationId: id } }),
+  ]);
 
-  return NextResponse.json({ messages });
+  return NextResponse.json({ messages, isShared: participantCount > 0 });
 }

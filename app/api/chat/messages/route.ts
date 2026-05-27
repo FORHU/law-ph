@@ -53,6 +53,8 @@ export async function POST(req: Request) {
         content,
         imagePreview: imagePreview ?? null,
         createdAt: created_at ? new Date(created_at) : new Date(),
+        // Attribute user messages to the sender so group chats can show who prompted
+        ...(role === 'user' ? { userId: user.id } : {}),
       },
     });
 

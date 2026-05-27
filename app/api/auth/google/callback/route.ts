@@ -25,6 +25,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+  const rawState = searchParams.get("state");
+  let postLoginRedirect = "/consultation";
+  try {
+    if (rawState) {
+      const parsed = JSON.parse(Buffer.from(rawState, "base64").toString("utf-8"));
+      if (parsed?.redirect) postLoginRedirect = parsed.redirect;
+    }
+  } catch {
+    // malformed state — fall back to /consultation
+  }
 
   if (error || !code) {
     return NextResponse.redirect(`${siteUrl}/auth/login?error=google_denied`);
@@ -99,7 +109,7 @@ export async function GET(request: Request) {
     }
 
     const token = await signToken({ userId: user.id });
-    const res = NextResponse.redirect(`${siteUrl}/consultation`);
+    const res = NextResponse.redirect(`${siteUrl}${postLoginRedirect}`);
 
     res.cookies.set(AUTH_COOKIE, token, {
       httpOnly: true,
