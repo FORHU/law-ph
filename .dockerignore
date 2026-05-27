@@ -1,0 +1,10 @@
+.git
+.github
+.next
+node_modules
+generated
+.env*
+*.md
+docker-compose.yml
+.claude
+docs

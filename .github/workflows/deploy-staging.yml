@@ -1,0 +1,134 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or SHA to deploy"
+        required: true
+        default: staging
+
+concurrency:
+  group: law-ph-deploy-staging
+  cancel-in-progress: true
+
+env:
+  ECR_REPOSITORY: law-ph
+  AWS_REGION: ap-southeast-1
+  NODE_ENV: production
+  IMAGE_TAG: ${{ github.event.inputs.ref && github.sha || github.sha }}
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy (staging)
+    runs-on: ubuntu-latest
+    environment: staging
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          ECR="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          docker build \
+            --build-arg NEXT_PUBLIC_CHAT_WONDER_WS_URL="${{ secrets.NEXT_PUBLIC_CHAT_WONDER_WS_URL }}" \
+            --build-arg NEXT_PUBLIC_CHAT_WONDER_API_URL="${{ secrets.NEXT_PUBLIC_CHAT_WONDER_API_URL }}" \
+            --build-arg NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+            --build-arg NEXT_PUBLIC_SITE_URL="${{ secrets.NEXT_PUBLIC_SITE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            -t "$ECR:${{ env.IMAGE_TAG }}" \
+            -t "$ECR:latest" \
+            .
+          docker push "$ECR:${{ env.IMAGE_TAG }}"
+          docker push "$ECR:latest"
+
+      - name: Write env file
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RAG_DATABASE_URL: ${{ secrets.RAG_DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          CHAT_WONDER_API_URL: ${{ secrets.CHAT_WONDER_API_URL }}
+        run: |
+          cat > ${{ github.workspace }}/law-ph.env << EOF
+          DATABASE_URL=${DATABASE_URL}
+          RAG_DATABASE_URL=${RAG_DATABASE_URL}
+          JWT_SECRET=${JWT_SECRET}
+          JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+          SMTP_USER=${SMTP_USER}
+          SMTP_PASS=${SMTP_PASS}
+          SMTP_HOST=${SMTP_HOST}
+          SMTP_PORT=${SMTP_PORT}
+          REDIS_URL=${REDIS_URL}
+          CHAT_WONDER_API_URL=${CHAT_WONDER_API_URL}
+          NODE_ENV=${{ env.NODE_ENV }}
+          PORT=3000
+          EOF
+
+      - name: Copy env file to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: law-ph.env
+          target: /home/ec2-user/
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -e
+            chmod 600 /home/ec2-user/law-ph.env
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+            docker run --rm \
+              --entrypoint npx \
+              --env-file /home/ec2-user/law-ph.env \
+              ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
+              prisma migrate deploy
+
+            docker stop law-ph 2>/dev/null || true
+            docker rm   law-ph 2>/dev/null || true
+            docker run -d --name law-ph --restart unless-stopped \
+              --env-file /home/ec2-user/law-ph.env \
+              -p 3000:3000 \
+              ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            docker image prune -f
