@@ -15,6 +15,7 @@ import {
 } from '@/lib/aws-transcribe-utils';
 import { useAuth } from '@/components/auth/auth-provider';
 import type { Transcription } from '@/lib/transcriptions-service';
+import { useAlert } from '@/components/alert-provider';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -70,6 +71,7 @@ export default function TranscribeWorkspace({
 }) {
   const { user } = useAuth();
   const userId = user?.id;
+  const { showAlert } = useAlert();
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -750,7 +752,7 @@ export default function TranscribeWorkspace({
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert('Could not access microphone.');
+      showAlert('Could not access microphone. Please check your browser permissions.', 'Microphone Error');
     }
   };
 
@@ -1072,7 +1074,7 @@ export default function TranscribeWorkspace({
                 className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 ${isPlaying ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent text-white border-white/20 hover:border-white/40'}`}
                 onClick={() => {
                   if (!audioUrl) {
-                    alert("No recording available to play.");
+                    showAlert("No recording available to play. Please record or upload audio first.", "No Recording");
                     return;
                   }
                   if (isPlaying) {

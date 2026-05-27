@@ -7,6 +7,7 @@ import { X, Mic, StopCircle, Briefcase, Loader2, Play, Pause, Trash2, Volume2, P
 import { useRouter } from 'next/navigation';
 import { Portal } from './portal';
 import { useConversations } from './conversation-provider/conversation-context';
+import { useAlert } from './alert-provider';
 
 interface CreateCaseModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ import { RecordingControls } from './create-case/recording-controls';
 export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
   const router = useRouter();
   const { handleCreateCase } = useConversations();
+  const { showAlert } = useAlert();
 
   // Form State
   const [caseName, setCaseName] = useState('');
@@ -166,7 +168,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
 
     } catch (error) {
       console.error('Failed to create case:', error);
-      alert('Failed to create case.');
+      showAlert('Failed to create case. Please try again.', 'Error');
     } finally {
       setIsSubmitting(false);
     }

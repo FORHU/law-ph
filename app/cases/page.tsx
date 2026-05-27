@@ -13,10 +13,12 @@ import { RecordingControls } from '@/components/create-case/recording-controls';
 import { SimpleAudioPlayer } from '@/components/create-case/audio-player';
 import { useCaseRecording } from '@/components/create-case/use-recording';
 import { MODAL_STYLES, STRINGS } from '@/components/create-case/constants';
+import { useAlert } from '@/components/alert-provider';
 
 export default function CasesPage() {
   const router = useRouter();
   const { handleCreateCase } = useConversations();
+  const { showAlert } = useAlert();
 
   const [caseName, setCaseName] = useState('');
   const [parties, setParties] = useState<{ id: string; value: string }[]>([
@@ -102,7 +104,7 @@ export default function CasesPage() {
         router.push('/cases/' + newCase.id);
       }
     } catch {
-      alert('Failed to create case.');
+      showAlert('Failed to create case. Please try again.', 'Error');
     } finally {
       setIsSubmitting(false);
     }
