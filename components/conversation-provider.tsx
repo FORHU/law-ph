@@ -405,6 +405,7 @@ export function ConversationProvider({
       fileAttachments: meta.fileAttachments,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ""),
       authorName: sender === 'user' ? (msg.user?.name || msg.user?.email?.split('@')[0] || undefined) : undefined,
+      parentMessageId: msg.parentMessageId ?? undefined,
     };
   }, []);
 

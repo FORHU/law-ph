@@ -19,6 +19,24 @@ const phraseCache = new Map<string, RelatedCase[]>();
 // messages-change re-render.
 const persistedIds = new Set<string>();
 
+function sortByParentage(messages: Message[]): Message[] {
+  const placed = new Set<string | number>();
+  const result: Message[] = [];
+  for (const msg of messages) {
+    if (placed.has(msg.id)) continue;
+    if (!msg.parentMessageId) {
+      result.push(msg);
+      placed.add(msg.id);
+      const reply = messages.find(m => m.parentMessageId === String(msg.id) && !placed.has(m.id));
+      if (reply) { result.push(reply); placed.add(reply.id); }
+    }
+  }
+  for (const msg of messages) {
+    if (!placed.has(msg.id)) result.push(msg);
+  }
+  return result;
+}
+
 function buildPhraseKey(phrases: string[]): string {
   return [...phrases].sort().join('|').toLowerCase();
 }
@@ -266,7 +284,7 @@ export function MessageList({
 
   return (
     <div className="space-y-8">
-      {messages.filter(m => !m.hidden).map((message) => {
+      {sortByParentage(messages).filter(m => !m.hidden).map((message) => {
         // Always read from store/localStorage first — never rely on message.relatedCases alone
         const resolvedCases = getResolved(key(message.id), message.relatedCases);
         return (

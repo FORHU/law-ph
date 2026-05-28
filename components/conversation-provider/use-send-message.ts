@@ -81,12 +81,11 @@ export function useSendMessage({
       setMessages(prev => [...prev, newMessage]);
 
       const processMessage = async (activeSessionId: string | number) => {
+        let aiMessageId = isAnalysisTrigger ? `analysis-ai-${Date.now()}` : `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         try {
           let currentFileAttachment = newMessage.fileAttachment;
           let currentDocumentContext = explicitDocumentContext !== undefined ? explicitDocumentContext : documentContext;
           let finalPromptToAI = currentInput;
-
-          const aiMessageId = isAnalysisTrigger ? `analysis-ai-${Date.now()}` : `temp-ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const initialAiMessage = {
             id: aiMessageId,
             text: "",
@@ -151,9 +150,11 @@ export function useSendMessage({
             body: JSON.stringify({ conversation_id: activeSessionId, role: 'user', content: contentWithMeta })
           });
 
+          let savedUserMessageId: string | null = null;
           if (userMsgRes.ok) {
             const savedUserMsg = await userMsgRes.json();
             if (savedUserMsg?.message) {
+              savedUserMessageId = savedUserMsg.message.id ?? null;
               setMessages(prev => prev.map(m => m.id === newMessageId ? mapCloudMessage(savedUserMsg.message) : m));
             }
           }
@@ -237,14 +238,11 @@ export function useSendMessage({
             timeline = extractTimeline(accumulatedText);
             mindMap = extractMindMap(accumulatedText);
             const cleanText = cleanAccumulatedText(accumulatedText);
-            setMessages(prev => {
-              const updated = [...prev];
-              const lastIdx = updated.length - 1;
-              if (updated[lastIdx]?.id === aiMessageId) {
-                updated[lastIdx] = { ...updated[lastIdx], text: cleanText, rawContent: accumulatedText, relatedCases, timeline, mindMap };
-              }
-              return updated;
-            });
+            setMessages(prev => prev.map(m =>
+              m.id === aiMessageId
+                ? { ...m, text: cleanText, rawContent: accumulatedText, relatedCases, timeline, mindMap }
+                : m
+            ));
           };
 
           while (retryCount < MAX_RETRIES && !aiResponseSuccessful) {
@@ -310,7 +308,7 @@ export function useSendMessage({
           const aiSaveRes = await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ conversation_id: activeSessionId, role: 'assistant', content: rawAiText })
+            body: JSON.stringify({ conversation_id: activeSessionId, role: 'assistant', content: rawAiText, parent_message_id: savedUserMessageId })
           });
 
           if (aiSaveRes.ok) {
@@ -327,14 +325,11 @@ export function useSendMessage({
         } catch (error: any) {
           if (error.name === 'AbortError') return;
           console.error("AI Stream Error:", error);
-          setMessages(prev => {
-            const updated = [...prev];
-            const lastIdx = updated.length - 1;
-            if (updated[lastIdx]) {
-              updated[lastIdx] = { ...updated[lastIdx], text: "I'm sorry, I'm having trouble connecting right now." };
-            }
-            return updated;
-          });
+          setMessages(prev => prev.map(m =>
+            m.id === aiMessageId
+              ? { ...m, text: "I'm sorry, I'm having trouble connecting right now." }
+              : m
+          ));
         } finally {
           setIsLoading(false);
           if (abortControllerRef.current?.signal.aborted) abortControllerRef.current = null;
