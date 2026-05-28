@@ -835,26 +835,27 @@ export default function TranscribeWorkspace({
       {/* Left Main Pane */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Text / Script Editor Area */}
-        <div className="flex-1 overflow-y-auto p-8 md:p-12 pr-12 md:pr-24 relative custom-sidebar-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 md:pr-12 lg:pr-24 relative custom-sidebar-scrollbar">
           {!transcript && !isRecording && !isPolling && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-              <div className="w-20 h-20 bg-[#722f37]/20 rounded-3xl flex items-center justify-center mb-8 text-[#e9c176] shadow-sm border border-[#722f37]/30">
-                <Mic size={40} strokeWidth={1.5} />
+              <div className="w-14 h-14 md:w-20 md:h-20 bg-[#722f37]/20 rounded-3xl flex items-center justify-center mb-5 md:mb-8 text-[#e9c176] shadow-sm border border-[#722f37]/30">
+                <Mic size={28} strokeWidth={1.5} className="md:hidden" />
+                <Mic size={40} strokeWidth={1.5} className="hidden md:block" />
               </div>
-              <h1 className="text-4xl font-serif text-white mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
-              <p className="text-gray-400 mb-10 leading-relaxed text-lg font-medium">
+              <h1 className="text-2xl md:text-4xl font-serif text-white mb-3 md:mb-4 tracking-tight antialiased">Transcribe your voice.</h1>
+              <p className="text-gray-400 mb-6 md:mb-10 leading-relaxed text-sm md:text-lg font-medium">
                 Record or upload audio to generate accurate legal transcripts.
               </p>
-              <div className="flex gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white px-6 py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg shadow-black/40 transition-all active:scale-[0.98]"
                 >
-                  <Upload size={20} /> Upload File
+                  <Upload size={18} /> Upload File
                 </button>
                 <button
                   onClick={toggleRecording}
-                  className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-all active:scale-[0.98] border shadow-lg ${isRecording
+                  className={`flex-1 flex items-center justify-center gap-3 px-4 md:px-6 py-3 md:py-4 rounded-xl font-bold uppercase tracking-widest text-xs transition-all active:scale-[0.98] border shadow-lg ${isRecording
                     ? 'bg-[#722f37] border-[#722f37]/50 text-white shadow-black/40'
                     : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
                     }`}
@@ -1033,7 +1034,7 @@ export default function TranscribeWorkspace({
         </div>
 
         {/* Bottom Audio/Video Transport Area */}
-        <div className="h-auto md:h-48 border-t border-white/10 flex flex-col bg-[#111111] backdrop-blur-xl rounded-bl-xl z-20">
+        <div className="h-auto md:h-48 border-t border-white/10 flex flex-col bg-[#111111] backdrop-blur-xl rounded-bl-xl z-20 shrink-0">
 
           {/* Top Info Bar (Mobile Only - Spacing/Time) */}
           <div className="flex md:hidden items-center justify-between px-6 pt-5 pb-2">

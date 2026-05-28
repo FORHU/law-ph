@@ -230,6 +230,40 @@ export function MessageList({
     }, 50);
   };
 
+  // Scroll to and highlight a bookmarked message
+  const scrollToBookmarkedMessage = (targetId: string) => {
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(`message-bubble-${targetId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.transition = 'box-shadow 0.4s ease';
+        el.style.boxShadow = '0 0 0 2px rgba(233,193,118,0.8)';
+        el.style.borderRadius = '12px';
+        setTimeout(() => { el.style.boxShadow = ''; el.style.borderRadius = ''; }, 2500);
+        sessionStorage.removeItem('scrollToMessage');
+      } else if (attempts < 20) {
+        attempts++;
+        setTimeout(tryScroll, 200);
+      }
+    };
+    setTimeout(tryScroll, 100);
+  };
+
+  // On mount: check sessionStorage for a pending scroll target (cross-page navigation)
+  useEffect(() => {
+    if (!messages.length) return;
+    const targetId = sessionStorage.getItem('scrollToMessage');
+    if (targetId) scrollToBookmarkedMessage(targetId);
+  }, [messages.length]);
+
+  // Same-page: listen for the custom event (already on the right page)
+  useEffect(() => {
+    const handler = (e: Event) => scrollToBookmarkedMessage((e as CustomEvent).detail);
+    window.addEventListener('scrollToBookmark', handler);
+    return () => window.removeEventListener('scrollToBookmark', handler);
+  }, []);
+
   return (
     <div className="space-y-8">
       {messages.filter(m => !m.hidden).map((message) => {

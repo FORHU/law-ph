@@ -559,6 +559,13 @@ export function ConversationProvider({
       // If this ID previously returned 404, never retry it
       if (syncedConversationId && notFoundIdsRef.current.has(syncedConversationId.toString())) return;
 
+      // Skip if the ID is clearly not a conversation/case ID (e.g. legal-library doc title from URL params)
+      const isValidSyncId = !syncedConversationId || (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(syncedConversationId) ||
+        /^\d+$/.test(syncedConversationId)
+      );
+      if (!isValidSyncId) return;
+
       // If we're on the root /consultation route (no ID), clear state and bail
       if (!syncedConversationId) {
         if (isLoading) return;
