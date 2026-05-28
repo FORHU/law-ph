@@ -204,7 +204,7 @@ export function MessageItem({
         )}
 
         <div className={`backdrop-blur-xl border rounded-2xl p-4 md:p-6 ${isAI ? 'pt-12 md:pt-12' : 'pt-4 md:pt-8'} pb-5 md:pb-6 relative group/inner break-words ${isUser
-          ? `bg-[${COLORS.PRIMARY}]/10 border-` + COLORS.PRIMARY + `/30 rounded-tr-sm shadow-lg`
+          ? `bg-[${COLORS.PRIMARY}]/10 border-[#722f37]/30 rounded-tr-sm shadow-lg`
           : `bg-[#0B0B0C]/60 ${message.originalText && message.text !== message.originalText ? 'border-[#e9c176]/60' : 'border-[#722f37]/20'} rounded-tl-sm shadow-2xl`
           }`}>
           {message.isAnalysis && (
@@ -397,16 +397,32 @@ export function MessageItem({
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">ANALYZING ARCHIVES...</p>
               </div>
             ) : message.text === "" && isAI ? (
-              <div className="flex gap-1 py-1">
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              <div className="flex gap-1.5 py-1 px-1">
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             ) : isAI ? (
               (() => {
 
                 if (activeTab === 'related') {
                   const cases = message.relatedCases || [];
+                  const notYetFetched = message.relatedCases === undefined && !relatedCasesLoading;
+
+                  if (notYetFetched) {
+                    return (
+                      <div className="py-10 flex flex-col items-center justify-center gap-4">
+                        <div className="relative w-12 h-12 flex items-center justify-center">
+                          <div className="absolute inset-0 rounded-full border-2 border-[#722f37]/20 border-t-[#e9c176]/60 animate-spin" />
+                          <Gavel size={20} className="text-[#722f37]/60" strokeWidth={1.5} />
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">Searching jurisprudence</p>
+                          <p className="text-[10px] text-gray-600">Fetching related cases from the legal archive</p>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   if (relatedCasesLoading && cases.length === 0) {
                     return (

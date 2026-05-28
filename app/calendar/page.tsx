@@ -497,7 +497,7 @@ export default function CalendarPage() {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const res = await fetch("/api/events");
+      const res = await fetch("/api/events", { cache: "no-store" });
       if (!res.ok) {
         console.error("Error fetching events:", res.status);
         setEventsError("Unable to load events. Retrying...");
@@ -544,13 +544,18 @@ export default function CalendarPage() {
             if (e.google_event_id) googleMap.set(e.google_event_id, e);
           });
 
-          return normalized.map((sb: any) => {
+          const merged = normalized.map((sb: any) => {
             const ge = sb.google_event_id ? googleMap.get(sb.google_event_id) : null;
             if (ge) {
               return { ...ge, ...sb }; // Prefer DB notes but keep Google metadata
             }
             return sb;
           });
+
+          // Deduplicate by id — keeps the last occurrence (freshest DB data)
+          const seen = new Map();
+          merged.forEach((e: any) => seen.set(e.id, e));
+          return Array.from(seen.values());
         });
       }
     } catch (err) {
@@ -808,7 +813,18 @@ export default function CalendarPage() {
     };
   }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
 
-  // fetchEvents is called on mount and after mutations for sync.
+  // Refresh instantly when the user returns to this tab (e.g. after clicking an RSVP link).
+  // Falls back to a 30 s poll so changes from other devices also propagate.
+  useEffect(() => {
+    if (!loggedIn || !userId) return;
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchEvents(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const interval = setInterval(fetchEvents, 30000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(interval);
+    };
+  }, [loggedIn, userId, fetchEvents]);
 
   // Automatic conflict check for the Calendar Form
   useEffect(() => {
@@ -1654,13 +1670,28 @@ export default function CalendarPage() {
     runAutoReminders();
   }, [events, loggedIn, userId, isLoading]);
 
+  // Keep selectedDayEvents in sync with the main events state so the detail
+  // panel reflects status changes from refreshes or client RSVPs.
+  useEffect(() => {
+    if (selectedDayEvents.length === 0) return;
+    setSelectedDayEvents(prev =>
+      prev.map(se => {
+        const fresh = events.find(e => e.id === se.id);
+        return fresh ? { ...fresh } : se;
+      })
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
+
   const handleConnectGoogle = () => {
     if (!userId) return;
     window.location.href = getGoogleAuthUrl(userId, "/calendar");
   };
 
   const handleRefresh = () => {
-    if (userId && isGoogleConnected) {
+    if (!userId) return;
+    fetchEvents();
+    if (isGoogleConnected) {
       loadGoogleEvents(userId);
     }
   };
@@ -1984,20 +2015,18 @@ export default function CalendarPage() {
                 <span>Alert in {Math.floor(snoozeSecondsLeft / 60)}:{String(snoozeSecondsLeft % 60).padStart(2, '0')}</span>
               </button>
             )}
-            {isGoogleConnected && (
-              <button
-                onClick={handleRefresh}
-                disabled={isLoadingEvents}
-                className="flex items-center gap-1.5 text-gray-400 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 transition-all text-sm"
-                title="Refresh from Google Calendar"
-              >
-                <RefreshCw
-                  size={14}
-                  className={isLoadingEvents ? "animate-spin" : ""}
-                />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-            )}
+            <button
+              onClick={handleRefresh}
+              disabled={isLoadingEvents || isLoading}
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white px-3 py-2 rounded-xl hover:bg-white/5 transition-all text-sm disabled:opacity-50"
+              title={isGoogleConnected ? "Refresh from Google Calendar" : "Refresh events"}
+            >
+              <RefreshCw
+                size={14}
+                className={(isLoadingEvents || isLoading) ? "animate-spin" : ""}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
             <button
               onClick={() => openCreateModal()}
               className="flex items-center justify-center gap-1.5 sm:gap-2 bg-[#722f37] hover:bg-[#8b3a44] text-white font-bold p-2.5 sm:px-4 sm:py-2 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-[#722f37]/20"

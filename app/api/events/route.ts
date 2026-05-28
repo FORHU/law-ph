@@ -61,7 +61,9 @@ export async function GET(req: Request) {
       orderBy: { dateTime: "asc" },
     });
 
-    return NextResponse.json({ events });
+    return NextResponse.json({ events }, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   } catch (err) {
     console.error("[api/events GET]", err);
     return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
