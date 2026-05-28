@@ -318,9 +318,29 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
   };
   const [emailInput, setEmailInput] = useState("");
   const [emailError, setEmailError] = useState(false);
+  const [emailToInput, setEmailToInput] = useState("");
+  const [emailToError, setEmailToError] = useState(false);
   const [scheduleTypeDropdownOpen, setScheduleTypeDropdownOpen] = useState(false);
   const [emailFindingsDropdownOpen, setEmailFindingsDropdownOpen] = useState(false);
   const [scheduleValidationErrors, setScheduleValidationErrors] = useState<string[]>([]);
+
+  const handleAddEmailTo = (val: string) => {
+    const email = val.trim().replace(/,$/, "");
+    if (!email) return;
+    if (validateEmail(email)) {
+      if (!emailTo.includes(email)) {
+        setEmailTo([...emailTo, email]);
+      }
+      setEmailToInput("");
+      setEmailToError(false);
+    } else {
+      setEmailToError(true);
+    }
+  };
+
+  const removeEmailTo = (index: number) => {
+    setEmailTo(emailTo.filter((_, i) => i !== index));
+  };
 
   const handleAddEmail = (val: string) => {
     const email = val.trim().replace(/,$/, "");
@@ -613,7 +633,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               <div className="bg-white/5 p-4 rounded-2xl border border-white/5 space-y-3">
                 <div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">To</p>
-                  <p className="text-white font-medium break-all">{emailTo}</p>
+                  <p className="text-white font-medium break-all">{emailTo.join(", ")}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Subject</p>
@@ -1000,13 +1020,49 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">To</label>
-                      <input
-                        type="email"
-                        placeholder="client@example.com"
-                        value={emailTo}
-                        onChange={(e) => setEmailTo(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/50 transition-all placeholder:text-gray-600 shadow-inner"
-                      />
+                      <div className={`flex flex-wrap gap-2 p-2 bg-black/40 border ${emailToError ? 'border-red-500/50' : 'border-white/10'} rounded-xl min-h-[46px] focus-within:border-[#e9c176]/50 transition-all`}>
+                        <AnimatePresence>
+                          {emailTo.map((email, index) => (
+                            <motion.div
+                              key={email}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              className="flex items-center gap-1.5 bg-[#e9c176]/10 border border-[#e9c176]/30 text-[#e9c176] px-2 py-1 rounded-lg text-xs font-medium"
+                            >
+                              <span>{email}</span>
+                              <button onClick={() => removeEmailTo(index)} className="hover:text-white transition-colors">
+                                <X size={12} />
+                              </button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                        <input
+                          type="text"
+                          placeholder={emailTo.length === 0 ? "client@example.com, press Enter" : ""}
+                          value={emailToInput}
+                          onChange={(e) => {
+                            setEmailToInput(e.target.value);
+                            if (emailToError) setEmailToError(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Tab') e.preventDefault();
+                            if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+                              handleAddEmailTo(emailToInput);
+                            }
+                            if (e.key === 'Backspace' && !emailToInput && emailTo.length > 0) {
+                              removeEmailTo(emailTo.length - 1);
+                            }
+                          }}
+                          onBlur={() => handleAddEmailTo(emailToInput)}
+                          className="flex-1 bg-transparent border-none outline-none text-sm text-white min-w-[120px] py-1"
+                        />
+                      </div>
+                      {emailToError && (
+                        <p className="text-[10px] text-red-400 mt-1 ml-1 font-medium animate-in fade-in slide-in-from-top-1">
+                          Invalid email. Use format: name@example.com
+                        </p>
+                      )}
                     </div>
 
                     <div>

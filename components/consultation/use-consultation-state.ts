@@ -66,7 +66,7 @@ export function useConsultationState({
   };
 
   // Email Form State
-  const [emailTo, setEmailTo] = useState("");
+  const [emailTo, setEmailTo] = useState<string[]>([]);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -77,12 +77,12 @@ export function useConsultationState({
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
 
   const handleSendEmail = () => {
-    if (!emailTo || !emailBody) return;
+    if (emailTo.length === 0 || !emailBody) return;
     setIsEmailPreviewOpen(true);
   };
 
   const handleConfirmSendEmail = async () => {
-    if (!emailTo || !emailBody) return;
+    if (emailTo.length === 0 || !emailBody) return;
 
     setIsSendingEmail(true);
     setEmailSentStatus("idle");
@@ -112,7 +112,7 @@ export function useConsultationState({
         setEmailSentStatus("success");
         setEmailSentStatus("success");
         // Clear inputs on success
-        setEmailTo("");
+        setEmailTo([]);
         setEmailSubject("");
         setEmailBody("");
         setIsEmailPreviewOpen(false); // Close preview
