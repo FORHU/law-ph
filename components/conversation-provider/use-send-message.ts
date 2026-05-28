@@ -90,7 +90,8 @@ export function useSendMessage({
             id: aiMessageId,
             text: "",
             sender: CHAT_SENDER.AI,
-            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+            parentMessageId: String(newMessageId),
           };
 
           setMessages(prev => [...prev, initialAiMessage]);
@@ -155,7 +156,12 @@ export function useSendMessage({
             const savedUserMsg = await userMsgRes.json();
             if (savedUserMsg?.message) {
               savedUserMessageId = savedUserMsg.message.id ?? null;
-              setMessages(prev => prev.map(m => m.id === newMessageId ? mapCloudMessage(savedUserMsg.message) : m));
+              setMessages(prev => prev.map(m => {
+                if (m.id === newMessageId) return mapCloudMessage(savedUserMsg.message);
+                // Keep the temp AI bubble anchored to the real user message ID
+                if (m.id === aiMessageId && savedUserMessageId) return { ...m, parentMessageId: savedUserMessageId };
+                return m;
+              }));
             }
           }
 

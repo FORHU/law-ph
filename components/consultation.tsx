@@ -229,14 +229,6 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     }
   }, [user?.id]);
 
-  console.log(
-    "[Consultation] Render. Messages:",
-    messages.length,
-    "RecentItems:",
-    recentConsultations.length,
-    "ActiveID:",
-    activeConversationId,
-  );
 
 
   // Separated Logic
