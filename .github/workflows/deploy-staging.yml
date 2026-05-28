@@ -67,6 +67,8 @@ jobs:
             --build-arg NEXT_PUBLIC_AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
             --build-arg NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             --build-arg NEXT_PUBLIC_AWS_REGION="ap-southeast-1" \
+            --build-arg AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+            --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -t "$ECR:${{ env.IMAGE_TAG }}" \
             -t "$ECR:latest" \
             .
