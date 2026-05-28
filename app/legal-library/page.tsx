@@ -275,7 +275,7 @@ export default function LegalLibraryPage() {
       maxWidth="max-w-7xl"
       backgroundAngle={2}
     >
-      <div className="flex-1 flex flex-col min-h-0 relative z-10 pt-2 pb-6 px-2 md:px-0 gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 relative z-10 pt-2 pb-6 px-4 md:px-6 lg:px-0 gap-6 overflow-hidden">
 
         {/* Search + Filter */}
         <div className="flex flex-col gap-2">
@@ -436,7 +436,7 @@ export default function LegalLibraryPage() {
         )}
 
         {/* Category cards */}
-        <div className="grid grid-cols-3 gap-4 flex-shrink-0">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 flex-shrink-0">
           {CATEGORIES.map(cat => {
             const Icon = cat.icon;
             const isActive = activeCategory === cat.id;
@@ -444,19 +444,19 @@ export default function LegalLibraryPage() {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`relative rounded-2xl p-4 text-left transition-all border ${
+                className={`relative rounded-2xl p-3 sm:p-4 text-left transition-all border ${
                   isActive
                     ? `bg-gradient-to-br ${cat.color} ${cat.border} shadow-xl`
                     : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
                 }`}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-white/10' : 'bg-white/5'}`}>
-                    <Icon size={16} className={isActive ? 'text-[#e9c176]' : 'text-gray-500'} />
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-white/10' : 'bg-white/5'}`}>
+                    <Icon size={14} className={isActive ? 'text-[#e9c176]' : 'text-gray-500'} />
                   </div>
                 </div>
-                <p className={`text-sm font-bold mb-1 ${isActive ? 'text-white' : 'text-gray-500'}`}>{cat.label}</p>
-                <p className={`text-[10px] leading-relaxed ${isActive ? 'text-gray-400' : 'text-gray-600'}`}>{cat.description}</p>
+                <p className={`text-xs sm:text-sm font-bold mb-1 ${isActive ? 'text-white' : 'text-gray-500'}`}>{cat.label}</p>
+                <p className={`text-[9px] sm:text-[10px] leading-relaxed hidden sm:block ${isActive ? 'text-gray-400' : 'text-gray-600'}`}>{cat.description}</p>
               </button>
             );
           })}
