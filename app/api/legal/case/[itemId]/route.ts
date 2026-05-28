@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocumentById, getDocumentFullText } from "@/lib/rag-db";
 import { redis } from "@/lib/redis";
+import ragPool from "@/lib/db-rag";
 
 const CACHE_TTL_S  = 60 * 60;        // 1 hour in Redis
 const CACHE_TTL_MS = CACHE_TTL_S * 1000;
@@ -34,11 +35,12 @@ function l1Set(key: string, data: unknown): void {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const { itemId } = await params;
+    const titleHint = request.nextUrl.searchParams.get("title")?.trim() || "";
 
     if (!/^\d+$/.test(itemId)) {
       return NextResponse.json(
@@ -70,10 +72,38 @@ export async function GET(
     const id = parseInt(itemId, 10);
 
     // Run both queries in parallel instead of sequentially
-    const [doc, fullText] = await Promise.all([
+    let [doc, fullText] = await Promise.all([
       getDocumentById(id),
       getDocumentFullText(id),
     ]);
+
+    // Fallback: if id is stale/mismatched across services, try resolving by title/case hint.
+    if (!doc && titleHint) {
+      const loose = `%${titleHint}%`;
+      const { rows } = await ragPool.query<{ id: number }>(
+        `SELECT id
+         FROM documents
+         WHERE title ILIKE $1 OR case_no ILIKE $1
+         ORDER BY
+           CASE
+             WHEN lower(title) = lower($2) THEN 0
+             WHEN title ILIKE $1 THEN 1
+             WHEN case_no ILIKE $1 THEN 2
+             ELSE 3
+           END,
+           year DESC NULLS LAST,
+           id DESC
+         LIMIT 1`,
+        [loose, titleHint]
+      );
+      const resolvedId = rows[0]?.id;
+      if (resolvedId) {
+        [doc, fullText] = await Promise.all([
+          getDocumentById(resolvedId),
+          getDocumentFullText(resolvedId),
+        ]);
+      }
+    }
 
     if (!doc) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
