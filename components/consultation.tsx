@@ -48,6 +48,7 @@ import { MindMap } from "./consultation/mind-map";
 import { DocumentAnalyzer } from "./consultation/document-analyzer";
 import { Timeline } from "@/components/ui/timeline";
 import { CaseInviteButton } from "./consultation/case-invite-button";
+import { CaseMembersButton } from "./consultation/case-members-button";
 import TranscribeWorkspace from "./transcribe/transcribe-workspace";
 
 import { useConsultationState } from "./consultation/use-consultation-state";
@@ -762,7 +763,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         <div className="flex items-center gap-2">
           {isCaseMode && activeCase && messages.length > 0 && (
             <>
-              <CaseInviteButton caseId={activeCase.id.toString()} />
+              {!activeCase.is_shared && <CaseInviteButton caseId={activeCase.id.toString()} />}
+              <CaseMembersButton caseId={activeCase.id.toString()} isOwner={!activeCase.is_shared} />
               <button
                 onClick={handleViewCaseDetails}
                 className="text-[#e9c176] hover:text-white flex items-center gap-2 transition-all text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 rounded-full shadow-lg"

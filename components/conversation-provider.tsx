@@ -55,6 +55,8 @@ export function ConversationProvider({
   const [documentContext, setDocumentContext] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
+  const isLoadingRef = useRef(false);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSharedCase, setIsSharedCase] = useState(false);
 
@@ -553,6 +555,9 @@ export function ConversationProvider({
     }
   }, [userId]);
 
+  // Stable ref so fetchCloudMessages can call fetchCases without a forward-reference dep
+  const fetchCasesRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
   // Fetch Cloud Messages if needed
   const fetchCloudMessages = useCallback(
     async (ignore: boolean) => {
@@ -655,6 +660,25 @@ export function ConversationProvider({
             typeof window !== "undefined" &&
             window.location.pathname.startsWith("/cases/");
 
+          // Participant was removed — show a brief notice then redirect
+          const wasRemovedFromSharedCase = cases.some(
+            (c) => c.id.toString() === syncedConversationId?.toString() && c.is_shared
+          );
+          if (wasRemovedFromSharedCase) {
+            setMessages([{
+              id: `removed-${Date.now()}`,
+              text: "You have been removed from this case.",
+              sender: "system",
+              time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+            }]);
+            setIsLoading(false);
+            setTimeout(() => {
+              fetchCasesRef.current();
+              router.replace("/consultation");
+            }, 2500);
+            return;
+          }
+
           if (isCaseRoute || existsInCases) {
             try {
               const caseRes = await fetch(`/api/cases/${syncedConversationId}`);
@@ -709,6 +733,7 @@ export function ConversationProvider({
       mapCloudMessage,
       handleNewConsultation,
       currentConsultationId,
+      router,
     ],
   );
 
@@ -727,11 +752,17 @@ export function ConversationProvider({
     }
   }, [loggedIn, loaded, fetchConversations]);
 
-  // Poll for new messages every 3s when viewing a shared case (other participants can write)
+  // Poll for new messages every 3s when viewing a shared case (other participants can write).
+  // Pauses automatically when the browser tab is hidden — resumes on visibility.
   useEffect(() => {
     if (!isSharedCase || !syncedConversationId || !loggedIn) return;
 
+    let tabHidden = typeof document !== 'undefined' && document.hidden;
+    const onVisibilityChange = () => { tabHidden = document.hidden; };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     const interval = setInterval(async () => {
+      if (tabHidden) return;
       try {
         const res = await fetch(`/api/conversations/${syncedConversationId}/messages`);
         if (!res.ok) return;
@@ -739,8 +770,7 @@ export function ConversationProvider({
         const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 
         setMessages(prev => {
-          // Don't disturb an in-progress AI stream
-          if (isLoading) return prev;
+          if (isLoadingRef.current) return prev;
 
           const cloudIds = new Set(cloudMessages.map(m => m.id.toString()));
           const cloudContents = new Set(cloudMessages.map(m => m.text.trim()));
@@ -750,7 +780,6 @@ export function ConversationProvider({
             return true;
           });
 
-          // Only update state if there's something new to avoid needless re-renders
           if (localOnly.length === 0 && cloudMessages.length === prev.length) return prev;
           return [...cloudMessages, ...localOnly];
         });
@@ -759,8 +788,11 @@ export function ConversationProvider({
       }
     }, 3000);
 
-    return () => clearInterval(interval);
-  }, [isSharedCase, syncedConversationId, loggedIn, isLoading, mapCloudMessage]);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isSharedCase, syncedConversationId, loggedIn, mapCloudMessage]);
 
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {
@@ -826,6 +858,9 @@ export function ConversationProvider({
     }
   }, [loggedIn, userId]);
 
+  // Keep the ref in sync so fetchCloudMessages can call it without a forward-reference dep
+  useEffect(() => { fetchCasesRef.current = fetchCases; }, [fetchCases]);
+
   const handleCreateCase = useCallback(
     async (caseData: {
       name: string;
@@ -875,13 +910,17 @@ export function ConversationProvider({
           await fetchCases();
         } else {
           console.log("[ConversationProvider] Successfully deleted case:", id);
+          // Redirect away if the user is currently viewing the deleted case
+          if (typeof window !== "undefined" && window.location.pathname.startsWith(`/cases/${id}`)) {
+            router.push("/consultation");
+          }
         }
       } catch (err: any) {
         console.error("[ConversationProvider] Critical delete error:", err?.message || "Unknown");
         await fetchCases();
       }
     },
-    [fetchCases],
+    [fetchCases, router],
   );
 
   useEffect(() => {

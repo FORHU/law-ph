@@ -61,4 +61,5 @@ export interface CaseData {
   party_involved?: string;
   notes?: string;
   created_at?: string;
+  is_shared?: boolean; // true when the user is a participant, not the owner
 }

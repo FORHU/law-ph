@@ -81,7 +81,7 @@ model Conversation {
 
   user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages     Message[]
-  invite       ConversationInvite?
+  invites      ConversationInvite[]
   participants ConversationParticipant[]
 
   @@index([userId])
@@ -167,12 +167,15 @@ enum BookmarkType {
 
 model ConversationInvite {
   id             String   @id @default(uuid())
-  conversationId String   @unique
+  conversationId String
   createdBy      String
   createdAt      DateTime @default(now())
+  expiresAt      DateTime
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   creator      User         @relation(fields: [createdBy], references: [id])
+
+  @@index([conversationId])
 }
 
 model ConversationParticipant {

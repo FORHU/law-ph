@@ -23,7 +23,18 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
 
-  await prisma.conversation.deleteMany({ where: { id, userId: user.id } });
+  // If the caller owns the conversation, delete it entirely.
+  // If they're only a participant, treat "delete" as "leave" so the case
+  // survives for everyone else.
+  const owned = await prisma.conversation.findFirst({ where: { id, userId: user.id } });
+
+  if (owned) {
+    await prisma.conversation.delete({ where: { id } });
+  } else {
+    await prisma.conversationParticipant.deleteMany({
+      where: { conversationId: id, userId: user.id },
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

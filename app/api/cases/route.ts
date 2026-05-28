@@ -9,16 +9,29 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search")?.trim();
 
+  // Find conversation IDs where this user is a participant (but not the owner)
+  const participations = await prisma.conversationParticipant.findMany({
+    where: { userId: user.id },
+    select: { conversationId: true },
+  });
+  const sharedCaseIds = participations.map((p) => p.conversationId);
+
+  const searchFilter = search
+    ? {
+        OR: [
+          { caseName: { contains: search, mode: "insensitive" as const } },
+          { partyInvolved: { contains: search, mode: "insensitive" as const } },
+          { notes: { contains: search, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
   const raw = await prisma.case.findMany({
     where: {
-      userId: user.id,
-      ...(search ? {
-        OR: [
-          { caseName: { contains: search, mode: 'insensitive' } },
-          { partyInvolved: { contains: search, mode: 'insensitive' } },
-          { notes: { contains: search, mode: 'insensitive' } },
-        ],
-      } : {}),
+      AND: [
+        { OR: [{ userId: user.id }, { id: { in: sharedCaseIds } }] },
+        ...(search ? [searchFilter] : []),
+      ],
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -30,6 +43,7 @@ export async function GET(req: Request) {
     party_involved: c.partyInvolved,
     notes: c.notes,
     created_at: c.createdAt,
+    is_shared: c.userId !== user.id,
   }));
 
   return NextResponse.json({ cases });
@@ -72,6 +86,7 @@ export async function POST(req: Request) {
       party_involved: newCase.partyInvolved,
       notes: newCase.notes,
       created_at: newCase.createdAt,
+      is_shared: false,
     },
   }, { status: 201 });
 }

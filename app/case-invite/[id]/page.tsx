@@ -48,7 +48,12 @@ export default function CaseInvitePage() {
       }, 1500);
     } catch (err: any) {
       setStatus('error');
-      setErrorDetails(err.message || 'An unexpected error occurred.');
+      const msg = err.message || 'An unexpected error occurred.';
+      setErrorDetails(
+        msg.includes('expired')
+          ? 'This invite link has expired. Ask the case owner to generate a new one.'
+          : msg
+      );
     }
   };
 

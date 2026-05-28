@@ -19,7 +19,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params;
   const invite = await prisma.conversationInvite.findUnique({ where: { id } });
-  if (!invite) return NextResponse.json({ error: "Invalid invite" }, { status: 404 });
+
+  if (!invite) return NextResponse.json({ error: "Invalid invite link." }, { status: 404 });
+  if (invite.expiresAt < new Date()) return NextResponse.json({ error: "This invite link has expired." }, { status: 410 });
 
   try {
     await prisma.conversationParticipant.create({
@@ -37,7 +39,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ conversationId: invite.conversationId });
   } catch (e: any) {
     if (e.code === "P2002") {
-      // Already joined — just return the conversationId
+      // Already a participant — idempotent
       return NextResponse.json({ conversationId: invite.conversationId });
     }
     return NextResponse.json({ error: "Failed to join" }, { status: 500 });
