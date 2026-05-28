@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { cleanAiText } from "@/lib/citation-parser";
@@ -272,7 +273,7 @@ export async function POST(req: Request) {
           markdownContent,
           rawResponse,
           sourceUrl,
-          metadataJson: (chatPayload.source_metadata as object | null) ?? null,
+          metadataJson: (chatPayload.source_metadata as object | null) ?? Prisma.JsonNull,
         },
         create: {
           rawKeyword,
@@ -281,7 +282,7 @@ export async function POST(req: Request) {
           markdownContent,
           rawResponse,
           sourceUrl,
-          metadataJson: (chatPayload.source_metadata as object | null) ?? null,
+          metadataJson: (chatPayload.source_metadata as object | null) ?? Prisma.JsonNull,
         },
       });
     } catch (upsertError) {
