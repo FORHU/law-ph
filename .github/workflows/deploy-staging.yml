@@ -85,6 +85,8 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
           CHAT_WONDER_API_URL: ${{ secrets.CHAT_WONDER_API_URL }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           cat > ${{ github.workspace }}/law-ph.env << EOF
           DATABASE_URL=${DATABASE_URL}
@@ -100,6 +102,8 @@ jobs:
           SMTP_PORT=${SMTP_PORT}
           REDIS_URL=${REDIS_URL}
           CHAT_WONDER_API_URL=${CHAT_WONDER_API_URL}
+          AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
           NODE_ENV=${{ env.NODE_ENV }}
           PORT=3000
           EOF
