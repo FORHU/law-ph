@@ -537,24 +537,38 @@ export default function CalendarPage() {
           };
         });
 
-        // Smart merge: if we already have Google-enriched events, keep their extra data
+        // Smart merge: keep Google-enriched data and preserve Google-only events
         setEvents((prev) => {
           const googleMap = new Map();
           prev.filter(e => e.isGoogleEvent).forEach(e => {
             if (e.google_event_id) googleMap.set(e.google_event_id, e);
           });
 
+          const matchedGoogleIds = new Set<string>();
           const merged = normalized.map((sb: any) => {
             const ge = sb.google_event_id ? googleMap.get(sb.google_event_id) : null;
             if (ge) {
-              return { ...ge, ...sb }; // Prefer DB notes but keep Google metadata
+              matchedGoogleIds.add(sb.google_event_id);
+              // Prefer Google's authoritative confirmed/denied over any non-final DB status
+              const nonFinal = sb.status !== 'confirmed' && sb.status !== 'denied' && sb.status !== 'cancelled' && sb.status !== 'canceled';
+              const resolvedStatus =
+                (ge.status === 'confirmed' || ge.status === 'denied') && nonFinal
+                  ? ge.status
+                  : sb.status;
+              return { ...ge, ...sb, status: resolvedStatus };
             }
             return sb;
           });
 
-          // Deduplicate by id — keeps the last occurrence (freshest DB data)
+          // Preserve Google-only events that have no DB counterpart
+          const googleOnly = prev.filter(e =>
+            e.isGoogleEvent &&
+            e.google_event_id &&
+            !matchedGoogleIds.has(e.google_event_id)
+          );
+
           const seen = new Map();
-          merged.forEach((e: any) => seen.set(e.id, e));
+          [...merged, ...googleOnly].forEach((e: any) => seen.set(e.id, e));
           return Array.from(seen.values());
         });
       }
@@ -647,12 +661,25 @@ export default function CalendarPage() {
               const needsGoogleIdUpdate = ge.google_event_id && !localMatch.google_event_id && !localMatch.googleEventId;
               const needsGoogleLinkUpdate = ge.googleLink && !localMatch.googleLink && !localMatch.google_link;
 
-              if (needsStatusUpdate || needsGoogleIdUpdate || needsGoogleLinkUpdate) {
+              // Trust Google's date — if it differs from DB, the event was rescheduled
+              // externally (or a silent DB update failure left stale data).
+              const geDateTime = ge.date_time || ge.dateTime;
+              const localDateTime = localMatch.date_time || localMatch.dateTime;
+              const needsDateUpdate = !!(
+                geDateTime && localDateTime &&
+                Math.abs(new Date(geDateTime).getTime() - new Date(localDateTime).getTime()) > 60000
+              );
+
+              // Only write back to DB if localMatch.id is a real UUID (contains hyphens).
+              // Google event IDs are alphanumeric without hyphens and have no DB row.
+              const isDbEvent = localMatch.id?.includes('-');
+              if (isDbEvent && (needsStatusUpdate || needsGoogleIdUpdate || needsGoogleLinkUpdate || needsDateUpdate)) {
                 const eventId = localMatch.id;
                 const updatePayload: any = {};
                 if (needsStatusUpdate) updatePayload.status = resolvedStatus;
                 if (needsGoogleIdUpdate || ge.google_event_id) updatePayload.google_event_id = ge.google_event_id;
                 if (needsGoogleLinkUpdate || ge.googleLink) updatePayload.google_link = ge.googleLink;
+                if (needsDateUpdate) updatePayload.date_time = geDateTime;
 
                 setTimeout(() => {
                   fetch(`/api/events/${eventId}`, {
@@ -676,6 +703,8 @@ export default function CalendarPage() {
               return {
                 ...localMatch,
                 status: resolvedStatus,
+                // Prefer Google's date — it's authoritative after a reschedule
+                ...(geDateTime ? { date_time: geDateTime, dateTime: geDateTime } : {}),
                 google_event_id: ge.google_event_id,
                 googleLink: ge.googleLink,
                 iCalUID: ge.iCalUID,
@@ -797,13 +826,14 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (loggedIn && userId) {
-      fetchEvents();
+      // Fetch DB events first, then start Google sync — prevents Google's
+      // setEvents from running with an empty prev state and dropping DB-only events.
+      fetchEvents().then(() => checkGoogleAuth(userId));
 
       const authSuccess = searchParams?.get("auth_success");
       if (authSuccess === "true") {
         router.replace("/calendar", { scroll: false });
       }
-      checkGoogleAuth(userId);
     }
 
     return () => {
@@ -813,18 +843,29 @@ export default function CalendarPage() {
     };
   }, [loggedIn, userId, fetchEvents, checkGoogleAuth, searchParams, router]);
 
-  // Refresh instantly when the user returns to this tab (e.g. after clicking an RSVP link).
-  // Falls back to a 30 s poll so changes from other devices also propagate.
+  // Refresh instantly when the user returns to this tab.
+  // Google-connected: Google sync every 2 min only (no DB poll).
+  // Non-Google: DB poll every 30s.
   useEffect(() => {
     if (!loggedIn || !userId) return;
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchEvents(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        if (isGoogleConnected) {
+          loadGoogleEvents(userId);
+        } else {
+          fetchEvents();
+        }
+      }
+    };
     document.addEventListener('visibilitychange', onVisible);
-    const interval = setInterval(fetchEvents, 30000);
+    const dbInterval = !isGoogleConnected ? setInterval(fetchEvents, 30000) : null;
+    const googleInterval = isGoogleConnected ? setInterval(() => loadGoogleEvents(userId), 120000) : null;
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
-      clearInterval(interval);
+      if (dbInterval) clearInterval(dbInterval);
+      if (googleInterval) clearInterval(googleInterval);
     };
-  }, [loggedIn, userId, fetchEvents]);
+  }, [loggedIn, userId, fetchEvents, isGoogleConnected, loadGoogleEvents]);
 
   // Automatic conflict check for the Calendar Form
   useEffect(() => {
@@ -1214,6 +1255,7 @@ export default function CalendarPage() {
               } else if (!gResult.success) {
                 console.error("[Calendar] Google update failed:", gResult.error);
               } else {
+                if (gResult.iCalUID) iCalUID = gResult.iCalUID;
                 console.log("[Calendar] Google event updated:", existingGoogleId);
               }
             } else {
@@ -2356,8 +2398,8 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                {/* Loading spinner */}
-                {(isLoadingEvents || isLoading) && (
+                {/* Loading spinner — only on initial load when list is empty */}
+                {(isLoadingEvents || isLoading) && events.length === 0 && (
                   <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-500">
                     <Loader2 size={16} className="animate-spin" /> Loading
                     events…
@@ -2373,10 +2415,10 @@ export default function CalendarPage() {
                 )}
 
                 {/* Events List */}
-                {!isLoadingEvents && (
+                {(!isLoadingEvents || events.length > 0) && (
                   <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
                     <AnimatePresence mode="popLayout">
-                      {isLoading ? (
+                      {isLoading && events.length === 0 ? (
                         <motion.div
                           key="loading"
                           initial={{ opacity: 0 }}

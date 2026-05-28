@@ -258,6 +258,7 @@ export function useConsultationState({
           start_datetime: start.toISOString(),
           end_datetime: end.toISOString(),
           description: scheduleNotes,
+          type: scheduleType.toLowerCase() as any,
           client_email: scheduleEmails.join(', ')
         }, providerToken);
         if (result.success) {

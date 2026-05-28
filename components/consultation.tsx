@@ -223,11 +223,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
   useEffect(() => {
     if (user?.id) {
-      checkAuthStatus(user.id)
+      checkAuthStatus(user.id, user.googleAccessToken)
         .then((status) => setIsGoogleConnected(status.authenticated))
         .catch(() => setIsGoogleConnected(false));
     }
-  }, [user?.id]);
+  }, [user?.id, user?.googleAccessToken]);
 
   console.log(
     "[Consultation] Render. Messages:",
@@ -247,6 +247,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     userId: user?.id,
     userEmail: user?.email,
     userName: user?.name ?? undefined,
+    providerToken: user?.googleAccessToken,
     isGoogleConnected,
     handleSendMessage: (msg: string) => handleSendMessage(msg, activeConversationId),
     onTabChange: (tab) => switchToTabRef.current?.(tab),

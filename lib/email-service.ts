@@ -1,21 +1,7 @@
 import { transporter, defaultFrom } from './mail-transport';
 import { sendViaGmail } from './gmail-send';
 import { Buffer } from 'buffer';
-import { createHmac } from 'crypto';
 
-function rsvpToken(eventId: string, action: string, email: string) {
-  return createHmac('sha256', process.env.JWT_SECRET || 'fallback')
-    .update(`${eventId}:${action}:${email.toLowerCase()}`)
-    .digest('hex');
-}
-
-function rsvpLinks(siteUrl: string, eventId: string, email: string): string {
-  const base = `${siteUrl}/api/rsvp?event=${encodeURIComponent(eventId)}&email=${encodeURIComponent(email)}`;
-  const yes   = `${base}&action=yes&token=${rsvpToken(eventId, 'yes', email)}`;
-  const no    = `${base}&action=no&token=${rsvpToken(eventId, 'no', email)}`;
-  const maybe = `${base}&action=maybe&token=${rsvpToken(eventId, 'maybe', email)}`;
-  return `\\n\\nPlease respond to this invitation by clicking one of the links below:\\nAccept: ${yes}\\nDecline: ${no}\\nMaybe: ${maybe}`;
-}
 
 interface SendEmailParams {
   to: string | string[];
@@ -162,7 +148,7 @@ export async function sendEmail({
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const uid = iCalUID || `${eventId}@ilovelawyer.app`;
-    const icsDescription = (notes || '').replace(/\n/g, '\\n') + rsvpLinks(siteUrl, eventId, cleanRecipients[0]);
+    const icsDescription = (notes || '').replace(/\n/g, '\\n');
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
@@ -203,7 +189,7 @@ export async function sendEmail({
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const uid = iCalUID || `${eventId}@ilovelawyer.app`;
     const cleanNotes = (notes || '').replace(/\[type:[^\]]+\]\n?/, '').trim();
-    const icsDescription = (notes || '').replace(/\n/g, '\\n') + rsvpLinks(siteUrl, eventId, cleanRecipients[0]);
+    const icsDescription = (notes || '').replace(/\n/g, '\\n');
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
@@ -244,7 +230,7 @@ export async function sendEmail({
     const startDate = new Date(dateTime);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
     const uid = iCalUID || `${eventId}@ilovelawyer.app`;
-    const icsDescription = (notes || '').replace(/\n/g, '\\n') + rsvpLinks(siteUrl, eventId, cleanRecipients[0]);
+    const icsDescription = (notes || '').replace(/\n/g, '\\n');
 
     const icsString = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'CALSCALE:GREGORIAN', 'METHOD:REQUEST', 'BEGIN:VEVENT',
