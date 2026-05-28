@@ -88,20 +88,24 @@ model Conversation {
 }
 
 model Message {
-  id             String      @id @default(uuid())
-  conversationId String
-  role           MessageRole
-  content        String      @db.Text
-  imagePreview   String?
-  timestamp      DateTime?
-  createdAt      DateTime    @default(now())
-  userId         String?
+  id              String      @id @default(uuid())
+  conversationId  String
+  role            MessageRole
+  content         String      @db.Text
+  imagePreview    String?
+  timestamp       DateTime?
+  createdAt       DateTime    @default(now())
+  userId          String?
+  parentMessageId String?
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversation  Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parent        Message?     @relation("MessageThread", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies       Message[]    @relation("MessageThread")
 
   @@index([conversationId])
   @@index([userId])
+  @@index([parentMessageId])
 }
 
 enum MessageRole {

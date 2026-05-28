@@ -20,7 +20,8 @@ export async function fetchSourceContent(source: LegalSource, context?: string):
   // If we have a real database itemId, fetch the real content
   if (source.itemId) {
     try {
-      const res = await fetch(`/api/legal/case/${encodeURIComponent(source.itemId)}`);
+      const titleHint = source.reference ? `?title=${encodeURIComponent(source.reference)}` : '';
+      const res = await fetch(`/api/legal/case/${encodeURIComponent(source.itemId)}${titleHint}`);
       if (res.ok) {
         const data = await res.json();
         
@@ -76,7 +77,8 @@ export async function fetchCaseContent(caseItem: RelatedCase, context?: string):
   // If we have a real database itemId from our search API, fetch the real content
   if (caseItem.itemId) {
     try {
-      const res = await fetch(`/api/legal/case/${encodeURIComponent(caseItem.itemId)}`);
+      const titleHint = caseItem.title ? `?title=${encodeURIComponent(caseItem.title)}` : '';
+      const res = await fetch(`/api/legal/case/${encodeURIComponent(caseItem.itemId)}${titleHint}`);
       if (res.ok) {
         const data = await res.json();
         

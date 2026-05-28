@@ -405,6 +405,7 @@ export function ConversationProvider({
       fileAttachments: meta.fileAttachments,
       time: msg.time || (msg.created_at ? new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ""),
       authorName: sender === 'user' ? (msg.user?.name || msg.user?.email?.split('@')[0] || undefined) : undefined,
+      parentMessageId: msg.parentMessageId ?? undefined,
     };
   }, []);
 
@@ -759,6 +760,12 @@ export function ConversationProvider({
     }
   }, [loggedIn, loaded, fetchConversations]);
 
+  // Reset isSharedCase when navigating to a different conversation so polling
+  // doesn't carry over from a previous shared case to a private consultation.
+  useEffect(() => {
+    setIsSharedCase(false);
+  }, [syncedConversationId]);
+
   // Poll for new messages every 3s when viewing a shared case (other participants can write).
   // Pauses automatically when the browser tab is hidden — resumes on visibility.
   useEffect(() => {
@@ -772,7 +779,14 @@ export function ConversationProvider({
       if (tabHidden) return;
       try {
         const res = await fetch(`/api/conversations/${syncedConversationId}/messages`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (res.status === 404) {
+            // Participant was removed while viewing — clear state and redirect
+            fetchCasesRef.current();
+            router.replace('/cases');
+          }
+          return;
+        }
         const { messages: data } = await res.json();
         const cloudMessages: Message[] = (data as any[]).map(mapCloudMessage);
 

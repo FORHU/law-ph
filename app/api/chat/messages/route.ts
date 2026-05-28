@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { conversation_id, role, content, imagePreview, created_at } = await req.json();
+  const { conversation_id, role, content, imagePreview, created_at, parent_message_id } = await req.json();
 
   if (!conversation_id || !role || !content) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         createdAt: created_at ? new Date(created_at) : new Date(),
         // Attribute user messages to the sender so group chats can show who prompted
         ...(role === 'user' ? { userId: user.id } : {}),
+        ...(parent_message_id ? { parentMessageId: parent_message_id } : {}),
       },
     });
 

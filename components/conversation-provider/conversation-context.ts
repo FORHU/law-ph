@@ -25,6 +25,7 @@ export interface Message {
   mindMap?: any;
   status?: 'pending' | 'processing' | 'done' | 'error';
   rawContent?: string; // Stores uncleaned text with [MINDMAP]/[TIMELINE] tags
+  parentMessageId?: string;
   fileAttachment?: {
     name: string;
     url?: string;

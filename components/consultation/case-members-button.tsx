@@ -1,15 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { Users, X, UserMinus, Loader2, Crown, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
+import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Member = { id: string; name: string | null; email: string };
 
 export function CaseMembersButton({ caseId, isOwner }: { caseId: string; isOwner: boolean }) {
   const { user } = useAuth();
+  const { refreshCases } = useConversations();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [owner, setOwner] = useState<Member | null>(null);
@@ -37,7 +41,8 @@ export function CaseMembersButton({ caseId, isOwner }: { caseId: string; isOwner
     setLeaving(true);
     try {
       await fetch(`/api/conversations/${caseId}`, { method: 'DELETE' });
-      // fetchCloudMessages will detect 404 and redirect automatically
+      await refreshCases();
+      router.replace('/cases');
     } finally {
       setLeaving(false);
       setIsOpen(false);
