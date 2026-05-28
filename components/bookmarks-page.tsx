@@ -36,10 +36,11 @@ function BookmarkCard({
   const [removing, setRemoving] = useState(false);
 
   const isLibraryDoc = bookmark.reference !== 'AI_RESPONSE' && /^\d+$/.test(bookmark.itemId);
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookmark.itemId);
   const urlId = bookmark.url ? bookmark.url.split('/').pop() ?? '' : '';
   const isFromCase = bookmark.reference === 'AI_RESPONSE' && cases.some((c: any) => c.id.toString() === urlId);
   const isAIResponse = bookmark.reference === 'AI_RESPONSE' && !isFromCase;
-  const isCaseBookmark = bookmark.type === 'case' || isFromCase;
+  const isCaseBookmark = (bookmark.type === 'case' && isUUID) || isFromCase;
 
   const getConsultationStatus = () => {
     if (!isAIResponse || !bookmark.url) return { exists: true };
@@ -55,11 +56,22 @@ function BookmarkCard({
   const { exists: consultationExists } = getConsultationStatus();
 
   const handleOpen = () => {
-    if (isCaseBookmark) { router.push(`/cases/${bookmark.itemId}`); return; }
-    if (isLibraryDoc) { router.push(`/legal-library/${bookmark.itemId}`); return; }
+    // Consultation / AI response bookmark → go to that conversation and scroll to message
     if (isAIResponse && consultationExists && bookmark.url) {
-      router.push(`${bookmark.url}#message-${bookmark.itemId}`);
+      sessionStorage.setItem('scrollToMessage', bookmark.itemId);
+      if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
+        window.dispatchEvent(new CustomEvent('scrollToBookmark', { detail: bookmark.itemId }));
+      } else {
+        router.push(bookmark.url);
+      }
+      return;
     }
+    // Case bookmark → go to the case page
+    if (isCaseBookmark) { router.push(`/cases/${bookmark.itemId}`); return; }
+    // Library document bookmark → go to the library page
+    if (isLibraryDoc) { router.push(`/legal-library/${bookmark.itemId}`); return; }
+    // Legacy bookmark saved with a title as itemId → search the library
+    router.push(`/legal-library?search=${encodeURIComponent(bookmark.title)}`);
   };
 
   const handleRemove = async (e: React.MouseEvent) => {

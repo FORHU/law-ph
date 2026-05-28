@@ -28,7 +28,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   // Derive a stable item_id from the source/case reference
-  const itemId = source?.reference || caseItem?.caseNumber || caseItem?.itemId || content?.reference || content?.title || '';
+  const itemId = caseItem?.itemId || source?.reference || caseItem?.caseNumber || content?.reference || content?.title || '';
 
   const bookmarkId = itemId ? isBookmarked(itemId) : null;
   const bookmarked = !!bookmarkId;

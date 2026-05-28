@@ -56,28 +56,41 @@ function BookmarkCard({
   const { exists: consultationExists, id: consultationId } = getConsultationStatus();
 
   const isLibraryDoc = !isAIResponse && /^\d+$/.test(bookmark.itemId);
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookmark.itemId);
+  const isCaseBookmark = !isAIResponse && bookmark.type === 'case' && isUUID;
 
   const handleOpenLink = () => {
+    // Consultation / AI response bookmark → go to that conversation and scroll to message
     if (isAIResponse) {
       if (consultationExists && bookmark.url) {
-        const targetUrl = `${bookmark.url}#message-${bookmark.itemId}`;
+        sessionStorage.setItem('scrollToMessage', bookmark.itemId);
         if (typeof window !== 'undefined' && window.location.pathname === bookmark.url) {
-          window.location.hash = `message-${bookmark.itemId}`;
+          window.dispatchEvent(new CustomEvent('scrollToBookmark', { detail: bookmark.itemId }));
         } else {
-          router.push(targetUrl);
+          router.push(bookmark.url);
         }
         onOpen('__NAVIGATE__');
       }
       return;
     }
 
+    // Case bookmark → go to the case page
+    if (isCaseBookmark) {
+      router.push(`/cases/${bookmark.itemId}`);
+      onOpen('__NAVIGATE__');
+      return;
+    }
+
+    // Library document bookmark → go to the library page
     if (isLibraryDoc) {
       router.push(`/legal-library/${bookmark.itemId}`);
       onOpen('__NAVIGATE__');
       return;
     }
 
-    onOpen(bookmark.itemId);
+    // Legacy bookmark saved with a title as itemId → search the library
+    router.push(`/legal-library?search=${encodeURIComponent(bookmark.title)}`);
+    onOpen('__NAVIGATE__');
   };
 
   return (
