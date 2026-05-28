@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchDocumentsByKeyword, searchDocumentsByPhrases, listDocuments } from '@/lib/rag-db';
 import { redis } from '@/lib/redis';
+import ragPool from '@/lib/db-rag';
 
 const STOP_WORDS = new Set([
   'a','an','the','and','or','but','in','on','at','to','for','of','with',
@@ -35,6 +36,11 @@ const CACHE_MAX    = 200;
 interface CacheEntry { results: unknown[]; ts: number }
 const l1 = new Map<string, CacheEntry>();
 
+type SearchResultRow = {
+  item_id?: string;
+  [key: string]: unknown;
+};
+
 function buildKey(phrases: string[] | null, keyword: string, limit: number, offset: number, question?: string): string {
   // Prefer question text as key — stable across responses to the same question.
   // AI-generated phrases vary even for identical inputs, making them unreliable cache keys.
@@ -61,6 +67,25 @@ function l1Set(key: string, results: unknown[]): void {
   l1.set(key, { results, ts: Date.now() });
 }
 
+async function filterExistingItemIds(results: unknown[]): Promise<SearchResultRow[]> {
+  const rows = (Array.isArray(results) ? results : []) as SearchResultRow[];
+  if (rows.length === 0) return [];
+
+  const ids = rows
+    .map((r) => String(r?.item_id ?? '').trim())
+    .filter((id) => /^\d+$/.test(id));
+
+  if (ids.length === 0) return [];
+
+  const uniqueIds = [...new Set(ids)].map((id) => Number(id));
+  const { rows: existingRows } = await ragPool.query<{ id: number }>(
+    "SELECT id FROM documents WHERE id = ANY($1::bigint[])",
+    [uniqueIds]
+  );
+  const existing = new Set(existingRows.map((r) => String(r.id)));
+  return rows.filter((r) => existing.has(String(r.item_id)));
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -75,14 +100,21 @@ export async function POST(request: NextRequest) {
 
     // ── L1 hit ──────────────────────────────────────────────────────────────
     const fromL1 = l1Get(key);
-    if (fromL1) return NextResponse.json({ results: fromL1, cache: 'l1' });
+    if (fromL1) {
+      const validated = await filterExistingItemIds(fromL1);
+      if (validated.length > 0) return NextResponse.json({ results: validated, cache: 'l1' });
+      l1.delete(key);
+    }
 
     // ── L2 hit (Redis) ───────────────────────────────────────────────────────
     const fromRedis = await redis.get<unknown[]>(key);
     // Ignore stale empty-array entries — they were cached before the "no-cache-empty" fix
     if (fromRedis && fromRedis.length > 0) {
-      l1Set(key, fromRedis); // warm L1 so next request skips Redis
-      return NextResponse.json({ results: fromRedis, cache: 'l2' });
+      const validated = await filterExistingItemIds(fromRedis);
+      if (validated.length > 0) {
+        l1Set(key, validated); // warm L1 so next request skips Redis
+        return NextResponse.json({ results: validated, cache: 'l2' });
+      }
     }
 
     // ── Cache miss — query Postgres ──────────────────────────────────────────
