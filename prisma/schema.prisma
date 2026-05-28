@@ -164,6 +164,19 @@ model Bookmark {
   @@index([userId])
 }
 
+model LegalSourceAnalysisCache {
+  id                String   @id @default(uuid())
+  rawKeyword        String
+  normalizedKeyword String   @unique
+  title             String
+  markdownContent   String   @db.Text
+  rawResponse       String   @db.Text
+  sourceUrl         String?
+  metadataJson      Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 enum BookmarkType {
   case
   source

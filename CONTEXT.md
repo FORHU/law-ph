@@ -8,6 +8,9 @@ The AI backend service (Python, `localhost:8000 / CHAT_WONDER_API_URL`) that han
 ## Sources Block
 A `[Sources] [{...}]` JSON payload appended by Chat Wonder at the end of AI responses, containing metadata about the legal documents the AI retrieved. In law-ph, the citation parser reads this payload before stripping it — extracting structured data rendered as a citations panel. The raw JSON is never shown in the chat UI, never logged to the browser console, and never forwarded back to Chat Wonder in subsequent conversation turns.
 
+## Legal Source Keyword Cache
+A global law-ph database cache keyed by normalized legal source keywords (for example, "Labor Code of the Philippines - Article 297 (2022) Law"). On source click, law-ph checks this cache first for pre-generated markdown analysis; if missing, it generates analysis via Chat Wonder `/chat`, then stores and reuses the result for future users.
+
 ## Stream Proxy
 The Next.js route at `/api/chat/stream` that bridges the Chat Wonder WebSocket connection to an HTTP streaming response for the browser client.
 

@@ -17,43 +17,35 @@ export interface LegalContentDetail {
  * In a production environment, this would call an API to fetch actual legal documents
  */
 export async function fetchSourceContent(source: LegalSource, context?: string): Promise<LegalContentDetail> {
-  // If we have a real database itemId, fetch the real content
-  if (source.itemId) {
+  const keyword = source.reference?.trim() || source.description?.trim() || source.itemId?.trim() || '';
+
+  // Keyword cache in law-ph DB (fallback generation via Chat Wonder /chat happens server-side)
+  if (keyword) {
     try {
-      const titleHint = source.reference ? `?title=${encodeURIComponent(source.reference)}` : '';
-      const res = await fetch(`/api/legal/case/${encodeURIComponent(source.itemId)}${titleHint}`);
+      const res = await fetch('/api/legal/source-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword }),
+      });
+
       if (res.ok) {
         const data = await res.json();
-        
-        // Convert the HTML from the DB into clean Markdown
-        const turndownService = new TurndownService({
-          headingStyle: 'atx',
-          codeBlockStyle: 'fenced',
-          bulletListMarker: '-',
-        });
-        
-        // Remove images to prevent 404s for broken legacy assets
-        turndownService.addRule('removeImages', {
-          filter: ['img'],
-          replacement: () => ''
-        });
-        
-        const cleanMarkdown = turndownService.turndown(data.text_content || '');
-        const apiTitle = data.title || source.reference;
-        const finalTitle = extractTitleFromContent(cleanMarkdown, apiTitle);
+        const markdown = (data.formatted_markdown || data.text_content || '').toString();
+        const apiTitle = data.title || source.reference || source.description || keyword;
+        const finalTitle = extractTitleFromContent(markdown, apiTitle);
 
         return {
           title: finalTitle,
-          reference: data.law_number || data.gr_number || source.reference,
-          fullText: cleanMarkdown,
-          relevantSection: extractRelevantSection(cleanMarkdown, context),
+          reference: source.reference || keyword,
+          fullText: markdown,
+          relevantSection: extractRelevantSection(markdown, context),
           url: data.url || generateSourceUrl(source),
-          isHtml: false
+          isHtml: false,
         };
       }
-      console.warn('[Fetch Source] API error, falling back:', res.status);
+      console.warn('[Fetch Source] source-analysis API error:', res.status);
     } catch (err) {
-      console.error('[Fetch Source] Network error, falling back:', err);
+      console.error('[Fetch Source] source-analysis network error:', err);
     }
   }
 
