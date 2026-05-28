@@ -64,6 +64,9 @@ jobs:
             --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
             --build-arg GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
             --build-arg GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --build-arg NEXT_PUBLIC_AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+            --build-arg NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --build-arg NEXT_PUBLIC_AWS_REGION="ap-southeast-1" \
             -t "$ECR:${{ env.IMAGE_TAG }}" \
             -t "$ECR:latest" \
             .
