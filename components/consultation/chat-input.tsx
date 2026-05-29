@@ -210,6 +210,10 @@ export function ChatInput({
   };
 
   const startVoiceRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showAlert('Voice recording is not supported in this browser. Try Chrome or Safari.', 'Not Supported');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -274,8 +278,16 @@ export function ChatInput({
       mediaRecorder.start();
       setIsRecording(true);
       setStatus('listening');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accessing microphone:', err);
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        showAlert('Microphone permission was denied. Please allow microphone access in your browser settings and try again.', 'Permission Denied');
+      } else if (name === 'NotFoundError') {
+        showAlert('No microphone was found on this device.', 'No Microphone');
+      } else {
+        showAlert('Could not start recording. Make sure no other app is using the microphone.', 'Recording Error');
+      }
     }
   };
 
@@ -432,17 +444,17 @@ export function ChatInput({
                 disabled={disabled}
               />
 
-              <div className="flex items-end gap-2">
+              <div className="flex items-center gap-2">
 
                 {/* Mobile: + button outside the pill so the popup isn't clipped */}
-                <div ref={mobileActionsRef} className="relative flex sm:hidden flex-shrink-0 pb-1">
+                <div ref={mobileActionsRef} className="relative flex sm:hidden flex-shrink-0">
                   <button
                     type="button"
-                    onClick={() => setShowMobileActions(v => !v)}
-                    className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center ${showMobileActions ? 'bg-[#722f37]/30 border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    onClick={() => isRecording ? handleVoiceToggle() : setShowMobileActions(v => !v)}
+                    className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center leading-none ${isRecording ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse' : showMobileActions ? 'bg-[#722f37]/30 border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border-white/10 text-gray-400'}`}
                     disabled={disabled}
                   >
-                    <Plus size={18} strokeWidth={2.5} />
+                    {isRecording ? <Square size={14} fill="currentColor" /> : <Plus size={18} strokeWidth={2.5} />}
                   </button>
                   <AnimatePresence>
                     {showMobileActions && (
