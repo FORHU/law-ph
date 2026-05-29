@@ -439,7 +439,7 @@ export function ChatInput({
                   <button
                     type="button"
                     onClick={() => setShowMobileActions(v => !v)}
-                    className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center ${showMobileActions ? 'bg-[#722f37]/30 border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center leading-none ${showMobileActions ? 'bg-[#722f37]/30 border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border-white/10 text-gray-400'}`}
                     disabled={disabled}
                   >
                     <Plus size={18} strokeWidth={2.5} />
