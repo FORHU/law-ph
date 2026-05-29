@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { cleanAiText } from "@/lib/citation-parser";
+import ragPool from "@/lib/db-rag";
 
 const CHAT_WONDER_API_URL = (process.env.CHAT_WONDER_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
@@ -137,10 +138,22 @@ function normalizeKeyword(input: string): string {
   return input
     .toLowerCase()
     .normalize("NFKC")
-    .replace(/[`'"“”‘’]/g, "")
+    .replace(/[`'""'']/g, "")
+    .replace(/\bof\s+the\s+philippines\b/g, "")
+    .replace(/\bart\b\.?/g, "article")
+    .replace(/\bno\b\.?/g, "")
+    .replace(/\((\d{4})\)/g, "$1")  // "(1949)" -> "1949": keep year, drop parens
+    .replace(/\blaw\b/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+}
+
+function extractYearHint(rawKeyword: string): number | null {
+  const m = rawKeyword.match(/\((\d{4})\)/);
+  if (m) return parseInt(m[1], 10);
+  const m2 = rawKeyword.match(/\b(19\d{2}|20\d{2})\b/);
+  return m2 ? parseInt(m2[1], 10) : null;
 }
 
 function buildPrompt(keyword: string): string {
@@ -202,6 +215,100 @@ function extractFirstUrl(sourceMetadata: unknown): string | null {
   return typeof url === "string" ? url : null;
 }
 
+interface RagMatch {
+  id: number;
+  title: string | null;
+  source_url: string | null;
+  formatted_markdown: string | null;
+  concise_summary: string | null;
+}
+
+const KNOWN_CODES = [
+  "Labor Code",
+  "Civil Code",
+  "Family Code",
+  "Revised Penal Code",
+  "Corporation Code",
+  "National Internal Revenue Code",
+  "Tax Code",
+  "Constitution",
+];
+
+function extractRagSearchTerms(keyword: string): string[] {
+  const terms: string[] = [];
+
+  const articleMatch = keyword.match(/article\s+(\d+)/i);
+  if (articleMatch) terms.push(`Article ${articleMatch[1]}`);
+
+  const sectionMatch = keyword.match(/section\s+(\d+)/i);
+  if (sectionMatch) terms.push(`Section ${sectionMatch[1]}`);
+
+  for (const code of KNOWN_CODES) {
+    if (keyword.toLowerCase().includes(code.toLowerCase())) {
+      terms.push(code);
+      break;
+    }
+  }
+
+  const raMatch = keyword.match(/republic act\s+(?:no\.?\s*)?(\d+)/i);
+  if (raMatch) { terms.push("Republic Act"); terms.push(raMatch[1]); }
+
+  const pdMatch = keyword.match(/presidential decree\s+(?:no\.?\s*)?(\d+)/i);
+  if (pdMatch) { terms.push("Presidential Decree"); terms.push(pdMatch[1]); }
+
+  return terms;
+}
+
+async function findInRagDb(rawKeyword: string): Promise<RagMatch | null> {
+  const terms = extractRagSearchTerms(rawKeyword);
+  const yearHint = extractYearHint(rawKeyword);
+
+  try {
+    if (terms.length > 0) {
+      // Structured match: Article + Code name, or RA/PD number -- title ILIKE only (fast)
+      const params: unknown[] = [];
+      const conditions = terms.map((term) => {
+        params.push(`%${term}%`);
+        return `title ILIKE $${params.length}`;
+      });
+      params.push(yearHint ?? 0);
+      const yearParam = `$${params.length}`;
+      const { rows } = await ragPool.query<RagMatch>(
+        `SELECT id, title, source_url, formatted_markdown, concise_summary
+         FROM documents
+         WHERE ${conditions.join(" AND ")}
+         ORDER BY
+           CASE WHEN year = ${yearParam} THEN 0 ELSE 1 END,
+           CASE WHEN formatted_markdown IS NOT NULL AND char_length(formatted_markdown) > 100 THEN 0 ELSE 1 END,
+           year DESC NULLS LAST
+         LIMIT 1`,
+        params
+      );
+      if (rows[0]) return rows[0];
+    }
+
+    // Fallback: FTS on full_text using the keyword as a phrase query (uses GIN index)
+    const ftsQuery = rawKeyword
+      .replace(/\(\d{4}\)/g, "")   // strip "(1991)" year hints
+      .replace(/\blaw\b/gi, "")    // strip trailing "Law"
+      .trim();
+    if (!ftsQuery) return null;
+
+    const { rows: ftsRows } = await ragPool.query<RagMatch>(
+      `SELECT id, title, source_url, formatted_markdown, concise_summary
+       FROM documents
+       WHERE to_tsvector('english', COALESCE(full_text, '')) @@ plainto_tsquery('english', $1)
+         AND formatted_markdown IS NOT NULL AND char_length(formatted_markdown) > 100
+       ORDER BY ts_rank(to_tsvector('english', COALESCE(full_text, '')), plainto_tsquery('english', $1)) DESC
+       LIMIT 1`,
+      [ftsQuery]
+    );
+    return ftsRows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const user = await getServerSession();
   if (!user) {
@@ -225,6 +332,7 @@ export async function POST(req: Request) {
     });
 
     if (cached && !cached.markdownContent.includes(EMPTY_PLACEHOLDER_SNIPPET)) {
+      console.log(`[source-analysis] Tier 1 (cache) -- "${rawKeyword}"`);
       return NextResponse.json({
         item_id: cached.id,
         type: "keyword_analysis",
@@ -236,6 +344,39 @@ export async function POST(req: Request) {
       });
     }
 
+    // Tier 2: RAG DB direct lookup -- fast Postgres title match, no LLM needed
+    const ragDoc = await findInRagDb(rawKeyword);
+    if (ragDoc) {
+      const markdownContent = ragDoc.formatted_markdown?.trim() || ragDoc.concise_summary?.trim() || "";
+      if (markdownContent) {
+        console.log(`[source-analysis] Tier 2 (RAG DB) -- "${rawKeyword}" -> doc ${ragDoc.id} "${ragDoc.title}"`);
+        const title = ragDoc.title || rawKeyword;
+        let persisted;
+        try {
+          persisted = await prisma.legalSourceAnalysisCache.upsert({
+            where: { normalizedKeyword },
+            update: { rawKeyword, title, markdownContent, rawResponse: markdownContent, sourceUrl: ragDoc.source_url },
+            create: { rawKeyword, normalizedKeyword, title, markdownContent, rawResponse: markdownContent, sourceUrl: ragDoc.source_url },
+          });
+        } catch {
+          const existing = await prisma.legalSourceAnalysisCache.findUnique({ where: { normalizedKeyword } });
+          if (!existing) throw new Error("Failed to cache RAG result");
+          persisted = existing;
+        }
+        return NextResponse.json({
+          item_id: persisted.id,
+          type: "keyword_analysis",
+          title: persisted.title || rawKeyword,
+          url: persisted.sourceUrl || "",
+          text_content: persisted.markdownContent,
+          formatted_markdown: persisted.markdownContent,
+          cached: false,
+        });
+      }
+    }
+
+    // Tier 3: Chat Wonder generation -- only when no RAG DB match exists
+    console.log(`[source-analysis] Tier 3 (Chat Wonder) -- "${rawKeyword}"`);
     const prompt = buildPrompt(rawKeyword);
 
     let sessionId = await getSharedSessionId();

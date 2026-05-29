@@ -621,6 +621,7 @@ export function MessageItem({
                       original={showOriginal ? '' : (message.originalText || '')}
                       current={displayContent}
                       onSourceLinkClick={onSourceLinkClick}
+                      onSourceClick={onSourceClick}
                     />
 
                     {message.originalText && message.text !== message.originalText && (
