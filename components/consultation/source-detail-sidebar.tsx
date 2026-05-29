@@ -360,7 +360,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                             <div className="w-full flex items-center gap-3">
                               <audio
                                 controls
-                                src={note.s3_key ? `${S3_CONFIG.CDN_URL || ''}${note.s3_key}` : formatS3Url(note.url)}
+                                src={note.s3_key ? `${(S3_CONFIG.CDN_URL || 'https://da6hq15h0otl9.cloudfront.net').replace(/\/$/, '')}/${note.s3_key}` : formatS3Url(note.url)}
                                 controlsList="nodownload"
                                 className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
                                 onLoadedMetadata={(e) => {

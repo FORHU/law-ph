@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { getServerSession } from "@/lib/auth/session";
@@ -22,6 +22,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "ILoveLawyer - AI Legal Assistant",
   description: "AI Legal Assistant",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({
@@ -67,7 +73,7 @@ export default async function RootLayout({
               <AlertProvider>
               <ConversationProvider>
                 <PersistentBackground />
-                <div className="flex h-screen w-full relative overflow-hidden bg-transparent">
+                <div className="flex h-screen h-[100dvh] w-full relative overflow-hidden bg-transparent">
                   <PersistentSidebar />
                   <div className="flex-1 flex flex-col relative h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
                     <PageTransition>
