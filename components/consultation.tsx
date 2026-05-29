@@ -817,7 +817,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="mb-8"
+                      className="mb-2 md:mb-8"
                     >
                       {isCaseMode && activeCase ? (
                         <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
@@ -843,7 +843,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           </button>
                         </div>
                       ) : (
-                        <div className="py-24 text-center relative flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
+                        <div className="py-6 md:py-24 text-center relative flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
                           {/* Ambient Backglow */}
                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[rgba(114,47,55,0.15)] blur-[80px] rounded-full pointer-events-none" />
 
@@ -851,7 +851,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative z-10 inline-flex p-6 rounded-3xl mb-8 border border-[rgba(233,193,118,0.2)] bg-[#131314]/80 backdrop-blur-xl shadow-[0_0_40px_rgba(114,47,55,0.2)]"
+                            className="relative z-10 inline-flex p-3 md:p-6 rounded-2xl md:rounded-3xl mb-4 md:mb-8 border border-[rgba(233,193,118,0.2)] bg-[#131314]/80 backdrop-blur-xl shadow-[0_0_40px_rgba(114,47,55,0.2)]"
                           >
                             <MessageSquare size={48} className="text-[rgba(233,193,118,1)] stroke-[1.5]" />
                           </motion.div>
@@ -860,7 +860,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                            className="relative z-10 text-4xl md:text-5xl font-serif text-white mb-4 tracking-tight"
+                            className="relative z-10 text-2xl md:text-5xl font-serif text-white mb-2 md:mb-4 tracking-tight"
                           >
                             Start a <span className="text-[rgba(233,193,118,1)] italic">Consultation</span>
                           </motion.h2>
@@ -869,7 +869,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                            className="relative z-10 text-gray-400 max-w-lg mx-auto text-lg leading-relaxed font-light"
+                            className="relative z-10 text-gray-400 max-w-lg mx-auto text-xs md:text-lg leading-relaxed font-light"
                           >
                             Describe your legal situation below to receive immediate, highly-accurate AI-powered guidance tailored to Philippine Law.
                           </motion.p>
