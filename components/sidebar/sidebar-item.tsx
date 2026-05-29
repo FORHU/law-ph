@@ -128,7 +128,7 @@ export function SidebarItem({ item, isOpen = false, onToggle, currentConsultatio
             ref={buttonRef}
             type="button"
             onClick={handleMenuClick}
-            className={`p-1.5 text-gray-500 hover:text-white rounded-lg transition-all menu-trigger outline-none focus:outline-none ${isOpen ? 'opacity-100 bg-[#722f37]/40 text-white ring-1 ring-[#722f37]/50' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
+            className={`p-1.5 text-gray-500 hover:text-white rounded-lg transition-all menu-trigger outline-none focus:outline-none ${isOpen ? 'opacity-100 bg-[#722f37]/40 text-white ring-1 ring-[#722f37]/50' : 'opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100'}`}
           >
             <MoreHorizontal size={14} />
           </button>

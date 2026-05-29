@@ -169,9 +169,9 @@ export function CaseMembersButton({ caseId, isOwner }: { caseId: string; isOwner
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="text-[#e9c176] hover:text-white flex items-center gap-1.5 transition-colors text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/50 border border-[#722f37]/30 rounded-full"
+        className="text-[#e9c176] hover:text-white flex items-center gap-1.5 transition-colors text-[10px] font-bold uppercase tracking-widest px-2 sm:px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/50 border border-[#722f37]/30 rounded-full"
       >
-        <Users size={13} /> Members
+        <Users size={13} /> <span className="hidden sm:inline">Members</span>
       </button>
       {isMounted && createPortal(modal, document.body)}
     </>

@@ -96,7 +96,7 @@ export default function CasesPage() {
           await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ conversationId: newCase.id, role: 'user', content }),
+            body: JSON.stringify({ conversation_id: newCase.id, role: 'user', content }),
           });
         }
         setCaseName(''); setNotes(''); clearRecordings();

@@ -151,7 +151,7 @@ export function CreateCaseModal({ isOpen, onClose }: CreateCaseModalProps) {
           const msgRes = await fetch('/api/chat/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ conversationId: newCase.id, role: 'user', content }),
+            body: JSON.stringify({ conversation_id: newCase.id, role: 'user', content }),
           });
           if (!msgRes.ok) {
             console.error('[CreateCase] Failed to store recordings in message:', msgRes.status);

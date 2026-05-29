@@ -780,9 +780,9 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
               <CaseMembersButton caseId={activeCase.id.toString()} isOwner={!activeCase.is_shared} />
               <button
                 onClick={handleViewCaseDetails}
-                className="text-[#e9c176] hover:text-white flex items-center gap-2 transition-all text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 rounded-full shadow-lg"
+                className="text-[#e9c176] hover:text-white flex items-center gap-2 transition-all text-[10px] font-bold uppercase tracking-widest px-2 sm:px-4 py-2 bg-[#722f37]/20 hover:bg-[#722f37]/40 border border-[#722f37]/30 rounded-full shadow-lg"
               >
-                <Briefcase size={13} /> View Case Details
+                <Briefcase size={13} /> <span className="hidden sm:inline">View Case Details</span>
               </button>
             </>
           )}
