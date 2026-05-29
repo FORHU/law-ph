@@ -2,6 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
+import { LegalSource } from '@/lib/citation-parser';
 
 // Helper to normalize words for comparison
 const normalizeWord = (word: string) => word.toLowerCase().replace(/[*_~`#\[\]()]/g, '').trim();
@@ -65,7 +66,7 @@ export function GranularDiffViewer({
   original?: string;
   current?: string;
   onSourceLinkClick?: (itemId: string, title?: string) => void;
-  onSourceClick?: (source: { reference: string; description: string; type: string; itemId?: string }, context?: string) => void;
+  onSourceClick?: (source: LegalSource, context?: string) => void;
 }) {
   const safeOriginal = original || "";
   const safeCurrent = current || "";
@@ -104,7 +105,7 @@ export function GranularDiffViewer({
             if (itemId && onSourceLinkClick) {
               onSourceLinkClick(itemId, linkText);
             } else if (linkText && onSourceClick) {
-              onSourceClick({ reference: linkText, description: linkText, type: 'article' });
+              onSourceClick({ reference: linkText, description: linkText, type: 'article' as const });
             }
           };
 

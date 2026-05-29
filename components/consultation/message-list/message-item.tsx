@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Scale, User, MoreHorizontal, Edit2, PenTool, Trash2, BookOpen, History, GitGraph, RefreshCcw, Gavel, Copy, FileText, Bookmark, Loader2, Volume2, VolumeX, ArrowUpRight, ScrollText, BookMarked } from 'lucide-react';
 import { synthesizeSpeech } from '@/lib/aws-polly-utils';
 import { CHAT_SENDER, COLORS } from '@/lib/constants';
@@ -397,10 +398,21 @@ export function MessageItem({
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] animate-pulse">ANALYZING ARCHIVES...</p>
               </div>
             ) : message.text === "" && isAI ? (
-              <div className="flex gap-1.5 py-1 px-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              <div className="flex items-center gap-2 py-2 px-1">
+                <span className="text-sm font-serif">
+                  <span className="italic text-[#e9c176]">ilove</span><span className="text-white font-medium">lawyer</span>
+                  <span className="italic text-gray-400"> is thinking</span>
+                </span>
+                <span className="inline-flex items-center gap-[5px]">
+                  {[0, 1, 2].map(i => (
+                    <motion.span
+                      key={i}
+                      className="block w-[6px] h-[6px] rounded-full bg-[#e9c176]"
+                      animate={{ y: [0, -5, 0], opacity: [0.35, 1, 0.35] }}
+                      transition={{ duration: 0.85, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+                    />
+                  ))}
+                </span>
               </div>
             ) : isAI ? (
               (() => {

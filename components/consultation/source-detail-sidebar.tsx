@@ -20,7 +20,7 @@ function LegalDeepLoadingProgress() {
 
   useEffect(() => {
     const stepTimer = setInterval(() => {
-      setStepIndex(i => Math.min(i + 1, LEGAL_LOADING_STEPS.length - 1));
+      setStepIndex(i => (i + 1) % LEGAL_LOADING_STEPS.length);
     }, 2800);
 
     const dotTimer = setInterval(() => {
@@ -47,7 +47,6 @@ function LegalDeepLoadingProgress() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-8 select-none">
-      {/* Animated icon */}
       <motion.div
         key={stepIndex}
         initial={{ scale: 0.6, opacity: 0, y: 10 }}
@@ -60,7 +59,6 @@ function LegalDeepLoadingProgress() {
       </motion.div>
 
       <div className="w-full max-w-xs space-y-4 text-center">
-        {/* Step label */}
         <AnimatePresence mode="wait">
           <motion.p
             key={stepIndex}
@@ -74,21 +72,15 @@ function LegalDeepLoadingProgress() {
           </motion.p>
         </AnimatePresence>
 
-        {/* Progress bar */}
         <div className="relative h-1 bg-white/10 rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
-            style={{
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #722f37, #e9c176)',
-            }}
+            style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #722f37, #e9c176)' }}
             transition={{ duration: 0.18 }}
           />
-          {/* shimmer */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.8s_infinite] rounded-full" />
         </div>
 
-        {/* Step indicator pills */}
         <div className="flex justify-center gap-1.5">
           {LEGAL_LOADING_STEPS.map((_, i) => (
             <motion.div
@@ -103,9 +95,6 @@ function LegalDeepLoadingProgress() {
           ))}
         </div>
 
-        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">
-          AI Legal Analysis · Chat Wonder
-        </p>
       </div>
     </div>
   );
