@@ -122,6 +122,15 @@ jobs:
           source: law-ph.env
           target: /home/ec2-user/
 
+      - name: Copy nginx config to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "nginx/ilovelawyer.conf"
+          target: "/tmp/"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -153,3 +162,21 @@ jobs:
               -p 3000:3000 \
               "$ECR_REGISTRY/law-ph:$DEPLOY_IMAGE_TAG"
             docker image prune -f
+
+            # ── Bootstrap: certbot ────────────────────────────────────────
+            if ! command -v certbot &> /dev/null; then
+              sudo dnf install -y certbot
+            fi
+
+            # ── Obtain cert (first deploy only — brief nginx stop) ─────────
+            if [ ! -f /etc/letsencrypt/live/ilovelawyer.com/fullchain.pem ]; then
+              sudo systemctl stop nginx || true
+              sudo certbot certonly --standalone \
+                -d ilovelawyer.com -d www.ilovelawyer.com \
+                --non-interactive --agree-tos \
+                -m bulan.guieb@gmail.com
+            fi
+
+            # ── Install nginx config and reload ───────────────────────────
+            sudo mv /tmp/nginx/ilovelawyer.conf /etc/nginx/conf.d/ilovelawyer.conf
+            sudo nginx -t && sudo systemctl restart nginx
