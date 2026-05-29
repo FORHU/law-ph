@@ -11,6 +11,7 @@ export interface RelatedCase {
   caseNumber: string;
   title: string;
   description: string;
+  snippet?: string | null;
   // Fields from the real /api/legal/search API
   score?: number;
   url?: string;
@@ -251,10 +252,65 @@ export function extractRelatedQueries(text: string): string[] | undefined {
   try {
     const parsed = JSON.parse(match[1].trim());
     if (Array.isArray(parsed)) {
-      return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+      const terms = parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+      return terms.length > 0 ? terms : undefined;
     }
   } catch {}
   return undefined;
+}
+
+const LEGAL_REF_PATTERNS: RegExp[] = [
+  // Full statutory forms
+  /Republic\s+Act\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /Presidential\s+Decree\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /Executive\s+Order\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /Commonwealth\s+Act\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /Batas\s+Pambansa\s+(?:Blg\.?\s*)?\d[\d\w-]*/gi,
+  // Abbreviated forms
+  /\bRA\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /\bPD\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /\bEO\s+(?:No\.?\s*)?\d[\d\w-]*/gi,
+  /\bBP\s+(?:Blg\.?\s*)?\d[\d\w-]*/gi,
+  // GR numbers
+  /G\.?R\.?\s*No\.?\s*\d[\d\w-,\s]*/gi,
+  // Named codes
+  /(?:Revised\s+)?Penal\s+Code(?:\s+of\s+the\s+Philippines)?/gi,
+  /Family\s+Code(?:\s+of\s+the\s+Philippines)?/gi,
+  /Civil\s+Code(?:\s+of\s+the\s+Philippines)?/gi,
+  /Labor\s+Code(?:\s+of\s+the\s+Philippines)?/gi,
+  /Rules\s+of\s+Court/gi,
+  /1987\s+(?:Philippine\s+)?Constitution/gi,
+  /Constitution\s+of\s+(?:the\s+(?:Republic\s+of\s+)?)?Philippines/gi,
+];
+
+/**
+ * Scans raw AI response text for explicit Philippine legal citations —
+ * law numbers, GR numbers, named codes — and returns them as search phrases.
+ * These are more precise than AI-generated topic words and match document titles directly.
+ */
+export function extractLegalReferences(text: string): string[] {
+  // Strip meta/instruction tags so we don't pick up citations inside them
+  const clean = text
+    .replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/gi, '')
+    .replace(/\[RELATED_QUERIES\][\s\S]*?(?:\[\/RELATED_QUERIES\]|$)/gi, '')
+    .replace(/\[HIDDEN_INSTRUCTION\][\s\S]*?\[\/HIDDEN_INSTRUCTION\]/gi, '');
+
+  const seen = new Set<string>();
+  const results: string[] = [];
+
+  for (const pattern of LEGAL_REF_PATTERNS) {
+    const matches = clean.match(pattern) ?? [];
+    for (const m of matches) {
+      const normalized = m.replace(/\s+/g, ' ').trim();
+      const key = normalized.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push(normalized);
+      }
+    }
+  }
+
+  return results;
 }
 
 /**

@@ -41,6 +41,7 @@ interface MessageItemProps {
   session?: any;
   relatedCasesLoading?: boolean;
   hasMoreRelatedCases?: boolean;
+  relatedCasesTotal?: number;
   onLoadMoreRelated?: () => void;
   isLoading?: boolean;
   onSendMessage?: (text: string) => void;
@@ -67,6 +68,7 @@ export function MessageItem({
   session,
   relatedCasesLoading,
   hasMoreRelatedCases,
+  relatedCasesTotal,
   onLoadMoreRelated,
   isLoading,
   onSendMessage
@@ -82,6 +84,8 @@ export function MessageItem({
   const [caseTypeFilter, setCaseTypeFilter] = useState<string>('all');
   const [caseSortBy, setCaseSortBy] = useState<'relevance' | 'date'>('relevance');
   const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [casePage, setCasePage] = useState(0);
+  const CASES_PER_PAGE = 5;
 
   const bookmarkId = isBookmarked(message.id.toString());
   const bookmarked = !!bookmarkId;
@@ -510,15 +514,32 @@ export function MessageItem({
                       if (caseSortBy === 'date') {
                         return (b.year ?? 0) - (a.year ?? 0);
                       }
-                      return 0; // keep original relevance order
+                      return 0;
                     });
+
+                    const totalPages = Math.ceil(sorted.length / CASES_PER_PAGE);
+                    const safePage = Math.min(casePage, Math.max(0, totalPages - 1));
+                    const paginated = sorted.slice(safePage * CASES_PER_PAGE, (safePage + 1) * CASES_PER_PAGE);
 
                     return (
                       <div className="py-3 space-y-3">
                         {showTypeMenu && <div className="fixed inset-0 z-20" onClick={() => setShowTypeMenu(false)} />}
+
+                        {/* Total count */}
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                            <span className="text-[#e9c176] tabular-nums">{relatedCasesTotal ?? sorted.length}</span>
+                            {' '}case{(relatedCasesTotal ?? sorted.length) !== 1 ? 's' : ''} found
+                          </p>
+                          {totalPages > 1 && (
+                            <p className="text-[10px] text-gray-600 tabular-nums">
+                              Page {safePage + 1} of {totalPages}
+                            </p>
+                          )}
+                        </div>
+
                         {/* Toolbar: filter + sort */}
                         <div className="flex items-center gap-2">
-                          {/* Type filter dropdown */}
                           {typeKeys.length > 1 && (
                             <div className="relative flex-1">
                               <button
@@ -537,7 +558,7 @@ export function MessageItem({
                                   {[{ key: 'all', label: 'All', count: cases.length }, ...typeKeys.map(t => ({ key: t, label: t.charAt(0).toUpperCase() + t.slice(1), count: typeGroups[t] }))].map(({ key, label, count }) => (
                                     <button
                                       key={key}
-                                      onClick={() => { setCaseTypeFilter(key); setShowTypeMenu(false); }}
+                                      onClick={() => { setCaseTypeFilter(key); setCasePage(0); setShowTypeMenu(false); }}
                                       className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider transition-colors ${caseTypeFilter === key ? 'text-[#e9c176] bg-[#722f37]/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                     >
                                       <span className="truncate">{label}</span>
@@ -549,12 +570,11 @@ export function MessageItem({
                             </div>
                           )}
 
-                          {/* Sort toggle pills */}
                           <div className="flex items-center gap-1 bg-white/5 border border-white/8 rounded-lg p-1 flex-shrink-0">
                             {(['relevance', 'date'] as const).map(opt => (
                               <button
                                 key={opt}
-                                onClick={() => setCaseSortBy(opt)}
+                                onClick={() => { setCaseSortBy(opt); setCasePage(0); }}
                                 className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${caseSortBy === opt ? 'bg-[#722f37]/60 text-[#e9c176] border border-[#722f37]/50' : 'text-gray-500 hover:text-gray-300'}`}
                               >
                                 {opt === 'relevance' ? 'Relevance' : 'Date'}
@@ -565,10 +585,11 @@ export function MessageItem({
 
                         {/* Cards */}
                         <div className="space-y-2">
-                          {sorted.length === 0 ? (
+                          {paginated.length === 0 ? (
                             <p className="text-[11px] text-gray-600 text-center py-4">No results for this filter.</p>
-                          ) : sorted.map((caseItem: RelatedCase, i: number) => {
+                          ) : paginated.map((caseItem: RelatedCase, i: number) => {
                             const isCase = caseItem.caseNumber && caseItem.caseNumber !== 'N/A';
+                            const rank = safePage * CASES_PER_PAGE + i + 1;
                             return (
                               <div
                                 key={i}
@@ -576,8 +597,8 @@ export function MessageItem({
                                 onClick={() => onCaseClick?.(caseItem, message.text)}
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="mt-0.5 p-1.5 bg-[#722f37]/10 rounded-lg border border-[#722f37]/20 flex-shrink-0 group-hover:border-[#e9c176]/20 transition-colors">
-                                    <BookMarked size={12} className="text-[#722f37] group-hover:text-[#e9c176] transition-colors" />
+                                  <div className="flex-shrink-0 w-6 h-6 mt-0.5 flex items-center justify-center rounded-md bg-white/5 border border-white/8 text-[10px] font-bold text-gray-500 group-hover:text-[#e9c176] group-hover:border-[#e9c176]/20 transition-colors tabular-nums">
+                                    {rank}
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -593,9 +614,14 @@ export function MessageItem({
                                         <span className="text-[9px] text-gray-600 tabular-nums">{caseItem.year}</span>
                                       )}
                                     </div>
-                                    <p className="text-[13px] text-gray-300 group-hover:text-white transition-colors leading-snug line-clamp-2">
+                                    <p className="text-[13px] text-gray-300 group-hover:text-white transition-colors leading-snug line-clamp-2 mb-1">
                                       {caseItem.title || caseItem.description}
                                     </p>
+                                    {caseItem.snippet && (
+                                      <p className="text-[11px] text-gray-600 group-hover:text-gray-500 leading-relaxed line-clamp-2 transition-colors">
+                                        {caseItem.snippet}
+                                      </p>
+                                    )}
                                   </div>
                                   <ArrowUpRight size={14} className="flex-shrink-0 mt-0.5 text-gray-700 group-hover:text-[#e9c176] transition-colors" />
                                 </div>
@@ -604,8 +630,48 @@ export function MessageItem({
                           })}
                         </div>
 
-                        {hasMoreRelatedCases && (
-                          <div className="pt-2 flex justify-center">
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                          <div className="pt-1 flex items-center justify-between gap-2">
+                            <button
+                              onClick={() => setCasePage(p => Math.max(0, p - 1))}
+                              disabled={safePage === 0}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/8 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              ← Prev
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: totalPages }, (_, i) => {
+                                const showPage = i === 0 || i === totalPages - 1 || Math.abs(i - safePage) <= 1;
+                                const showEllipsis = !showPage && (i === 1 || i === totalPages - 2);
+                                if (showEllipsis) return <span key={i} className="text-gray-700 text-[10px] px-0.5">…</span>;
+                                if (!showPage) return null;
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => setCasePage(i)}
+                                    className={`w-7 h-7 rounded-lg text-[10px] font-bold tabular-nums transition-all ${i === safePage ? 'bg-[#722f37]/60 border border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border border-white/8 text-gray-500 hover:text-white hover:border-white/20'}`}
+                                  >
+                                    {i + 1}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              onClick={() => setCasePage(p => Math.min(totalPages - 1, p + 1))}
+                              disabled={safePage === totalPages - 1}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/8 text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              Next →
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Load more from server if available */}
+                        {hasMoreRelatedCases && safePage === totalPages - 1 && (
+                          <div className="pt-1 flex justify-center">
                             <button
                               onClick={onLoadMoreRelated}
                               disabled={relatedCasesLoading}
@@ -614,7 +680,7 @@ export function MessageItem({
                               {relatedCasesLoading ? (
                                 <><Loader2 size={12} className="animate-spin" /> Loading...</>
                               ) : (
-                                <><BookOpen size={12} /> Load More</>
+                                <><BookOpen size={12} /> Load More from Server</>
                               )}
                             </button>
                           </div>

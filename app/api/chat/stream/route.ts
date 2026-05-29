@@ -28,14 +28,19 @@ At the end of your response, output this tag:
 
 [RELATED_QUERIES]["term1","term2","term3"][/RELATED_QUERIES]
 
-Rules for the terms:
-- 5 to 8 terms maximum
-- Each term must be SHORT (1-3 words) and DISTINCT — no variations of the same word
-- Focus on the core legal subjects: the specific laws, articles, concepts, and parties central to the question
-- Include: primary legal topic, law/statute name, specific article numbers if cited, key parties or agencies involved
-- Exclude: generic words, rephrasing of the same concept, procedural filler unless central to the question
-- Bad example for "abortion": ["abortion law Philippines","criminal offense abortion","legal consequences abortion","Philippine abortion laws","abortion cases"] — all the same word repeated
-- Good example for "abortion": ["abortion","Revised Penal Code","Article 256","Article 257","reproductive rights","maternal health"]
+Rules for the terms — prioritize in this order:
+1. EXACT law/statute names and numbers you cited (e.g. "Presidential Decree 603", "Republic Act 9262", "Family Code of the Philippines")
+2. EXACT article or section numbers from those laws (e.g. "Article 209", "Section 10", "Article 256")
+3. EXACT case names or GR numbers if you referenced jurisprudence (e.g. "GR No. 123456", "People v. Genosa")
+4. Only if no specific laws or cases were cited: short, precise legal concepts directly relevant to the question (1-3 words max)
+5. If the question is not about Philippine law, output an empty array: [RELATED_QUERIES][][/RELATED_QUERIES]
+
+Additional rules:
+- 5 to 8 terms maximum, each DISTINCT
+- Prefer terms that appear verbatim in Philippine legal document titles — these match the database best
+- Exclude generic topic words like "legal rights", "social services", "emergency shelters" unless they are actual law titles
+- Bad: ["parental authority","child welfare","runaway minor","social services","legal rights minors"] — vague topic words
+- Good: ["Presidential Decree 603","Family Code","Article 209","Republic Act 7610","DSWD"] — actual law names
 
 CRITICAL: NEVER mention "Related Queries" in your prose. Output only the tag at the very bottom, after all text.`;
 

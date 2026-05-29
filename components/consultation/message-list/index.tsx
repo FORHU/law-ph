@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { MessageItem } from './message-item';
 import { Message } from './types';
-import { RelatedCase, cleanLegalTitle, isGenericTitle, extractRelatedQueries } from '@/lib/citation-parser';
+import { RelatedCase, cleanLegalTitle, isGenericTitle, extractRelatedQueries, extractLegalReferences } from '@/lib/citation-parser';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 
 // Module-level memory cache — survives component unmounts
 const relatedCasesStore = new Map<string, RelatedCase[]>();
 const relatedCasesPagesStore = new Map<string, number>();
 const relatedCasesHasMoreStore = new Map<string, boolean>();
+const relatedCasesTotalStore = new Map<string, number>();
 // In-flight guard — prevents duplicate Postgres queries for the same cacheKey (question)
 const inFlightIds = new Set<string>();
 // Client-side phrase cache — maps question cacheKey → results
@@ -106,103 +107,101 @@ export function MessageList({
       if (existing && existing.length > 0) return;
     }
 
-    // Set loading immediately — synchronously, before any await — so it batches
-    // with setActiveTabs in the same React render, preventing the empty-state flash.
+    // Extract terms synchronously before touching loading state.
+    // If there are no terms to search, exit silently — no spinner shown.
+    const msgIndex = messages.findIndex(m => m.id === messageId);
+    if (msgIndex === -1) return;
+    const msg = messages[msgIndex];
+
+    const currentPage = isLoadMore ? (relatedCasesPagesStore.get(k) || 1) + 1 : 1;
+    const tagTerms  = msg.rawContent ? (extractRelatedQueries(msg.rawContent) ?? []) : [];
+    const legalRefs = msg.rawContent ? extractLegalReferences(msg.rawContent) : [];
+    const seenRefs  = new Set(legalRefs.map(r => r.toLowerCase()));
+    const streamTerms = [...legalRefs, ...tagTerms.filter(t => !seenRefs.has(t.toLowerCase()))];
+    if (streamTerms.length === 0) return; // no terms → no loading, no fetch
+
+    const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
+    const questionText = precedingUserMsg?.text?.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/g, '').trim() ?? '';
+    const cacheKey = questionText
+      ? `q:${questionText.toLowerCase().slice(0, 200)}`
+      : buildPhraseKey(streamTerms);
+
+    // ── GUARD 2: client-side cache hit (no loading needed) ───────────────────
+    if (!isLoadMore) {
+      const cached = phraseCache.get(cacheKey);
+      if (cached && cached.length > 0) {
+        relatedCasesStore.set(k, cached);
+        saveToStorage(k, cached);
+        setStoreVersion(v => v + 1);
+        if (!persistedIds.has(k)) {
+          persistedIds.add(k);
+          onUpdateMessage?.(messageId, { relatedCases: cached });
+        }
+        return;
+      }
+    }
+
+    // ── GUARD 3: in-flight deduplication (no loading needed) ─────────────────
+    if (!isLoadMore && inFlightIds.has(cacheKey)) return;
+
+    // We know we'll make a network request — show loading now
     setRelatedCasesLoading(prev => ({ ...prev, [messageId]: true }));
+    inFlightIds.add(cacheKey);
 
-    let cacheKey = '';
     try {
-      const msgIndex = messages.findIndex(m => m.id === messageId);
-      if (msgIndex === -1) return;
-      const msg = messages[msgIndex];
+      const res = await fetch('/api/legal/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exactRefs: legalRefs,
+          phrases: tagTerms,
+          question: questionText || undefined,
+          page: 1,
+        }),
+      });
+      if (!res.ok) throw new Error(`Search API ${res.status}`);
+      const data = await res.json();
+      const apiResults: any[] = data.results || [];
 
-      const currentPage = isLoadMore ? (relatedCasesPagesStore.get(k) || 1) + 1 : 1;
+      const newCases: RelatedCase[] = apiResults.map((item: any) => {
+        const rawTitle = item.title || 'Philippine Legal Document';
+        const cleanedTitle = cleanLegalTitle(rawTitle);
+        const finalTitle = isGenericTitle(cleanedTitle) && (item.gr_number || item.case_number)
+          ? (item.gr_number || item.case_number)
+          : cleanedTitle;
+        return {
+          caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
+          title: finalTitle,
+          description: item.title || item.type,
+          snippet: item.snippet ?? null,
+          score: item.score,
+          url: item.url,
+          type: item.type,
+          subtype: item.subtype ?? null,
+          year: item.year ?? null,
+          itemId: item.item_id,
+        };
+      });
+      const existing = isLoadMore ? (relatedCasesStore.get(k) ?? []) : [];
+      const updatedCases = [...existing, ...newCases];
 
-      const streamTerms = msg.rawContent ? extractRelatedQueries(msg.rawContent) : undefined;
-      if (!streamTerms || streamTerms.length === 0) return;
-
-      const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');
-      const questionText = precedingUserMsg?.text?.replace(/\[ILM_META\][\s\S]*?\[\/ILM_META\]/g, '').trim() ?? '';
-      cacheKey = questionText
-        ? `q:${questionText.toLowerCase().slice(0, 200)}`
-        : buildPhraseKey(streamTerms);
-
-      // ── GUARD 2: client-side cache hit ────────────────────────────────────
-      if (!isLoadMore) {
-        const cached = phraseCache.get(cacheKey);
-        if (cached && cached.length > 0) {
-          relatedCasesStore.set(k, cached);
-          saveToStorage(k, cached);
-          setStoreVersion(v => v + 1);
-          if (!persistedIds.has(k)) {
-            persistedIds.add(k);
-            onUpdateMessage?.(messageId, { relatedCases: cached });
-          }
-          return;
+      if (updatedCases.length > 0) {
+        relatedCasesStore.set(k, updatedCases);
+        relatedCasesPagesStore.set(k, currentPage);
+        relatedCasesHasMoreStore.set(k, false);
+        relatedCasesTotalStore.set(k, typeof data.total === 'number' ? data.total : updatedCases.length);
+        saveToStorage(k, updatedCases);
+        if (!isLoadMore) phraseCache.set(cacheKey, updatedCases);
+        setStoreVersion(v => v + 1);
+        if (!persistedIds.has(k)) {
+          persistedIds.add(k);
+          onUpdateMessage?.(messageId, { relatedCases: updatedCases });
         }
       }
-
-      // ── GUARD 3: in-flight deduplication ──────────────────────────────────
-      if (!isLoadMore && inFlightIds.has(cacheKey)) return;
-      inFlightIds.add(cacheKey);
-
-      try {
-        const res = await fetch('/api/legal/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phrases: streamTerms,
-            question: questionText || undefined,
-            page: currentPage,
-            limit: 10,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const apiResults: any[] = data.results || [];
-          const newCases: RelatedCase[] = apiResults.map((item: any) => {
-            const rawTitle = item.title || 'Philippine Legal Document';
-            const cleanedTitle = cleanLegalTitle(rawTitle);
-            const finalTitle = isGenericTitle(cleanedTitle) && (item.gr_number || item.case_number)
-              ? (item.gr_number || item.case_number)
-              : cleanedTitle;
-            return {
-              caseNumber: item.gr_number || item.law_number || item.case_number || 'N/A',
-              title: finalTitle,
-              description: item.title || item.type,
-              score: item.score,
-              url: item.url,
-              type: item.type,
-              subtype: item.subtype ?? null,
-              year: item.year ?? null,
-              itemId: item.item_id,
-            };
-          });
-
-          const existing = isLoadMore ? (relatedCasesStore.get(k) ?? []) : [];
-          const updatedCases = [...existing, ...newCases];
-
-          if (updatedCases.length > 0) {
-            relatedCasesStore.set(k, updatedCases);
-            relatedCasesPagesStore.set(k, currentPage);
-            relatedCasesHasMoreStore.set(k, newCases.length === 10);
-            saveToStorage(k, updatedCases);
-            if (!isLoadMore) phraseCache.set(cacheKey, updatedCases);
-            setStoreVersion(v => v + 1);
-            if (!persistedIds.has(k)) {
-              persistedIds.add(k);
-              onUpdateMessage?.(messageId, { relatedCases: updatedCases });
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[Related Cases] Fetch failed:', err);
-      } finally {
-        if (cacheKey) inFlightIds.delete(cacheKey);
-      }
+    } catch (err) {
+      console.warn('[Related Cases] Fetch failed:', err);
     } finally {
-      // Always clear loading — covers early returns (no terms, msg not found, etc.)
+      inFlightIds.delete(cacheKey);
       setRelatedCasesLoading(prev => ({ ...prev, [messageId]: false }));
     }
   };
@@ -216,11 +215,25 @@ export function MessageList({
     for (const msg of messages) {
       if (msg.sender !== 'ai') continue;
       if (!msg.rawContent) continue;
-      if (!extractRelatedQueries(msg.rawContent)) continue;
+
+      const terms = extractRelatedQueries(msg.rawContent);
+      const k = key(msg.id);
+
+      if (!terms) {
+        // RELATED_QUERIES tag present but empty → AI finished with no legal terms.
+        // Mark the store as [] so the UI shows "no related cases" instead of the
+        // "searching" placeholder (which fires when relatedCases is undefined).
+        if (/\[RELATED_QUERIES\]/i.test(msg.rawContent) && !relatedCasesStore.has(k)) {
+          relatedCasesStore.set(k, []);
+          setStoreVersion(v => v + 1);
+        }
+        continue;
+      }
+
       // Skip if already loading for this message
       if (relatedCasesLoading[msg.id]) continue;
       // Skip if store/localStorage/message already has results
-      const already = getResolved(key(msg.id), msg.relatedCases);
+      const already = getResolved(k, msg.relatedCases);
       if (already && already.length > 0) continue;
       fetchRelatedCases(msg.id);
     }
@@ -310,6 +323,7 @@ export function MessageList({
             session={user}
             relatedCasesLoading={relatedCasesLoading[message.id]}
             hasMoreRelatedCases={relatedCasesHasMoreStore.get(key(message.id))}
+            relatedCasesTotal={relatedCasesTotalStore.get(key(message.id))}
             onLoadMoreRelated={() => fetchRelatedCases(message.id, true)}
             isLoading={isLoading}
             onSendMessage={onSendMessage}

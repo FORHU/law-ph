@@ -320,6 +320,169 @@ export async function searchDocumentsByPhrases(
   }
 }
 
+/**
+ * Same as searchDocumentsByPhrases but also returns the total match count
+ * (without LIMIT/OFFSET) in a single query via COUNT(*) OVER().
+ */
+export async function searchDocumentsByPhrasesWithTotal(
+  phrases: string[],
+  opts: ListOptions & { exactRefs?: string[] } = {}
+): Promise<{ rows: RagDocument[]; total: number }> {
+  const { limit, offset = 0, exactRefs = [] } = opts;
+
+  // exactRefs: exact law/case names extracted from the AI response — title ILIKE only.
+  // phrases:   topic words from [RELATED_QUERIES] — title ILIKE + FTS.
+  const cleanedExactRefs = exactRefs.map(p => p.trim()).filter(p => p.length > 0);
+  const cleanedPhrases   = phrases.map(p => p.trim()).filter(p => p.length > 0);
+  if (cleanedExactRefs.length === 0 && cleanedPhrases.length === 0) return { rows: [], total: 0 };
+
+  const qParams: unknown[] = [];
+  const exactRefConds: string[] = [];
+  const phraseIlikeConds: string[] = [];
+
+  // exactRefs: match title only — "Presidential Decree 603" → "%Presidential Decree%603%"
+  // handles "No." variants in DB titles (e.g. "Presidential Decree No. 603")
+  for (const ref of cleanedExactRefs) {
+    const numMatch = ref.match(/^(.*?)\s+(\d[\d\w-]*)$/);
+    if (numMatch) {
+      qParams.push(`%${numMatch[1]}%${numMatch[2]}%`);
+    } else {
+      qParams.push(`%${ref}%`);
+    }
+    exactRefConds.push(`title ILIKE $${qParams.length}`);
+  }
+
+  // phrases: title ILIKE (fast) — full_text FTS is handled separately via a ranked subquery
+  for (const phrase of cleanedPhrases) {
+    qParams.push(`%${phrase}%`);
+    phraseIlikeConds.push(`title ILIKE $${qParams.length}`);
+  }
+
+  const allTitleConds = [...exactRefConds, ...phraseIlikeConds];
+  if (allTitleConds.length === 0 && cleanedPhrases.length === 0) return { rows: [], total: 0 };
+
+  // FTS subquery: for each phrase, find the top 30 most relevant documents by ts_rank.
+  // Using a subquery caps the FTS result set — avoids the thousands-of-matches explosion
+  // that happens when searching full_text with OR across all documents.
+  const ftsParams: unknown[] = [...qParams];
+  let ftsSubquery = '';
+  if (cleanedPhrases.length > 0) {
+    const tsqueries = cleanedPhrases.map(p => {
+      ftsParams.push(p);
+      return `plainto_tsquery('english', $${ftsParams.length})`;
+    });
+    const combinedTsq = tsqueries.join(' || ');
+    ftsParams.push(30); // cap FTS candidates
+    ftsSubquery = `OR id IN (
+      SELECT id FROM documents
+      WHERE to_tsvector('english', coalesce(full_text, '')) @@ (${combinedTsq})
+      ORDER BY ts_rank(to_tsvector('english', coalesce(full_text, '')), (${combinedTsq})) DESC
+      LIMIT $${ftsParams.length}
+    )`;
+  }
+
+  // Score each document: exactRef match = 2pts, phrase title match = 1pt.
+  // FTS-matched docs that also hit a title/exactRef condition benefit from the score;
+  // pure FTS matches score 0 but are included since they passed the top-30 rank filter.
+  const scoreParts = [
+    ...exactRefConds.map(c => `(CASE WHEN ${c} THEN 2 ELSE 0 END)`),
+    ...phraseIlikeConds.map(c => `(CASE WHEN ${c} THEN 1 ELSE 0 END)`),
+  ];
+  const scoreExpr = scoreParts.length > 0 ? scoreParts.join(' + ') : '0';
+  const totalTerms = cleanedExactRefs.length + cleanedPhrases.length;
+  const minScore = totalTerms >= 3 ? 2 : 1;
+
+  // Title/exactRef conditions gate the score filter; FTS subquery adds jurisprudence
+  const titleWhereClause = allTitleConds.length > 0
+    ? `((${allTitleConds.join(' OR ')}) AND (${scoreExpr}) >= ${minScore})`
+    : 'FALSE';
+  const whereClause = `${titleWhereClause} ${ftsSubquery}`;
+
+  const titleRankExpr = scoreExpr;
+  const dataParams: unknown[] = [...ftsParams];
+  let limitOffsetClause: string;
+  if (limit !== undefined && limit > 0) {
+    dataParams.push(limit, offset);
+    limitOffsetClause = `LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+  } else {
+    dataParams.push(offset);
+    limitOffsetClause = `OFFSET $${dataParams.length}`;
+  }
+
+  const client = await ragPool.connect();
+  try {
+    await client.query('SET statement_timeout = 8000');
+
+    const countResult = await client.query<{ total: string }>(
+      `SELECT COUNT(*) AS total FROM documents WHERE ${whereClause}`,
+      ftsParams
+    );
+    const total = parseInt(countResult.rows[0]?.total ?? '0', 10);
+
+    const { rows } = await client.query<RagDocument>(
+      `SELECT id, source_hash, bucket_slug, category, subcategory, title,
+              case_no, year, source_url, concise_summary, created_at, updated_at,
+              0::float AS _rank
+       FROM documents
+       WHERE ${whereClause}
+       ORDER BY
+         ${titleRankExpr} DESC,
+         year ASC NULLS LAST,
+         case_no ASC NULLS LAST
+       ${limitOffsetClause}`,
+      dataParams
+    );
+    return { rows, total };
+  } catch (err: any) {
+    if (err.code === '57014') {
+      // FTS timeout — fall back to title-only search across all terms
+      const titleParams: unknown[] = [];
+      const titleConds: string[] = [];
+      for (const ref of cleanedExactRefs) {
+        titleParams.push(`%${ref}%`);
+        titleConds.push(`title ILIKE $${titleParams.length}`);
+      }
+      const STOPS = new Set(['the','and','for','with','from','this','that','are','was',
+        'were','has','have','been','will','would','could','should','may','might',
+        'about','what','when','where','how','which','than','into','over','also',
+        'law','act','code','case','rule','section','article','republic','philippines',
+        'philippine','due','per','any','all']);
+      const keywords = [...new Set(
+        cleanedPhrases.flatMap(p =>
+          p.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !STOPS.has(w))
+        )
+      )].slice(0, Math.max(0, 10 - cleanedExactRefs.length));
+      for (const kw of keywords) {
+        titleParams.push(`%${kw}%`);
+        titleConds.push(`(title ILIKE $${titleParams.length} OR concise_summary ILIKE $${titleParams.length})`);
+      }
+      if (titleConds.length === 0) return { rows: [], total: 0 };
+
+      let titleLimitOffsetClause: string;
+      if (limit !== undefined && limit > 0) {
+        titleParams.push(limit, offset);
+        titleLimitOffsetClause = `LIMIT $${titleParams.length - 1} OFFSET $${titleParams.length}`;
+      } else {
+        titleParams.push(offset);
+        titleLimitOffsetClause = `OFFSET $${titleParams.length}`;
+      }
+      const { rows } = await client.query<RagDocument>(
+        `SELECT id, source_hash, bucket_slug, category, subcategory, title,
+                case_no, year, source_url, concise_summary, created_at, updated_at
+         FROM documents
+         WHERE ${titleConds.join(' OR ')}
+         ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
+         ${titleLimitOffsetClause}`,
+        titleParams
+      );
+      return { rows, total: rows.length };
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /** Get the full text of a document (heavy — only load when needed). */
 export async function getDocumentFullText(id: number): Promise<string | null> {
   const { rows } = await ragPool.query<Pick<RagDocument, "full_text">>(
