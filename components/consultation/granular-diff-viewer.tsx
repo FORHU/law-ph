@@ -60,10 +60,12 @@ export function GranularDiffViewer({
   original,
   current,
   onSourceLinkClick,
+  onSourceClick,
 }: {
   original?: string;
   current?: string;
   onSourceLinkClick?: (itemId: string, title?: string) => void;
+  onSourceClick?: (source: { reference: string; description: string; type: string; itemId?: string }, context?: string) => void;
 }) {
   const safeOriginal = original || "";
   const safeCurrent = current || "";
@@ -95,20 +97,23 @@ export function GranularDiffViewer({
         a: ({node, children, href, ...props}) => {
           const match = href && SOURCE_PATH_REGEX.exec(href);
           const itemId = match?.[1];
-          const isSourceLink = !!itemId && !!onSourceLinkClick;
+          const linkText = Array.isArray(children) ? children.join('') : String(children || '');
+
+          const handleClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            if (itemId && onSourceLinkClick) {
+              onSourceLinkClick(itemId, linkText);
+            } else if (linkText && onSourceClick) {
+              onSourceClick({ reference: linkText, description: linkText, type: 'article' });
+            }
+          };
+
           return (
             <a
               {...props}
               href={href}
-              target={isSourceLink ? undefined : '_blank'}
-              rel={isSourceLink ? undefined : 'noopener noreferrer'}
               className="text-white hover:text-[#e9c176] underline decoration-white/20 hover:decoration-[#e9c176]/50 font-bold transition-all cursor-pointer"
-              onClick={isSourceLink ? (e: React.MouseEvent) => { 
-                e.preventDefault(); 
-                // Pass the children text as the title if available
-                const title = children?.toString() || "";
-                onSourceLinkClick(itemId, title); 
-              } : undefined}
+              onClick={handleClick}
             >
               {children}
             </a>

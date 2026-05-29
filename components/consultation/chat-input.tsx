@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles, Mic, Square } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, MessageSquare, History, GitGraph, Mail, Calendar, FileText, Sparkles, Mic, Square, Plus, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { uploadToS3Direct } from '@/lib/s3-utils';
 import { startAWSBatchTranscription, getTranscriptionJobStatus, fetchTranscriptionText } from '@/lib/aws-transcribe-utils';
@@ -62,6 +62,19 @@ export function ChatInput({
 
   const isRecording = onRecordingChange ? externalIsRecording : internalIsRecording;
   const status = onStatusChange ? externalStatus : internalStatus;
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const mobileActionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMobileActions) return;
+    const handler = (e: MouseEvent) => {
+      if (mobileActionsRef.current && !mobileActionsRef.current.contains(e.target as Node)) {
+        setShowMobileActions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMobileActions]);
 
   const setIsRecording = (val: boolean) => {
     if (onRecordingChange) onRecordingChange(val);
@@ -409,131 +422,158 @@ export function ChatInput({
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center bg-[#0B0B0C]/40 backdrop-blur-xl border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[56px] shadow-none">
-                <AnimatePresence mode="wait">
-                  {!isRecording && status === 'idle' ? (
-                    <motion.textarea
-                      key="input"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      ref={textareaRef}
-                      id="chat-message-input"
-                      name="message"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder={placeholder}
-                      rows={1}
-                      className="flex-1 pl-4 pr-2 py-3 bg-transparent text-sm md:text-base text-gray-200 placeholder-gray-600 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed max-h-[160px] overflow-y-auto font-inter"
-                      disabled={disabled}
-                    />
-                  ) : (
-                    <motion.div
-                      key="voice"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="flex-1 flex items-center px-4 gap-4"
-                    >
-                      <div className="flex-1 flex items-center gap-1 h-6">
-                        {Array.from({ length: 32 }).map((_, i) => (
-                          <motion.div
-                            key={i}
-                            animate={{
-                              height: status === 'listening' ? Math.max(2, (volume / 100) * 24 * (1 - Math.abs(i - 16) / 16)) : 2,
-                              opacity: status === 'listening' ? 0.8 : 0.2
-                            }}
-                            className="w-1 bg-[#e9c176] rounded-full"
-                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[10px] font-black tracking-[0.2em] text-[#e9c176] animate-pulse whitespace-nowrap">
-                        {status === 'listening' ? 'RECORDING...' : 'TRANSCRIBING...'}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/png,image/jpeg,audio/mpeg,audio/wav,audio/x-m4a,audio/mp4"
+                className="hidden"
+                disabled={disabled}
+              />
 
-                {/* Hidden File Input (attach) */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.mp3,.wav,.m4a,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/*,audio/*"
-                  className="hidden"
+              <div className="flex items-end gap-2">
 
-                  disabled={disabled}
-                />
-
-                {/* Paperclip / Attach button */}
-                <button
-                  type="button"
-                  title="Attach Document or Media"
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                  }}
-                  className="h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-[#722f37]/20"
-
-                  disabled={disabled}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:size-5 md:stroke-2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-
-                </button>
-
-                {/* Analyze Document button */}
-                {onAnalyzeFile && (
+                {/* Mobile: + button outside the pill so the popup isn't clipped */}
+                <div ref={mobileActionsRef} className="relative flex sm:hidden flex-shrink-0 pb-1">
                   <button
                     type="button"
-                    title={isAnalyzing ? 'Analyzing document...' : 'Analyze Document with AI'}
-                    onClick={() => {
-                      if (!isAnalyzing) onAnalyzeClick?.();
-                    }}
-                    className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isAnalyzing
-                      ? 'text-[#e9c176] bg-[#722f37]/20 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'
-                      }`}
-                    disabled={disabled || isAnalyzing}
+                    onClick={() => setShowMobileActions(v => !v)}
+                    className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center ${showMobileActions ? 'bg-[#722f37]/30 border-[#722f37]/50 text-[#e9c176]' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    disabled={disabled}
                   >
-                    {isAnalyzing ? (
-                      <Loader2 size={20} className="animate-spin md:size-4" />
-                    ) : (
-                      <Sparkles size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
-
-                    )}
-
+                    <Plus size={18} strokeWidth={2.5} />
                   </button>
-                )}
+                  <AnimatePresence>
+                    {showMobileActions && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 6 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 6 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute bottom-full left-0 mb-2 flex flex-col gap-0.5 bg-[#0B0B0C]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-xl z-50 min-w-[170px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => { fileInputRef.current?.click(); setShowMobileActions(false); }}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm text-left"
+                        >
+                          <Paperclip size={15} /> Attach File
+                        </button>
+                        {onAnalyzeFile && (
+                          <button
+                            type="button"
+                            onClick={() => { if (!isAnalyzing) onAnalyzeClick?.(); setShowMobileActions(false); }}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-[#e9c176] hover:bg-[#722f37]/10 transition-colors text-sm text-left"
+                          >
+                            <Sparkles size={15} /> Analyze with AI
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { handleVoiceToggle(); setShowMobileActions(false); }}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-[#e9c176] hover:bg-[#722f37]/10 transition-colors text-sm text-left"
+                        >
+                          <Mic size={15} /> Voice Recording
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                {/* Voice Mode button */}
-                <button
-                  type="button"
-                  title={isRecording ? "Stop Recording" : "Record Voice Message"}
-                  onClick={handleVoiceToggle}
-                  className={`h-11 w-11 md:h-10 md:w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
-                  disabled={disabled || status === 'thinking'}
-                >
-                  {isRecording ? (
-                    <Square size={16} fill="currentColor" className="md:size-3.5" />
-                  ) : status === 'thinking' ? (
-                    <Loader2 size={20} className="animate-spin text-[#e9c176] md:size-4" />
-                  ) : (
-                    <Mic size={20} className="md:size-4 stroke-[2.5] md:stroke-2" />
-                  )}
-                </button>
+                {/* Input pill */}
+                <div className="flex-1 flex items-center bg-[#0B0B0C]/40 backdrop-blur-xl border border-white/10 rounded-[1.5rem] focus-within:border-[#722f37]/50 transition-all overflow-hidden p-1.5 min-h-[44px] md:min-h-[56px] shadow-none">
+                  <AnimatePresence mode="wait">
+                    {!isRecording && status === 'idle' ? (
+                      <motion.textarea
+                        key="input"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        ref={textareaRef}
+                        id="chat-message-input"
+                        name="message"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={placeholder}
+                        rows={1}
+                        className="flex-1 pl-4 pr-2 py-2 md:py-3 bg-transparent text-base text-gray-200 placeholder-gray-600 resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed max-h-[160px] overflow-y-auto font-inter"
+                        disabled={disabled}
+                      />
+                    ) : (
+                      <motion.div
+                        key="voice"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className="flex-1 flex items-center px-4 gap-4"
+                      >
+                        <div className="flex-1 flex items-center gap-1 h-6">
+                          {Array.from({ length: 32 }).map((_, i) => (
+                            <motion.div
+                              key={i}
+                              animate={{
+                                height: status === 'listening' ? Math.max(2, (volume / 100) * 24 * (1 - Math.abs(i - 16) / 16)) : 2,
+                                opacity: status === 'listening' ? 0.8 : 0.2
+                              }}
+                              className="w-1 bg-[#e9c176] rounded-full"
+                              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-black tracking-[0.2em] text-[#e9c176] animate-pulse whitespace-nowrap">
+                          {status === 'listening' ? 'RECORDING...' : 'TRANSCRIBING...'}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                <button
-                  className={`h-11 w-11 md:h-10 md:w-10 bg-gradient-to-r from-[#722f37] to-[#8b3a44] rounded-xl hover:from-[#8b3a44] hover:to-[#722f37] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/20`}
-                  onClick={handleSend}
-                  disabled={disabled || (!value.trim() && !selectedFile)}
-                >
-                  {disabled ? (
-                    <Loader2 size={20} className="text-white animate-spin md:size-4" />
-                  ) : (
-                    <Send size={20} className="text-white md:size-4 stroke-[2.5] md:stroke-2" />
-                  )}
-                </button>
+                  {/* Desktop: all buttons inside pill */}
+                  <div className="hidden sm:flex items-center">
+                    <button
+                      type="button"
+                      title="Attach Document or Media"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-10 w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-white hover:bg-[#722f37]/20"
+                      disabled={disabled}
+                    >
+                      <Paperclip size={18} strokeWidth={2} />
+                    </button>
+                    {onAnalyzeFile && (
+                      <button
+                        type="button"
+                        title={isAnalyzing ? 'Analyzing document...' : 'Analyze Document with AI'}
+                        onClick={() => { if (!isAnalyzing) onAnalyzeClick?.(); }}
+                        className={`h-10 w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isAnalyzing ? 'text-[#e9c176] bg-[#722f37]/20 cursor-not-allowed' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
+                        disabled={disabled || isAnalyzing}
+                      >
+                        {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} strokeWidth={2} />}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      title={isRecording ? "Stop Recording" : "Record Voice Message"}
+                      onClick={handleVoiceToggle}
+                      className={`h-10 w-10 rounded-lg transition-all flex items-center justify-center flex-shrink-0 mr-1 ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'text-gray-500 hover:text-[#e9c176] hover:bg-[#722f37]/20'}`}
+                      disabled={disabled || status === 'thinking'}
+                    >
+                      {isRecording ? <Square size={14} fill="currentColor" /> : status === 'thinking' ? <Loader2 size={18} className="animate-spin text-[#e9c176]" /> : <Mic size={18} strokeWidth={2} />}
+                    </button>
+                  </div>
+
+                  <button
+                    className="h-9 w-9 md:h-10 md:w-10 bg-gradient-to-r from-[#722f37] to-[#8b3a44] rounded-xl hover:from-[#8b3a44] hover:to-[#722f37] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/20"
+                    onClick={handleSend}
+                    disabled={disabled || (!value.trim() && !selectedFile)}
+                  >
+                    {disabled ? (
+                      <Loader2 size={18} className="text-white animate-spin" />
+                    ) : (
+                      <Send size={18} className="text-white" strokeWidth={2.5} />
+                    )}
+                  </button>
+                </div>
 
               </div>
             </div>

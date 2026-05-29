@@ -1,8 +1,115 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Loader2, BookOpen, Gavel, Bookmark, Mic, Download } from 'lucide-react';
+import { X, Loader2, BookOpen, Gavel, Bookmark, Mic, Download, Scale } from 'lucide-react';
+
+const LEGAL_LOADING_STEPS = [
+  { icon: '📜', label: 'Consulting the legal archives…' },
+  { icon: '⚖️', label: 'Weighing statutes and precedents…' },
+  { icon: '🔍', label: 'Cross-referencing jurisprudence…' },
+  { icon: '📚', label: 'Reviewing Supreme Court rulings…' },
+  { icon: '✍️', label: 'Synthesizing legal doctrine…' },
+  { icon: '🏛️', label: 'Preparing your legal analysis…' },
+];
+
+function LegalDeepLoadingProgress() {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [dots, setDots] = useState('');
+
+  useEffect(() => {
+    const stepTimer = setInterval(() => {
+      setStepIndex(i => Math.min(i + 1, LEGAL_LOADING_STEPS.length - 1));
+    }, 2800);
+
+    const dotTimer = setInterval(() => {
+      setDots(d => (d.length >= 3 ? '' : d + '.'));
+    }, 400);
+
+    const progressTimer = setInterval(() => {
+      setProgress(p => {
+        if (p < 40) return p + 4;
+        if (p < 70) return p + 1.5;
+        if (p < 88) return p + 0.4;
+        return p;
+      });
+    }, 180);
+
+    return () => {
+      clearInterval(stepTimer);
+      clearInterval(dotTimer);
+      clearInterval(progressTimer);
+    };
+  }, []);
+
+  const step = LEGAL_LOADING_STEPS[stepIndex];
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-8 px-8 select-none">
+      {/* Animated icon */}
+      <motion.div
+        key={stepIndex}
+        initial={{ scale: 0.6, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        className="text-6xl"
+      >
+        {step.icon}
+      </motion.div>
+
+      <div className="w-full max-w-xs space-y-4 text-center">
+        {/* Step label */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={stepIndex}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.3 }}
+            className="text-sm font-serif text-gray-300 leading-relaxed"
+          >
+            {step.label.replace('…', dots || '…')}
+          </motion.p>
+        </AnimatePresence>
+
+        {/* Progress bar */}
+        <div className="relative h-1 bg-white/10 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              width: `${progress}%`,
+              background: 'linear-gradient(90deg, #722f37, #e9c176)',
+            }}
+            transition={{ duration: 0.18 }}
+          />
+          {/* shimmer */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.8s_infinite] rounded-full" />
+        </div>
+
+        {/* Step indicator pills */}
+        <div className="flex justify-center gap-1.5">
+          {LEGAL_LOADING_STEPS.map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                width: i === stepIndex ? 20 : 6,
+                backgroundColor: i <= stepIndex ? '#e9c176' : 'rgba(255,255,255,0.15)',
+              }}
+              transition={{ duration: 0.3 }}
+              className="h-1.5 rounded-full"
+            />
+          ))}
+        </div>
+
+        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-mono">
+          AI Legal Analysis · Chat Wonder
+        </p>
+      </div>
+    </div>
+  );
+}
 import { LegalSource, RelatedCase, isGenericTitle, extractTitleFromContent, cleanLegalTitle } from '@/lib/citation-parser';
 import { fetchSourceContent, fetchCaseContent, LegalContentDetail } from '@/lib/legal-content-fetcher';
 import { COLORS, S3_CONFIG } from '@/lib/constants';
@@ -23,6 +130,8 @@ interface SourceDetailSidebarProps {
 export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context }: SourceDetailSidebarProps) {
   const [content, setContent] = useState<LegalContentDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeepLoader, setShowDeepLoader] = useState(false);
+  const deepLoaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localVoiceNotes, setLocalVoiceNotes] = useState<{ id: string; url: string; label?: string }[]>([]);
   const { addBookmark, removeBookmark, isBookmarked } = useConversations();
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
@@ -48,6 +157,9 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
 
   const loadContent = async () => {
     setIsLoading(true);
+    setShowDeepLoader(false);
+    // After 600ms still loading → switch to the full AI progress UI (Tier 3 path)
+    deepLoaderTimerRef.current = setTimeout(() => setShowDeepLoader(true), 600);
     try {
       let detail: LegalContentDetail;
       if (source) {
@@ -72,6 +184,8 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
     } catch (error) {
       console.error('Failed to load content:', error);
     } finally {
+      if (deepLoaderTimerRef.current) clearTimeout(deepLoaderTimerRef.current);
+      setShowDeepLoader(false);
       setIsLoading(false);
     }
   };
@@ -175,35 +289,11 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                 >
                   {icon}
                 </div>
-                <div>
-                  <h2 className="text-xl font-serif text-white tracking-tight">
-                    {isCase ? 'Case Record' : 'Legal Source'}
-                  </h2>
-                  <p className="text-[10px] font-bold text-[#e9c176]/50 uppercase tracking-[0.2em] mt-1">
-                    {(() => {
-                      const rawTitle = content?.title || caseItem?.title || '';
-                      const rawRef = content?.reference || source?.reference || caseItem?.caseNumber || '';
-
-                      const cleanedTitle = cleanLegalTitle(rawTitle);
-                      const cleanedRef = cleanLegalTitle(rawRef);
-
-                      // 1. If title is a G.R./RA/AO No., it's the best "reference title"
-                      if (cleanedTitle.match(/(?:G\.R\.|R\.A\.|Republic\s+Act|A\.O\.|Administrative\s+Order|P\.D\.|Presidential\s+Decree|B\.P\.|Batas\s+Pambansa)\s*(?:No\.|Blg\.)?\s*[\w-]+/i)) {
-                        return cleanedTitle;
-                      }
-
-                      // 2. Short references are perfect for the subtitle
-                      if (cleanedRef && cleanedRef.length <= 30 && !isGenericTitle(cleanedRef)) {
-                        return cleanedRef;
-                      }
-
-                      // 3. Fallback to cleaned title if not generic
-                      if (cleanedTitle && !isGenericTitle(cleanedTitle)) {
-                        return cleanedTitle;
-                      }
-
-                      return cleanedRef || (isLoading ? 'Loading document...' : '');
-                    })()}
+                <div className="min-w-0">
+                  <p className="text-lg font-bold font-serif text-white leading-snug line-clamp-2">
+                    {isCase
+                      ? (caseItem?.title || 'Case Record')
+                      : (source?.reference || content?.title || 'Legal Source')}
                   </p>
                 </div>
               </div>
@@ -240,18 +330,22 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-[#e9c176]" size={32} />
-                </div>
+                showDeepLoader ? (
+                  <LegalDeepLoadingProgress />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="animate-spin text-[#e9c176]" size={32} />
+                  </div>
+                )
               ) : content ? (
                 <div className="space-y-6">
                   {/* Title */}
                   <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">
+                    <div className="text-3xl font-bold font-serif text-white mb-2">
                       {content.title}
-                    </h1>
+                    </div>
                     {content.reference && content.reference.length > 20 && isCase ? null : (
-                      <p className="text-sm text-gray-400">{content.reference}</p>
+                      <p className="text-base text-gray-400">{content.reference}</p>
                     )}
                   </div>
 
@@ -282,44 +376,17 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     ) : (
                       <ReactMarkdown
                         components={{
-                          h1: ({ children }) => (
-                            <h1 className="text-2xl font-bold text-white mb-4 mt-6">
-                              {children}
-                            </h1>
-                          ),
-                          h2: ({ children }) => (
-                            <h2 className="text-xl font-bold text-white mb-3 mt-5">
-                              {children}
-                            </h2>
-                          ),
-                          h3: ({ children }) => (
-                            <h3 className="text-lg font-semibold text-white mb-2 mt-4">
-                              {children}
-                            </h3>
-                          ),
-                          p: ({ children }) => (
-                            <p className="text-gray-300 mb-4 leading-relaxed">
-                              {children}
-                            </p>
-                          ),
-                          ul: ({ children }) => (
-                            <ul className="list-disc ml-5 mb-4 space-y-2 text-gray-300">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ol className="list-decimal ml-5 mb-4 space-y-2 text-gray-300">
-                              {children}
-                            </ol>
-                          ),
-                          strong: ({ children }) => (
-                            <strong className="text-white font-semibold">
-                              {children}
-                            </strong>
-                          ),
+                          h1: ({ children }) => <div className="text-3xl font-bold font-serif text-white mb-4 mt-6">{children}</div>,
+                          h2: ({ children }) => <div className="text-2xl font-bold font-serif text-white mb-3 mt-5">{children}</div>,
+                          h3: ({ children }) => <div className="text-xl font-semibold font-serif text-white mb-2 mt-4">{children}</div>,
+                          p: ({ children }) => <p className="text-l text-gray-300 mb-4 leading-relaxed">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc ml-5 mb-4 space-y-2 text-lg text-gray-300">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-lg text-gray-300">{children}</ol>,
+                          li: ({ children }) => <li className="text-lg text-gray-300 leading-relaxed">{children}</li>,
+                          strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>,
                         }}
                       >
-                        {content.fullText}
+                        {content.fullText.replace(/^#[^\n]*\n?/, "")}
                       </ReactMarkdown>
                     )}
                   </div>
@@ -360,7 +427,7 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                             <div className="w-full flex items-center gap-3">
                               <audio
                                 controls
-                                src={note.s3_key ? `${S3_CONFIG.CDN_URL || ''}${note.s3_key}` : formatS3Url(note.url)}
+                                src={note.s3_key ? `${(S3_CONFIG.CDN_URL || 'https://da6hq15h0otl9.cloudfront.net').replace(/\/$/, '')}/${note.s3_key}` : formatS3Url(note.url)}
                                 controlsList="nodownload"
                                 className="h-10 w-full rounded-lg bg-transparent filter invert brightness-125 contrast-125"
                                 onLoadedMetadata={(e) => {
@@ -382,24 +449,6 @@ export function SourceDetailSidebar({ isOpen, onClose, source, caseItem, context
                     </div>
                   )}
 
-                  {/* External Link */}
-                  {content.url && (
-                    <div className="pt-4 border-t border-white/10">
-                      <a
-                        href={content.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        style={{
-                          backgroundColor: `${COLORS.PRIMARY}20`,
-                          color: COLORS.PRIMARY_LIGHT
-                        }}
-                      >
-                        <ExternalLink size={16} />
-                        View Official Source
-                      </a>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-400">
