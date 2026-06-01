@@ -125,7 +125,7 @@ const LoginScreen = () => {
               onClick={() => router.push(AUTH_ROUTES.SIGN_UP)}
               className="text-[#e9c176] hover:text-white transition-colors cursor-pointer ml-2"
             >
-              Request Access
+              Sign Up Here
             </button>
           </p>
         </div>

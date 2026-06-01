@@ -14,6 +14,7 @@ interface AuthInputProps {
   required?: boolean;
   delay?: number;
   minLength?: number;
+  autoComplete?: string;
 }
 
 export function AuthInput({
@@ -25,7 +26,8 @@ export function AuthInput({
   placeholder,
   required = false,
   delay = 0.6,
-  minLength
+  minLength,
+  autoComplete
 }: AuthInputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -50,6 +52,7 @@ export function AuthInput({
           className={`w-full px-5 py-3.5 bg-[rgba(255,255,255,0.05)] border border-white/5 rounded-2xl text-white placeholder:text-white/20 focus:outline-none focus:border-secondary/40 focus:bg-[rgba(255,255,255,0.08)] transition-all duration-300 ${isPassword ? 'pr-14' : ''}`}
           required={required}
           minLength={minLength}
+          autoComplete={autoComplete}
         />
         {isPassword && (
           <button
