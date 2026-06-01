@@ -98,7 +98,9 @@ function CaseCard({ c, index, isSearchResult }: { c: CaseResult; index: number; 
             {c.case_name || 'Untitled Case'}
           </h3>
           {c.party_involved && (
-            <p className="text-[11px] text-gray-500 truncate mt-0.5">{c.party_involved}</p>
+            <p className="text-[11px] text-gray-500 truncate mt-0.5">
+              {c.party_involved.split(/[\n,]+/).map((s: string) => s.trim()).filter(Boolean).join(', ')}
+            </p>
           )}
           {isSearchResult && (
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#722f37] bg-[#722f37]/10 px-1.5 py-0.5 rounded-md border border-[#722f37]/20 mt-1 inline-block">

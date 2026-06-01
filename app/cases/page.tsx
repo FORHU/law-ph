@@ -75,7 +75,7 @@ export default function CasesPage() {
     const recordingsSnapshot = [...recordings];
     setIsSubmitting(true);
     try {
-      const partyString = parties.map((p) => p.value.trim()).filter(Boolean).join('\n');
+      const partyString = parties.map((p) => p.value.trim()).filter(Boolean).join(', ');
       const newCase = await handleCreateCase({ name: caseName, party: partyString, notes });
       if (newCase) {
         if (recordingsSnapshot.length > 0) {

@@ -417,10 +417,10 @@ export function ChatInput({
               <AnimatePresence>
                 {selectedFile && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 ml-2 flex items-center gap-2 bg-[#0B0B0C]/80 border border-[#722f37]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg z-20 backdrop-blur-xl"
+                    exit={{ opacity: 0, y: -6 }}
+                    className="mb-2 ml-2 flex items-center gap-2 bg-[#0B0B0C]/80 border border-[#722f37]/30 rounded-xl pl-3 pr-2 py-2 shadow-lg backdrop-blur-xl self-start w-fit"
                   >
                     <FileText size={16} className="text-[#e9c176]" />
                     <span className="text-xs text-white max-w-[200px] truncate">{selectedFile.name}</span>

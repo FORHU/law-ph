@@ -196,7 +196,10 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
         .map((m) => m.text.trim())
         .filter(Boolean);
 
-      let description = `**Party Involved:** ${activeCase.party_involved || "N/A"}\n\n**Notes:**\n${activeCase.notes || "None provided"}`;
+      const partiesDisplay = activeCase.party_involved
+        ? activeCase.party_involved.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).join(', ')
+        : "N/A";
+      let description = `**Party Involved:** ${partiesDisplay}\n\n**Notes:**\n${activeCase.notes || "None provided"}`;
 
       if (transcribedTexts.length > 0) {
         description += `\n\n---\n\n**Recorded Audio:**\n${transcribedTexts.map((t, i) => `${i + 1}. ${t}`).join("\n\n")}`;
@@ -281,6 +284,8 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
     setEmailSubject,
     emailBody,
     setEmailBody,
+    selectedFindingText,
+    setSelectedFindingText,
     isSendingEmail,
     emailSentStatus,
     emailErrorMessage,
@@ -961,7 +966,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                           className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-300 outline-none hover:border-[#e9c176]/50 cursor-pointer transition-all"
                         >
                           <span className="truncate pr-4">
-                            {emailBody ? emailBody.replace(/[#*]/g, '').trim().substring(0, 50) + (emailBody.length > 50 ? "..." : "") : "-- Select an AI finding to insert --"}
+                            {selectedFindingText ? selectedFindingText.replace(/[#*]/g, '').trim().substring(0, 50) + (selectedFindingText.length > 50 ? "..." : "") : "-- Select an AI finding to insert --"}
                           </span>
                           <ChevronDown size={16} className={`transition-transform duration-200 text-white/60 ${emailFindingsDropdownOpen ? 'rotate-180' : ''}`} />
                         </div>
@@ -979,10 +984,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                 <div
                                   onClick={() => {
                                     setEmailBody("");
+                                    setSelectedFindingText(null);
                                     setEmailFindingsDropdownOpen(false);
                                   }}
                                   className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5
-                                    ${!emailBody ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/80 hover:bg-white/5 hover:text-white"}
+                                    ${!selectedFindingText ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/80 hover:bg-white/5 hover:text-white"}
                                   `}
                                 >
                                   -- Select an AI finding to insert --
@@ -992,10 +998,11 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
                                     key={idx}
                                     onClick={() => {
                                       setEmailBody(m.text);
+                                      setSelectedFindingText(m.text);
                                       setEmailFindingsDropdownOpen(false);
                                     }}
                                     className={`px-4 py-3 text-sm cursor-pointer transition-all border-b border-white/5 last:border-none
-                                      ${emailBody === m.text ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/60 hover:bg-white/5 hover:text-white"}
+                                      ${selectedFindingText === m.text ? "bg-[#e9c176]/20 text-white font-bold" : "text-white/60 hover:bg-white/5 hover:text-white"}
                                     `}
                                   >
                                     <div className="line-clamp-2 leading-relaxed">

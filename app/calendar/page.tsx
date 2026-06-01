@@ -3244,6 +3244,9 @@ export default function CalendarPage() {
                           className="flex-1 bg-transparent text-sm text-white outline-none min-w-[120px] placeholder:text-gray-600"
                         />
                       </div>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Type an email address then press <kbd className="px-1 py-0.5 bg-white/10 rounded text-gray-400 font-mono text-[10px]">Enter</kbd> or <kbd className="px-1 py-0.5 bg-white/10 rounded text-gray-400 font-mono text-[10px]">Space</kbd> to add it.
+                      </p>
                     </div>
 
                     <div>

@@ -73,7 +73,9 @@ function CaseCard({ caseItem, onDelete, onClose }: { caseItem: CaseData; onDelet
           {caseItem.party_involved && (
             <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
               <Users size={10} />
-              <span className="truncate">{caseItem.party_involved}</span>
+              <span className="truncate">
+                {caseItem.party_involved.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).join(', ')}
+              </span>
             </div>
           )}
           {caseItem.notes && (

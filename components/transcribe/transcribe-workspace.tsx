@@ -406,6 +406,12 @@ export default function TranscribeWorkspace({
     const file = event.target.files?.[0];
     if (!file || !userId) return;
 
+    if (!file.type.startsWith('audio/')) {
+      showAlert("Only audio files are supported. Please upload an MP3, WAV, M4A, or similar audio file.", "Invalid File Type");
+      if (event.target) event.target.value = "";
+      return;
+    }
+
     setIsUploading(true);
     setUploadStatus("Uploading to S3...");
 

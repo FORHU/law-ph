@@ -69,6 +69,7 @@ export function useConsultationState({
   const [emailTo, setEmailTo] = useState<string[]>([]);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [selectedFindingText, setSelectedFindingText] = useState<string | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSentStatus, setEmailSentStatus] = useState<
     "idle" | "success" | "error"
@@ -393,7 +394,7 @@ export function useConsultationState({
         {
           date: caseDate,
           title: "Case Created",
-          description: `Case "${activeCase.case_name || "Untitled"}" opened. Parties: ${activeCase.party_involved || "Not specified"}.`,
+          description: `Case "${activeCase.case_name || "Untitled"}" opened. Parties: ${activeCase.party_involved ? activeCase.party_involved.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).join(', ') : "Not specified"}.`,
           status: "completed",
           requires_previous: false,
         },
@@ -1080,6 +1081,8 @@ export function useConsultationState({
       setEmailSubject,
       emailBody,
       setEmailBody,
+      selectedFindingText,
+      setSelectedFindingText,
       isSendingEmail,
       emailSentStatus,
       emailErrorMessage,
