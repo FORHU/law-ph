@@ -12,13 +12,12 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const sectionKey = '/' + (pathname.split('/')[1] || '');
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="sync">
       <motion.div
         key={sectionKey}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
         className="contents"
       >
         {children}

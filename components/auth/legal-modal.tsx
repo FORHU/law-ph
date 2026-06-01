@@ -247,18 +247,6 @@ function PrivacyContent() {
           the platform after any changes constitutes acceptance of the revised policy.
         </p>
       </Section>
-
-      <Section title="Contact Us">
-        <p>
-          If you have questions, concerns, or requests regarding this Privacy Policy or the handling
-          of your personal data, please contact our Data Protection Officer at:
-        </p>
-        <div className="mt-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm space-y-1">
-          <p className="text-white font-bold">Law-PH — ilovelawyer</p>
-          <p>Email: <span className="text-[#e9c176]">privacy@ilovelawyer.com</span></p>
-          <p>Republic of the Philippines</p>
-        </div>
-      </Section>
     </div>
   );
 }
