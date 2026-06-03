@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, FileText, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, Shield, FileText, Sparkles, CheckSquare, ChevronRight, ChevronDown } from 'lucide-react';
 
-type ModalType = 'terms' | 'privacy';
+type ModalType = 'terms' | 'privacy' | 'ethical-ai' | 'compliance';
 
 interface LegalModalProps {
   type: ModalType;
@@ -251,8 +251,158 @@ function PrivacyContent() {
   );
 }
 
+function EthicalAIContent() {
+  return (
+    <div>
+      <p className="text-gray-400 text-sm leading-relaxed mb-8">
+        <strong className="text-white">ilovelawyer</strong> is built on a commitment to responsible, transparent, and human-centered AI.
+        This charter outlines the principles that govern how our AI systems are developed and used within the platform.
+      </p>
+
+      <Section title="AI as a Tool, Not a Lawyer">
+        <p>
+          Our AI provides legal information — not legal advice. It does not create an attorney-client relationship,
+          cannot represent you in any legal proceeding, and should not be used as a substitute for a licensed
+          attorney. Always consult a qualified lawyer for decisions that affect your legal rights.
+        </p>
+      </Section>
+
+      <Section title="Transparency of AI Outputs">
+        <p>
+          Every AI-generated response is clearly labeled as such. Where applicable, the platform cites the
+          source documents, case references, or statutes used to generate a response so users can verify
+          information independently.
+        </p>
+        <p>
+          We do not hide the limitations of AI. When the system is uncertain or lacks sufficient information,
+          it is designed to say so rather than fabricate an answer.
+        </p>
+      </Section>
+
+      <Section title="Accuracy and Currency of Information">
+        <p>
+          Our legal knowledge base is built from official Philippine legal sources — the Official Gazette,
+          the Supreme Court E-Library, and government agency publications. However, laws and jurisprudence
+          change. Users are responsible for verifying that any information obtained is current and applicable
+          to their specific situation.
+        </p>
+      </Section>
+
+      <Section title="Non-Discrimination">
+        <p>
+          ilovelawyer is committed to equal access to legal information regardless of a user's background,
+          beliefs, or circumstances. Our AI is designed to serve all users impartially and without bias.
+          We actively monitor and address any discriminatory patterns in AI outputs.
+        </p>
+      </Section>
+
+      <Section title="Human Oversight">
+        <p>
+          AI interactions on this platform are subject to human review for quality, safety, and legal accuracy.
+          No AI system is fully autonomous — our team maintains oversight of how the system performs and
+          intervenes when necessary.
+        </p>
+      </Section>
+
+      <Section title="Data Minimization">
+        <p>
+          We collect only the data necessary to provide the service. Queries submitted to the AI are used
+          to generate responses and improve the platform — they are never sold to third parties or used
+          for advertising purposes.
+        </p>
+      </Section>
+
+      <Section title="Continuous Improvement">
+        <p>
+          We treat AI ethics as an ongoing commitment, not a one-time checklist. We regularly review our
+          systems, update our knowledge base, and respond to user feedback to ensure the platform remains
+          accurate, fair, and beneficial to those who rely on it.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+function ComplianceContent() {
+  return (
+    <div>
+      <p className="text-gray-400 text-sm leading-relaxed mb-8">
+        <strong className="text-white">ilovelawyer</strong> operates in full compliance with applicable Philippine laws and regulations.
+        This page outlines the legal framework governing the platform and the responsibilities of both the operator and the user.
+      </p>
+
+      <Section title="Data Privacy Act of 2012 (RA 10173)">
+        <p>
+          All personal data collected and processed by the platform is handled in accordance with Republic Act No. 10173
+          and its Implementing Rules and Regulations. We are committed to the principles of transparency, legitimate purpose,
+          and proportionality in all data processing activities.
+        </p>
+        <p>
+          Users have the right to access, correct, and erase their personal data at any time. Requests may be
+          directed to <span className="text-[#e9c176]">privacy@ilovelawyer.com</span>.
+        </p>
+      </Section>
+
+      <Section title="National Privacy Commission (NPC)">
+        <p>
+          As a personal information controller operating in the Philippines, we comply with all NPC advisories,
+          circulars, and guidelines on data privacy. Users may lodge complaints with the NPC if they believe
+          their data privacy rights have been violated.
+        </p>
+      </Section>
+
+      <Section title="Electronic Commerce Act (RA 8792)">
+        <p>
+          All electronic transactions, documents, and agreements on this platform are governed by Republic Act
+          No. 8792. Digital records and communications made through ilovelawyer are recognized as valid and
+          legally binding under this Act.
+        </p>
+      </Section>
+
+      <Section title="Cybercrime Prevention Act (RA 10175)">
+        <p>
+          Unauthorized access to the platform, misuse of user accounts, or any activity that constitutes a
+          cybercrime under Republic Act No. 10175 is strictly prohibited. Violations will be reported to the
+          appropriate authorities.
+        </p>
+      </Section>
+
+      <Section title="IBP Guidelines on Legal Technology">
+        <p>
+          ilovelawyer does not engage in the practice of law. The platform is a legal information tool and
+          operates within the boundaries set by the Integrated Bar of the Philippines (IBP) regarding the use
+          of technology in legal services. No unauthorized practice of law occurs through this platform.
+        </p>
+      </Section>
+
+      <Section title="AI Regulation and Responsible Use">
+        <p>
+          We monitor developments in Philippine and international AI regulation and commit to adapting our
+          platform as the regulatory landscape evolves. We support the responsible deployment of AI in the
+          legal sector and participate in relevant consultations and industry discussions.
+        </p>
+      </Section>
+
+      <Section title="Contact for Compliance Concerns">
+        <p>
+          For any compliance-related inquiries, please contact us at{' '}
+          <span className="text-[#e9c176]">compliance@ilovelawyer.com</span>. We will respond within 10 business days.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+const MODAL_META: Record<ModalType, { title: string; icon: React.ReactNode }> = {
+  'terms':       { title: 'Terms of Service',    icon: <FileText size={16} className="text-[#e9c176]" /> },
+  'privacy':     { title: 'Privacy Policy',      icon: <Shield size={16} className="text-[#e9c176]" /> },
+  'ethical-ai':  { title: 'Ethical AI Charter',  icon: <Sparkles size={16} className="text-[#e9c176]" /> },
+  'compliance':  { title: 'Compliance',           icon: <CheckSquare size={16} className="text-[#e9c176]" /> },
+};
+
 export function LegalModal({ type, onClose, onRead }: LegalModalProps) {
   const isTerms = type === 'terms';
+  const meta = MODAL_META[type];
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
 
@@ -301,11 +451,11 @@ export function LegalModal({ type, onClose, onRead }: LegalModalProps) {
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.08] bg-[#111111] flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-[#722f37]/20 border border-[#722f37]/30 flex items-center justify-center">
-                {isTerms ? <FileText size={16} className="text-[#e9c176]" /> : <Shield size={16} className="text-[#e9c176]" />}
+                {meta.icon}
               </div>
               <div>
                 <h2 className="text-white font-serif text-lg tracking-tight">
-                  {isTerms ? 'Terms of Service' : 'Privacy Policy'}
+                  {meta.title}
                 </h2>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mt-0.5">
                   Last updated: {LAST_UPDATED}
@@ -326,14 +476,17 @@ export function LegalModal({ type, onClose, onRead }: LegalModalProps) {
             onScroll={handleScroll}
             className="flex-1 overflow-y-auto px-6 py-6 custom-sidebar-scrollbar"
           >
-            {isTerms ? <TermsContent /> : <PrivacyContent />}
+            {type === 'terms'      && <TermsContent />}
+            {type === 'privacy'    && <PrivacyContent />}
+            {type === 'ethical-ai' && <EthicalAIContent />}
+            {type === 'compliance' && <ComplianceContent />}
           </div>
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/[0.08] bg-[#111111] flex-shrink-0 flex items-center justify-between gap-4">
             {hasScrolledToBottom ? (
               <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
-                ✓ {isTerms ? 'Terms read' : 'Privacy Policy read'}
+                ✓ {meta.title} read
               </p>
             ) : (
               <p className="text-[10px] text-gray-500 leading-tight flex items-center gap-1.5">

@@ -118,6 +118,7 @@ export function MessageList({
     const legalRefs = msg.rawContent ? extractLegalReferences(msg.rawContent) : [];
     const seenRefs  = new Set(legalRefs.map(r => r.toLowerCase()));
     const streamTerms = [...legalRefs, ...tagTerms.filter(t => !seenRefs.has(t.toLowerCase()))];
+    console.log('[RELATED_QUERIES] tagTerms:', tagTerms, '| legalRefs:', legalRefs, '| final streamTerms:', streamTerms);
     if (streamTerms.length === 0) return; // no terms → no loading, no fetch
 
     const precedingUserMsg = [...messages.slice(0, msgIndex)].reverse().find(m => m.sender === 'user');

@@ -11,6 +11,7 @@ import { AuthHeader } from './auth/shared/auth-header';
 import { AuthInput } from './auth/shared/auth-input';
 import { AuthButton } from './auth/shared/auth-button';
 import { motion } from 'framer-motion';
+import { LegalModal } from '@/components/auth/legal-modal';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -19,6 +20,7 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
   const oauthError = searchParams?.get('error');
   const oauthErrorMessage =
@@ -55,6 +57,7 @@ const LoginScreen = () => {
 
   return (
     <AuthLayout maxWidth="max-w-xl">
+      {legalModal && <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />}
       <AuthCard>
         <AuthHeader
           icon={Lock}
@@ -142,11 +145,11 @@ const LoginScreen = () => {
         </div>
         <p className="text-white/40 text-xs">
           By signing in, you agree to our{' '}
-          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
+          <button type="button" onClick={() => setLegalModal('terms')} className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
             Legal Terms
           </button>
           {' '}&{' '}
-          <button type="button" className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
+          <button type="button" onClick={() => setLegalModal('privacy')} className="text-white/60 hover:text-white underline transition-colors text-[12px] cursor-pointer">
             Data Privacy Policy
           </button>
         </p>

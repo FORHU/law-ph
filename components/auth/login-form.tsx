@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from "react"
+import { LegalModal } from "@/components/auth/legal-modal"
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -11,6 +12,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false);
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
 
   useEffect(() => {
     setEmail('');
@@ -47,6 +49,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
   return (
     <>
+      {legalModal && <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />}
       <div className="flex min-h-full flex-col justify-center px-6 lg:px-8 py-10">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <h2 className="mt-10 text-center text-2xl font-serif tracking-tight text-white uppercase letter-spacing-[0.1em]">Sign In</h2>
@@ -131,6 +134,17 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest inline-block mr-2">No account yet?</p>
               <a href="/auth/sign-up" className="text-[10px] font-bold text-[#e9c176] hover:text-white uppercase tracking-[0.2em] transition-colors">Sign Up</a>
             </div>
+
+            <p className="text-center text-[10px] text-gray-600 leading-relaxed">
+              By signing in, you agree to our{' '}
+              <button type="button" onClick={() => setLegalModal('terms')} className="text-gray-400 hover:text-[#e9c176] underline transition-colors">
+                Terms of Service
+              </button>
+              {' '}and{' '}
+              <button type="button" onClick={() => setLegalModal('privacy')} className="text-gray-400 hover:text-[#e9c176] underline transition-colors">
+                Privacy Policy
+              </button>
+            </p>
           </form>
         </div>
       </div>
