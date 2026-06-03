@@ -70,7 +70,7 @@ export function PageLayout({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className={`${maxWidth} mx-auto h-full w-full flex flex-col`}
+            className={`${maxWidth} mx-auto flex-1 min-h-0 w-full flex flex-col`}
           >
             {children}
           </motion.div>

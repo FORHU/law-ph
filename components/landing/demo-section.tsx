@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth/auth-provider';
 import { MessageSquare, ArrowRight, Scale } from 'lucide-react';
 
 interface DemoSectionProps {
@@ -11,6 +12,15 @@ interface DemoSectionProps {
 
 export function DemoSection({ setActiveAngle }: DemoSectionProps) {
   const router = useRouter();
+  const { loggedIn } = useAuth();
+
+  const handleStartConsultation = () => {
+    if (!loggedIn) {
+      router.push('/auth/login');
+      return;
+    }
+    router.push('/consultation');
+  };
 
   return (
     <section
@@ -73,7 +83,7 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
             className="mt-10 sm:mt-16 lg:mt-20 flex justify-center"
           >
             <button
-              onClick={() => router.push('/consultation')}
+              onClick={handleStartConsultation}
               className="bg-[#722f37] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 text-base sm:text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#722f37]/20 w-full sm:w-auto justify-center"
             >
               <MessageSquare className="w-5 h-5 shrink-0" />

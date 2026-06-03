@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchDocumentsByKeyword, searchDocumentsByPhrases, searchDocumentsByPhrasesWithTotal, listDocuments } from '@/lib/rag-db';
+import { searchDocumentsByKeyword, searchDocumentsByPhrasesWithTotal, listDocuments } from '@/lib/rag-db';
 import { redis } from '@/lib/redis';
 import ragPool from '@/lib/db-rag';
 
@@ -41,15 +41,21 @@ type SearchResultRow = {
   [key: string]: unknown;
 };
 
-function buildKey(phrases: string[] | null, keyword: string, limit: number | undefined, offset: number, question?: string): string {
-  // Prefer question text as key — stable across responses to the same question.
-  // AI-generated phrases vary even for identical inputs, making them unreliable cache keys.
+function buildKey(phrases: string[] | null, keyword: string, limit: number | undefined, offset: number, question?: string, exactRefs?: string[]): string {
   const base = question
     ? `legal:q:${question.toLowerCase().slice(0, 200)}`
     : phrases
       ? `legal:p:${[...phrases].sort().join('|')}`
       : `legal:k:${keyword}`;
-  return `${base}:${limit}:${offset}`;
+  // Include phrases and exactRefs in the key so pre-fetch (no phrases) and
+  // post-AI fetch (with phrases/refs) get separate cache entries.
+  const phraseSuffix = phrases && phrases.length > 0
+    ? `:ph:${[...phrases].sort().join('|').slice(0, 150)}`
+    : '';
+  const refsSuffix = exactRefs && exactRefs.length > 0
+    ? `:ref:${[...exactRefs].sort().join('|').slice(0, 150)}`
+    : '';
+  return `${base}${phraseSuffix}${refsSuffix}:${limit}:${offset}`;
 }
 
 function l1Get(key: string): { results: unknown[]; total: number } | null {
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     const isPhrases = phrases.length > 0 || exactRefs.length > 0;
     const keyword   = !isPhrases && prompt ? extractKeywords(prompt) : '';
-    const key       = buildKey(isPhrases ? [...exactRefs, ...phrases] : null, keyword, limit, offset, question);
+    const key       = buildKey(phrases.length > 0 ? phrases : null, keyword, limit, offset, question, exactRefs.length > 0 ? exactRefs : undefined);
 
     // ── L1 hit ──────────────────────────────────────────────────────────────
     const fromL1 = l1Get(key);
@@ -130,15 +136,20 @@ export async function POST(request: NextRequest) {
     let documents;
     let total = 0;
     if (isPhrases) {
-      const { rows, total: t } = await searchDocumentsByPhrasesWithTotal(phrases, { limit, offset, exactRefs });
+      const { rows, total: t } = await searchDocumentsByPhrasesWithTotal(phrases, { limit, offset, exactRefs, question: question || undefined });
       documents = rows;
       total = t;
       console.log('[Legal Search] Postgres returned', documents.length, 'rows, total:', total);
     } else {
-      documents = keyword
-        ? await searchDocumentsByKeyword(keyword, { limit, offset })
-        : await listDocuments({ limit, offset });
-      total = documents.length + offset; // best-effort estimate for non-phrase paths
+      if (keyword) {
+        const { rows, total: t } = await searchDocumentsByKeyword(keyword, { limit, offset });
+        documents = rows;
+        total = t;
+      } else {
+        const { rows, total: t } = await listDocuments({ limit, offset });
+        documents = rows;
+        total = t;
+      }
     }
 
     const results = documents.map((doc) => ({
@@ -150,7 +161,7 @@ export async function POST(request: NextRequest) {
       type:      doc.bucket_slug,
       subtype:   doc.subcategory ?? doc.category ?? null,
       year:      doc.year ?? null,
-      score:     null,
+      score:     doc._rank ?? null,
     }));
 
     const totalPages = limit ? Math.ceil(total / limit) : 1;

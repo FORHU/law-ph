@@ -72,7 +72,7 @@ const CATEGORIES = [
   },
 ];
 
-const docCache = new Map<string, RagDocument[]>();
+const docCache = new Map<string, { documents: RagDocument[]; total: number }>();
 
 function stripDates(title: string): string {
   return title
@@ -96,6 +96,7 @@ export default function LegalLibraryPage() {
   const [searchInput, setSearchInput] = useState(initialKeyword);
   const [keyword, setKeyword] = useState(initialKeyword);
   const [documents, setDocuments] = useState<RagDocument[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(initialPage);
   const [showFilter, setShowFilter] = useState(false);
@@ -108,9 +109,14 @@ export default function LegalLibraryPage() {
   const [appliedYearTo, setAppliedYearTo] = useState('');
   const [appliedArticleNo, setAppliedArticleNo] = useState('');
   const [appliedLibraries, setAppliedLibraries] = useState<string[]>([]);
-  const [savedSearches, setSavedSearches] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('lib_saved_searches') || '[]'); } catch { return []; }
-  });
+  const [savedSearches, setSavedSearches] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('lib_saved_searches') || '[]');
+      if (Array.isArray(stored) && stored.length > 0) setSavedSearches(stored);
+    } catch {}
+  }, []);
 
   const YEARS = Array.from({ length: 2026 - 1899 + 1 }, (_, i) => 1899 + i);
 
@@ -159,7 +165,9 @@ export default function LegalLibraryPage() {
 
     // Return cached results instantly without loading state
     if (docCache.has(cacheKey)) {
-      setDocuments(docCache.get(cacheKey)!);
+      const cached = docCache.get(cacheKey)!;
+      setDocuments(cached.documents);
+      setTotal(cached.total);
       return;
     }
 
@@ -169,10 +177,13 @@ export default function LegalLibraryPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       const docs = data.documents || [];
-      docCache.set(cacheKey, docs);
+      const tot = typeof data.total === 'number' ? data.total : docs.length;
+      docCache.set(cacheKey, { documents: docs, total: tot });
       setDocuments(docs);
+      setTotal(tot);
     } catch {
       setDocuments([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -562,7 +573,9 @@ export default function LegalLibraryPage() {
                 <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                   {keyword ? `Results for "${keyword}"` : `${currentCategory.label}${activeSubcategory ? ` · ${currentCategory.subcategories.find(s => s.id === activeSubcategory)?.label}` : ''}`}
                 </p>
-                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{documents.length} shown</p>
+                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                  {total > 0 ? `${total.toLocaleString()} total` : `${documents.length} shown`}
+                </p>
               </div>
 
               <div className="flex flex-col pb-6">
@@ -616,23 +629,52 @@ export default function LegalLibraryPage() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between py-4 border-t border-white/5">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
-                >
-                  ← Previous
-                </button>
-                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Page {page}</span>
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={documents.length < limit}
-                  className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
-                >
-                  Next →
-                </button>
-              </div>
+              {(() => {
+                const totalPages = Math.max(1, Math.ceil(total / limit));
+                if (totalPages <= 1) return null;
+                return (
+                  <div className="flex items-center justify-between py-4 border-t border-white/5 gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      ← Prev
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => {
+                        const p = i + 1;
+                        const showPage = p === 1 || p === totalPages || Math.abs(p - page) <= 1;
+                        const showEllipsis = !showPage && (p === 2 || p === totalPages - 1);
+                        if (showEllipsis) return <span key={p} className="text-gray-700 text-[10px] px-0.5">…</span>;
+                        if (!showPage) return null;
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => setPage(p)}
+                            className={`w-7 h-7 rounded-lg text-[10px] font-bold tabular-nums transition-all ${
+                              p === page
+                                ? 'bg-[#722f37]/60 border border-[#722f37]/50 text-[#e9c176]'
+                                : 'bg-white/5 border border-white/[0.08] text-gray-500 hover:text-white hover:border-white/20'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>

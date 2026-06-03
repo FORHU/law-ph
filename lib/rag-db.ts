@@ -31,6 +31,7 @@ export interface RagDocument {
   s3_manifest_path: string;
   created_at: Date;
   updated_at: Date;
+  _rank?: number;
 }
 
 export interface RagChunk {
@@ -100,7 +101,7 @@ export async function getDocumentBySourceHash(hash: string): Promise<RagDocument
  * List documents with optional filters.
  * Returns lightweight rows (no full_text) for listing UIs.
  */
-export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDocument[]> {
+export async function listDocuments(filter: DocumentFilter = {}): Promise<{ rows: RagDocument[]; total: number }> {
   const { limit = 20, offset = 0, category, subcategory, year, yearFrom, yearTo, libraries, bucketSlug } = filter;
 
   const conditions: string[] = [];
@@ -141,16 +142,18 @@ export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDoc
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   params.push(limit, offset);
 
-  const { rows } = await ragPool.query<RagDocument>(
+  const { rows: rawRows } = await ragPool.query<RagDocument & { total_count: string }>(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-            case_no, year, source_url, concise_summary, created_at, updated_at
+            case_no, year, source_url, concise_summary, created_at, updated_at,
+            COUNT(*) OVER() AS total_count
      FROM documents
      ${where}
      ORDER BY year ASC NULLS LAST, case_no ASC NULLS LAST
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
-  return rows;
+  const total = rawRows.length > 0 ? parseInt(rawRows[0].total_count as any, 10) : 0;
+  return { rows: rawRows, total };
 }
 
 /**
@@ -160,7 +163,7 @@ export async function listDocuments(filter: DocumentFilter = {}): Promise<RagDoc
 export async function searchDocumentsByKeyword(
   query: string,
   opts: ListOptions & { yearFrom?: number; yearTo?: number; libraries?: string[]; category?: string; subcategory?: string } = {}
-): Promise<RagDocument[]> {
+): Promise<{ rows: RagDocument[]; total: number }> {
   const { limit = 20, offset = 0, yearFrom, yearTo, libraries, category, subcategory } = opts;
 
   const keywords = query
@@ -168,7 +171,7 @@ export async function searchDocumentsByKeyword(
     .map(w => w.trim())
     .filter(w => w.length > 2);
 
-  if (keywords.length === 0) return [];
+  if (keywords.length === 0) return { rows: [], total: 0 };
 
   const params: unknown[] = [];
   const keywordConditions: string[] = [];
@@ -198,9 +201,10 @@ export async function searchDocumentsByKeyword(
 
   params.push(limit, offset);
 
-  const { rows } = await ragPool.query<RagDocument>(
+  const { rows: rawRows } = await ragPool.query<RagDocument & { total_count: string }>(
     `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-            case_no, year, source_url, concise_summary, created_at, updated_at
+            case_no, year, source_url, concise_summary, created_at, updated_at,
+            COUNT(*) OVER() AS total_count
      FROM documents
      WHERE ${andConditions.join(" AND ")}
      ORDER BY
@@ -209,7 +213,8 @@ export async function searchDocumentsByKeyword(
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
-  return rows;
+  const total = rawRows.length > 0 ? parseInt(rawRows[0].total_count as any, 10) : 0;
+  return { rows: rawRows, total };
 }
 
 /**
@@ -326,9 +331,9 @@ export async function searchDocumentsByPhrases(
  */
 export async function searchDocumentsByPhrasesWithTotal(
   phrases: string[],
-  opts: ListOptions & { exactRefs?: string[] } = {}
+  opts: ListOptions & { exactRefs?: string[]; question?: string } = {}
 ): Promise<{ rows: RagDocument[]; total: number }> {
-  const { limit, offset = 0, exactRefs = [] } = opts;
+  const { limit, offset = 0, exactRefs = [], question } = opts;
 
   // exactRefs: exact law/case names extracted from the AI response — title ILIKE only.
   // phrases:   topic words from [RELATED_QUERIES] — title ILIKE + FTS.
@@ -361,29 +366,63 @@ export async function searchDocumentsByPhrasesWithTotal(
   const allTitleConds = [...exactRefConds, ...phraseIlikeConds];
   if (allTitleConds.length === 0 && cleanedPhrases.length === 0) return { rows: [], total: 0 };
 
-  // FTS subquery: for each phrase, find the top 30 most relevant documents by ts_rank.
-  // Using a subquery caps the FTS result set — avoids the thousands-of-matches explosion
-  // that happens when searching full_text with OR across all documents.
+  // FTS CTE: top-30 candidates by ts_rank, exposed so the outer query can ORDER BY it.
+  // LEFT JOIN instead of id IN (...) means fts_rank is available as a real column.
+  //
+  // Anchor FTS to the original user question when available — this makes results
+  // deterministic for the same question regardless of which AI-generated phrases
+  // happen to appear in a given response. AI phrases are used only as fallback.
+  const cleanQuestion = question?.trim();
+  const ftsInput: string | null = cleanQuestion
+    ? cleanQuestion
+    : cleanedPhrases.length > 0 ? null : null;
+
   const ftsParams: unknown[] = [...qParams];
-  let ftsSubquery = '';
-  if (cleanedPhrases.length > 0) {
-    const tsqueries = cleanedPhrases.map(p => {
-      ftsParams.push(p);
-      return `plainto_tsquery('english', $${ftsParams.length})`;
-    });
-    const combinedTsq = tsqueries.join(' || ');
+  let ftsCte = '';
+  let ftsJoin = '';
+  let ftsWhereAdd = '';
+  let ftsRankCol = '0::float';
+  let ftsRankOrderBy = '';
+
+  const hasFts = cleanQuestion || cleanedPhrases.length > 0;
+  if (hasFts) {
+    let combinedTsq: string;
+    if (cleanQuestion) {
+      // Base: question text anchors FTS (deterministic across AI responses)
+      ftsParams.push(cleanQuestion);
+      const questionTsq = `plainto_tsquery('english', $${ftsParams.length})`;
+      // Supplement: OR in AI-generated phrases for broader legal term coverage
+      const phraseTsqs = cleanedPhrases.map(p => {
+        ftsParams.push(p);
+        return `plainto_tsquery('english', $${ftsParams.length})`;
+      });
+      combinedTsq = phraseTsqs.length > 0
+        ? `(${[questionTsq, ...phraseTsqs].join(' || ')})`
+        : questionTsq;
+    } else {
+      // Fallback: use AI-generated phrases only (no question provided)
+      const tsqueries = cleanedPhrases.map(p => {
+        ftsParams.push(p);
+        return `plainto_tsquery('english', $${ftsParams.length})`;
+      });
+      combinedTsq = tsqueries.join(' || ');
+    }
     ftsParams.push(30); // cap FTS candidates
-    ftsSubquery = `OR id IN (
-      SELECT id FROM documents
+    ftsCte = `WITH fts_ranked AS (
+      SELECT id, ts_rank(to_tsvector('english', coalesce(full_text, '')), (${combinedTsq})) AS fts_rank
+      FROM documents
       WHERE to_tsvector('english', coalesce(full_text, '')) @@ (${combinedTsq})
-      ORDER BY ts_rank(to_tsvector('english', coalesce(full_text, '')), (${combinedTsq})) DESC
+      ORDER BY fts_rank DESC
       LIMIT $${ftsParams.length}
     )`;
+    ftsJoin = 'LEFT JOIN fts_ranked fr ON documents.id = fr.id';
+    ftsWhereAdd = 'OR fr.id IS NOT NULL';
+    ftsRankCol = 'COALESCE(fr.fts_rank, 0)::float';
+    ftsRankOrderBy = 'COALESCE(fr.fts_rank, 0) DESC,';
   }
 
-  // Score each document: exactRef match = 2pts, phrase title match = 1pt.
-  // FTS-matched docs that also hit a title/exactRef condition benefit from the score;
-  // pure FTS matches score 0 but are included since they passed the top-30 rank filter.
+  // Score each document: exactRef title match = 2pts, phrase title match = 1pt.
+  // FTS-only matches score 0 on this axis but are ranked by ts_rank in the ORDER BY.
   const scoreParts = [
     ...exactRefConds.map(c => `(CASE WHEN ${c} THEN 2 ELSE 0 END)`),
     ...phraseIlikeConds.map(c => `(CASE WHEN ${c} THEN 1 ELSE 0 END)`),
@@ -392,11 +431,11 @@ export async function searchDocumentsByPhrasesWithTotal(
   const totalTerms = cleanedExactRefs.length + cleanedPhrases.length;
   const minScore = totalTerms >= 3 ? 2 : 1;
 
-  // Title/exactRef conditions gate the score filter; FTS subquery adds jurisprudence
+  // Title/exactRef conditions gate the score filter; FTS join adds full-text matches
   const titleWhereClause = allTitleConds.length > 0
     ? `((${allTitleConds.join(' OR ')}) AND (${scoreExpr}) >= ${minScore})`
     : 'FALSE';
-  const whereClause = `${titleWhereClause} ${ftsSubquery}`;
+  const whereClause = `${titleWhereClause} ${ftsWhereAdd}`;
 
   const titleRankExpr = scoreExpr;
   const dataParams: unknown[] = [...ftsParams];
@@ -414,21 +453,26 @@ export async function searchDocumentsByPhrasesWithTotal(
     await client.query('SET statement_timeout = 8000');
 
     const countResult = await client.query<{ total: string }>(
-      `SELECT COUNT(*) AS total FROM documents WHERE ${whereClause}`,
+      `${ftsCte}
+       SELECT COUNT(*) AS total FROM documents ${ftsJoin} WHERE ${whereClause}`,
       ftsParams
     );
     const total = parseInt(countResult.rows[0]?.total ?? '0', 10);
 
     const { rows } = await client.query<RagDocument>(
-      `SELECT id, source_hash, bucket_slug, category, subcategory, title,
-              case_no, year, source_url, concise_summary, created_at, updated_at,
-              0::float AS _rank
-       FROM documents
+      `${ftsCte}
+       SELECT documents.id, documents.source_hash, documents.bucket_slug,
+              documents.category, documents.subcategory, documents.title,
+              documents.case_no, documents.year, documents.source_url,
+              documents.concise_summary, documents.created_at, documents.updated_at,
+              ${ftsRankCol} AS _rank
+       FROM documents ${ftsJoin}
        WHERE ${whereClause}
        ORDER BY
          ${titleRankExpr} DESC,
-         year ASC NULLS LAST,
-         case_no ASC NULLS LAST
+         ${ftsRankOrderBy}
+         documents.year ASC NULLS LAST,
+         documents.case_no ASC NULLS LAST
        ${limitOffsetClause}`,
       dataParams
     );

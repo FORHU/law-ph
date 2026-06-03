@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth/auth-provider';
 import { FileCheck, Search, Scale, ArrowRight, Shield } from 'lucide-react';
 
 interface CapabilitiesSectionProps {
@@ -11,6 +12,15 @@ interface CapabilitiesSectionProps {
 
 export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps) {
   const router = useRouter();
+  const { loggedIn } = useAuth();
+
+  const handleNav = (route: string) => {
+    if (!loggedIn) {
+      router.push('/auth/login');
+      return;
+    }
+    router.push(route);
+  };
 
   return (
     <section
@@ -91,7 +101,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               <motion.button
                 whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(114,47,55,0.3)' }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => router.push('/documents')}
+                onClick={() => handleNav('/documents')}
                 className="bg-[#722f37] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-base sm:text-lg font-bold flex items-center gap-3 sm:gap-4 transition-all cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
               >
                 Try Document Review <ArrowRight size={20} />
@@ -148,7 +158,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               title: 'Legal', accent: 'Research',
               desc: 'Access instant citations from Republic Acts and Batas Pambansa. Our AI instantly searches decades of legal documentation.',
               cta: 'Start Research',
-              route: '/consultation',
+              route: '/legal-library',
             },
             {
               icon: <Scale size={28} className="sm:hidden" />,
@@ -164,7 +174,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.8 } } }}
               animate={{ backgroundColor: '#ffffff03' }}
               whileHover={{ y: -10, borderColor: '#e9c17666', backgroundColor: '#ffffff08' }}
-              onClick={() => router.push(card.route)}
+              onClick={() => handleNav(card.route)}
               className="glass-panel p-8 sm:p-12 lg:p-20 rounded-[2rem] lg:rounded-[3rem] border border-white/5 group transition-all shadow-xl hover:shadow-2xl cursor-pointer bg-[#0B0B0C]/40 backdrop-blur-3xl"
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mb-6 sm:mb-10 lg:mb-12 text-[#e9c176]/40 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20 group-hover:border-[#e9c176]/30">

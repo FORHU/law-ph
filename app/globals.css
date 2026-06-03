@@ -173,3 +173,27 @@ h3 { font-size: var(--text-h3); font-weight: 500; }
 ::-webkit-scrollbar-thumb:hover {
   background: #39393a;
 }
+
+/* Explicit thin scrollbar — overrides inherited scrollbar-hide on specific panels */
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2b #131314;
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+  display: block;
+  width: 5px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: #2a2a2b;
+  border-radius: 4px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: #39393a;
+}

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../auth/auth-provider';
 import { Clock, Zap, FileText, LayoutGrid } from 'lucide-react';
 
 interface WhyChooseSectionProps {
@@ -9,7 +11,17 @@ interface WhyChooseSectionProps {
 }
 
 export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
+  const router = useRouter();
+  const { loggedIn } = useAuth();
   const [time, setTime] = useState('0:00.00');
+
+  const handleStartConsultation = () => {
+    if (!loggedIn) {
+      router.push('/auth/login');
+      return;
+    }
+    router.push('/consultation');
+  };
 
   useEffect(() => {
     const targetMs = 6000;
@@ -96,7 +108,10 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
               {time}
             </div>
             <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-8 sm:mb-12 lg:mb-16 font-bold">Response Time</p>
-            <button className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-3 sm:py-4 rounded-xl text-sm sm:text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95">
+            <button
+              onClick={handleStartConsultation}
+              className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-3 sm:py-4 rounded-xl text-sm sm:text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95"
+            >
               Start Consultation
             </button>
           </motion.div>

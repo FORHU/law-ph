@@ -58,6 +58,7 @@ export function ChatInput({
   const [internalIsRecording, setInternalIsRecording] = useState(false);
   const [internalStatus, setInternalStatus] = useState<'listening' | 'thinking' | 'idle'>('idle');
   const [volume, setVolume] = useState(0);
+  const [recordingTick, setRecordingTick] = useState(0);
   const [activeJobName, setActiveJobName] = useState<string | null>(null);
 
   const isRecording = onRecordingChange ? externalIsRecording : internalIsRecording;
@@ -93,6 +94,8 @@ export function ChatInput({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const audioHistoryRef = useRef<number[]>([]);
+  const analyzerLastFrameRef = useRef<number>(0);
 
   // Background Polling Logic for Transcription
   useEffect(() => {
@@ -224,23 +227,35 @@ export function ChatInput({
 
       const source = audioContext.createMediaStreamSource(stream);
       const analyzer = audioContext.createAnalyser();
-      analyzer.fftSize = 128;
+      analyzer.fftSize = 1024;
+      analyzer.smoothingTimeConstant = 0.4;
       source.connect(analyzer);
       analyzerRef.current = analyzer;
 
       const bufferLength = analyzer.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
+      audioHistoryRef.current = [];
+      analyzerLastFrameRef.current = 0;
 
-      const updateVolume = () => {
-        if (!analyzerRef.current) return;
-        analyzerRef.current.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-        const normalizedVolume = Math.min(100, Math.pow(average / 40, 0.7) * 100);
-        setVolume(normalizedVolume);
+      const updateVolume = (timestamp: number) => {
+        if (timestamp - analyzerLastFrameRef.current >= 80) {
+          if (analyzerRef.current) {
+            analyzerRef.current.getByteFrequencyData(dataArray);
+            const end = Math.min(93, bufferLength);
+            let sum = 0;
+            for (let b = 2; b < end; b++) sum += dataArray[b] * dataArray[b];
+            const rms = Math.sqrt(sum / (end - 2));
+            const peak = Math.max(4, Math.min(96, (rms / 70) * 100));
+            audioHistoryRef.current.push(peak);
+            setVolume(peak);
+          }
+          setRecordingTick(t => t + 1);
+          analyzerLastFrameRef.current = timestamp;
+        }
         animationRef.current = requestAnimationFrame(updateVolume);
       };
 
-      updateVolume();
+      animationRef.current = requestAnimationFrame(updateVolume);
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -305,6 +320,8 @@ export function ChatInput({
     }
     setIsRecording(false);
     setVolume(0);
+    setRecordingTick(0);
+    audioHistoryRef.current = [];
   };
 
   const handleVoiceToggle = () => {
@@ -521,18 +538,36 @@ export function ChatInput({
                         exit={{ opacity: 0, x: 20 }}
                         className="flex-1 flex items-center px-4 gap-4"
                       >
-                        <div className="flex-1 flex items-center gap-1 h-6">
-                          {Array.from({ length: 32 }).map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{
-                                height: status === 'listening' ? Math.max(2, (volume / 100) * 24 * (1 - Math.abs(i - 16) / 16)) : 2,
-                                opacity: status === 'listening' ? 0.8 : 0.2
-                              }}
-                              className="w-1 bg-[#e9c176] rounded-full"
-                              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                            />
-                          ))}
+                        <div className="flex-1 flex items-center gap-[1px] h-8 overflow-hidden">
+                          {(() => {
+                            void recordingTick;
+                            const BARS = 80;
+                            const hist = audioHistoryRef.current;
+                            const peaks = Array.from({ length: BARS }, (_, i) => {
+                              const dataIdx = hist.length - BARS + i;
+                              return dataIdx < 0 ? 4 : Math.max(5, hist[dataIdx]);
+                            });
+                            const recordedCount = Math.min(hist.length, BARS);
+                            return peaks.map((peak, i) => {
+                              const isRecordedBar = i >= BARS - recordedCount;
+                              const isCursor = i === BARS - 1 && isRecordedBar && status === 'listening';
+                              return (
+                                <div
+                                  key={i}
+                                  className="flex-1 rounded-full"
+                                  style={{
+                                    height: `${isRecordedBar ? peak : 4}%`,
+                                    background: isRecordedBar
+                                      ? isCursor ? '#f0d080' : 'rgba(233,193,118,0.82)'
+                                      : 'rgba(255,255,255,0.07)',
+                                    boxShadow: isCursor ? '0 0 10px rgba(233,193,118,0.85)' : undefined,
+                                    transition: 'height 0.07s ease-out',
+                                    minHeight: 3,
+                                  }}
+                                />
+                              );
+                            });
+                          })()}
                         </div>
                         <span className="text-[10px] font-black tracking-[0.2em] text-[#e9c176] animate-pulse whitespace-nowrap">
                           {status === 'listening' ? 'RECORDING...' : 'TRANSCRIBING...'}

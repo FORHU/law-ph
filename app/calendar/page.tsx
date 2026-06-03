@@ -272,7 +272,6 @@ export default function CalendarPage() {
   const [activeTab, setActiveTab] = useState<
     "pending" | "upcoming" | "accomplished" | "denied"
   >("pending");
-  const [showAll, setShowAll] = useState(false);
   const [panelView, setPanelView] = useState<"list" | "details" | "create">(
     "list",
   );
@@ -1030,8 +1029,6 @@ export default function CalendarPage() {
     [activeList, searchQuery],
   );
 
-  const visibleList = showAll ? filteredList : filteredList.slice(0, 5);
-  const hasMore = filteredList.length > 5;
 
   // ── Calendar grid ──────────────────────────────────────────────────────────
 
@@ -2082,7 +2079,7 @@ export default function CalendarPage() {
         maxWidth="max-w-7xl"
         backgroundAngle={4}
       >
-        <div className="flex flex-col md:flex-row flex-1 h-full relative z-10 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 relative z-10 overflow-hidden">
           {/* Mobile View Toggle */}
           <div className="md:hidden flex-shrink-0 px-5 pt-4 pb-2 border-b border-white/5 bg-black/20">
             <div className="bg-[#0B0B0C] p-1 rounded-xl flex items-center gap-1 border border-white/5">
@@ -2109,7 +2106,7 @@ export default function CalendarPage() {
 
           {/* LEFT — Calendar Grid */}
           <div
-            className={`${activeMobileTab === "calendar" ? "flex" : "hidden md:flex"} flex-col flex-1 border-r border-white/5 overflow-y-auto p-4 md:p-5`}
+            className={`${activeMobileTab === "calendar" ? "flex" : "hidden md:flex"} flex-col flex-1 min-h-0 border-r border-white/5 overflow-y-auto scrollbar-visible p-4 md:p-5`}
           >
             <div className="bg-[#0B0B0C]/70 backdrop-blur-xl border border-[#722f37]/20 rounded-2xl p-5">
               {/* Google Auth Banner */}
@@ -2315,7 +2312,7 @@ export default function CalendarPage() {
 
           {/* RIGHT — Events Panel */}
           <div
-            className={`${activeMobileTab === "agenda" ? "flex" : "hidden md:flex"} flex-col overflow-hidden w-full md:w-[360px] xl:w-[420px] flex-shrink-0 bg-black/10 border-l border-white/5 transition-all`}
+            className={`${activeMobileTab === "agenda" ? "flex" : "hidden md:flex"} flex-col min-h-0 overflow-hidden w-full md:w-[360px] xl:w-[420px] flex-1 md:flex-none bg-black/10 border-l border-white/5 transition-all`}
           >
             {panelView === "list" && (
               <>
@@ -2351,7 +2348,7 @@ export default function CalendarPage() {
                       return (
                         <button
                           key={label}
-                          onClick={() => { setActiveTab(tab); setShowAll(false); }}
+                          onClick={() => { setActiveTab(tab); }}
                           className={`flex flex-col items-center justify-center py-2 rounded-xl border transition-all cursor-pointer ${
                             isActive
                               ? `${bg} ${activeBorder}`
@@ -2383,7 +2380,6 @@ export default function CalendarPage() {
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
-                        setShowAll(false);
                       }}
                       className="w-full bg-black/40 border border-[#722f37]/20 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white outline-none focus:border-[#e9c176]/50 focus:ring-1 focus:ring-[#e9c176]/20 placeholder:text-gray-600 transition-all font-body"
                     />
@@ -2416,7 +2412,7 @@ export default function CalendarPage() {
 
                 {/* Events List */}
                 {(!isLoadingEvents || events.length > 0) && (
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto scrollbar-visible px-5 py-4 space-y-3">
                     <AnimatePresence mode="popLayout">
                       {isLoading && events.length === 0 ? (
                         <motion.div
@@ -2433,7 +2429,7 @@ export default function CalendarPage() {
                             Loading your schedule...
                           </p>
                         </motion.div>
-                      ) : visibleList.length === 0 ? (
+                      ) : filteredList.length === 0 ? (
                         <motion.div
                           key="empty"
                           initial={{ opacity: 0 }}
@@ -2463,7 +2459,7 @@ export default function CalendarPage() {
                           </p>
                         </motion.div>
                       ) : (
-                        visibleList.map((event, idx) => (
+                        filteredList.map((event, idx) => (
                           <motion.div
                             key={event.id}
                             layout
@@ -2618,24 +2614,6 @@ export default function CalendarPage() {
                       )}
                     </AnimatePresence>
 
-                    {/* Show more / less */}
-                    {hasMore && !searchQuery && (
-                      <button
-                        onClick={() => setShowAll(!showAll)}
-                        className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-gray-400 hover:text-white border border-white/5 hover:border-white/10 rounded-xl transition-all"
-                      >
-                        {showAll ? (
-                          <>
-                            <ChevronUp size={14} /> Show Less
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown size={14} /> Show{" "}
-                            {filteredList.length - 5} More
-                          </>
-                        )}
-                      </button>
-                    )}
                   </div>
                 )}
               </>
