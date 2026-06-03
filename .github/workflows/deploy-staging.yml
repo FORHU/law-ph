@@ -68,6 +68,7 @@ jobs:
             --build-arg NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             --build-arg NEXT_PUBLIC_AWS_REGION="ap-southeast-1" \
             --build-arg AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+            --build-arg AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
             --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             --build-arg CLOUDFRONT_DISTRIBUTION_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
             -t "$ECR:${{ env.IMAGE_TAG }}" \
@@ -93,6 +94,7 @@ jobs:
           CHAT_WONDER_API_URL: ${{ secrets.CHAT_WONDER_API_URL }}
           AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
           cat > ${{ github.workspace }}/law-ph.env << EOF
@@ -111,6 +113,7 @@ jobs:
           CHAT_WONDER_API_URL=${CHAT_WONDER_API_URL}
           AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
           AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          AWS_S3_BUCKET=${AWS_S3_BUCKET}
           CLOUDFRONT_DISTRIBUTION_ID=${CLOUDFRONT_DISTRIBUTION_ID}
           NODE_ENV=${{ env.NODE_ENV }}
           PORT=3000
