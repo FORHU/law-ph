@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic } from 'lucide-react';
+import { Mic, Captions } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { STRINGS } from './constants';
 
@@ -37,7 +37,7 @@ export const TranscriptionButton = ({ isRecording, onClick, duration = 0 }: Butt
         : 'bg-[#722f37]/20 text-[#e9c176]/80 hover:bg-[#722f37]/40 hover:text-[#e9c176]'
     }`}
   >
-    {isRecording ? <RecordingPulse /> : <Mic size={14} />}
+    {isRecording ? <RecordingPulse /> : <Captions size={14} />}
     {/* Label hidden on very small screens */}
     <span className="hidden xs:inline sm:inline">
       {isRecording ? STRINGS.transcriptionActive : STRINGS.transcriptionInactive}

@@ -117,7 +117,7 @@ export default function SourcePage({ params }: { params: Promise<{ itemId: strin
               )}
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-serif text-white leading-tight tracking-tight">
+            <h1 className="!text-2xl sm:!text-3xl md:!text-5xl font-serif text-white leading-tight tracking-tight break-words">
               {data.title}
             </h1>
 

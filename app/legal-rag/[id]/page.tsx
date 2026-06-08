@@ -92,7 +92,7 @@ export default function LegalRagDocumentPage({ params }: { params: Promise<{ id:
             </div>
 
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-serif text-white leading-tight tracking-tight">
+            <h1 className="!text-2xl sm:!text-3xl md:!text-4xl font-serif text-white leading-tight tracking-tight break-words">
               {doc.title ?? doc.case_no ?? 'Untitled Document'}
             </h1>
 

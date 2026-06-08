@@ -408,7 +408,7 @@ export default function LegalLibraryDocumentPage({ params }: { params: Promise<{
 
             {/* Title + actions */}
             <div className="flex flex-col gap-4">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-white leading-tight tracking-tight">{resolvedTitle}</h1>
+              <h1 className="!text-2xl sm:!text-3xl md:!text-4xl font-serif text-white leading-tight tracking-tight break-words">{resolvedTitle}</h1>
 
               {/* Action buttons — icon-only on mobile, icon+label on sm+ */}
               <div className="flex items-center gap-2 flex-wrap print:hidden">

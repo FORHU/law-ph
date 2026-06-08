@@ -291,22 +291,22 @@ export default function LegalLibraryPage() {
         {/* Search + Filter */}
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <form onSubmit={handleSearch} className="flex-1">
-              <div className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 focus-within:border-[#722f37]/50 transition-all">
+            <form onSubmit={handleSearch} className="flex-1 min-w-0">
+              <div className="flex items-center h-[52px] gap-2 sm:gap-3 bg-white/[0.03] border border-white/10 rounded-2xl pl-4 sm:pl-5 pr-1.5 sm:pr-2 focus-within:border-[#722f37]/50 transition-all">
                 <Search size={16} className="text-gray-600 flex-shrink-0" />
                 <input
                   type="text"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
                   placeholder="Search cases, laws, acts, or legal topics..."
-                  className="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-white placeholder-gray-600 text-sm outline-none"
                 />
                 {searchInput && (
-                  <button type="button" onClick={handleClearSearch} className="text-gray-600 hover:text-white transition-colors">
+                  <button type="button" onClick={handleClearSearch} className="text-gray-600 hover:text-white transition-colors flex-shrink-0">
                     <X size={14} />
                   </button>
                 )}
-                <button type="submit" className="bg-[#722f37] hover:bg-[#8b3a44] text-white text-[10px] font-bold uppercase tracking-widest px-5 py-2 rounded-xl transition-all">
+                <button type="submit" className="flex-shrink-0 bg-[#722f37] hover:bg-[#8b3a44] text-white text-[10px] font-bold uppercase tracking-widest px-4 sm:px-5 py-2.5 rounded-xl transition-all">
                   Search
                 </button>
               </div>
@@ -314,15 +314,15 @@ export default function LegalLibraryPage() {
 
             {/* Filter button */}
             <button onClick={() => setShowFilter(f => !f)}
-              className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border text-[11px] font-bold uppercase tracking-widest transition-all ${
+              className={`relative flex-shrink-0 flex items-center justify-center h-[52px] w-[52px] sm:w-auto sm:gap-2 sm:px-4 rounded-2xl border text-[11px] font-bold uppercase tracking-widest transition-all ${
                 hasActiveFilter
                   ? 'bg-[#722f37]/30 border-[#722f37]/50 text-white'
                   : 'bg-white/[0.03] border-white/10 text-gray-500 hover:text-white hover:border-white/20'
               }`}
             >
               <SlidersHorizontal size={15} />
-              Filter
-              {hasActiveFilter && <span className="w-1.5 h-1.5 rounded-full bg-[#e9c176]" />}
+              <span className="hidden sm:inline">Filter</span>
+              {hasActiveFilter && <span className="absolute top-2 right-2 sm:static w-1.5 h-1.5 rounded-full bg-[#e9c176]" />}
             </button>
           </div>
 
@@ -338,7 +338,7 @@ export default function LegalLibraryPage() {
                   >{s}</button>
                   <button
                     onClick={() => removeSavedSearch(s)}
-                    className="px-2 py-1 text-gray-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    className="px-2 py-1 text-gray-500 hover:text-red-400 transition-colors"
                   ><X size={10} /></button>
                 </div>
               ))}

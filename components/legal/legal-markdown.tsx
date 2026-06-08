@@ -5,13 +5,13 @@ import remarkGfm from 'remark-gfm';
 
 const proseComponents = {
   h1: ({ children }: { children?: React.ReactNode }) => (
-    <h1 className="text-3xl font-serif text-[#e9c176] mb-6 mt-10 tracking-tight">{children}</h1>
+    <h1 className="max-sm:!text-xl text-3xl font-serif text-[#e9c176] mb-6 mt-10 tracking-tight break-words">{children}</h1>
   ),
   h2: ({ children }: { children?: React.ReactNode }) => (
-    <h2 className="text-2xl font-serif text-[#e9c176] mb-4 mt-8 tracking-tight">{children}</h2>
+    <h2 className="max-sm:!text-lg text-2xl font-serif text-[#e9c176] mb-4 mt-8 tracking-tight break-words">{children}</h2>
   ),
   h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className="text-xl font-serif text-[#e9c176] mb-3 mt-6">{children}</h3>
+    <h3 className="max-sm:!text-base text-xl font-serif text-[#e9c176] mb-3 mt-6 break-words">{children}</h3>
   ),
   p: ({ children }: { children?: React.ReactNode }) => (
     <p className="text-gray-300 mb-4 leading-relaxed text-sm">{children}</p>
