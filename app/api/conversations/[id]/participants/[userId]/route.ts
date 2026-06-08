@@ -22,9 +22,17 @@ export async function DELETE(
     select: { name: true, email: true },
   });
 
-  await prisma.conversationParticipant.delete({
-    where: { conversationId_userId: { conversationId, userId: targetUserId } },
-  });
+  try {
+    await prisma.conversationParticipant.delete({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+    });
+  } catch (e: any) {
+    if (e.code === "P2025") {
+      // Already removed — idempotent
+      return NextResponse.json({ ok: true });
+    }
+    throw e;
+  }
 
   await prisma.message.create({
     data: {

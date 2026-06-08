@@ -766,10 +766,20 @@ export function ConversationProvider({
     setIsSharedCase(false);
   }, [syncedConversationId]);
 
-  // Poll for new messages every 3s when viewing a shared case (other participants can write).
+  // True whenever the synced conversation is a Case (owned or shared), regardless of
+  // whether anyone has joined yet — needed so owners see new joiners live, not just
+  // participants in already-shared cases.
+  const isViewingCase = useMemo(() => {
+    if (!syncedConversationId) return false;
+    if (cases.some((c) => c.id.toString() === syncedConversationId)) return true;
+    return typeof window !== 'undefined' && window.location.pathname.startsWith('/cases/');
+  }, [cases, syncedConversationId]);
+
+  // Poll for new messages every 3s while viewing a Case (owner or participant) so that
+  // joins, replies from other participants, and removals show up without a refresh.
   // Pauses automatically when the browser tab is hidden — resumes on visibility.
   useEffect(() => {
-    if (!isSharedCase || !syncedConversationId || !loggedIn) return;
+    if (!isViewingCase || !syncedConversationId || !loggedIn) return;
 
     let tabHidden = typeof document !== 'undefined' && document.hidden;
     const onVisibilityChange = () => { tabHidden = document.hidden; };
@@ -781,9 +791,18 @@ export function ConversationProvider({
         const res = await fetch(`/api/conversations/${syncedConversationId}/messages`);
         if (!res.ok) {
           if (res.status === 404) {
-            // Participant was removed while viewing — clear state and redirect
-            fetchCasesRef.current();
-            router.replace('/cases');
+            // Participant was removed while viewing — show a notice, then redirect to consultations
+            clearInterval(interval);
+            setMessages([{
+              id: `removed-${Date.now()}`,
+              text: "You have been removed from this case.",
+              sender: "system",
+              time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+            }]);
+            setTimeout(() => {
+              fetchCasesRef.current();
+              router.replace('/consultation');
+            }, 2500);
           }
           return;
         }
@@ -813,7 +832,7 @@ export function ConversationProvider({
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [isSharedCase, syncedConversationId, loggedIn, mapCloudMessage]);
+  }, [isViewingCase, syncedConversationId, loggedIn, mapCloudMessage]);
 
   // Handlers
   const handleLoadConsultation = (consultation: ConsultationSession) => {

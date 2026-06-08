@@ -19,6 +19,26 @@ import { VoiceNoteSection } from '@/components/consultation/message-list/voice-n
 import { TAB_CONFIG } from '@/components/consultation/message-list/constants';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
+import { useAuth } from '@/components/auth/auth-provider';
+
+// Case-membership system messages ("X joined/left/was removed from the case.") read the
+// same way for everyone. Personalize them for the user the action happened to/by, so
+// e.g. the joiner sees "You joined the case." while everyone else sees their name.
+function personalizeSystemMessage(text: string, messageUserId: string | undefined, currentUserId: string | undefined, viewerIsCaseOwner: boolean): string {
+  if (currentUserId && messageUserId === currentUserId) {
+    if (/ joined the case\.$/.test(text)) return 'You joined the case.';
+    if (/ left the case\.$/.test(text)) return 'You left the case.';
+  }
+
+  // Only the case owner can remove participants, so any "X was removed" message
+  // the owner sees was their own action.
+  if (viewerIsCaseOwner) {
+    const removedMatch = text.match(/^(.+) was removed from the case\.$/);
+    if (removedMatch) return `You removed ${removedMatch[1]} from the case.`;
+  }
+
+  return text;
+}
 
 interface MessageItemProps {
   message: Message;
@@ -75,7 +95,8 @@ export function MessageItem({
 }: MessageItemProps) {
   const isUser = message.sender === CHAT_SENDER.USER;
   const isAI = message.sender === CHAT_SENDER.AI;
-  const { addBookmark, removeBookmark, isBookmarked, currentConsultationId, isSharedCase } = useConversations();
+  const { addBookmark, removeBookmark, isBookmarked, currentConsultationId, isSharedCase, cases } = useConversations();
+  const { user } = useAuth();
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -170,10 +191,13 @@ export function MessageItem({
   ];
 
   if (message.sender === 'system') {
+    const activeCase = cases.find(c => c.id.toString() === currentConsultationId?.toString());
+    const viewerIsCaseOwner = !!activeCase && !activeCase.is_shared;
+    const displayText = personalizeSystemMessage(message.text, message.userId, user?.id, viewerIsCaseOwner);
     return (
       <div id={`message-bubble-${message.id}`} className="flex flex-col items-center justify-center my-6 scroll-mt-32 w-full animate-in fade-in slide-in-from-bottom-1 duration-700">
         <div className="text-[12px] font-medium text-center text-gray-500/80 tracking-tight max-w-xl px-4 py-1 italic">
-          {message.text}
+          {displayText}
         </div>
       </div>
     );

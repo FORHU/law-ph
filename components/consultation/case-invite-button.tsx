@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Copy, Check, Loader2, X, RefreshCw, Clock, UserMinus } from 'lucide-react';
+import { UserPlus, Copy, Check, Loader2, X, RefreshCw, Clock } from 'lucide-react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,29 +16,8 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [participants, setParticipants] = useState<{ id: string; name: string | null; email: string }[]>([]);
-  const [removingId, setRemovingId] = useState<string | null>(null);
 
   useEffect(() => { setIsMounted(true); }, []);
-
-  // Load participants whenever the modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-    fetch(`/api/conversations/${caseId}/participants`)
-      .then(r => r.ok ? r.json() : { participants: [] })
-      .then(j => setParticipants(j.participants ?? []))
-      .catch(() => {});
-  }, [isOpen, caseId]);
-
-  const handleRemoveParticipant = async (userId: string) => {
-    setRemovingId(userId);
-    try {
-      await fetch(`/api/conversations/${caseId}/participants/${userId}`, { method: 'DELETE' });
-      setParticipants(prev => prev.filter(p => p.id !== userId));
-    } finally {
-      setRemovingId(null);
-    }
-  };
 
   // Countdown timer
   useEffect(() => {
@@ -187,37 +166,6 @@ export function CaseInviteButton({ caseId }: { caseId: string }) {
                   )}
                 </div>
               ) : null}
-
-              {/* Current members */}
-              {participants.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-white/5">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">
-                    Current Members ({participants.length})
-                  </p>
-                  <div className="space-y-2">
-                    {participants.map(p => (
-                      <div key={p.id} className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-6 h-6 rounded-full bg-[#722f37]/30 border border-[#722f37]/40 flex items-center justify-center flex-shrink-0">
-                            <UserPlus className="w-3 h-3 text-[#e9c176]" />
-                          </div>
-                          <span className="text-[12px] text-gray-300 truncate">{p.name || p.email}</span>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveParticipant(p.id)}
-                          disabled={removingId === p.id}
-                          className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
-                          title="Remove from case"
-                        >
-                          {removingId === p.id
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <UserMinus className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </motion.div>
         </div>

@@ -33,6 +33,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         conversationId: invite.conversationId,
         role: "system",
         content: `${user.name || user.email} joined the case.`,
+        userId: user.id,
       },
     });
 

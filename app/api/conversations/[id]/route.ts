@@ -34,6 +34,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await prisma.conversationParticipant.deleteMany({
       where: { conversationId: id, userId: user.id },
     });
+
+    await prisma.message.create({
+      data: {
+        conversationId: id,
+        role: "system",
+        content: `${user.name || user.email} left the case.`,
+        userId: user.id,
+      },
+    });
   }
 
   return NextResponse.json({ success: true });
