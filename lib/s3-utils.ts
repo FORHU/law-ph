@@ -69,22 +69,25 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
     body: file,
   });
 
+  let s3UploadResult: { file_url?: string; s3_key?: string } = {};
   if (!s3Response.ok) {
     const s3Err = await s3Response.json().catch(() => ({}));
     throw new Error(s3Err.error || `Failed to upload ${file.name} to S3.`);
+  } else {
+    s3UploadResult = await s3Response.json().catch(() => ({}));
   }
 
   // Step 3: Determine final file URL
-  // Prefer backend-provided file_url, fallback to base of signed upload URL
+  // /api/s3-upload returns a permanent CDN URL (or raw S3 URL) — use it as the source of truth.
+  // Presigned URLs from the analyze-document backend expire after 7 days and must not be stored.
   const s3BaseUrl = urlData.url ? urlData.url.split('?')[0] : null;
   const cdnBase = (S3_CONFIG.CDN_URL || '').replace(/\/+$/, '');
   const cdnUrl = cdnBase ? `${cdnBase}/` : '';
 
-  const defaultFileUrl = urlData.s3_key
-    ? `${cdnUrl}${urlData.s3_key}`
-    : (urlData.file_url || s3BaseUrl || "");
+  const defaultFileUrl = s3UploadResult.file_url
+    || (urlData.s3_key ? `${cdnUrl}${urlData.s3_key}` : (urlData.file_url || s3BaseUrl || ""));
 
-  // Step 3: Trigger backend analysis through proxy
+  // Step 4: Trigger backend analysis through proxy
   if (analyze) {
     const analyzeResponse = await fetch(`/api/proxy/api/legal/analyze-document`, {
       method: 'POST',
@@ -107,10 +110,11 @@ export async function uploadAndAnalyzeDocument(file: File, apiUrl?: string, anal
       };
     }
 
+    // Prefer the permanent URL from the upload over the presigned URL the backend returns.
     return {
       filename: file.name,
       ai_summary: data.ai_summary || "",
-      file_url: formatS3Url(data.file_url || defaultFileUrl),
+      file_url: formatS3Url(defaultFileUrl || data.file_url),
       s3_key: data.s3_key || urlData.s3_key,
       url: urlData.url,
       char_count: data.char_count,

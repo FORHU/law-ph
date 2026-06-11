@@ -70,6 +70,7 @@ jobs:
             --build-arg AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
             --build-arg AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
             --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --build-arg NEXT_PUBLIC_CLOUDFRONT_URL="${{ secrets.NEXT_PUBLIC_CLOUDFRONT_URL }}" \
             --build-arg CLOUDFRONT_DISTRIBUTION_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
             -t "$ECR:${{ env.IMAGE_TAG }}" \
             -t "$ECR:latest" \
@@ -96,6 +97,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          NEXT_PUBLIC_CLOUDFRONT_URL: ${{ secrets.NEXT_PUBLIC_CLOUDFRONT_URL }}
         run: |
           cat > ${{ github.workspace }}/law-ph.env << EOF
           DATABASE_URL=${DATABASE_URL}
@@ -115,6 +117,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
           AWS_S3_BUCKET=${AWS_S3_BUCKET}
           CLOUDFRONT_DISTRIBUTION_ID=${CLOUDFRONT_DISTRIBUTION_ID}
+          NEXT_PUBLIC_CLOUDFRONT_URL=${NEXT_PUBLIC_CLOUDFRONT_URL}
           NODE_ENV=${{ env.NODE_ENV }}
           PORT=3000
           EOF
