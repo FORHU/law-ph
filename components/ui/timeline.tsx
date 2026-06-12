@@ -11,7 +11,13 @@ export interface TimelineData {
   requires_previous?: boolean;
 }
 
-export const Timeline = ({ data }: { data: TimelineData[] }) => {
+export const Timeline = ({
+  data,
+  onStatusChange,
+}: {
+  data: TimelineData[];
+  onStatusChange?: (data: TimelineData[]) => void;
+}) => {
   const [localData, setLocalData] = useState<TimelineData[]>(data);
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
   const [lockedAlert, setLockedAlert] = useState<number | null>(null);
@@ -35,10 +41,11 @@ export const Timeline = ({ data }: { data: TimelineData[] }) => {
       ) {
         updatedItem.date = new Date().toISOString().split("T")[0];
       } else if (newStatus === "pending") {
-        updatedItem.date = ""; // Optional: Clear date if demoted back to pending
+        updatedItem.date = "";
       }
 
       newData[index] = updatedItem;
+      onStatusChange?.(newData);
       return newData;
     });
   };

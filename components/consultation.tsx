@@ -276,6 +276,21 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
 
 
   let activeTimeline = derivedData.activeTimeline;
+  if (activeConversationId && typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(`lex_timeline_${activeConversationId}`);
+      if (saved) {
+        const overrides: Array<{ title: string; status: string; date?: string }> = JSON.parse(saved);
+        const overrideMap = new Map(overrides.map((o) => [o.title, o]));
+        activeTimeline = activeTimeline.map((step: any) => {
+          const override = overrideMap.get(step.title);
+          return override ? { ...step, status: override.status, date: override.date ?? step.date } : step;
+        });
+      }
+    } catch {
+      // ignore malformed localStorage data
+    }
+  }
   let activeMindMap = derivedData.activeMindMap;
   const {
     emailTo,
@@ -926,7 +941,16 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
             ) : globalTab === "timeline" ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
                 {activeTimeline.length > 0 ? (
-                  <Timeline data={activeTimeline} />
+                  <Timeline
+                    data={activeTimeline}
+                    onStatusChange={(updated) => {
+                      if (!activeConversationId) return;
+                      localStorage.setItem(
+                        `lex_timeline_${activeConversationId}`,
+                        JSON.stringify(updated.map(({ title, status, date }) => ({ title, status, date })))
+                      );
+                    }}
+                  />
                 ) : (
                   <div className="py-20 text-center">
                     <div className="inline-flex p-5 bg-[#722f37]/10 rounded-full mb-6 border border-[#722f37]/30 shadow-xl shadow-[#722f37]/10">
