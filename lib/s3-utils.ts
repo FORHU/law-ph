@@ -222,12 +222,15 @@ export async function uploadToS3Direct(
  */
 export function getProxiedUrl(url: string | null | undefined): string {
   if (!url) return '';
-  if (!url.startsWith('http')) return url; // Already local or blob
+  if (url.startsWith('/') || url.startsWith('blob:')) return url;
 
-  // Only proxy if it's an external AWS-related URL
-  if (url.includes('cloudfront.net') || url.includes('amazonaws.com')) {
-    return `/api/resource-proxy?url=${encodeURIComponent(url)}`;
+  // Normalize missing protocol — NEXT_PUBLIC_CLOUDFRONT_URL may be set without https://
+  let normalized = url;
+  if (!url.startsWith('http')) normalized = `https://${url}`;
+
+  if (normalized.includes('cloudfront.net') || normalized.includes('amazonaws.com')) {
+    return `/api/resource-proxy?url=${encodeURIComponent(normalized)}`;
   }
 
-  return url;
+  return normalized;
 }

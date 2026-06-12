@@ -571,7 +571,7 @@ export function useConsultationState({
       id: `vault-briefcase-${i}`,
       label: att.name || 'Document',
       description: att.ai_summary || `Legal Evidence: ${att.name}`,
-      media: [{ type: isImage ? 'image' : (isAudio ? 'audio' : 'file'), url: att.url, name: att.name }],
+      media: [{ type: isImage ? 'image' : (isAudio ? 'audio' : 'file'), url: att.url, name: att.name, s3_key: att.s3_key }],
       children: []
     };
   });

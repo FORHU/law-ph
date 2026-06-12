@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
     const selectedCdn = isAudio ? (audioCdn || generalCdn) : generalCdn;
 
     if (selectedCdn) {
-      const cdnBase = selectedCdn.replace(/\/+$/, '');
+      let cdnBase = selectedCdn.replace(/\/+$/, '');
+      if (!cdnBase.startsWith('http')) cdnBase = `https://${cdnBase}`;
       finalUrl = `${cdnBase}/${filename}`;
     }
 

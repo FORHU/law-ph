@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { formatS3Url } from '@/lib/s3-utils';
+import { formatS3Url, getProxiedUrl } from '@/lib/s3-utils';
 
 export const CustomNode = memo(({ data }: any) => {
   const isVibrant = data.theme === 'vibrant';
@@ -162,8 +162,15 @@ export const CustomNode = memo(({ data }: any) => {
                   );
                 }
 
+                const s3Bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || 'chat-wonder-dev';
+                const s3Region = process.env.NEXT_PUBLIC_AWS_REGION || 'ap-southeast-1';
+                const rawS3Url = item.s3_key
+                  ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${item.s3_key}`
+                  : (url && url.startsWith('http') ? url : url ? `https://${url}` : '');
+                const fileHref = getProxiedUrl(rawS3Url);
+
                 return (
-                  <a key={idx} href={formatS3Url(url)} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0B0B0C] p-3 rounded-xl border border-white/5 hover:bg-[#722f37]/10 hover:border-[#e9c176]/50 transition-all shadow-xl group/file">
+                  <a key={idx} href={fileHref} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-[#0B0B0C] p-3 rounded-xl border border-white/5 hover:bg-[#722f37]/10 hover:border-[#e9c176]/50 transition-all shadow-xl group/file">
                     <div className="bg-[#e9c176] text-black w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg shrink-0 shadow-lg group-hover/file:scale-110 transition-transform">📄</div>
                     <span className="text-sm font-medium truncate text-white/90">{item.name}</span>
                   </a>

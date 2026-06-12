@@ -22,7 +22,7 @@ import { MindMapProps } from './types';
 import { MIND_MAP_COLORS, MIND_MAP_HEX_COLORS, MIND_MAP_THEMES, MindMapThemeType } from './constants';
 import ReactMarkdown from 'react-markdown';
 import { CustomNode } from './custom-node';
-import { formatS3Url } from '@/lib/s3-utils';
+import { formatS3Url, getProxiedUrl } from '@/lib/s3-utils';
 import type { MindMap3DHandle, MindMap3DProps } from './mind-map-3d';
 
 const MindMap3D = dynamic(() => import('./mind-map-3d').then(m => m.MindMap3D), {
@@ -878,9 +878,19 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                             const isWordDoc = /\.(doc|docx)$/i.test(item.name);
                             const isBlobUrl = typeof item.url === 'string' && item.url.startsWith('blob:');
                             const isMissingUrl = !item.url || item.url === '#' || isBlobUrl;
+
+                            // Construct a raw S3 URL from s3_key so the resource-proxy can sign it
+                            // server-side. This works regardless of CloudFront configuration.
+                            const s3Bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || 'chat-wonder-dev';
+                            const s3Region = process.env.NEXT_PUBLIC_AWS_REGION || 'ap-southeast-1';
+                            const rawS3Url = item.s3_key
+                              ? `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${item.s3_key}`
+                              : item.url;
+                            const accessUrl = getProxiedUrl(rawS3Url);
+
                             const viewerUrl = isMissingUrl ? '' : (isWordDoc
-                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(formatS3Url(item.url))}`
-                              : formatS3Url(item.url));
+                              ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(accessUrl)}`
+                              : accessUrl);
 
                             if (isAttachment) {
                               return (
@@ -900,7 +910,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-2 mt-1">
                                         <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">{isWordDoc ? 'Microsoft Office Viewer' : 'Native Browser Viewer'}</span>
-                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[11px] text-[#e9c176] hover:text-white uppercase tracking-[0.15em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
+                                        <a href={accessUrl} target="_blank" rel="noreferrer" className="text-[11px] text-[#e9c176] hover:text-white uppercase tracking-[0.15em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
                                           Open Original Source ↗
                                         </a>
                                       </div>
@@ -940,7 +950,7 @@ function MindMapInner({ rootTitle = "Case Analysis", data, initialTheme = 'premi
                                       />
                                       <div className="flex justify-between items-center px-1">
                                         <span className="text-[9px] text-white/30 uppercase tracking-widest">{isWordDoc ? 'Office Viewer Proxy' : 'Native Browser Viewer'}</span>
-                                        <a href={formatS3Url(item.url)} target="_blank" rel="noreferrer" className="text-[10px] text-[#e9c176] hover:text-white uppercase tracking-[0.2em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
+                                        <a href={accessUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[#e9c176] hover:text-white uppercase tracking-[0.2em] font-bold transition-all border-b border-transparent hover:border-[#e9c176]">
                                           Open Original Source ↗
                                         </a>
                                       </div>
