@@ -388,17 +388,12 @@ export async function searchDocumentsByPhrasesWithTotal(
   if (hasFts) {
     let combinedTsq: string;
     if (cleanQuestion) {
-      // Base: question text anchors FTS (deterministic across AI responses)
+      // Use only the user's question for FTS — it's specific enough to anchor results.
+      // Including AI phrases in the OR broadens the query too much (9-way OR hits anything
+      // mentioning common legal words like "due process" or "rights"), flooding the tab
+      // with unrelated cases. Phrases are already handled by title ILIKE scoring above.
       ftsParams.push(cleanQuestion);
-      const questionTsq = `plainto_tsquery('english', $${ftsParams.length})`;
-      // Supplement: OR in AI-generated phrases for broader legal term coverage
-      const phraseTsqs = cleanedPhrases.map(p => {
-        ftsParams.push(p);
-        return `plainto_tsquery('english', $${ftsParams.length})`;
-      });
-      combinedTsq = phraseTsqs.length > 0
-        ? `(${[questionTsq, ...phraseTsqs].join(' || ')})`
-        : questionTsq;
+      combinedTsq = `plainto_tsquery('english', $${ftsParams.length})`;
     } else {
       // Fallback: use AI-generated phrases only (no question provided)
       const tsqueries = cleanedPhrases.map(p => {
@@ -416,7 +411,9 @@ export async function searchDocumentsByPhrasesWithTotal(
       LIMIT $${ftsParams.length}
     )`;
     ftsJoin = 'LEFT JOIN fts_ranked fr ON documents.id = fr.id';
-    ftsWhereAdd = 'OR fr.id IS NOT NULL';
+    // Require a minimum ts_rank to exclude documents that only tangentially match
+    // (e.g. mention "due process" once in a 20-page unrelated ruling).
+    ftsWhereAdd = 'OR (fr.id IS NOT NULL AND fr.fts_rank >= 0.005)';
     ftsRankCol = 'COALESCE(fr.fts_rank, 0)::float';
     ftsRankOrderBy = 'COALESCE(fr.fts_rank, 0) DESC,';
   }

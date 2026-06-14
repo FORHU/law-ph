@@ -157,6 +157,7 @@ export function MessageList({
           exactRefs: legalRefs,
           phrases: tagTerms,
           question: questionText || undefined,
+          limit: 20,
           page: 1,
         }),
       });
