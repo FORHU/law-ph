@@ -24,6 +24,7 @@ interface ChatInputProps {
   onRecordingChange?: (isRecording: boolean) => void;
   status?: 'listening' | 'thinking' | 'idle';
   onStatusChange?: (status: 'listening' | 'thinking' | 'idle') => void;
+  sessionId?: string;
 }
 
 export function ChatInput({
@@ -41,7 +42,8 @@ export function ChatInput({
   isRecording: externalIsRecording = false,
   onRecordingChange,
   status: externalStatus = 'idle',
-  onStatusChange
+  onStatusChange,
+  sessionId
 }: ChatInputProps) {
   const { showAlert } = useAlert();
   const [value, setValue] = useState('');
@@ -632,6 +634,15 @@ export function ChatInput({
               AI can make mistakes. Verify important legal information.
             </p>
           </div>
+
+          {/* Session ID */}
+          {sessionId && (
+            <div className="mt-1 text-center">
+              <p className="text-[9px] text-gray-600 font-mono tracking-wider">
+                session: {sessionId}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -106,7 +106,8 @@ export default function Consultation() {
     recordingTime,
     stopRecording,
     formatTime,
-    conflictRecordingId
+    conflictRecordingId,
+    chatSessionId
   } = useConversations();
 
   const onSendMessage = (msg: string, file?: File | null, skipAIResponse?: boolean) => {
@@ -1474,6 +1475,7 @@ Notes/Transcript: ${activeCase.notes || "None provided"}`;
           onAnalyzeFile={handleAnalyzeFile}
           onAnalyzeClick={() => setIsAnalysisModalOpen(true)}
           isAnalyzing={false}
+          sessionId={chatSessionId}
         />
       </div>
 
