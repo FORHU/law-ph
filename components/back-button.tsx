@@ -2,9 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ArrowLeft } from 'lucide-react';
-
-
-
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface BackButtonProps {
   label?: string;
@@ -13,11 +11,13 @@ interface BackButtonProps {
 }
 
 export default function BackButton({
-  label = 'Back',
+  label,
   className = '',
   fallbackHref,
 }: BackButtonProps) {
   const router = useRouter();
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t('common.back');
 
   const handleBack = () => {
     if (fallbackHref) {
@@ -36,8 +36,8 @@ export default function BackButton({
       <ChevronLeft size={20} strokeWidth={2.5} className="md:hidden block group-hover:-translate-x-1 transition-transform" />
 
 
-      <span className="hidden md:inline">{label}</span>
-      <span className="md:hidden text-[10px] font-semibold text-gray-500 group-hover:text-white">{label}</span>
+      <span className="hidden md:inline">{resolvedLabel}</span>
+      <span className="md:hidden text-[10px] font-semibold text-gray-500 group-hover:text-white">{resolvedLabel}</span>
     </button>
   );
 }

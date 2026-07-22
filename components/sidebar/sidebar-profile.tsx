@@ -14,10 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Settings, LogOut, User } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 export function SidebarProfile() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   if (!user) return null;
 
@@ -54,7 +56,7 @@ export function SidebarProfile() {
           <DropdownMenuLabel className="text-gray-400 font-normal py-4 px-5">
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-bold text-white font-serif">{user.email}</span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Your Account</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">{t('sidebar.yourAccount')}</span>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-[#722f37]/20" />
@@ -63,14 +65,14 @@ export function SidebarProfile() {
             className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
             <User className="mr-3 h-4 w-4 text-gray-500" />
-            <span>Profile Settings</span>
+            <span>{t('sidebar.profileSettings')}</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => router.push('/settings/general')}
             className="py-3 px-5 focus:bg-[#722f37]/20 focus:text-white cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
             <Settings className="mr-3 h-4 w-4 text-gray-500" />
-            <span>General Config</span>
+            <span>{t('sidebar.generalConfig')}</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-[#722f37]/20" />
           <DropdownMenuItem
@@ -78,7 +80,7 @@ export function SidebarProfile() {
             className="py-3 px-5 focus:bg-red-500/10 focus:text-red-400 text-red-400 cursor-pointer transition-colors text-[11px] font-bold uppercase tracking-widest"
           >
             <LogOut className="mr-3 h-4 w-4" />
-            <span>Log Out</span>
+            <span>{t('sidebar.logOut')}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

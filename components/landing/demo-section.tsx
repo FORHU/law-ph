@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth/auth-provider';
+import { useTranslation } from '@/lib/i18n/language-provider';
 import { MessageSquare, ArrowRight, Scale } from 'lucide-react';
 
 interface DemoSectionProps {
@@ -13,6 +14,7 @@ interface DemoSectionProps {
 export function DemoSection({ setActiveAngle }: DemoSectionProps) {
   const router = useRouter();
   const { loggedIn } = useAuth();
+  const { t } = useTranslation();
 
   const handleStartConsultation = () => {
     if (!loggedIn) {
@@ -33,12 +35,12 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
         viewport={{ once: true }}
         className="max-w-[1200px] mx-auto px-4 sm:px-8 lg:px-12 text-center"
       >
-        <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-6 sm:mb-8 block">Live Preview</span>
+        <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-6 sm:mb-8 block">{t('landing.demo.eyebrow')}</span>
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-white mb-4 sm:mb-8 leading-[1.1]">
-          AI Legal Consultation in Action
+          {t('landing.demo.heading')}
         </h2>
         <p className="text-on-surface/50 text-base sm:text-lg mb-10 sm:mb-16 max-w-3xl mx-auto font-light">
-          See how our AI provides instant, accurate legal guidance based on Philippine law.
+          {t('landing.demo.description')}
         </p>
 
         <div className="glass-panel rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] p-6 sm:p-10 lg:p-16 xl:p-24 border border-white/10 text-left relative overflow-hidden shadow-2xl bg-white/[0.01]">
@@ -53,7 +55,7 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
               className="flex justify-end"
             >
               <div className="bg-[#722f37]/20 rounded-[1.5rem] sm:rounded-[2rem] rounded-tr-none p-4 sm:p-6 lg:p-8 text-white text-sm sm:text-base lg:text-lg max-w-[90%] sm:max-w-2xl border border-[#722f37]/30 shadow-xl leading-relaxed backdrop-blur-xl">
-                What are the legal requirements for terminating a lease early under the Civil Code?
+                {t('landing.demo.userMessage')}
               </div>
             </motion.div>
 
@@ -69,8 +71,8 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
                 <Scale className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-gray-400" />
               </div>
               <div className="bg-[#0B0B0C]/60 rounded-[1.5rem] sm:rounded-[2rem] rounded-tl-none p-5 sm:p-7 lg:p-10 text-gray-300 text-sm sm:text-base lg:text-lg leading-relaxed border border-[#e9c176]/20 shadow-2xl font-light backdrop-blur-3xl">
-                <span className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] block mb-3 sm:mb-4">AI Summary</span>
-                Under the Civil Code of the Philippines, particularly Article 1673, a lessor cannot arbitrarily terminate a lease agreement prior to the expiration of the stipulated period. All terminations must follow proper legal procedures...
+                <span className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] block mb-3 sm:mb-4">{t('landing.demo.aiSummaryLabel')}</span>
+                {t('landing.demo.aiResponse')}
               </div>
             </motion.div>
           </div>
@@ -87,7 +89,7 @@ export function DemoSection({ setActiveAngle }: DemoSectionProps) {
               className="bg-[#722f37] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 text-base sm:text-lg font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-[#722f37]/20 w-full sm:w-auto justify-center"
             >
               <MessageSquare className="w-5 h-5 shrink-0" />
-              Start Your Consultation
+              {t('landing.demo.startYourConsultation')}
               <ArrowRight className="w-5 h-5 shrink-0" />
             </button>
           </motion.div>

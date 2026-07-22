@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, CheckCircle2, ExternalLink } from "lucide-react";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface AuthRequestCardProps {
   authUrl: string;
@@ -12,6 +13,7 @@ interface AuthRequestCardProps {
 
 export function AuthRequestCard({ authUrl, onAuthenticated }: AuthRequestCardProps) {
   const [isClicked, setIsClicked] = useState(false);
+  const { t } = useTranslation();
 
   const handleConnect = () => {
     // Append current path as return_path to the auth URL
@@ -28,37 +30,37 @@ export function AuthRequestCard({ authUrl, onAuthenticated }: AuthRequestCardPro
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2 text-primary mb-1">
           <Calendar className="h-5 w-5" />
-          <span className="text-xs font-bold tracking-wider uppercase">Calendar Access Required</span>
+          <span className="text-xs font-bold tracking-wider uppercase">{t('auth.googleConnect.badge')}</span>
         </div>
-        <CardTitle className="text-white text-lg">Connect Google Calendar</CardTitle>
+        <CardTitle className="text-white text-lg">{t('auth.googleConnect.title')}</CardTitle>
         <CardDescription className="text-slate-400">
-          To schedule or manage events, please authorize access to your calendar.
+          {t('auth.googleConnect.desc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
-        <Button 
-          onClick={handleConnect} 
+        <Button
+          onClick={handleConnect}
           className="w-full gap-2 bg-primary hover:bg-primary/90 text-white transition-all shadow-md active:scale-95"
           size="lg"
         >
           <ExternalLink className="h-4 w-4" />
-          Link Account
+          {t('auth.googleConnect.linkAccount')}
         </Button>
       </CardContent>
       {isClicked && (
         <CardFooter className="pt-0 flex flex-col gap-2">
             <div className="w-full h-px bg-border-dark mb-2"></div>
             <p className="text-xs text-center text-slate-500 mb-2">
-                Done connecting?
+                {t('auth.googleConnect.doneConnecting')}
             </p>
-            <Button 
-                variant="outline" 
+            <Button
+                variant="outline"
                 onClick={onAuthenticated}
                 className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
                 size="sm"
             >
                 <CheckCircle2 className="h-4 w-4" />
-                I've Connected Successfully
+                {t('auth.googleConnect.connectedSuccessfully')}
             </Button>
         </CardFooter>
       )}

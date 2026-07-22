@@ -20,6 +20,7 @@ import { TAB_CONFIG } from '@/components/consultation/message-list/constants';
 import { LegalSource, RelatedCase } from '@/lib/citation-parser';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
 import { useAuth } from '@/components/auth/auth-provider';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 // Case-membership system messages ("X joined/left/was removed from the case.") read the
 // same way for everyone. Personalize them for the user the action happened to/by, so
@@ -97,6 +98,7 @@ export function MessageItem({
   const isAI = message.sender === CHAT_SENDER.AI;
   const { addBookmark, removeBookmark, isBookmarked, currentConsultationId, isSharedCase, cases } = useConversations();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
@@ -428,7 +430,7 @@ export function MessageItem({
             ) : message.text === "" && isAI ? (
               <div className="flex items-center gap-2 py-2 px-1">
                 <span className="text-sm font-serif">
-                  <span className="italic text-[#e9c176]">ilove</span><span className="text-white font-medium">lawyer</span>
+                  <span className="italic text-[#e9c176]">{t('common.brand.part1')}</span><span className="text-white font-medium">{t('common.brand.part2')}</span>
                   <span className="italic text-gray-400"> is thinking</span>
                 </span>
                 <span className="inline-flex items-center gap-[5px]">

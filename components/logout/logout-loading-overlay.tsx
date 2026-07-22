@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { COLORS } from "@/lib/constants";
 import { Portal } from "../portal";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 export function LogoutLoadingOverlay() {
+  const { t } = useTranslation();
   return (
     <Portal>
       <motion.div
@@ -27,9 +29,9 @@ export function LogoutLoadingOverlay() {
         </div>
         
         <div className="text-center">
-          <h2 className="text-xl font-medium text-white mb-2 tracking-tight">Signing out...</h2>
+          <h2 className="text-xl font-medium text-white mb-2 tracking-tight">{t('auth.logout.signingOut')}</h2>
           <p className="text-gray-500 text-sm max-w-[200px] leading-relaxed">
-            Please wait while we secure your legal session.
+            {t('auth.logout.signingOutDesc')}
           </p>
         </div>
       </motion.div>

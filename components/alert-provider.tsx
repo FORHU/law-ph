@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import { COLORS } from "@/lib/constants";
 import { Portal } from "./portal";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface AlertState {
   message: string;
@@ -25,10 +26,11 @@ export function useAlert() {
 
 export function AlertProvider({ children }: { children: ReactNode }) {
   const [alert, setAlert] = useState<AlertState | null>(null);
+  const { t } = useTranslation();
 
-  const showAlert = useCallback((message: string, title = "Notice") => {
+  const showAlert = useCallback((message: string, title = t('common.notice')) => {
     setAlert({ message, title });
-  }, []);
+  }, [t]);
 
   const closeAlert = useCallback(() => {
     setAlert(null);
@@ -87,7 +89,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
                       boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}44, 0 4px 6px -2px ${COLORS.PRIMARY}22`,
                     }}
                   >
-                    OK
+                    {t('common.ok')}
                   </button>
                 </div>
               </motion.div>

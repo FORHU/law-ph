@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface FAQSectionProps {
   setActiveAngle?: (angle: number) => void;
@@ -10,29 +11,8 @@ interface FAQSectionProps {
 
 export function FAQSection({ setActiveAngle }: FAQSectionProps) {
   const [openFaq, setOpenFaq] = React.useState<number | null>(0);
-
-  const faqs = [
-    {
-      question: 'Is ilovelawyer a replacement for a licensed lawyer?',
-      answer: 'No, ilovelawyer is an AI legal information tool designed to assist with research and document verification. It provides information based on Republic Acts, Batas Pambansa, various Codes, and jurisprudence. We strongly recommend consulting with a member of the Integrated Bar of the Philippines (IBP) for sensitive legal matters.'
-    },
-    {
-      question: 'Which Philippine laws are included in the AI\'s knowledge base?',
-      answer: 'Our knowledge base includes the Civil Code, Revised Penal Code, Family Code, Labor Code, and thousands of Supreme Court decisions up to the latest public records.'
-    },
-    {
-      question: 'How secure is the information I share?',
-      answer: 'We use industry-standard AES-256 encryption and follow strict Data Privacy Act (R.A. 10173) guidelines to ensure your information remains confidential.'
-    },
-    {
-      question: 'Can the AI help me draft legal documents like affidavits?',
-      answer: 'Yes, ilovelawyer can provide templates and draft initial versions of common legal documents, which you should then review with a licensed professional.'
-    },
-    {
-      question: 'Is there a cost to use ilovelawyer?',
-      answer: 'We offer both free basic access and premium subscription tiers for advanced research and document review capabilities.'
-    }
-  ];
+  const { t, dict } = useTranslation();
+  const faqs = dict.landing.faq.items;
 
   return (
     <section
@@ -47,7 +27,7 @@ export function FAQSection({ setActiveAngle }: FAQSectionProps) {
           viewport={{ once: true }}
           className="text-secondary text-sm tracking-[0.4em] font-bold uppercase mb-6 sm:mb-8 block"
         >
-          Common Questions
+          {t('landing.faq.eyebrow')}
         </motion.span>
 
         <motion.h2
@@ -56,7 +36,7 @@ export function FAQSection({ setActiveAngle }: FAQSectionProps) {
           viewport={{ once: true }}
           className="text-3xl sm:text-5xl lg:text-7xl font-serif text-white mb-8 sm:mb-12 lg:mb-24 leading-tight"
         >
-          Frequently Asked Questions
+          {t('landing.faq.heading')}
         </motion.h2>
 
         <div className="space-y-3 sm:space-y-4 lg:space-y-6 text-left">

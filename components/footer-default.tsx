@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { COLORS } from '@/lib/constants';
 import { LegalModal } from '@/components/auth/legal-modal';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 const SOCIAL_LINKS = [
   {
@@ -40,6 +41,7 @@ const SOCIAL_LINKS = [
 
 export function Footer() {
   const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | 'ethical-ai' | 'compliance' | null>(null);
+  const { t } = useTranslation();
 
   return (
     <footer className="relative bg-[#0B0B0C] border-t border-white/5 z-10 overflow-hidden">
@@ -62,36 +64,36 @@ export function Footer() {
               className="flex items-center cursor-pointer w-fit"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
-              <span className="font-serif italic lowercase text-3xl" style={{ color: COLORS.SECONDARY }}>ilove</span>
-              <span className="font-serif text-white font-medium lowercase text-3xl">lawyer</span>
+              <span className="font-serif italic lowercase text-3xl" style={{ color: COLORS.SECONDARY }}>{t('common.brand.part1')}</span>
+              <span className="font-serif text-white font-medium lowercase text-3xl">{t('common.brand.part2')}</span>
             </span>
             <p className="text-white/30 text-sm leading-relaxed">
-              AI-powered legal assistance built for Philippine law.
+              {t('landing.footer.tagline')}
             </p>
           </motion.div>
 
           {/* Legal links */}
           <div className="flex flex-col gap-4">
-            <h4 className="text-white/50 font-bold text-[10px] tracking-[0.2em] uppercase">Legal</h4>
+            <h4 className="text-white/50 font-bold text-[10px] tracking-[0.2em] uppercase">{t('landing.footer.legal')}</h4>
             <ul className="flex flex-col gap-3 text-sm text-white/30">
               <li>
-                <button onClick={() => setLegalModal('privacy')} className="hover:text-secondary transition-colors">Privacy Policy</button>
+                <button onClick={() => setLegalModal('privacy')} className="hover:text-secondary transition-colors">{t('landing.footer.privacyPolicy')}</button>
               </li>
               <li>
-                <button onClick={() => setLegalModal('terms')} className="hover:text-secondary transition-colors">Terms of Service</button>
+                <button onClick={() => setLegalModal('terms')} className="hover:text-secondary transition-colors">{t('landing.footer.termsOfService')}</button>
               </li>
               <li>
-                <button onClick={() => setLegalModal('ethical-ai')} className="hover:text-secondary transition-colors">Ethical AI Charter</button>
+                <button onClick={() => setLegalModal('ethical-ai')} className="hover:text-secondary transition-colors">{t('landing.footer.ethicalAiCharter')}</button>
               </li>
               <li>
-                <button onClick={() => setLegalModal('compliance')} className="hover:text-secondary transition-colors">Compliance</button>
+                <button onClick={() => setLegalModal('compliance')} className="hover:text-secondary transition-colors">{t('landing.footer.compliance')}</button>
               </li>
             </ul>
           </div>
 
           {/* Social links */}
           <div className="flex flex-col gap-4">
-            <h4 className="text-white/50 font-bold text-[10px] tracking-[0.2em] uppercase">Follow Us</h4>
+            <h4 className="text-white/50 font-bold text-[10px] tracking-[0.2em] uppercase">{t('landing.footer.followUs')}</h4>
             <div className="grid grid-cols-3 gap-2">
               {SOCIAL_LINKS.map(({ label, href, icon }) => (
                 <a
@@ -114,8 +116,8 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/[0.05]">
         <div className="max-w-[1280px] mx-auto px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-white/20 text-xs">© {new Date().getFullYear()} Law-PH · ilovelawyer. All rights reserved.</p>
-          <p className="text-white/20 text-xs">Built for Philippine Law</p>
+          <p className="text-white/20 text-xs">© {new Date().getFullYear()} Law-PH · ilovelawyer. {t('landing.footer.allRightsReserved')}</p>
+          <p className="text-white/20 text-xs">{t('landing.footer.builtFor')}</p>
         </div>
       </div>
     </footer>

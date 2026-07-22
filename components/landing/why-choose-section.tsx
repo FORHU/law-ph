@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth/auth-provider';
+import { useTranslation } from '@/lib/i18n/language-provider';
 import { Clock, Zap, FileText, LayoutGrid } from 'lucide-react';
 
 interface WhyChooseSectionProps {
@@ -13,7 +14,14 @@ interface WhyChooseSectionProps {
 export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
   const router = useRouter();
   const { loggedIn } = useAuth();
+  const { t, dict } = useTranslation();
   const [time, setTime] = useState('0:00.00');
+  const icons = [
+    <Clock className="w-5 h-5 sm:w-6 sm:h-6" key="clock" />,
+    <Zap className="w-5 h-5 sm:w-6 sm:h-6" key="zap" />,
+    <FileText className="w-5 h-5 sm:w-6 sm:h-6" key="file" />,
+    <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" key="grid" />,
+  ];
 
   const handleStartConsultation = () => {
     if (!loggedIn) {
@@ -58,11 +66,11 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
         {/* Left */}
         <div className="lg:col-span-7">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-serif text-white mb-6 sm:mb-8 lg:mb-12 leading-[1.1]">
-            Why Choose <br />
-            <span className="text-[#e9c176]">ilovelawyer?</span>
+            {t('landing.whyChoose.heading')} <br />
+            <span className="text-[#e9c176]">{t('landing.whyChoose.headingAccent')}</span>
           </h2>
           <p className="text-base sm:text-lg text-on-surface/50 mb-8 sm:mb-12 lg:mb-16 leading-relaxed max-w-2xl font-light">
-            Traditional legal consultations can be fragmented and opaque. ilovelawyer provides immediate, professional guidance when precision is paramount.
+            {t('landing.whyChoose.description')}
           </p>
 
           <motion.div
@@ -72,19 +80,14 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             viewport={{ once: true }}
             className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-12"
           >
-            {[
-              { title: '24/7 Availability', desc: 'Professional guidance at any hour.', icon: <Clock className="w-5 h-5 sm:w-6 sm:h-6" /> },
-              { title: 'Instant Responses', desc: 'Quick access to current legal codes.', icon: <Zap className="w-5 h-5 sm:w-6 sm:h-6" /> },
-              { title: 'Verified Knowledge', desc: 'Based on current legal codes and precedents.', icon: <FileText className="w-5 h-5 sm:w-6 sm:h-6" /> },
-              { title: 'Affordable Access', desc: 'Professional legal guidance at an affordable price.', icon: <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" /> },
-            ].map((item) => (
+            {dict.landing.whyChoose.items.map((item, idx) => (
               <motion.div
                 key={item.title}
                 variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } } }}
                 className="flex gap-4 sm:gap-6 lg:gap-8 items-start group"
               >
                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-[#722f37]/10 flex items-center justify-center text-[#e9c176] border border-[#722f37]/20 mt-1 shrink-0 transition-all group-hover:scale-110 group-hover:bg-[#722f37]/20 group-hover:border-[#e9c176]/30">
-                  {item.icon}
+                  {icons[idx]}
                 </div>
                 <div>
                   <h4 className="text-base sm:text-lg lg:text-xl font-bold text-white mb-1 sm:mb-2 group-hover:text-[#e9c176] transition-colors">{item.title}</h4>
@@ -107,12 +110,12 @@ export function WhyChooseSection({ setActiveAngle }: WhyChooseSectionProps) {
             <div className="text-4xl sm:text-5xl lg:text-6xl font-serif text-white mb-4 sm:mb-6 tracking-tighter tabular-nums">
               {time}
             </div>
-            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-8 sm:mb-12 lg:mb-16 font-bold">Response Time</p>
+            <p className="text-[#e9c176]/50 text-[10px] tracking-[0.4em] uppercase mb-8 sm:mb-12 lg:mb-16 font-bold">{t('landing.whyChoose.responseTime')}</p>
             <button
               onClick={handleStartConsultation}
               className="w-full bg-[#722f37] hover:bg-[#8b3a44] text-white py-3 sm:py-4 rounded-xl text-sm sm:text-lg font-bold transition-all shadow-xl shadow-[#722f37]/20 uppercase tracking-widest active:scale-95"
             >
-              Start Consultation
+              {t('landing.whyChoose.startConsultation')}
             </button>
           </motion.div>
         </div>

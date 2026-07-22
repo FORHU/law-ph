@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ASSETS, BRAND, COLORS } from '@/lib/constants';
+import { ASSETS, COLORS } from '@/lib/constants';
 import { Home, Scale, AlertCircle } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 export default function NotFound() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#1A1A1A] relative overflow-hidden text-white font-sans">
       {/* Background with Lady Justice */}
@@ -32,12 +34,11 @@ export default function NotFound() {
           <div className={`h-1 w-24 bg-[${COLORS.PRIMARY}] mx-auto mb-8 rounded-full`}></div>
 
           <h2 className="text-2xl md:text-3xl font-medium mb-6 text-white/90">
-            Page Not Found
+            {t('notFound.title')}
           </h2>
 
           <p className="text-lg text-white/60 mb-12 max-w-md mx-auto leading-relaxed">
-            The page you're looking for isn't here.
-            The page may have been moved, deleted, or never existed in the first place.
+            {t('notFound.description')}
           </p>
 
           {/* Action Buttons */}
@@ -49,7 +50,7 @@ export default function NotFound() {
                 className={`flex items-center gap-2 px-8 py-4 bg-[${COLORS.PRIMARY}] hover:bg-[${COLORS.PRIMARY_LIGHT}] text-white rounded-xl transition-all shadow-lg shadow-[${COLORS.PRIMARY}]/20 font-medium`}
               >
                 <Home size={20} />
-                Return to the Homepage
+                {t('notFound.returnHome')}
               </motion.button>
             </Link>
 
@@ -58,7 +59,7 @@ export default function NotFound() {
               className="flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white rounded-xl transition-all font-medium"
             >
               <AlertCircle size={20} />
-              Back
+              {t('common.back')}
             </button>
           </div>
         </motion.div>
@@ -71,8 +72,8 @@ export default function NotFound() {
           transition={{ delay: 1 }}
         >
           <span className="text-sm tracking-widest uppercase">
-            {BRAND.NAME_PART1}
-            <span className={`text-[${COLORS.PRIMARY}] font-bold`}>{BRAND.NAME_PART2}</span>
+            {t('common.brand.part1')}
+            <span className={`text-[${COLORS.PRIMARY}] font-bold`}>{t('common.brand.part2')}</span>
           </span>
         </motion.div>
       </div>

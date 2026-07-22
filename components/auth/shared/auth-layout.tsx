@@ -2,6 +2,7 @@
 
 import React from 'react';
 import BackButton from '../../back-button';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -12,10 +13,11 @@ interface AuthLayoutProps {
 
 export function AuthLayout({
   children,
-  backButtonLabel = "Return",
+  backButtonLabel,
   backButtonHref = "/",
   maxWidth = "max-w-xl"
 }: AuthLayoutProps) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen w-full flex flex-col bg-transparent relative overflow-y-auto text-white font-sans scroll-smooth">
       {/* Ambient overlay to ensure text readability over the global background */}
@@ -24,7 +26,7 @@ export function AuthLayout({
       </div>
 
       <BackButton
-        label={backButtonLabel}
+        label={backButtonLabel ?? t('common.return')}
         className="absolute top-8 left-8 z-20 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-[#722f37] transition-colors"
         fallbackHref={backButtonHref}
       />

@@ -4,6 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../auth/auth-provider";
+import { useTranslation } from "@/lib/i18n/language-provider";
 
 interface HeroSectionProps {
   onStartConsultation: () => void;
@@ -13,6 +14,7 @@ interface HeroSectionProps {
 export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSectionProps) {
   const router = useRouter();
   const { loggedIn } = useAuth();
+  const { t } = useTranslation();
 
   const handleStartConsultation = () => {
     if (!loggedIn) {
@@ -37,7 +39,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 leading-[1.1] tracking-tight"
           >
-            Navigate <span className="text-secondary italic">Philippine Law</span> with AI Precision
+            {t('landing.hero.titlePrefix')} <span className="text-secondary italic">{t('landing.hero.titleAccent')}</span> {t('landing.hero.titleSuffix')}
           </motion.h1>
 
           <motion.p
@@ -47,7 +49,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
             transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="text-base sm:text-lg md:text-xl text-on-surface/80 mb-8 sm:mb-12 max-w-2xl leading-relaxed font-light"
           >
-            AI-powered legal assistance built for Philippine law.
+            {t('landing.hero.subtitle')}
           </motion.p>
 
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6">
@@ -59,7 +61,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
               onMouseEnter={() => setActiveAngle(2)}
               className="bg-[#722f37] text-white px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold rounded-lg shadow-2xl transition-all cursor-pointer w-full sm:w-auto"
             >
-              Start Quick Consultation
+              {t('landing.hero.startConsultation')}
             </motion.button>
 
             <motion.button
@@ -69,7 +71,7 @@ export function HeroSection({ onStartConsultation, setActiveAngle }: HeroSection
               onMouseEnter={() => setActiveAngle(3)}
               className="bg-white/5 text-white px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-medium rounded-lg border border-white/10 transition-all cursor-pointer w-full sm:w-auto"
             >
-              Learn How It Works
+              {t('landing.hero.learnHowItWorks')}
             </motion.button>
           </div>
         </div>

@@ -10,9 +10,11 @@ import { AuthCard } from "./auth/shared/auth-card";
 import { AuthHeader } from "./auth/shared/auth-header";
 import { AuthInput } from "./auth/shared/auth-input";
 import { AuthButton } from "./auth/shared/auth-button";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 export function UpdatePasswordForm() {
   const router = useRouter();
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? undefined;
 
@@ -34,40 +36,40 @@ export function UpdatePasswordForm() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to update password');
+        throw new Error(data.error || t('auth.updatePassword.failedToUpdate'));
       }
       setIsSubmitted(true);
       setTimeout(() => { router.push(AUTH_ROUTES.LOGIN); }, 3000);
     } catch (error: any) {
-      setError(error.message || "An error occurred during password update");
+      setError(error.message || t('auth.updatePassword.genericError'));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <AuthLayout 
-      backButtonLabel="Return to login" 
+    <AuthLayout
+      backButtonLabel={t('auth.updatePassword.returnToLogin')}
       backButtonHref={AUTH_ROUTES.LOGIN}
       maxWidth="max-w-2xl"
     >
       <AuthCard>
         {!isSubmitted ? (
           <>
-            <AuthHeader 
+            <AuthHeader
               icon={Lock}
-              title="Update Password"
-              description="Secure your account with a new password"
+              title={t('auth.updatePassword.title')}
+              description={t('auth.updatePassword.subtitle')}
             />
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <AuthInput 
+              <AuthInput
                 id="password"
-                label="NEW PASSWORD"
+                label={t('auth.updatePassword.newPasswordLabel')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your new password"
+                placeholder={t('auth.updatePassword.newPasswordPlaceholder')}
                 required
                 minLength={6}
               />
@@ -82,8 +84,8 @@ export function UpdatePasswordForm() {
                 </motion.div>
               )}
 
-              <AuthButton isLoading={isLoading} loadingText="UPDATING..." className="uppercase tracking-widest font-bold">
-                Update Password
+              <AuthButton isLoading={isLoading} loadingText={t('auth.updatePassword.updating')} className="uppercase tracking-widest font-bold">
+                {t('auth.updatePassword.submit')}
               </AuthButton>
             </form>
           </>
@@ -106,7 +108,7 @@ export function UpdatePasswordForm() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Password Updated
+              {t('auth.updatePassword.updated')}
             </motion.h1>
 
             <motion.p
@@ -115,7 +117,7 @@ export function UpdatePasswordForm() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              Your password has been changed successfully. Redirecting to login...
+              {t('auth.updatePassword.updatedDesc')}
             </motion.p>
           </>
         )}
@@ -131,7 +133,7 @@ export function UpdatePasswordForm() {
           <div className="flex items-center justify-center gap-6 text-white/50 text-sm">
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              <span>Secure Update</span>
+              <span>{t('auth.updatePassword.secureUpdate')}</span>
             </div>
           </div>
         </motion.div>

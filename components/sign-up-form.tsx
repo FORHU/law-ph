@@ -11,10 +11,12 @@ import { AuthHeader } from './auth/shared/auth-header';
 import { AuthInput } from './auth/shared/auth-input';
 import { AuthButton } from './auth/shared/auth-button';
 import { LegalModal } from './auth/legal-modal';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 export function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const redirectParam = searchParams?.get('redirect');
   const redirectQuery = redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : '';
   const [formData, setFormData] = useState({
@@ -36,7 +38,7 @@ export function SignUpForm() {
     setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('auth.signup.passwordsNoMatch'));
       setIsLoading(false);
       return;
     }
@@ -55,9 +57,9 @@ export function SignUpForm() {
       if (!res.ok) {
         const data = await res.json();
         if (res.status === 409) {
-          setError("This email is already registered. Please sign in instead.");
+          setError(t('auth.signup.emailTaken'));
         } else {
-          throw new Error(data.error || 'Sign up failed');
+          throw new Error(data.error || t('auth.signup.signUpFailed'));
         }
         return;
       }
@@ -66,7 +68,7 @@ export function SignUpForm() {
       router.refresh();
     } catch (err: any) {
       console.error('Sign up error:', err);
-      setError(err.message || "An error occurred during sign up");
+      setError(err.message || t('auth.signup.genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -78,8 +80,8 @@ export function SignUpForm() {
         <AuthCard>
           <AuthHeader
             icon={UserPlus}
-            title="Create Account"
-            description="Set up your account to access intelligent legal assistance."
+            title={t('auth.signup.title')}
+            description={t('auth.signup.subtitle')}
           />
 
           <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
@@ -89,10 +91,10 @@ export function SignUpForm() {
 
             <AuthInput
               id="fullName"
-              label="Full Name"
+              label={t('auth.signup.fullNameLabel')}
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              placeholder="Your full name"
+              placeholder={t('auth.signup.fullNamePlaceholder')}
               required
               delay={0.6}
               autoComplete="off"
@@ -100,11 +102,11 @@ export function SignUpForm() {
 
             <AuthInput
               id="email"
-              label="Email Address"
+              label={t('auth.signup.emailLabel')}
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="you@example.com"
+              placeholder={t('auth.signup.emailPlaceholder')}
               required
               delay={0.7}
               autoComplete="off"
@@ -112,11 +114,11 @@ export function SignUpForm() {
 
             <AuthInput
               id="password"
-              label="Password"
+              label={t('auth.signup.passwordLabel')}
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Create a secure password"
+              placeholder={t('auth.signup.passwordPlaceholder')}
               required
               minLength={8}
               delay={0.8}
@@ -125,11 +127,11 @@ export function SignUpForm() {
 
             <AuthInput
               id="confirmPassword"
-              label="Confirm Password"
+              label={t('auth.signup.confirmPasswordLabel')}
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              placeholder="Confirm your password"
+              placeholder={t('auth.signup.confirmPasswordPlaceholder')}
               required
               minLength={8}
               delay={0.9}
@@ -158,37 +160,37 @@ export function SignUpForm() {
                 className="mt-[2px] w-4 h-4 accent-[#722f37] shrink-0 border-white/20 rounded bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                 required
                 disabled={!bothRead}
-                title={!bothRead ? 'Please read and scroll through both the Terms and Privacy Policy first' : undefined}
+                title={!bothRead ? t('auth.signup.readBothTooltip') : undefined}
               />
               <div className="flex flex-col gap-1">
                 <label htmlFor="terms" className={`text-[11px] font-medium leading-tight ${bothRead ? 'text-white/60' : 'text-white/30'}`}>
-                  I agree to the{' '}
+                  {t('auth.signup.agreePrefix')}{' '}
                   <button
                     type="button"
                     onClick={() => setLegalModal('terms')}
                     className={`transition-colors cursor-pointer font-bold underline ${hasRead.terms ? 'text-[#e9c176]' : 'text-white hover:text-[#e9c176]'}`}
                   >
-                    Terms
+                    {t('auth.signup.terms')}
                   </button>
-                  {' '}and{' '}
+                  {' '}{t('auth.signup.and')}{' '}
                   <button
                     type="button"
                     onClick={() => setLegalModal('privacy')}
                     className={`transition-colors cursor-pointer font-bold underline ${hasRead.privacy ? 'text-[#e9c176]' : 'text-white hover:text-[#e9c176]'}`}
                   >
-                    Privacy Policy
+                    {t('auth.signup.privacyPolicy')}
                   </button>
                 </label>
                 {!bothRead && (
                   <p className="text-[10px] text-[#722f37] font-bold uppercase tracking-widest">
-                    Read both documents to continue
+                    {t('auth.signup.readBothDocuments')}
                   </p>
                 )}
               </div>
             </motion.div>
 
-            <AuthButton isLoading={isLoading} loadingText="Creating Account..." delay={1.1}>
-              CREATE ACCOUNT
+            <AuthButton isLoading={isLoading} loadingText={t('auth.signup.creatingAccount')} delay={1.1}>
+              {t('auth.signup.createAccount')}
             </AuthButton>
           </form>
 
@@ -199,12 +201,12 @@ export function SignUpForm() {
             transition={{ duration: 0.5, delay: 1.2 }}
           >
             <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em]">
-              Already authorized?{' '}
+              {t('auth.signup.alreadyAuthorized')}{' '}
               <button
                 onClick={() => router.push(`${AUTH_ROUTES.LOGIN}${redirectQuery}`)}
                 className="text-[#e9c176] hover:text-white transition-colors cursor-pointer"
               >
-                Sign in
+                {t('auth.signup.signIn')}
               </button>
             </p>
           </motion.div>

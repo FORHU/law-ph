@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface AuthButtonProps {
   type?: "button" | "submit" | "reset";
@@ -24,6 +25,7 @@ export function AuthButton({
   onClick,
   className = ""
 }: AuthButtonProps) {
+  const { t } = useTranslation();
   return (
     <motion.button
       type={type}
@@ -36,7 +38,7 @@ export function AuthButton({
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
     >
-      {isLoading ? (loadingText || "Processing...") : children}
+      {isLoading ? (loadingText || t('common.processing')) : children}
     </motion.button>
   );
 }

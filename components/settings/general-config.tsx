@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageLayout } from '@/components/ui/page-layout';
 import { Clock, Bell, CalendarDays, Globe, Save, Check, ChevronDown } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
+import { languages as LANGUAGES, DEFAULT_LANGUAGE, type LanguageCode } from '@/lib/i18n/languages';
 
 const STORAGE_KEY = 'lawyer_general_config';
 
@@ -14,12 +16,6 @@ const DURATIONS = [
   { value: 60, label: '1 hour' },
   { value: 90, label: '1.5 hrs' },
   { value: 120, label: '2 hours' },
-];
-
-const LANGUAGES = [
-  { value: 'en-PH', label: 'English (Philippines)' },
-  { value: 'fil', label: 'Filipino' },
-  { value: 'en-US', label: 'English (US)' },
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -34,7 +30,7 @@ interface Config {
   notifyBrowser: boolean;
   workStart: number;
   workEnd: number;
-  language: string;
+  language: LanguageCode;
 }
 
 const DEFAULT_CONFIG: Config = {
@@ -43,11 +39,12 @@ const DEFAULT_CONFIG: Config = {
   notifyBrowser: true,
   workStart: 8,
   workEnd: 18,
-  language: 'en-PH',
+  language: DEFAULT_LANGUAGE,
 };
 
 export function GeneralConfig() {
   const router = useRouter();
+  const { t, setLanguage } = useTranslation();
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [saved, setSaved] = useState(false);
 
@@ -63,6 +60,7 @@ export function GeneralConfig() {
 
   const handleSave = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    setLanguage(config.language);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -70,16 +68,16 @@ export function GeneralConfig() {
   return (
     <PageLayout
       activePage="chat"
-      title="General Config"
-      subtitle="Customize your workspace preferences"
+      title={t('settings.generalConfigTitle')}
+      subtitle={t('settings.generalConfigSubtitle')}
       onBack={() => router.back()}
       maxWidth="max-w-2xl"
     >
       <div className="flex flex-col gap-5 px-4 py-6 overflow-y-auto h-full pb-10">
 
         {/* Appointment Defaults */}
-        <Card icon={<Clock size={15} className="text-[#e9c176]" />} title="Appointment Defaults">
-          <Label>Default duration when creating a new event</Label>
+        <Card icon={<Clock size={15} className="text-[#e9c176]" />} title={t('settings.appointmentDefaults')}>
+          <Label>{t('settings.appointmentDefaultsDesc')}</Label>
           <div className="grid grid-cols-3 gap-2 mt-3">
             {DURATIONS.map(d => (
               <button
@@ -98,11 +96,11 @@ export function GeneralConfig() {
         </Card>
 
         {/* Working Hours */}
-        <Card icon={<CalendarDays size={15} className="text-[#e9c176]" />} title="Working Hours">
-          <Label>Events outside these hours will be flagged as off-schedule</Label>
+        <Card icon={<CalendarDays size={15} className="text-[#e9c176]" />} title={t('settings.workingHours')}>
+          <Label>{t('settings.workingHoursDesc')}</Label>
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-600 mb-1.5">Start of Day</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-600 mb-1.5">{t('settings.startOfDay')}</p>
               <SelectInput
                 value={config.workStart}
                 onChange={v => update('workStart', v)}
@@ -110,7 +108,7 @@ export function GeneralConfig() {
               />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-600 mb-1.5">End of Day</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-600 mb-1.5">{t('settings.endOfDay')}</p>
               <SelectInput
                 value={config.workEnd}
                 onChange={v => update('workEnd', v)}
@@ -121,17 +119,17 @@ export function GeneralConfig() {
         </Card>
 
         {/* Notifications */}
-        <Card icon={<Bell size={15} className="text-[#e9c176]" />} title="Notifications">
+        <Card icon={<Bell size={15} className="text-[#e9c176]" />} title={t('settings.notifications')}>
           <div className="flex flex-col gap-2">
             <Toggle
-              label="Email alerts for new appointments"
-              description="Get notified when a client books or cancels"
+              label={t('settings.emailAlerts')}
+              description={t('settings.emailAlertsDesc')}
               checked={config.notifyEmail}
               onChange={v => update('notifyEmail', v)}
             />
             <Toggle
-              label="Browser notifications"
-              description="Show in-app alerts for upcoming events"
+              label={t('settings.browserNotifications')}
+              description={t('settings.browserNotificationsDesc')}
               checked={config.notifyBrowser}
               onChange={v => update('notifyBrowser', v)}
             />
@@ -139,13 +137,13 @@ export function GeneralConfig() {
         </Card>
 
         {/* Language & Region */}
-        <Card icon={<Globe size={15} className="text-[#e9c176]" />} title="Language & Region">
-          <Label>Preferred language for the interface</Label>
+        <Card icon={<Globe size={15} className="text-[#e9c176]" />} title={t('settings.languageAndRegion')}>
+          <Label>{t('settings.languageAndRegionDesc')}</Label>
           <div className="mt-3">
             <SelectInput
               value={config.language}
-              onChange={v => update('language', v as string)}
-              options={LANGUAGES.map(l => ({ value: l.value, label: l.label }))}
+              onChange={v => update('language', v as LanguageCode)}
+              options={LANGUAGES.map(l => ({ value: l.code, label: l.label }))}
               isString
             />
           </div>
@@ -158,9 +156,9 @@ export function GeneralConfig() {
           style={{ background: saved ? 'rgba(34,197,94,0.15)' : '#722f37' }}
         >
           {saved ? (
-            <><Check size={14} className="text-green-400" /><span className="text-green-400">Saved!</span></>
+            <><Check size={14} className="text-green-400" /><span className="text-green-400">{t('settings.saved')}</span></>
           ) : (
-            <><Save size={14} /><span className="text-white">Save Changes</span></>
+            <><Save size={14} /><span className="text-white">{t('settings.saveChanges')}</span></>
           )}
         </button>
 

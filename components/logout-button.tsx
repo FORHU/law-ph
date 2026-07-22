@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { LogOut } from "lucide-react";
 import { LogoutConfirmationModal } from "./logout/logout-confirmation-modal";
 import { LogoutLoadingOverlay } from "./logout/logout-loading-overlay";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface LogoutButtonProps {
   className?: string;
@@ -28,6 +29,7 @@ export function LogoutButton({
   onMouseLeave,
 }: LogoutButtonProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -72,7 +74,7 @@ export function LogoutButton({
       onMouseLeave={onMouseLeave}
     >
       <LogOut className="mr-2 h-4 w-4" />
-      Logout
+      {t('auth.logout.logout')}
     </Button>
   );
 

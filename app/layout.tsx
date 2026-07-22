@@ -11,6 +11,7 @@ import { PersistentBackground } from "@/components/ui/persistent-background";
 import { PageTransition } from "@/components/ui/page-transition";
 import { PersistentSidebar } from "@/components/persistent-sidebar";
 import { AlertProvider } from "@/components/alert-provider";
+import { LanguageProvider } from "@/lib/i18n/language-provider";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -69,22 +70,24 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={<AuthLoading />}>
-            <AuthProvider initialUser={user}>
-              <AlertProvider>
-              <ConversationProvider>
-                <PersistentBackground />
-                <div className="flex h-screen h-[100dvh] w-full relative overflow-hidden bg-transparent">
-                  <PersistentSidebar />
-                  <div className="flex-1 flex flex-col relative h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
-                    <PageTransition>
-                      {children}
-                    </PageTransition>
+            <LanguageProvider>
+              <AuthProvider initialUser={user}>
+                <AlertProvider>
+                <ConversationProvider>
+                  <PersistentBackground />
+                  <div className="flex h-screen h-[100dvh] w-full relative overflow-hidden bg-transparent">
+                    <PersistentSidebar />
+                    <div className="flex-1 flex flex-col relative h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+                      <PageTransition>
+                        {children}
+                      </PageTransition>
+                    </div>
                   </div>
-                </div>
-                <GlobalRecorder />
-              </ConversationProvider>
-              </AlertProvider>
-            </AuthProvider>
+                  <GlobalRecorder />
+                </ConversationProvider>
+                </AlertProvider>
+              </AuthProvider>
+            </LanguageProvider>
           </Suspense>
         </ThemeProvider>
       </body>

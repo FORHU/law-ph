@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth/auth-provider';
+import { useTranslation } from '@/lib/i18n/language-provider';
 import { FileCheck, Search, Scale, ArrowRight, Shield } from 'lucide-react';
 
 interface CapabilitiesSectionProps {
@@ -13,6 +14,12 @@ interface CapabilitiesSectionProps {
 export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps) {
   const router = useRouter();
   const { loggedIn } = useAuth();
+  const { t, dict } = useTranslation();
+  const secondaryRoutes = ['/legal-library', '/cases'];
+  const secondaryIcons = [
+    { icon: <Search size={28} className="sm:hidden" />, iconSm: <Search size={36} className="hidden sm:block" /> },
+    { icon: <Scale size={28} className="sm:hidden" />, iconSm: <Scale size={36} className="hidden sm:block" /> },
+  ];
 
   const handleNav = (route: string) => {
     if (!loggedIn) {
@@ -37,12 +44,12 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-6 sm:mb-8 block">POWERFUL FEATURES</span>
+          <span className="text-gray-500 text-sm tracking-[0.4em] font-bold uppercase mb-6 sm:mb-8 block">{t('landing.capabilities.eyebrow')}</span>
           <h2 className="text-3xl sm:text-4xl lg:text-6xl font-serif text-white mb-4 sm:mb-8 leading-[1.1]">
-            Comprehensive Legal Capabilities
+            {t('landing.capabilities.heading')}
           </h2>
           <p className="text-on-surface/50 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto font-light leading-relaxed">
-            Empowering you with tools designed for the complexities of the Philippine legal system.
+            {t('landing.capabilities.description')}
           </p>
         </motion.div>
 
@@ -71,19 +78,14 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
               </motion.div>
 
               <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif text-white mb-4 sm:mb-6 lg:mb-8 leading-tight tracking-tight">
-                Document <span className="text-[#e9c176] italic">Review</span>
+                {t('landing.capabilities.documentReview.title')} <span className="text-[#e9c176] italic">{t('landing.capabilities.documentReview.titleAccent')}</span>
               </h3>
               <p className="text-base sm:text-lg lg:text-xl text-on-surface/70 leading-relaxed mb-6 sm:mb-8 lg:mb-10 font-light">
-                Analyze contracts and legal documents with AI-driven precision. Our system identifies potential legal risks and ensures compliance.
+                {t('landing.capabilities.documentReview.desc')}
               </p>
 
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-x-12 gap-y-3 sm:gap-y-4 lg:gap-y-6 mb-8 sm:mb-10 lg:mb-16">
-                {[
-                  'Contract analysis and risk assessment',
-                  'Compliance checking with PH regulations',
-                  'Clause-by-clause breakdown',
-                  'Automated redlining and suggestions'
-                ].map((item, idx) => (
+                {dict.landing.capabilities.documentReview.bullets.map((item, idx) => (
                   <motion.li
                     key={idx}
                     className="flex items-center gap-3 sm:gap-4 text-on-surface/60 text-sm sm:text-base lg:text-lg group/item"
@@ -104,7 +106,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 onClick={() => handleNav('/documents')}
                 className="bg-[#722f37] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-base sm:text-lg font-bold flex items-center gap-3 sm:gap-4 transition-all cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
               >
-                Try Document Review <ArrowRight size={20} />
+                {t('landing.capabilities.documentReview.cta')} <ArrowRight size={20} />
               </motion.button>
             </div>
 
@@ -133,7 +135,7 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
                 >
                   <div className="flex items-center gap-3 sm:gap-4 text-[10px] text-gray-500 mb-4 sm:mb-6 tracking-[0.2em] uppercase font-bold">
                     <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
-                    Analysis Complete
+                    {t('landing.capabilities.documentReview.analysisComplete')}
                   </div>
                   <div className="h-1.5 w-full bg-[#e9c176]/20 rounded-full mb-3 sm:mb-4" />
                   <div className="h-1.5 w-2/3 bg-[#e9c176]/20 rounded-full" />
@@ -151,34 +153,17 @@ export function CapabilitiesSection({ setActiveAngle }: CapabilitiesSectionProps
           viewport={{ once: true }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 mt-6 sm:mt-8 lg:mt-12"
         >
-          {[
-            {
-              icon: <Search size={28} className="sm:hidden" />,
-              iconSm: <Search size={36} className="hidden sm:block" />,
-              title: 'Legal', accent: 'Research',
-              desc: 'Access instant citations from Republic Acts and Batas Pambansa. Our AI instantly searches decades of legal documentation.',
-              cta: 'Start Research',
-              route: '/legal-library',
-            },
-            {
-              icon: <Scale size={28} className="sm:hidden" />,
-              iconSm: <Scale size={36} className="hidden sm:block" />,
-              title: 'Jurisprudential', accent: 'Archives',
-              desc: 'Simplify complex case law with AI-generated summaries of landmark SC decisions, making case law immediately accessible.',
-              cta: 'Browse Case Library',
-              route: '/cases',
-            },
-          ].map((card) => (
+          {dict.landing.capabilities.secondary.map((card, idx) => (
             <motion.div
               key={card.accent}
               variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.8 } } }}
               animate={{ backgroundColor: '#ffffff03' }}
               whileHover={{ y: -10, borderColor: '#e9c17666', backgroundColor: '#ffffff08' }}
-              onClick={() => handleNav(card.route)}
+              onClick={() => handleNav(secondaryRoutes[idx])}
               className="glass-panel p-8 sm:p-12 lg:p-20 rounded-[2rem] lg:rounded-[3rem] border border-white/5 group transition-all shadow-xl hover:shadow-2xl cursor-pointer bg-[#0B0B0C]/40 backdrop-blur-3xl"
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#722f37]/10 flex items-center justify-center mb-6 sm:mb-10 lg:mb-12 text-[#e9c176]/40 group-hover:text-[#e9c176] transition-all border border-[#722f37]/20 group-hover:border-[#e9c176]/30">
-                {card.icon}{card.iconSm}
+                {secondaryIcons[idx].icon}{secondaryIcons[idx].iconSm}
               </div>
               <h3 className="text-2xl sm:text-2xl lg:text-3xl font-serif text-white mb-3 sm:mb-4 lg:mb-6">
                 {card.title} <span className="text-[#e9c176] italic">{card.accent}</span>

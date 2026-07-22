@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import { COLORS } from "@/lib/constants";
 import { Portal } from "../portal";
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface LogoutConfirmationModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface LogoutConfirmationModalProps {
 }
 
 export function LogoutConfirmationModal({ onClose, onConfirm }: LogoutConfirmationModalProps) {
+  const { t } = useTranslation();
   return (
     <Portal>
       <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 overflow-hidden pointer-events-auto">
@@ -35,11 +37,11 @@ export function LogoutConfirmationModal({ onClose, onConfirm }: LogoutConfirmati
               <div className="p-3 rounded-xl" style={{ backgroundColor: `${COLORS.PRIMARY}22` }}>
                 <AlertCircle className="w-6 h-6" style={{ color: COLORS.PRIMARY }} />
               </div>
-              <h3 className="text-xl font-semibold text-white">Confirm Logout</h3>
+              <h3 className="text-xl font-semibold text-white">{t('auth.logout.confirmTitle')}</h3>
             </div>
-            
+
             <p className="text-gray-400 mb-8 leading-relaxed text-sm">
-              Are you sure you want to sign out? You'll need to login again to access your consultations and legal documents.
+              {t('auth.logout.confirmDesc')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -47,17 +49,17 @@ export function LogoutConfirmationModal({ onClose, onConfirm }: LogoutConfirmati
                 onClick={onClose}
                 className="flex-1 px-4 py-3 text-sm font-medium text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={onConfirm}
                 className="flex-1 px-4 py-3 text-sm font-medium text-white rounded-xl transition-all shadow-lg active:scale-95"
-                style={{ 
+                style={{
                   backgroundColor: COLORS.PRIMARY,
                   boxShadow: `0 10px 15px -3px ${COLORS.PRIMARY}44, 0 4px 6px -2px ${COLORS.PRIMARY}22`
                 }}
               >
-                Confirm Logout
+                {t('auth.logout.confirm')}
               </button>
             </div>
           </div>

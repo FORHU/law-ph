@@ -4,7 +4,6 @@
 import React, { useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { MessageSquare, Briefcase, X, PanelLeftClose, Bookmark, Mic, Library, Search } from 'lucide-react';
-import { BRAND } from '@/lib/constants';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarItem } from './sidebar/sidebar-item';
 import { SidebarNav } from './sidebar/sidebar-nav';
@@ -13,6 +12,7 @@ import { BookmarksModal } from './bookmarks-modal';
 import { SidebarProfile } from './sidebar/sidebar-profile';
 import { FileText, Calendar as CalendarIcon } from 'lucide-react';
 import { useConversations } from '@/components/conversation-provider/conversation-context';
+import { useTranslation } from '@/lib/i18n/language-provider';
 interface AppSidebarProps {
   activePage?: SidebarPage;
   recentItems?: RecentItem[];
@@ -29,7 +29,7 @@ export const AppSidebar = React.memo(function AppSidebar({
   activePage,
   recentItems = [],
   onNewItem,
-  recentLabel = 'RECENT',
+  recentLabel,
   isOpen = false,
   onClose,
   currentConsultationId,
@@ -37,6 +37,7 @@ export const AppSidebar = React.memo(function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Determine active page from pathname if not explicitly provided
   const resolvedActivePage: SidebarPage = activePage || (
@@ -77,14 +78,14 @@ export const AppSidebar = React.memo(function AppSidebar({
           onClick={() => router.push('/')}
           className="hover:opacity-80 transition-opacity flex items-center"
         >
-          <span className="font-serif italic lowercase text-2xl" style={{ color: '#e9c176' }}>{BRAND.NAME_PART1}</span>
-          <span className="font-serif text-white font-medium lowercase text-2xl">{BRAND.NAME_PART2}</span>
+          <span className="font-serif italic lowercase text-xl" style={{ color: '#e9c176' }}>{t('common.brand.part1')}</span>
+          <span className="font-serif text-white font-medium lowercase text-xl">{t('common.brand.part2')}</span>
         </button>
         {onClose && (
           <button
             onClick={onClose}
             className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-            title="Close Sidebar"
+            title={t('sidebar.closeSidebar')}
           >
             <PanelLeftClose size={18} />
           </button>
@@ -108,7 +109,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <MessageSquare size={16} className="transition-colors" />
-                <span className="text-xs font-medium">{currentConsultationId ? 'New Chat' : 'Chat'}</span>
+                <span className="text-xs font-medium">{currentConsultationId ? t('sidebar.newChat') : t('sidebar.chat')}</span>
               </button>
 
               <button
@@ -116,7 +117,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${(resolvedActivePage as string) === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Search size={16} className={(resolvedActivePage as string) === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search</span>
+                <span className="text-xs font-medium">{t('sidebar.search')}</span>
               </button>
 
               <button
@@ -124,7 +125,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'cases' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Briefcase size={16} className={resolvedActivePage === 'cases' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Cases</span>
+                <span className="text-xs font-medium">{t('sidebar.cases')}</span>
               </button>
 
               <button
@@ -132,7 +133,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'documents' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <FileText size={16} className={resolvedActivePage === 'documents' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Documents</span>
+                <span className="text-xs font-medium">{t('sidebar.documents')}</span>
               </button>
 
               <button
@@ -140,7 +141,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'transcribe' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Mic size={16} className={resolvedActivePage === 'transcribe' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Transcribe</span>
+                <span className="text-xs font-medium">{t('sidebar.transcribe')}</span>
               </button>
 
               <button
@@ -148,7 +149,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'calendar' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <CalendarIcon size={16} className={resolvedActivePage === 'calendar' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Calendar</span>
+                <span className="text-xs font-medium">{t('sidebar.calendar')}</span>
               </button>
 
               <button
@@ -156,7 +157,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Library size={16} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Library</span>
+                <span className="text-xs font-medium">{t('sidebar.library')}</span>
               </button>
 
               <button
@@ -164,7 +165,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'bookmarks' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Bookmark size={16} className={resolvedActivePage === 'bookmarks' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Bookmarks</span>
+                <span className="text-xs font-medium">{t('sidebar.bookmarks')}</span>
               </button>
             </>
           ) : (
@@ -180,7 +181,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'chat' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <MessageSquare size={16} className={resolvedActivePage === 'chat' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">{currentConsultationId ? 'New Chat' : 'Chat'}</span>
+                <span className="text-xs font-medium">{currentConsultationId ? t('sidebar.newChat') : t('sidebar.chat')}</span>
               </button>
 
               <button
@@ -188,7 +189,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'search' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Search size={16} className={resolvedActivePage === 'search' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Search</span>
+                <span className="text-xs font-medium">{t('sidebar.search')}</span>
               </button>
 
               <button
@@ -196,7 +197,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'cases' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Briefcase size={16} className={resolvedActivePage === 'cases' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Cases</span>
+                <span className="text-xs font-medium">{t('sidebar.cases')}</span>
               </button>
 
               <button
@@ -204,7 +205,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <FileText size={16} className="transition-colors" />
-                <span className="text-xs font-medium">Documents</span>
+                <span className="text-xs font-medium">{t('sidebar.documents')}</span>
               </button>
 
               <button
@@ -212,7 +213,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <Mic size={16} className="transition-colors" />
-                <span className="text-xs font-medium">Transcribe</span>
+                <span className="text-xs font-medium">{t('sidebar.transcribe')}</span>
               </button>
 
               <button
@@ -220,7 +221,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className="w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent"
               >
                 <CalendarIcon size={16} className="transition-colors" />
-                <span className="text-xs font-medium">Calendar</span>
+                <span className="text-xs font-medium">{t('sidebar.calendar')}</span>
               </button>
 
               <button
@@ -228,7 +229,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'library' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Library size={16} className={resolvedActivePage === 'library' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Library</span>
+                <span className="text-xs font-medium">{t('sidebar.library')}</span>
               </button>
 
               <button
@@ -236,7 +237,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 className={`w-full px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-2.5 ${resolvedActivePage === 'bookmarks' ? 'bg-[rgba(114,47,55,0.15)] text-white border border-[rgba(114,47,55,0.4)] shadow-[0_0_15px_rgba(114,47,55,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.05)] border border-transparent'}`}
               >
                 <Bookmark size={16} className={resolvedActivePage === 'bookmarks' ? 'text-[rgba(233,193,118,1)]' : 'transition-colors'} />
-                <span className="text-xs font-medium">Bookmarks</span>
+                <span className="text-xs font-medium">{t('sidebar.bookmarks')}</span>
               </button>
 
             </>
@@ -246,7 +247,7 @@ export const AppSidebar = React.memo(function AppSidebar({
         {/* Content Area (Recent) */}
         <div className={`${SIDEBAR_STYLES.contentArea} flex-shrink-0`}>
           <div className="mt-1 text-white">
-            <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 mb-2 px-2">{recentLabel}</h3>
+            <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 mb-2 px-2">{recentLabel ?? t('sidebar.recent')}</h3>
 
             {/* Tabs */}
             <div className="flex gap-1 mb-2 px-1">
@@ -260,7 +261,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                       : 'text-gray-600 hover:text-gray-400'
                   }`}
                 >
-                  {tab === 'consultation' ? 'Consultations' : 'Cases'}
+                  {tab === 'consultation' ? t('sidebar.consultations') : t('sidebar.cases_tab')}
                 </button>
               ))}
             </div>
@@ -269,7 +270,9 @@ export const AppSidebar = React.memo(function AppSidebar({
             {(() => {
               const filtered = recentItems.filter(i => (i.type ?? 'consultation') === recentTab);
               if (filtered.length === 0) return (
-                <p className="text-[10px] text-gray-600 px-2 py-2">No recent {recentTab === 'consultation' ? 'consultations' : 'cases'}.</p>
+                <p className="text-[10px] text-gray-600 px-2 py-2">
+                  {recentTab === 'consultation' ? t('sidebar.noRecentConsultations') : t('sidebar.noRecentCases')}
+                </p>
               );
               return (
                 <div className="space-y-0.5">

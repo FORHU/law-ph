@@ -3,35 +3,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Scale, ShieldCheck, ExternalLink } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface ResourcesSectionProps {
   setActiveAngle?: (angle: number) => void;
 }
 
 export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
-  const resources = [
-    {
-      title: 'Official Gazette',
-      desc: 'The official journal of the Republic of the Philippines featuring newly enacted laws, executive orders, and proclamations.',
-      badge: 'OFFICIAL',
-      icon: <FileText className="w-6 h-6 sm:w-8 sm:h-8" />,
-      url: 'https://www.officialgazette.gov.ph/'
-    },
-    {
-      title: 'Integrated Bar of the Philippines',
-      desc: 'Find accredited lawyers, legal resources, and information about the Philippine legal profession.',
-      badge: 'PROFESSIONAL',
-      icon: <Scale className="w-6 h-6 sm:w-8 sm:h-8" />,
-      url: 'https://ibp.ph/'
-    },
-    {
-      title: 'Security and Exchange Commission',
-      desc: 'Responsible for the oversight and regulation of the financial services industry within the Philippines.',
-      badge: 'OFFICIAL',
-      icon: <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8" />,
-      url: 'https://www.sec.gov.ph/'
-    },
+  const { t, dict } = useTranslation();
+  const resourceMeta = [
+    { icon: <FileText className="w-6 h-6 sm:w-8 sm:h-8" />, url: 'https://www.officialgazette.gov.ph/' },
+    { icon: <Scale className="w-6 h-6 sm:w-8 sm:h-8" />, url: 'https://ibp.ph/' },
+    { icon: <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8" />, url: 'https://www.sec.gov.ph/' },
   ];
+  const resources = dict.landing.resources.items.map((item, idx) => ({ ...item, ...resourceMeta[idx] }));
 
   return (
     <section
@@ -47,13 +32,13 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
           className="mb-8 sm:mb-16 lg:mb-24"
         >
           <span className="px-4 sm:px-6 py-2 bg-[#722f37]/10 border border-[#722f37]/20 text-[#e9c176] text-[10px] font-bold tracking-[0.4em] uppercase rounded-full mb-6 sm:mb-10 inline-block">
-            Citizen Archives
+            {t('landing.resources.badge')}
           </span>
           <h2 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-serif text-white mb-4 sm:mb-6 lg:mb-8 leading-tight">
-            Legal <span className="text-[#e9c176] italic">Resources</span>
+            {t('landing.resources.heading')} <span className="text-[#e9c176] italic">{t('landing.resources.headingAccent')}</span>
           </h2>
           <p className="text-on-surface/50 text-base sm:text-lg lg:text-xl xl:text-2xl max-w-3xl font-light leading-relaxed">
-            Direct access to official government portals and verified legal assistance programs in the Philippines.
+            {t('landing.resources.description')}
           </p>
         </motion.div>
 
@@ -84,7 +69,7 @@ export function ResourcesSection({ setActiveAngle }: ResourcesSectionProps) {
                 {item.desc}
               </p>
               <button className="text-[#e9c176] font-bold flex items-center gap-2 sm:gap-3 group-hover:gap-4 sm:group-hover:gap-5 transition-all uppercase tracking-widest text-[11px]">
-                Access Portal <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
+                {t('landing.resources.accessPortal')} <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </motion.div>
           ))}

@@ -6,6 +6,8 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, ASSETS } from '@/lib/constants';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n/language-provider';
+import { languages, type LanguageCode } from '@/lib/i18n/languages';
 
 import { HeroSection } from './landing/hero-section';
 import { WhyChooseSection } from './landing/why-choose-section';
@@ -17,20 +19,21 @@ import { FAQSection } from './faq-section';
 import { ResourcesSection } from './resources-section';
 import { Footer } from './footer-default';
 
-const NAV_LINKS = [
-  { label: 'Why Choose', id: 'why-choose' },
-  { label: 'How It Works', id: 'how-it-works' },
-  { label: 'Capabilities', id: 'capabilities' },
-  { label: 'Resources', id: 'resources' },
-  { label: 'FAQ', id: 'faq' },
-];
-
 export function OnboardingPage() {
   const router = useRouter();
   const { loggedIn } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
   const [activeAngle, setActiveAngle] = useState(1);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const NAV_LINKS = [
+    { label: t('landing.nav.whyChoose'), id: 'why-choose' },
+    { label: t('landing.nav.howItWorks'), id: 'how-it-works' },
+    { label: t('landing.nav.capabilities'), id: 'capabilities' },
+    { label: t('landing.nav.resources'), id: 'resources' },
+    { label: t('landing.nav.faq'), id: 'faq' },
+  ];
 
   const getAngleImage = (angle: number) => {
     switch (angle) {
@@ -73,8 +76,8 @@ export function OnboardingPage() {
           className="antialiased cursor-pointer flex items-center shrink-0"
           onClick={() => router.push('/')}
         >
-          <span className="font-serif italic lowercase text-2xl sm:text-3xl" style={{ color: COLORS.SECONDARY }}>ilove</span>
-          <span className="font-serif text-white font-medium lowercase text-2xl sm:text-3xl">lawyer</span>
+          <span className="font-serif italic lowercase text-xl sm:text-2xl" style={{ color: COLORS.SECONDARY }}>{t('common.brand.part1')}</span>
+          <span className="font-serif text-white font-medium lowercase text-xl sm:text-2xl">{t('common.brand.part2')}</span>
         </motion.span>
 
         {/* Desktop nav */}
@@ -89,6 +92,19 @@ export function OnboardingPage() {
               <span className="absolute -bottom-2 left-0 w-0 h-0.5 bg-secondary transition-all group-hover:w-full" />
             </button>
           ))}
+          <div className="flex items-center gap-1 border border-white/10 rounded-full p-1">
+            {languages.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLanguage(l.code as LanguageCode)}
+                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                  language === l.code ? 'bg-[#722f37] text-white' : 'text-on-surface/40 hover:text-white'
+                }`}
+              >
+                {l.code}
+              </button>
+            ))}
+          </div>
         </nav>
 
         {/* Mobile hamburger */}
@@ -121,6 +137,21 @@ export function OnboardingPage() {
                   {tab.label}
                 </button>
               ))}
+              <div className="flex items-center gap-2 pt-3">
+                {languages.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => setLanguage(l.code as LanguageCode)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all cursor-pointer border ${
+                      language === l.code
+                        ? 'bg-[#722f37] text-white border-[#722f37]'
+                        : 'text-gray-400 border-white/10 hover:text-white'
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
             </nav>
           </motion.div>
         )}

@@ -4,6 +4,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { NAV_ITEMS, SIDEBAR_STYLES, SidebarPage } from './sidebar-constants';
+import { useTranslation } from '@/lib/i18n/language-provider';
 
 interface SidebarNavProps {
   activePage: SidebarPage;
@@ -11,6 +12,7 @@ interface SidebarNavProps {
 
 export function SidebarNav({ activePage }: SidebarNavProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const showChatTab = activePage === 'documents' || activePage === 'calendar';
 
   return (
@@ -27,7 +29,7 @@ export function SidebarNav({ activePage }: SidebarNavProps) {
               }`}
           >
             <Icon size={18} />
-            <span className="text-sm font-medium">{item.label}</span>
+            <span className="text-sm font-medium">{t('sidebar.chat')}</span>
           </button>
         );
       })}
